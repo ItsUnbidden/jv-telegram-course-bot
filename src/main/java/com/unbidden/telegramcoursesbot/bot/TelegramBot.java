@@ -6,6 +6,7 @@ import com.unbidden.telegramcoursesbot.repository.UserRepository;
 import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
+import com.unbidden.telegramcoursesbot.service.session.SessionService;
 
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
@@ -57,6 +58,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private SessionService sessionService;
+
     public TelegramBot(@Autowired DefaultBotOptions botOptions,
             @Value("${telegram.bot.authorization.token}") String token) {
         super(botOptions, token);
@@ -100,12 +104,19 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         if (update.hasPreCheckoutQuery()) {
             paymentService.resolvePreCheckout(update.getPreCheckoutQuery());
+            return;
         }
         if (update.hasMessage() && update.getMessage().hasSuccessfulPayment()) {
             paymentService.resolveSuccessfulPayment(update.getMessage());
+            return;
         }
         if (update.hasCallbackQuery()) {
             menuService.processCallbackQuery(update.getCallbackQuery());
+            return;
+        }
+        if (update.hasMessage()) {
+            sessionService.processResponse(update.getMessage());
+            return;
         }
     }
 
