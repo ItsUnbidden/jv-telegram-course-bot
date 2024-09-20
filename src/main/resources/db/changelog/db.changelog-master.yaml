@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - include:
+      file: /db/changelog/changes/01-create-users-table.yaml
+  - include:
+      file: /db/changelog/changes/02-create-homework-table.yaml
+  - include:
+      file: /db/changelog/changes/03-create-courses-table.yaml
+  - include:
+      file: /db/changelog/changes/04-create-lessons-table.yaml
+  - include:
+      file: /db/changelog/changes/05-create-payment-details-table.yaml
+  - include:
+      file: /db/changelog/changes/06-create-videos-table.yaml
+  - include:
+      file: /db/changelog/changes/07-insert-test-course.yaml

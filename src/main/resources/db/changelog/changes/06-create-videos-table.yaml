@@ -1,0 +1,43 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-videos-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: videos
+            columns: 
+              - column:
+                  name: unique_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+              - column:
+                  name: duration
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: size
+                  type: bigint
+              - column:
+                  name: height
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: width
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mime_type
+                  type: varchar(255)
