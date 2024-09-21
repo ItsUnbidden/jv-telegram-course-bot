@@ -1,12 +1,12 @@
 package com.unbidden.telegramcoursesbot.service.payment;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
-import com.unbidden.telegramcoursesbot.dao.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.CourseModel;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
 import com.unbidden.telegramcoursesbot.repository.PaymentDetailsRepository;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.util.Photo;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
 import java.util.List;
@@ -62,20 +62,20 @@ public class PaymentServiceImpl implements PaymentService {
     public void sendInvoice(User user, String courseName) {
         final CourseModel course = courseRepository.findByName(courseName).get();
         final Photo photo = textUtil.parsePhoto(localizationLoader
-                .getTextByNameForUser(course.getLocFilePhotoName() + "invoice", user));
+                .getLocTextForUser(course.getLocFilePhotoName() + "invoice", user));
 
         SendInvoice sendInvoice = SendInvoice.builder()
                 .chatId(user.getId())
-                .title(localizationLoader.getTextByNameForUser(course.getLocFileInvoiceName()
+                .title(localizationLoader.getLocTextForUser(course.getLocFileInvoiceName()
                     + "title", user))
-                .description(localizationLoader.getTextByNameForUser(
+                .description(localizationLoader.getLocTextForUser(
                     course.getLocFileInvoiceName() + "description", user))
                 .payload(course.getName())
                 .providerToken(PROVIDER_TOKEN)
                 .currency(DEFAULT_CURRENCY)
                 .price(LabeledPrice.builder()
                     .amount(course.getPrice())
-                    .label(localizationLoader.getTextByNameForUser(
+                    .label(localizationLoader.getLocTextForUser(
                         course.getLocFileInvoiceName() + "labeled_price", user))
                     .build())
                 .startParameter(course.getName())
@@ -106,7 +106,7 @@ public class PaymentServiceImpl implements PaymentService {
         Optional<CourseModel> courseOpt = courseRepository.findByName(
                 preCheckoutQuery.getInvoicePayload());
         if (courseOpt.isEmpty()) {
-            answerBuilder.errorMessage(localizationLoader.getTextByNameForUser(
+            answerBuilder.errorMessage(localizationLoader.getLocTextForUser(
                     "error_precheckout_unknown_course", user));
             LOGGER.error("Precheckout query payload contained unknown course: "
                     + preCheckoutQuery.getInvoicePayload() + ". Investigation required. User "
@@ -127,20 +127,20 @@ public class PaymentServiceImpl implements PaymentService {
                 + " by user " + user.getId() + ".");
         
         if (isAvailable(user, course.getName())) {
-            answerBuilder.errorMessage(localizationLoader.getTextByNameForUser(
+            answerBuilder.errorMessage(localizationLoader.getLocTextForUser(
                     course.getLocFileErrorName()
                     + "pre_checkout_course_already_present", user));
             LOGGER.warn("Precheckout failed: user " + user.getId()
                     + " already has this course.");
             
         } else if (!preCheckoutQuery.getCurrency().equals(DEFAULT_CURRENCY)) {
-            answerBuilder.errorMessage(localizationLoader.getTextByNameForUser(
+            answerBuilder.errorMessage(localizationLoader.getLocTextForUser(
                     course.getLocFileErrorName()
                     + "pre_checkout_currency_mismatch", user));
             LOGGER.error("Precheckout failed: currency mismatch. Investigation required. "
                     + "User: " + user.getId() + ", course: " + course.getName());
         } else if (preCheckoutQuery.getTotalAmount() != course.getPrice()) {
-            answerBuilder.errorMessage(localizationLoader.getTextByNameForUser(
+            answerBuilder.errorMessage(localizationLoader.getLocTextForUser(
                     course.getLocFileErrorName()
                     + "pre_checkout_price_mismatch", user));
             LOGGER.error("Precheckout failed: price mismatch. Investigation required. "
@@ -183,7 +183,7 @@ public class PaymentServiceImpl implements PaymentService {
             paymentDetailsRepository.save(paymentDetails);
             SendMessage sendMessage = SendMessage.builder()
                     .chatId(user.getId())
-                    .text(localizationLoader.getTextByNameForUser(
+                    .text(localizationLoader.getLocTextForUser(
                         "error_payment_unknown_course", user))
                     .build();
             bot.sendMessage(sendMessage);
@@ -203,7 +203,7 @@ public class PaymentServiceImpl implements PaymentService {
         LOGGER.info("Payment details saved.");
         SendMessage sendMessage = SendMessage.builder()
                 .chatId(user.getId())
-                .text(localizationLoader.getTextByNameForUser("message_successful_payment", user))
+                .text(localizationLoader.getLocTextForUser("message_successful_payment", user))
                 .build();
         bot.sendMessage(sendMessage);
     }

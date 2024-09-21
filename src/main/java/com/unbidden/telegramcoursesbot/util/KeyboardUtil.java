@@ -2,7 +2,6 @@ package com.unbidden.telegramcoursesbot.util;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
@@ -10,8 +9,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 
 @Component
 public class KeyboardUtil {
-    private static final Integer MENU_SIZE = 10;
-
     public List<KeyboardRow> getKeyboard(List<KeyboardButton> buttons) {
         return null;
     }

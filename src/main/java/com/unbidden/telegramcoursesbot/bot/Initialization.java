@@ -1,6 +1,5 @@
 package com.unbidden.telegramcoursesbot.bot;
 
-import com.unbidden.telegramcoursesbot.dao.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
 import com.unbidden.telegramcoursesbot.repository.MenuRepository;
 import com.unbidden.telegramcoursesbot.service.button.handler.CoursePriceChangeButtonHandler;
@@ -12,6 +11,7 @@ import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.TransitoryButton;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.Type;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
@@ -44,26 +44,26 @@ public class Initialization implements ApplicationRunner {
         Page firstPage = new Page();
         firstPage.setPageIndex(0);
         firstPage.setType(Type.TRANSITORY);
-        firstPage.setTextFunction((u) -> localizationLoader.getTextByNameForUser(
+        firstPage.setTextFunction((u) -> localizationLoader.getLocTextForUser(
             "message_course_settings_page_0", u));
         firstPage.setMenu(menu);
         firstPage.setButtonsFunction((u) -> courseRepository.findAll().stream()
             .map(cm -> (Button)new TransitoryButton(localizationLoader
-                .getTextByNameForUser(cm.getLocFileCourseName(), u), cm.getName()))
+                .getLocTextForUser(cm.getLocFileCourseName(), u), cm.getName()))
             .toList());
 
         Page secondPage = new Page();
         secondPage.setPageIndex(1);
         secondPage.setType(Type.TERMINAL);
-        secondPage.setTextFunction((u) -> localizationLoader.getTextByNameForUser(
+        secondPage.setTextFunction((u) -> localizationLoader.getLocTextForUser(
             "message_course_settings_page_1", u));
         secondPage.setMenu(menu);
         secondPage.setButtonsFunction((u) -> List.of(new TerminalButton(
-            localizationLoader.getTextByNameForUser("button_course_price_change", u),
+            localizationLoader.getLocTextForUser("button_course_price_change", u),
             "prCh", priceChangeHandler), new TerminalButton(
-            localizationLoader.getTextByNameForUser("button_course_feedback", u),
+            localizationLoader.getLocTextForUser("button_course_feedback", u),
             "fb", feedbackHandler), new TerminalButton(
-            localizationLoader.getTextByNameForUser("button_course_homework", u),
+            localizationLoader.getLocTextForUser("button_course_homework", u),
             "hw", homeworkHandler)));
 
         menu.setName("m_crsOpt");

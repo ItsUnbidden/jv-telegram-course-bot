@@ -1,13 +1,12 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
-import com.unbidden.telegramcoursesbot.dao.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.User;
 import com.unbidden.telegramcoursesbot.repository.UserRepository;
 import com.unbidden.telegramcoursesbot.service.course.CourseFlow;
 import com.unbidden.telegramcoursesbot.service.course.CourseServiceSupplier;
-
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import java.util.Arrays;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +24,7 @@ public class StartCommandHandler implements CommandHandler {
 
     private final UserRepository userRepository;
 
-    private final LocalizationLoader textLoader;
+    private final LocalizationLoader localizationLoader;
 
     private final TelegramBot bot;
 
@@ -45,15 +44,10 @@ public class StartCommandHandler implements CommandHandler {
             userRepository.save(mappedUser);
             LOGGER.info("User has been saved to DB.");
         }
-
-        SendMessage sendMessage = SendMessage.builder()
-                .chatId(user.getId())
-                .text(textLoader.getTextByNameForUser("message_start", user))
-                .build();
         
         try {
             LOGGER.info("Sending /start message to user " + user.getId() + "...");
-            bot.execute(sendMessage);
+            bot.execute(localizationLoader.getSendMessage("message_start", user));
             LOGGER.info("Message sent.");
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to send the start message to user "

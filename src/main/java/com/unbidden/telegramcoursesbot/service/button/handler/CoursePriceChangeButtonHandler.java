@@ -1,10 +1,16 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
-import com.unbidden.telegramcoursesbot.dao.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.CourseModel;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.SessionService;
+import com.unbidden.telegramcoursesbot.util.TextUtil;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,10 +35,15 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
     @Override
     public void handle(String[] params, User user) {
         final CourseModel course = courseRepository.findByName(params[0]).get();
+        final Map<String, Object> messageParams = new HashMap<>();
+        
+        messageParams.put("${courseName}", course.getName());
+        messageParams.put("${currentPrice}", course.getPrice());
+
         LOGGER.info("Course price change handler was triggered. Current value is: "
                 + course.getPrice() + ".");
         sessionService.createSession(user, (m) -> {
-            String response = localizationLoader.getTextByNameForUser(
+            String response = localizationLoader.getLocTextForUser(
                 "error_new_price_cannot_parse", user);
             if (m.hasText()) {
                 try {
@@ -42,8 +53,8 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
                     course.setPrice(newPrice);
                     courseRepository.save(course);
                     LOGGER.info("New price saved.");
-                    response = localizationLoader.getTextByNameForUser(
-                            "message_course_price_update_success", user);
+                    response = localizationLoader.getLocTextForUser(
+                            "message_course_price_update_success", user, messageParams);
                 } catch (NumberFormatException e) {
                     LOGGER.warn("Unable to parse new price provided by the user.");
                 }
@@ -55,5 +66,10 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
                         .text(response)
                         .build());
         });
+        bot.sendMessage(SendMessage.builder()
+                .chatId(user.getId())
+                .text(localizationLoader.getLocTextForUser(
+                    "message_course_price_update_request", user, messageParams))
+                .build());
     }
 }

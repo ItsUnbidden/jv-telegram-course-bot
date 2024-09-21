@@ -1,8 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
-import com.unbidden.telegramcoursesbot.dao.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,7 +16,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 public class TermsCommandHandler implements CommandHandler {
     private static final Logger LOGGER = LogManager.getLogger(TermsCommandHandler.class);
 
-    private final LocalizationLoader textLoader;
+    private final LocalizationLoader localizationLoader;
 
     private final TelegramBot bot;
 
@@ -24,7 +24,7 @@ public class TermsCommandHandler implements CommandHandler {
     public void handle(Message message, String[] commandParts) {
         SendMessage sendMessage = SendMessage.builder()
                 .chatId(message.getChatId())
-                .text(textLoader.getTextByNameForUser("message_terms",
+                .text(localizationLoader.getLocTextForUser("message_terms",
                     message.getFrom()))
                 .build();
 

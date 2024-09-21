@@ -1,10 +1,10 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
-import com.unbidden.telegramcoursesbot.dao.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.CourseModel;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
@@ -20,7 +20,7 @@ public abstract class AbstractCourse implements CourseFlow {
 
     protected final PaymentService paymentService;
 
-    protected final LocalizationLoader textLoader;
+    protected final LocalizationLoader localizationLoader;
 
     protected final TelegramBot bot;
 
@@ -28,11 +28,11 @@ public abstract class AbstractCourse implements CourseFlow {
 
     private final String courseName;
 
-    public AbstractCourse(PaymentService paymentService, LocalizationLoader textLoader,
+    public AbstractCourse(PaymentService paymentService, LocalizationLoader localizationLoader,
             TelegramBot bot, CourseRepository courseRepository,
             Logger logger, String courseName) {
         this.paymentService = paymentService;
-        this.textLoader = textLoader;
+        this.localizationLoader = localizationLoader;
         this.bot = bot;
         this.courseRepository = courseRepository;
         this.logger = logger;
@@ -55,12 +55,12 @@ public abstract class AbstractCourse implements CourseFlow {
                 + ". Sending initial message...");
         InlineKeyboardButton button = InlineKeyboardButton.builder()
                 .callbackData(course.getLocFileButtonName() + "begin")
-                .text(textLoader.getTextByNameForUser(
+                .text(localizationLoader.getLocTextForUser(
                     course.getLocFileButtonName() + "begin", user))
                 .build();
         SendMessage sendMessage = SendMessage.builder()
                 .chatId(user.getId())
-                .text(textLoader.getTextByNameForUser(course.getLocFileMessageName()
+                .text(localizationLoader.getLocTextForUser(course.getLocFileMessageName()
                     + "initMessage", user))
                 .replyMarkup(InlineKeyboardMarkup.builder().keyboardRow(List.of(button)).build())
                 .build();

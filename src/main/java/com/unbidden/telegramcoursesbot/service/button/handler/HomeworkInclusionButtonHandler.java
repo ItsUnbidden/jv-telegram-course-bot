@@ -1,9 +1,11 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
-import com.unbidden.telegramcoursesbot.dao.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.CourseModel;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,12 +33,15 @@ public class HomeworkInclusionButtonHandler implements ButtonHandler {
 
         course.setHomeworkIncluded(!course.isHomeworkIncluded());
         courseRepository.save(course);
+
+        Map<String, Object> messageParams = new HashMap<>();
+        messageParams.put("${status}", (course.isHomeworkIncluded()) ? "ENABLED" : "DISABLED");
+        messageParams.put("${courseName}", course.getName());
         LOGGER.info("Value has been changed to: " + course.isHomeworkIncluded() + ".");
         bot.sendMessage(SendMessage.builder()
                 .chatId(user.getId())
-                .text(localizationLoader.getTextByNameForUser(
-                    "message_course_homework_update_successful", user)
-                    + course.isHomeworkIncluded())
+                .text(localizationLoader.getLocTextForUser(
+                    "message_course_homework_update_successful", user, messageParams))
                 .build());
     }
 }
