@@ -15,8 +15,6 @@ databaseChangeLog:
               - column:
                   name: username
                   type: varchar(255)
-                  constraints:
-                    nullable: false
               - column:
                   name: first_name
                   type: varchar(255)
@@ -25,10 +23,16 @@ databaseChangeLog:
               - column:
                   name: last_name
                   type: varchar(255)
-                  constraints:
-                    nullable: false
               - column:
                   name: language_code
                   type: varchar(255)
+              - column:
+                  name: is_bot
+                  type: boolean
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_banned
+                  type: boolean
                   constraints:
                     nullable: false

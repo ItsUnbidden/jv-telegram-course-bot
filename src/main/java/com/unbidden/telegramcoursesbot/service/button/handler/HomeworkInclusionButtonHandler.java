@@ -4,6 +4,7 @@ import com.unbidden.telegramcoursesbot.bot.TelegramBot;
 import com.unbidden.telegramcoursesbot.model.CourseModel;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.util.Blockable;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class HomeworkInclusionButtonHandler implements ButtonHandler {
     private final TelegramBot bot;
 
     @Override
+    @Blockable
     public void handle(String[] params, User user) {
         final CourseModel course = courseRepository.findByName(params[0]).get();
         LOGGER.info("Homework inclusion handler was triggered. Current value is: "

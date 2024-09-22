@@ -5,12 +5,9 @@ import com.unbidden.telegramcoursesbot.model.CourseModel;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.SessionService;
-import com.unbidden.telegramcoursesbot.util.TextUtil;
-
+import com.unbidden.telegramcoursesbot.util.Blockable;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,6 +30,7 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
     private final LocalizationLoader localizationLoader;
 
     @Override
+    @Blockable
     public void handle(String[] params, User user) {
         final CourseModel course = courseRepository.findByName(params[0]).get();
         final Map<String, Object> messageParams = new HashMap<>();

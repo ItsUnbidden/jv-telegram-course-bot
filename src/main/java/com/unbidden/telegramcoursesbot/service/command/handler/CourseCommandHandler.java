@@ -1,6 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.service.course.CourseFlow;
+import com.unbidden.telegramcoursesbot.util.Blockable;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -17,6 +19,7 @@ public class CourseCommandHandler implements CommandHandler {
     private final CourseFlow course;
 
     @Override
+    @Blockable
     public void handle(Message message, String[] commandParts) {
         course.initMessage(message.getFrom());
     }

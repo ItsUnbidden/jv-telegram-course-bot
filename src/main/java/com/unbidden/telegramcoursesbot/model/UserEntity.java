@@ -9,27 +9,30 @@ import lombok.Data;
 @Entity
 @Table(name = "users")
 @Data
-public class User {
+public class UserEntity {
     @Id
     private Long id;
 
     @Column(nullable = false)
     private String firstName;
     
-    @Column(nullable = false)
     private String lastName;
     
-    @Column(nullable = false)
     private String username;
     
-    @Column(nullable = false)
     private String languageCode;
 
-    public User() {
+    @Column(nullable = false)
+    private boolean isBot;
+
+    @Column(nullable = false)
+    private boolean isBanned;
+
+    public UserEntity() {
         
     }
 
-    public User(org.telegram.telegrambots.meta.api.objects.User telegramUser) {
+    public UserEntity(org.telegram.telegrambots.meta.api.objects.User telegramUser) {
         this.setId(telegramUser.getId());
         this.setFirstName(telegramUser.getFirstName());
         this.setLastName(telegramUser.getLastName());

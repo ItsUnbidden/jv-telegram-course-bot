@@ -3,6 +3,8 @@ package com.unbidden.telegramcoursesbot.service.command.handler;
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.util.Blockable;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,6 +23,7 @@ public class TermsCommandHandler implements CommandHandler {
     private final TelegramBot bot;
 
     @Override
+    @Blockable
     public void handle(Message message, String[] commandParts) {
         SendMessage sendMessage = SendMessage.builder()
                 .chatId(message.getChatId())

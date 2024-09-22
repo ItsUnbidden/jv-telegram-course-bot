@@ -2,18 +2,18 @@ package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
-import com.unbidden.telegramcoursesbot.model.User;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.UserRepository;
 import com.unbidden.telegramcoursesbot.service.course.CourseFlow;
 import com.unbidden.telegramcoursesbot.service.course.CourseServiceSupplier;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.util.Blockable;
 import java.util.Arrays;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -31,12 +31,13 @@ public class StartCommandHandler implements CommandHandler {
     private final CourseServiceSupplier courseServiceSupplier;
 
     @Override
+    @Blockable
     public void handle(Message message, String[] commandParts) {
         final org.telegram.telegrambots.meta.api.objects.User user =
                 message.getFrom();
-        final User mappedUser = new User(user);
+        final UserEntity mappedUser = new UserEntity(user);
         
-        Optional<User> userFromDbOpt = userRepository.findById(user.getId());
+        Optional<UserEntity> userFromDbOpt = userRepository.findById(user.getId());
         
         if (userFromDbOpt.isEmpty() || !userFromDbOpt.get().equals(mappedUser)) {
             LOGGER.info("User " + user.getId()

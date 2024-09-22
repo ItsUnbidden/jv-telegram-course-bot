@@ -168,7 +168,7 @@ public class PaymentServiceImpl implements PaymentService {
         final SuccessfulPayment payment = message.getSuccessfulPayment();
 
         paymentDetails.setTelegramPaymentChargeId(payment.getTelegramPaymentChargeId());
-        paymentDetails.setUser(new com.unbidden.telegramcoursesbot.model.User(user));
+        paymentDetails.setUser(new com.unbidden.telegramcoursesbot.model.UserEntity(user));
         paymentDetails.setTotalAmount(payment.getTotalAmount());
 
         Optional<CourseModel> courseOpt = courseRepository.findByName(
