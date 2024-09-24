@@ -1,15 +1,23 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
+import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
 @Component
+@RequiredArgsConstructor
 public class RefreshCommandHandler implements CommandHandler {
+    private final TelegramBot bot;
+
+    private final LocalizationLoader localizationLoader;
 
     @Override
     public void handle(Message message, String[] commandParts) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'handle'");
+        localizationLoader.reloadResourses();
+        bot.sendMessage(localizationLoader.getSendMessage("service_refresh_success",
+                message.getFrom()));
     }
 
     @Override

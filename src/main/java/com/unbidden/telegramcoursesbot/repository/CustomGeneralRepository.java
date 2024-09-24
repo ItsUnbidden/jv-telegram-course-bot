@@ -5,8 +5,8 @@ import org.springframework.lang.NonNull;
 
 public interface CustomGeneralRepository<T> {
     @NonNull
-    T save(@NonNull T menu);
+    T save(@NonNull T type);
 
     @NonNull
-    Optional<T> find(@NonNull String menuName);
+    Optional<T> find(@NonNull String id);
 }

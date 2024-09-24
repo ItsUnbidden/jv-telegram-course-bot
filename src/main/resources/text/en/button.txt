@@ -1,0 +1,9 @@
+<test1>
+Test button 1 en localization
+New line \< \>
+
+Skipped line above
+<test1/>
+
+<test2>Test button 2 en localization
+^^~~**Another line**~~^^<test2/>
