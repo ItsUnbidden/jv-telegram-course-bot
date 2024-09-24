@@ -62,21 +62,21 @@ public class PaymentServiceImpl implements PaymentService {
     public void sendInvoice(User user, String courseName) {
         final CourseModel course = courseRepository.findByName(courseName).get();
         final Photo photo = textUtil.parsePhoto(localizationLoader
-                .getLocTextForUser(course.getLocFilePhotoName() + "invoice", user));
+                .getLocalizationForUser(course.getLocFilePhotoName() + "invoice", user)
+                .getData());
 
         SendInvoice sendInvoice = SendInvoice.builder()
                 .chatId(user.getId())
-                .title(localizationLoader.getLocTextForUser(course.getLocFileInvoiceName()
-                    + "title", user))
-                .description(localizationLoader.getLocTextForUser(
-                    course.getLocFileInvoiceName() + "description", user))
+                .title(localizationLoader.getLocalizationForUser(course.getLocFileInvoiceName()
+                    + "title", user).getData())
+                .description(localizationLoader.getLocalizationForUser(
+                    course.getLocFileInvoiceName() + "description", user).getData())
                 .payload(course.getName())
                 .providerToken(PROVIDER_TOKEN)
                 .currency(DEFAULT_CURRENCY)
                 .price(LabeledPrice.builder()
                     .amount(course.getPrice())
-                    .label(localizationLoader.getLocTextForUser(
-                        course.getLocFileInvoiceName() + "labeled_price", user))
+                    .label("labeled_price")
                     .build())
                 .startParameter(course.getName())
                 .photoUrl(photo.getUrl())
@@ -106,8 +106,8 @@ public class PaymentServiceImpl implements PaymentService {
         Optional<CourseModel> courseOpt = courseRepository.findByName(
                 preCheckoutQuery.getInvoicePayload());
         if (courseOpt.isEmpty()) {
-            answerBuilder.errorMessage(localizationLoader.getLocTextForUser(
-                    "error_precheckout_unknown_course", user));
+            answerBuilder.errorMessage(localizationLoader.getLocalizationForUser(
+                    "error_precheckout_unknown_course", user).getData());
             LOGGER.error("Precheckout query payload contained unknown course: "
                     + preCheckoutQuery.getInvoicePayload() + ". Investigation required. User "
                     + user.getId());
@@ -127,22 +127,22 @@ public class PaymentServiceImpl implements PaymentService {
                 + " by user " + user.getId() + ".");
         
         if (isAvailable(user, course.getName())) {
-            answerBuilder.errorMessage(localizationLoader.getLocTextForUser(
+            answerBuilder.errorMessage(localizationLoader.getLocalizationForUser(
                     course.getLocFileErrorName()
-                    + "pre_checkout_course_already_present", user));
+                    + "pre_checkout_course_already_present", user).getData());
             LOGGER.warn("Precheckout failed: user " + user.getId()
                     + " already has this course.");
             
         } else if (!preCheckoutQuery.getCurrency().equals(DEFAULT_CURRENCY)) {
-            answerBuilder.errorMessage(localizationLoader.getLocTextForUser(
+            answerBuilder.errorMessage(localizationLoader.getLocalizationForUser(
                     course.getLocFileErrorName()
-                    + "pre_checkout_currency_mismatch", user));
+                    + "pre_checkout_currency_mismatch", user).getData());
             LOGGER.error("Precheckout failed: currency mismatch. Investigation required. "
                     + "User: " + user.getId() + ", course: " + course.getName());
         } else if (preCheckoutQuery.getTotalAmount() != course.getPrice()) {
-            answerBuilder.errorMessage(localizationLoader.getLocTextForUser(
+            answerBuilder.errorMessage(localizationLoader.getLocalizationForUser(
                     course.getLocFileErrorName()
-                    + "pre_checkout_price_mismatch", user));
+                    + "pre_checkout_price_mismatch", user).getData());
             LOGGER.error("Precheckout failed: price mismatch. Investigation required. "
                     + "User: " + user.getId() + ", course: " + course.getName());
         } else {
@@ -183,8 +183,8 @@ public class PaymentServiceImpl implements PaymentService {
             paymentDetailsRepository.save(paymentDetails);
             SendMessage sendMessage = SendMessage.builder()
                     .chatId(user.getId())
-                    .text(localizationLoader.getLocTextForUser(
-                        "error_payment_unknown_course", user))
+                    .text(localizationLoader.getLocalizationForUser(
+                        "error_payment_unknown_course", user).getData())
                     .build();
             bot.sendMessage(sendMessage);
             refund0(paymentDetails);
@@ -203,7 +203,8 @@ public class PaymentServiceImpl implements PaymentService {
         LOGGER.info("Payment details saved.");
         SendMessage sendMessage = SendMessage.builder()
                 .chatId(user.getId())
-                .text(localizationLoader.getLocTextForUser("message_successful_payment", user))
+                .text(localizationLoader.getLocalizationForUser("message_successful_payment",
+                    user).getData())
                 .build();
         bot.sendMessage(sendMessage);
     }

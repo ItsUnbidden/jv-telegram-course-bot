@@ -1,11 +1,11 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
-import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.UserRepository;
 import com.unbidden.telegramcoursesbot.service.course.CourseFlow;
 import com.unbidden.telegramcoursesbot.service.course.CourseServiceSupplier;
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.util.Blockable;
 import java.util.Arrays;
@@ -14,8 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.api.objects.User;
 
 @Component
 @RequiredArgsConstructor
@@ -33,7 +34,7 @@ public class StartCommandHandler implements CommandHandler {
     @Override
     @Blockable
     public void handle(Message message, String[] commandParts) {
-        final org.telegram.telegrambots.meta.api.objects.User user =
+        final User user =
                 message.getFrom();
         final UserEntity mappedUser = new UserEntity(user);
         
@@ -46,14 +47,15 @@ public class StartCommandHandler implements CommandHandler {
             LOGGER.info("User has been saved to DB.");
         }
         
-        try {
-            LOGGER.info("Sending /start message to user " + user.getId() + "...");
-            bot.execute(localizationLoader.getSendMessage("message_start", user));
-            LOGGER.info("Message sent.");
-        } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to send the start message to user "
-                    + user.getId(), e);
-        }
+        LOGGER.info("Sending /start message to user " + user.getId() + "...");
+        final Localization localization = localizationLoader.getLocalizationForUser(
+            "service_start", message.getFrom());
+        bot.sendMessage(SendMessage.builder()
+                .chatId(user.getId())
+                .text(localization.getData())
+                .entities(localization.getEntities())
+                .build());
+        LOGGER.info("Message sent.");
 
         if (commandParts.length > 1) {
             LOGGER.info("Additional command parameters present: "

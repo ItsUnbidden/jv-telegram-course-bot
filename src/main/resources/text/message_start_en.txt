@@ -1,1 +1,0 @@
-Start message **${firstName}****${lastName}**--${username}--~~${firstName}~~^^dfsfsdfsfsd^^.

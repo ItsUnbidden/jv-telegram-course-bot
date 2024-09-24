@@ -4,8 +4,6 @@ import com.unbidden.telegramcoursesbot.bot.TelegramBot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.util.TextUtil;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -18,8 +16,6 @@ public class LocalizationCommandHandler implements CommandHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TextUtil textUtil;
-
     @Override
     public void handle(Message message, String[] commandParts) {
         if (commandParts.length > 2 && bot.isAdmin(new UserEntity(message.getFrom()))) {
@@ -27,8 +23,8 @@ public class LocalizationCommandHandler implements CommandHandler {
                     commandParts[2]);
             bot.sendMessage(SendMessage.builder()
                     .chatId(message.getFrom().getId())
-                    .text(textUtil.removeMarkers(localization.getData()))
-                    .entities(textUtil.getEntities(localization.getData()))
+                    .text(localization.getData())
+                    .entities(localization.getEntities())
                     .build());
         }
     }

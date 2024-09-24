@@ -4,6 +4,7 @@ import com.unbidden.telegramcoursesbot.dao.LocalizationDao;
 import com.unbidden.telegramcoursesbot.exception.LocalizationLoadingException;
 import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationException;
 import com.unbidden.telegramcoursesbot.repository.LocalizationRepository;
+import com.unbidden.telegramcoursesbot.util.Tag;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
 import jakarta.annotation.PostConstruct;
 import java.nio.file.Path;
@@ -17,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 import org.telegram.telegrambots.meta.api.objects.User;
 
@@ -55,40 +55,56 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
 
     @Override
     @NonNull
-    public String getLocTextForUser(@NonNull String name, @NonNull User user) {
+    public Localization getLocalizationForUser(@NonNull String name, @NonNull User user) {
+        final Localization localization = loadLocalization(name, user.getLanguageCode());
         
-        return textUtil.injectUserData(loadLocalization(name, user.getLanguageCode())
-                .getData(), user);
+        if (!localization.isInjectionRequired()) {
+            return localization;
+        }
+        final String withInjectedUserData = textUtil.injectUserData(localization.getData(), user);
+        LOGGER.info("User data injected. Setting up entities...");
+        return setUpLocalization(localization, withInjectedUserData);
     }
 
     @Override
     @NonNull
-    public String getLocTextForUser(@NonNull String name, @NonNull User user,
+    public Localization getLocalizationForUser(@NonNull String name, @NonNull User user,
             Map<String, Object> parameterMap) {
-        final String locTextForUser = getLocTextForUser(name, user);
-        LOGGER.info("Injecting custom parameters...");
-        return textUtil.injectParams(locTextForUser, parameterMap);
-    }
+        final Localization localization = loadLocalization(name, user.getLanguageCode());
 
-    @Override
-    @NonNull
-    public SendMessage getSendMessage(@NonNull String name, @NonNull User user) {
-        final String text = getLocTextForUser(name, user);
-        return getSendMessage0(text, user);
-    }
-
-    @Override
-    @NonNull
-    public SendMessage getSendMessage(@NonNull String name, @NonNull User user,
-            Map<String, Object> parameterMap) {
-        final String text = getLocTextForUser(name, user, parameterMap);
-        return getSendMessage0(text, user);
+        if (!localization.isInjectionRequired()) {
+            return localization;
+        }
+        final String withInjectedParams = textUtil.injectParams(textUtil.injectUserData(
+                localization.getData(), user), parameterMap);
+        LOGGER.info("User data and custom parameters injected. Setting up entities...");
+        return setUpLocalization(localization, withInjectedParams);
     }
 
     @Override
     public void reloadResourses() {
         localizationRepository.clear();
         cacheLocalizationFiles();
+    }
+
+    @Override
+    @NonNull
+    public Localization loadLocalization(@NonNull String name, @NonNull String languageCode) {
+        LOGGER.info("Loading cached localization " + name + "...");
+        Localization localization = localizationRepository.find(name + "_"
+                + languageCode).orElse(localizationRepository.find(name + "_"
+                + defaultLanguageCode).orElse(new Localization(name)));
+
+        if (!localization.isInjectionRequired()) {
+            return localization;
+        }
+        LOGGER.info("Localization requires parameter injection. Creating copy...");
+        try {
+            localization = (Localization) localization.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new LocalizationLoadingException("Cloning of localization is not supported.");
+        }
+        return localization;
     }
 
     private void cacheLocalizationFiles() {
@@ -125,12 +141,27 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                         + ". Key pattern is going to be: " + keyPattern.formatted("<tag>") + ".");
 
                 try {
-                    Map<String, String> tagedContent = textUtil.getMappedTagContent(
+                    Map<Tag, String> tagedContent = textUtil.getMappedTagContent(
                             dao.getText(locFile));
-                    LOGGER.info("Saving localization data...");
-                    for (Entry<String, String> entry : tagedContent.entrySet()) {
-                        localizationRepository.save(new Localization(keyPattern
-                                .formatted(entry.getKey()), entry.getValue()));
+                    for (Entry<Tag, String> entry : tagedContent.entrySet()) {
+                        final String key = keyPattern.formatted(entry.getKey().getName());
+                        final Localization newLocalization;
+
+                        if (entry.getKey().isInjectionRequired()) {
+                            LOGGER.info("Localization " + key + " has custom parameters "
+                                    + "that will need to be injected later.");
+                            newLocalization = new Localization(key, entry.getValue(), true);
+                        } else {
+                            LOGGER.info("Localization " + key + " does not have any custom "
+                                    + "parameters. Parsing markers now...");
+                            final List<MessageEntity> entities =
+                                    textUtil.getEntities(entry.getValue());
+                            newLocalization = new Localization(key,
+                                    textUtil.removeMarkers(entry.getValue()), false);
+                            newLocalization.setEntities(entities);
+                        }
+                        LOGGER.info("Saving localization data...");
+                        localizationRepository.save(newLocalization);
                     }
                     LOGGER.info("Localization data from file " + locFile + " has been cached.");
                 } catch (TaggedStringInterpretationException e) {
@@ -141,21 +172,10 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
         LOGGER.info("Localization files cached successfuly.");
     }
 
-    private SendMessage getSendMessage0(String text, User user) {
-        final List<MessageEntity> entities = textUtil.getEntities(text);
-
-        return SendMessage.builder()
-                .chatId(user.getId())
-                .text(textUtil.removeMarkers(text))
-                .entities(entities)
-                .build();
-    }
-
-    @Override
-    @NonNull
-    public Localization loadLocalization(@NonNull String name, @NonNull String languageCode) {
-        return localizationRepository.find(name + "_"
-                + languageCode).orElse(localizationRepository.find(name + "_"
-                + defaultLanguageCode).orElse(new Localization(name)));
+    private Localization setUpLocalization(Localization localization, String injectedData) {
+        localization.setEntities(textUtil.getEntities(injectedData));
+        localization.setData(textUtil.removeMarkers(injectedData));
+        LOGGER.info("Entities set up.");
+        return localization;
     }
 }

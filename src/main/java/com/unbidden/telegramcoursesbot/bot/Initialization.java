@@ -44,27 +44,27 @@ public class Initialization implements ApplicationRunner {
         Page firstPage = new Page();
         firstPage.setPageIndex(0);
         firstPage.setType(Type.TRANSITORY);
-        firstPage.setTextFunction((u) -> localizationLoader.getLocTextForUser(
-            "message_course_settings_page_0", u));
+        firstPage.setTextFunction((u) -> localizationLoader.getLocalizationForUser(
+            "menu_course_settings_page_0", u).getData());
         firstPage.setMenu(menu);
         firstPage.setButtonsFunction((u) -> courseRepository.findAll().stream()
             .map(cm -> (Button)new TransitoryButton(localizationLoader
-                .getLocTextForUser(cm.getLocFileCourseName(), u), cm.getName()))
+                .getLocalizationForUser(cm.getLocFileCourseName(), u).getData(), cm.getName()))
             .toList());
 
         Page secondPage = new Page();
         secondPage.setPageIndex(1);
         secondPage.setType(Type.TERMINAL);
-        secondPage.setTextFunction((u) -> localizationLoader.getLocTextForUser(
-            "message_course_settings_page_1", u));
+        secondPage.setTextFunction((u) -> localizationLoader.getLocalizationForUser(
+            "menu_course_settings_page_1", u).getData());
         secondPage.setMenu(menu);
         secondPage.setButtonsFunction((u) -> List.of(new TerminalButton(
-            localizationLoader.getLocTextForUser("button_course_price_change", u),
+            localizationLoader.getLocalizationForUser("button_course_price_change", u).getData(),
             "prCh", priceChangeHandler), new TerminalButton(
-            localizationLoader.getLocTextForUser("button_course_feedback", u),
-            "fb", feedbackHandler), new TerminalButton(
-            localizationLoader.getLocTextForUser("button_course_homework", u),
-            "hw", homeworkHandler)));
+            localizationLoader.getLocalizationForUser("button_course_feedback_setting", u)
+                .getData(), "fb", feedbackHandler), new TerminalButton(
+            localizationLoader.getLocalizationForUser("button_course_homework_setting", u)
+                .getData(), "hw", homeworkHandler)));
 
         menu.setName("m_crsOpt");
         menu.setPages(List.of(firstPage, secondPage));

@@ -6,4 +6,5 @@ Skipped line above
 <test1/>
 
 <test2>Test button 2 en localization
+--dfosdjfos--**fwofjowe****--sfsdf--**kfpds**__fdfsf__**
 ^^~~**Another line**~~^^<test2/>
