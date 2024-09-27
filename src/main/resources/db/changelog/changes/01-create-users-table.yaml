@@ -34,5 +34,12 @@ databaseChangeLog:
               - column:
                   name: is_banned
                   type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_admin
+                  type: boolean
+                  defaultValueBoolean: false
                   constraints:
                     nullable: false

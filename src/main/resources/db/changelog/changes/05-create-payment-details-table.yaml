@@ -9,6 +9,7 @@ databaseChangeLog:
               - column:
                   name: id
                   type: bigint
+                  autoIncrement: true
                   constraints:
                     nullable: false
                     primaryKey: true
@@ -45,5 +46,11 @@ databaseChangeLog:
                   name: is_successful
                   type: boolean
                   defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_gifted
+                  type: boolean
+                  defaultValueBoolean: false
                   constraints:
                     nullable: false

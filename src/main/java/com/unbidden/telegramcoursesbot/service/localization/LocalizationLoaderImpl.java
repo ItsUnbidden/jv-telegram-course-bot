@@ -3,11 +3,13 @@ package com.unbidden.telegramcoursesbot.service.localization;
 import com.unbidden.telegramcoursesbot.dao.LocalizationDao;
 import com.unbidden.telegramcoursesbot.exception.LocalizationLoadingException;
 import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationException;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.LocalizationRepository;
 import com.unbidden.telegramcoursesbot.util.Tag;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
 import jakarta.annotation.PostConstruct;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -68,8 +70,21 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
 
     @Override
     @NonNull
+    public Localization getLocalizationForUser(@NonNull String name, @NonNull UserEntity user) {
+        final Localization localization = loadLocalization(name, user.getLanguageCode());
+        
+        if (!localization.isInjectionRequired()) {
+            return localization;
+        }
+        final String withInjectedUserData = textUtil.injectUserData(localization.getData(), user);
+        LOGGER.info("User data injected. Setting up entities...");
+        return setUpLocalization(localization, withInjectedUserData);
+    }
+
+    @Override
+    @NonNull
     public Localization getLocalizationForUser(@NonNull String name, @NonNull User user,
-            Map<String, Object> parameterMap) {
+            @NonNull Map<String, Object> parameterMap) {
         final Localization localization = loadLocalization(name, user.getLanguageCode());
 
         if (!localization.isInjectionRequired()) {
@@ -79,6 +94,30 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                 localization.getData(), user), parameterMap);
         LOGGER.info("User data and custom parameters injected. Setting up entities...");
         return setUpLocalization(localization, withInjectedParams);
+    }
+
+    @Override
+    @NonNull
+    public Localization getLocalizationForUser(@NonNull String name, @NonNull UserEntity user,
+            @NonNull Map<String, Object> parameterMap) {
+        final Localization localization = loadLocalization(name, user.getLanguageCode());
+
+        if (!localization.isInjectionRequired()) {
+            return localization;
+        }
+        final String withInjectedParams = textUtil.injectParams(textUtil.injectUserData(
+                localization.getData(), user), parameterMap);
+        LOGGER.info("User data and custom parameters injected. Setting up entities...");
+        return setUpLocalization(localization, withInjectedParams);
+    }
+
+    @Override
+    @NonNull
+    public Localization getLocalizationForUser(@NonNull String name, @NonNull User user,
+            @NonNull String paramKey, @NonNull Object param) {
+        final Map<String, Object> parameterMap = new HashMap<>();
+        parameterMap.put(paramKey, param);
+        return getLocalizationForUser(name, user, parameterMap);
     }
 
     @Override
@@ -145,19 +184,20 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                             dao.getText(locFile));
                     for (Entry<Tag, String> entry : tagedContent.entrySet()) {
                         final String key = keyPattern.formatted(entry.getKey().getName());
+                        final String content = textUtil.removeEndLineOverrides(entry.getValue());
                         final Localization newLocalization;
 
                         if (entry.getKey().isInjectionRequired()) {
                             LOGGER.info("Localization " + key + " has custom parameters "
                                     + "that will need to be injected later.");
-                            newLocalization = new Localization(key, entry.getValue(), true);
+                            newLocalization = new Localization(key, content, true);
                         } else {
                             LOGGER.info("Localization " + key + " does not have any custom "
                                     + "parameters. Parsing markers now...");
                             final List<MessageEntity> entities =
-                                    textUtil.getEntities(entry.getValue());
+                                    textUtil.getEntities(content);
                             newLocalization = new Localization(key,
-                                    textUtil.removeMarkers(entry.getValue()), false);
+                                    textUtil.removeMarkers(content), false);
                             newLocalization.setEntities(entities);
                         }
                         LOGGER.info("Saving localization data...");

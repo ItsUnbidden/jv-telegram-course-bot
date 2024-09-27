@@ -4,6 +4,7 @@ import com.unbidden.telegramcoursesbot.bot.TelegramBot;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.CourseModel;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
 import com.unbidden.telegramcoursesbot.repository.PaymentDetailsRepository;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
@@ -14,6 +15,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery.AnswerPreCheckoutQueryBuilder;
@@ -26,6 +28,7 @@ import org.telegram.telegrambots.meta.api.objects.payments.PreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.objects.payments.SuccessfulPayment;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+// TODO: accomodate for the new isGifted field.
 @Service
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
@@ -47,15 +50,36 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public boolean isAvailable(User user, String courseName) {
-        final CourseModel course = courseRepository.findByName(courseName).get();
+        return isAvailable0(user.getId(), courseName);
+    }
 
-        List<PaymentDetails> paymentDetails = paymentDetailsRepository
-                .findByUserIdAndCourseName(user.getId(), course.getName());
+    @Override
+    public boolean isAvailable(UserEntity user, String courseName) {
+        return isAvailable0(user.getId(), courseName);
+    }
+
+    @Override
+    public boolean isAvailableAndGifted(UserEntity user, String courseName) {
+        final CourseModel course = courseRepository.findByName(courseName).get();
         
-        List<PaymentDetails> validPaymentDetails = paymentDetails.stream()
-                .filter(pd -> pd.isValid())
-                .toList();
-        return !validPaymentDetails.isEmpty();
+        return !paymentDetailsRepository
+                .findByUserIdAndCourseName(user.getId(), course.getName()).stream()
+                .filter(pd -> pd.isGifted())
+                .toList()
+                .isEmpty();
+    }
+
+    @Override
+    @NonNull
+    public PaymentDetails addPaymentDetails(@NonNull PaymentDetails paymentDetails) {
+        return paymentDetailsRepository.save(paymentDetails);
+    }
+
+    @Override
+    public void deleteByCourseForUser(@NonNull String courseName, @NonNull Long userId) {
+        PaymentDetails details = paymentDetailsRepository
+                .findByUserIdAndCourseName(userId, courseName).get(0);
+        paymentDetailsRepository.delete(details);
     }
 
     @Override
@@ -95,6 +119,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
+    // TODO: Localizations are wrong. This needs fixing
     @Override
     public void resolvePreCheckout(PreCheckoutQuery preCheckoutQuery) {
         final AnswerPreCheckoutQueryBuilder answerBuilder =
@@ -168,7 +193,7 @@ public class PaymentServiceImpl implements PaymentService {
         final SuccessfulPayment payment = message.getSuccessfulPayment();
 
         paymentDetails.setTelegramPaymentChargeId(payment.getTelegramPaymentChargeId());
-        paymentDetails.setUser(new com.unbidden.telegramcoursesbot.model.UserEntity(user));
+        paymentDetails.setUser(new UserEntity(user));
         paymentDetails.setTotalAmount(payment.getTotalAmount());
 
         Optional<CourseModel> courseOpt = courseRepository.findByName(
@@ -199,11 +224,11 @@ public class PaymentServiceImpl implements PaymentService {
         paymentDetails.setSuccessful(true);
         paymentDetails.setValid(true);
         LOGGER.info("Saving payment details...");
-        paymentDetailsRepository.save(paymentDetails);
+        addPaymentDetails(paymentDetails);
         LOGGER.info("Payment details saved.");
-        SendMessage sendMessage = SendMessage.builder()
+        SendMessage sendMessage = SendMessage.builder() // TODO: Use bot.sendMessage()
                 .chatId(user.getId())
-                .text(localizationLoader.getLocalizationForUser("message_successful_payment",
+                .text(localizationLoader.getLocalizationForUser("service_successful_payment",
                     user).getData())
                 .build();
         bot.sendMessage(sendMessage);
@@ -231,5 +256,12 @@ public class PaymentServiceImpl implements PaymentService {
                 .text("Course refund is currently unavailable.")
                 .build();
         bot.sendMessage(sendMessage);
+    }
+
+    private boolean isAvailable0(Long userId, String courseName) {
+        final CourseModel course = courseRepository.findByName(courseName).get();
+        
+        return !paymentDetailsRepository.findByUserIdAndCourseName(userId, course.getName())
+                .isEmpty();
     }
 }

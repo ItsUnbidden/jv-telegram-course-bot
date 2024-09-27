@@ -1,7 +1,10 @@
 package com.unbidden.telegramcoursesbot.service.button.menu;
 
 import com.unbidden.telegramcoursesbot.service.button.handler.ButtonHandler;
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
+
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -21,7 +24,7 @@ public class Menu {
 
         private Menu menu;
 
-        private Function<User, String> textFunction;
+        private BiFunction<User, List<String>, Localization> localizationFunction;
 
         private Function<User, List<Button>> buttonsFunction;
 

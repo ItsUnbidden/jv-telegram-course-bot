@@ -1,6 +1,8 @@
 package com.unbidden.telegramcoursesbot.util;
 
 import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationException;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
+
 import jakarta.annotation.PostConstruct;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
@@ -26,6 +28,7 @@ public class TextUtil {
     private static final char TAG_OPEN = '<';
     private static final char TAG_CLOSE = '>';
     private static final String TAG_PARAMS_DIVIDER = " ";
+    private static final String END_LINE_OVERRIDE_MARKER = "\\\n";
 
     @PostConstruct
     public void init() {
@@ -38,11 +41,12 @@ public class TextUtil {
 
     @NonNull
     public String injectUserData(@NonNull String text, @NonNull User user) {
-        return text.replace(FIRST_NAME_PATTERN, user.getFirstName())
-                .replace(LAST_NAME_PATTERN, (user.getLastName() == null) ? ""
-                    : user.getLastName())
-                .replace(USERNAME_PATTERN, (user.getUserName() == null) ? ""
-                    : user.getUserName());
+        return injectUserData0(text, user.getFirstName(), user.getLastName(), user.getUserName());
+    }
+
+    @NonNull
+    public String injectUserData(@NonNull String text, @NonNull UserEntity user) {
+        return injectUserData0(text, user.getFirstName(), user.getLastName(), user.getUsername());
     }
 
     @NonNull
@@ -156,6 +160,11 @@ public class TextUtil {
         return text;
     }
 
+    @NonNull
+    public String removeEndLineOverrides(@NonNull String text) {
+        return text.replace(END_LINE_OVERRIDE_MARKER, "");
+    }
+
     private int extractEntities(MarkerDataDto markerData, List<MessageEntity> entities) {
         if (markerData.isEmpty) {
             return markerData.data.length();
@@ -185,6 +194,15 @@ public class TextUtil {
         }
         
         return new MarkerDataDto(text);
+    }
+
+    private String injectUserData0(String text, String firstName, String lastName,
+            String username) {
+        return text.replace(FIRST_NAME_PATTERN, firstName)
+                .replace(LAST_NAME_PATTERN, (lastName == null) ? ""
+                    : lastName)
+                .replace(USERNAME_PATTERN, (username == null) ? ""
+                    : username);
     }
 
     private static class MarkerDataDto {

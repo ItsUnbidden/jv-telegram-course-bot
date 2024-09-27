@@ -7,12 +7,14 @@ import com.unbidden.telegramcoursesbot.service.course.CourseFlow;
 import com.unbidden.telegramcoursesbot.service.course.CourseServiceSupplier;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.Blockable;
 import java.util.Arrays;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -31,9 +33,11 @@ public class StartCommandHandler implements CommandHandler {
 
     private final CourseServiceSupplier courseServiceSupplier;
 
+    private final UserService userService;
+
     @Override
     @Blockable
-    public void handle(Message message, String[] commandParts) {
+    public void handle(@NonNull Message message, @NonNull String[] commandParts) {
         final User user =
                 message.getFrom();
         final UserEntity mappedUser = new UserEntity(user);
@@ -41,6 +45,10 @@ public class StartCommandHandler implements CommandHandler {
         Optional<UserEntity> userFromDbOpt = userRepository.findById(user.getId());
         
         if (userFromDbOpt.isEmpty() || !userFromDbOpt.get().equals(mappedUser)) {
+            if (user.getId().longValue() == userService.getDefaultAdminId().longValue()) {
+                LOGGER.info("User " + user.getId() + " is the default admin.");
+                mappedUser.setAdmin(true);
+            }
             LOGGER.info("User " + user.getId()
                     + " is new or their profile has changed. Saving...");
             userRepository.save(mappedUser);
@@ -73,6 +81,7 @@ public class StartCommandHandler implements CommandHandler {
     }
 
     @Override
+    @NonNull
     public String getCommand() {
         return "/start";
     }

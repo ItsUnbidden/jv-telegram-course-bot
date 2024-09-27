@@ -7,9 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-
 import java.util.List;
-
 import lombok.Data;
 
 @Entity
@@ -61,6 +59,14 @@ public class CourseModel {
 
     public String getLocFileCourseName() {
         return "course_" + name;
+    }
+
+    @Override
+    public String toString() {
+        return "Id: " + id + "\nName: " + name + "\nSequence mode: " + sequenceOption.toString()
+                + "\nNumber of lessons: " + amountOfLessons + "\nPrice: " + price
+                + "\nIs homework included: " + isHomeworkIncluded + "\nIs feedback included: "
+                + isFeedbackIncluded;
     }
 
     public enum SequenceOption {

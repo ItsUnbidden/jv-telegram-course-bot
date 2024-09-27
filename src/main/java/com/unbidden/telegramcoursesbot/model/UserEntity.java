@@ -6,6 +6,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
+import org.telegram.telegrambots.meta.api.objects.User;
+
 @Entity
 @Table(name = "users")
 @Data
@@ -28,15 +30,19 @@ public class UserEntity {
     @Column(nullable = false)
     private boolean isBanned;
 
+    @Column(nullable = false)
+    private boolean isAdmin;
+
     public UserEntity() {
         
     }
 
-    public UserEntity(org.telegram.telegrambots.meta.api.objects.User telegramUser) {
-        this.setId(telegramUser.getId());
-        this.setFirstName(telegramUser.getFirstName());
-        this.setLastName(telegramUser.getLastName());
-        this.setUsername(telegramUser.getUserName());
-        this.setLanguageCode(telegramUser.getLanguageCode());
+    public UserEntity(User user) {
+        this.id = user.getId();
+        this.firstName = user.getFirstName();
+        this.lastName = user.getLastName();
+        this.username = user.getUserName();
+        this.languageCode = user.getLanguageCode();
+        this.isBot = user.getIsBot();
     }
 }

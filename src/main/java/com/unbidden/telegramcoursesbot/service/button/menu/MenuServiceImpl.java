@@ -5,6 +5,7 @@ import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.repository.MenuRepository;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.TerminalButton;
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.util.KeyboardUtil;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.Arrays;
@@ -45,12 +46,15 @@ public class MenuServiceImpl implements MenuService {
         final Menu menu = menuRepository.find(menuName).orElseThrow(() ->
                 new EntityNotFoundException("Menu " + menuName + " was not found"));
         final Page firstPage = menu.getPages().get(0);
+        final Localization localization = firstPage.getLocalizationFunction()
+                .apply(user, List.of());
         
         LOGGER.info("Menu " + menuName + "'s message' is being compiled for user "
                 + user.getId() + "...");
         SendMessage sendMessage = SendMessage.builder()
                     .chatId(user.getId())
-                    .text(firstPage.getTextFunction().apply(user))
+                    .text(localization.getData())
+                    .entities(localization.getEntities())
                     .replyMarkup(getMarkup0(firstPage, "", user))
                     .build();
         LOGGER.info("Menu " + menuName + "'s message compiled. Sending...");
@@ -70,24 +74,36 @@ public class MenuServiceImpl implements MenuService {
         Page page = menu.getPages().get(Integer.parseInt(data[PAGE_NUMBER]));
         LOGGER.info("Current page is " + data[PAGE_NUMBER] + ".");
         
+        boolean isUpdateRequired = false;
         EditMessageTextBuilder editMessageBuilder = EditMessageText.builder()
                 .chatId(user.getId())
                 .messageId(query.getMessage().getMessageId());
-                
+            
+        final Localization localization;
         switch (page.getType()) {
             case Page.Type.TRANSITORY:
                 LOGGER.info("Page " + data[PAGE_NUMBER] + " is transitory.");
                 Page nextPage = menu.getPages().get(Integer.parseInt(data[PAGE_NUMBER] + 1));
+                localization = nextPage.getLocalizationFunction().apply(
+                        user,Arrays.asList(data));
 
                 editMessageBuilder.replyMarkup(getMarkup0(nextPage, data[data.length - 1], user));
-                editMessageBuilder.text(nextPage.getTextFunction().apply(user));
+                editMessageBuilder.text(localization.getData());
+                editMessageBuilder.entities(localization.getEntities());
+                isUpdateRequired = true;
                 LOGGER.info("Markup for page " + (Integer.parseInt(data[PAGE_NUMBER] + 1))
                         + " created.");
                 break;
             default:
                 LOGGER.info("Page " + data[PAGE_NUMBER] + " is terminal.");
-                editMessageBuilder.replyMarkup(getMarkup0(menu.getPages().get(0), "", user));
-                editMessageBuilder.text(menu.getPages().get(0).getTextFunction().apply(user));
+                if (Integer.parseInt(data[PAGE_NUMBER]) != 0) {
+                    localization = menu.getPages().get(0)
+                            .getLocalizationFunction().apply(user, List.of());
+                    editMessageBuilder.replyMarkup(getMarkup0(menu.getPages().get(0), "", user));
+                    editMessageBuilder.text(localization.getData());
+                    editMessageBuilder.entities(localization.getEntities());
+                    isUpdateRequired = true;
+                }
                 
                 TerminalButton button = (TerminalButton)page.getButtonByData(user,
                         data[data.length - 1]);
@@ -102,9 +118,12 @@ public class MenuServiceImpl implements MenuService {
         try {
             LOGGER.info("Sending answer to callback query...");
             bot.execute(answerCallbackQuery);
-            LOGGER.info("Answer sent. Sending new message content...");
-            bot.execute(editMessageBuilder.build());
-            LOGGER.info("New content sent.");
+            LOGGER.info("Answer sent.");
+            if (isUpdateRequired) {
+                LOGGER.info("Sending new message content...");
+                bot.execute(editMessageBuilder.build());
+                LOGGER.info("New content sent.");
+            }
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to update markup for message "
                     + query.getMessage().getMessageId() + " and user "

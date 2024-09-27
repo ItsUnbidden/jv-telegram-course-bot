@@ -65,7 +65,7 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
                         .text(response.getData())
                         .entities(response.getEntities())
                         .build());
-        });
+        }, false);
         Localization updateRequestLocalization = localizationLoader.getLocalizationForUser(
                 "service_course_price_update_request", user, messageParams);
         bot.sendMessage(SendMessage.builder()
