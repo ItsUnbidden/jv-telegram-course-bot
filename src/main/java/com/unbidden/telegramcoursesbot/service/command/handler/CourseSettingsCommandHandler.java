@@ -31,4 +31,9 @@ public class CourseSettingsCommandHandler implements CommandHandler {
     public String getCommand() {
         return "/coursesettings";
     }
+
+    @Override
+    public boolean isAdminCommand() {
+        return true;
+    }
 }

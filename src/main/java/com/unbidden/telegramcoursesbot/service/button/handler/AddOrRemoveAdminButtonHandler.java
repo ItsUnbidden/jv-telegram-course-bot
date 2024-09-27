@@ -103,6 +103,7 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
             Localization success = null;
             Localization notification = null;
             if (removedAdmin != null) {
+                bot.removeMenusForUser(removedAdmin.getId());
                 success = localizationLoader.getLocalizationForUser(
                         "service_admin_remove_success", sender, "${targetFirstName}",
                         removedAdmin.getFirstName());

@@ -8,4 +8,6 @@ public interface CommandHandler {
 
     @NonNull
     String getCommand();
+
+    boolean isAdminCommand();
 }

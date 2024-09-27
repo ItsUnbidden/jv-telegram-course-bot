@@ -16,6 +16,8 @@ import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.TerminalBut
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.TransitoryButton;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.Type;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
+
 import jakarta.persistence.EntityNotFoundException;
 import java.util.HashMap;
 import java.util.List;
@@ -46,12 +48,18 @@ public class Initialization implements ApplicationRunner {
 
     private final TelegramBot bot;
 
+    private final UserService userService;
+
     @Override
     public void run(ApplicationArguments args) throws Exception {
         setUpCourseSettingsMenu();
         setUpAdminActionsMenu();
 
         api.registerBot(bot);
+        bot.setUpMenuButton();
+        bot.setUpMenus();
+
+        userService.getAdminList().forEach(a -> bot.setUpMenusForAdmin(a.getId()));
     }
 
     private void setUpCourseSettingsMenu() {

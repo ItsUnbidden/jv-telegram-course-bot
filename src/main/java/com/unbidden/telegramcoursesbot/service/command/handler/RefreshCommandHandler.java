@@ -23,6 +23,8 @@ public class RefreshCommandHandler implements CommandHandler {
     public void handle(@NonNull Message message, @NonNull String[] commandParts) {
         if (userService.isAdmin(message.getFrom())) {
             localizationLoader.reloadResourses();
+            bot.setUpMenuButton();
+            bot.setUpMenus();
 
             final Localization localization = localizationLoader.getLocalizationForUser(
                     "service_refresh_success", message.getFrom());
@@ -38,5 +40,10 @@ public class RefreshCommandHandler implements CommandHandler {
     @NonNull
     public String getCommand() {
         return "/refresh";
+    }
+
+    @Override
+    public boolean isAdminCommand() {
+        return true;
     }
 }

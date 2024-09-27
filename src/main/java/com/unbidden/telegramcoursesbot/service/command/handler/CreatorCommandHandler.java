@@ -33,4 +33,9 @@ public class CreatorCommandHandler implements CommandHandler {
     public String getCommand() {
         return "/creator";
     }
+
+    @Override
+    public boolean isAdminCommand() {
+        return false;
+    }
 }

@@ -43,4 +43,9 @@ public class MaintenanceCommandHandler implements CommandHandler {
     public String getCommand() {
         return "/maintenance";
     }
+
+    @Override
+    public boolean isAdminCommand() {
+        return true;
+    }
 }

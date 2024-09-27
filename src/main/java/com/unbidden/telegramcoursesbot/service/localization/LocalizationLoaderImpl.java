@@ -146,6 +146,15 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
         return localization;
     }
 
+    @Override
+    @NonNull
+    public List<String> getAvailableLanguageCodes() {
+        return dao.list(localizationFolderPath).stream()
+                .filter(p -> p.toFile().isDirectory())
+                .map(p -> p.getFileName().toString())
+                .toList();
+    }
+
     private void cacheLocalizationFiles() {
         LOGGER.info("Localization files caching is commencing...");
         final List<Path> locDirs = dao.list(localizationFolderPath).stream()

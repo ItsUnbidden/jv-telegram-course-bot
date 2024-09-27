@@ -1,6 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.localization;
 
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+
+import java.util.List;
 import java.util.Map;
 import org.springframework.lang.NonNull;
 import org.telegram.telegrambots.meta.api.objects.User;
@@ -28,4 +30,7 @@ public interface LocalizationLoader {
 
     @NonNull
     Localization loadLocalization(@NonNull String name, @NonNull String languageCode);
+
+    @NonNull
+    List<String> getAvailableLanguageCodes();
 }

@@ -31,4 +31,9 @@ public class AdminCommandHandler implements CommandHandler {
     public String getCommand() {
         return "/admin";
     }
+
+    @Override
+    public boolean isAdminCommand() {
+        return true;
+    }
 }

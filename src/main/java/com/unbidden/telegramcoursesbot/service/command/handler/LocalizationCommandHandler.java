@@ -37,4 +37,9 @@ public class LocalizationCommandHandler implements CommandHandler {
     public String getCommand() {
         return "/localization";
     }
+
+    @Override
+    public boolean isAdminCommand() {
+        return true;
+    }
 }

@@ -34,4 +34,9 @@ public class TermsCommandHandler implements CommandHandler {
     public String getCommand() {
         return "/terms";
     }
+
+    @Override
+    public boolean isAdminCommand() {
+        return false;
+    }
 }

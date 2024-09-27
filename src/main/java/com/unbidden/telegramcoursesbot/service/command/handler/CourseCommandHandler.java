@@ -29,4 +29,9 @@ public class CourseCommandHandler implements CommandHandler {
     public String getCommand() {
         return "/course";
     }
+
+    @Override
+    public boolean isAdminCommand() {
+        return false;
+    }
 }

@@ -85,4 +85,9 @@ public class StartCommandHandler implements CommandHandler {
     public String getCommand() {
         return "/start";
     }
+
+    @Override
+    public boolean isAdminCommand() {
+        return false;
+    }
 }

@@ -29,4 +29,9 @@ public class TestCommandHandler implements CommandHandler {
     public String getCommand() {
         return "/test";
     }
+
+    @Override
+    public boolean isAdminCommand() {
+        return true;
+    }
 }
