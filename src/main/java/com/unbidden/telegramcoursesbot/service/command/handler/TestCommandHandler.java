@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
@@ -15,12 +16,16 @@ public class TestCommandHandler implements CommandHandler {
 
     private final UserService userService;
 
+    private final MenuService menuService;
+
     @Override
     public void handle(@NonNull Message message, @NonNull String[] commandParts) {
         if (userService.isAdmin(message.getFrom())) {
             bot.sendMessage(SendMessage.builder()
+                    .chatId(message.getFrom().getId())
                     .text("This is a debug command.")
                     .build());
+            menuService.initiateMenu("m_tst", message.getFrom());
         }
     }
 

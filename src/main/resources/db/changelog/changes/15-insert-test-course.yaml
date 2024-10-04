@@ -10,14 +10,11 @@ databaseChangeLog:
                   name: name
                   value: test_course
               - column:
-                  name: sequence_option
-                  valueNumeric: 0
-              - column:
                   name: price
-                  valueNumeric: 0
+                  valueNumeric: 1
               - column:
                   name: amount_of_lessons
-                  valueNumeric: 0
+                  valueNumeric: 3
               - column:
                   name: is_homework_included
                   valueBoolean: true

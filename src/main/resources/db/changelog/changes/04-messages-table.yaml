@@ -1,0 +1,27 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-messages-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: messages
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_users_messages
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: message_id
+                  type: int
+                  constraints:
+                    nullable: false

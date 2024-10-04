@@ -58,6 +58,7 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
             row.add(addButton);
             row.add(removeButton);
             ReplyKeyboardMarkup markup = ReplyKeyboardMarkup.builder()
+                    .resizeKeyboard(true)
                     .keyboardRow(row)
                     .build();
             final Localization localization = localizationLoader.getLocalizationForUser(

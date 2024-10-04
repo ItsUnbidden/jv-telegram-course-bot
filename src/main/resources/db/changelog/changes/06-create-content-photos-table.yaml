@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-content-photos-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: content_photos
+            columns: 
+              - column:
+                  name: content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_content_content_photos
+                    references: content(id)
+                    nullable: false
+              - column:
+                  name: photo_id
+                  type: varchar(255)
+                  constraints:
+                    foreignKeyName: fk_photos_content_photos
+                    references: photos(unique_id)
+                    nullable: false
+                

@@ -1,10 +1,10 @@
 databaseChangeLog:
   - changeSet:
-      id: create-homework-table
+      id: create-content-table
       author: Unbidden
       changes:
         - createTable:
-            tableName: homework
+            tableName: content
             columns: 
               - column:
                   name: id
@@ -14,13 +14,11 @@ databaseChangeLog:
                     nullable: false
                     primaryKey: true
               - column:
-                  name: description
-                  type: varchar(1000)
-                  constraints:
-                    nullable: false
+                  name: data
+                  type: varchar(1024)
               - column:
-                  name: is_feedback_required
-                  type: boolean
-                  defaultValueBoolean: false
+                  name: video_id
+                  type: varchar(255)
                   constraints:
-                    nullable: false
+                    foreignKeyName: fk_videos_content
+                    references: videos(unique_id)

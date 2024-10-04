@@ -10,4 +10,8 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     @Query("from UserEntity u where u.isAdmin = true")
     @NonNull
     List<UserEntity> findAllAdmins();
+
+    @Query("from UserEntity u where u.isAdmin = true and u.isReceivingHomeworkRequests = true")
+    @NonNull
+    List<UserEntity> findAllHomeworkReceivingAdmins();
 }

@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-courses-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: courses
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: price
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount_of_lessons
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_homework_included
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_feedback_included
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

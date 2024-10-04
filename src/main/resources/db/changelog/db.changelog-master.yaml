@@ -2,14 +2,38 @@ databaseChangeLog:
   - include:
       file: /db/changelog/changes/01-create-users-table.yaml
   - include:
-      file: /db/changelog/changes/02-create-homework-table.yaml
+      file: /db/changelog/changes/02-create-videos-table.yaml
   - include:
-      file: /db/changelog/changes/03-create-courses-table.yaml
+      file: /db/changelog/changes/03-create-photos-table.yaml
   - include:
-      file: /db/changelog/changes/04-create-lessons-table.yaml
+      file: /db/changelog/changes/04-messages-table.yaml
   - include:
-      file: /db/changelog/changes/05-create-payment-details-table.yaml
+      file: /db/changelog/changes/05-create-content-table.yaml
   - include:
-      file: /db/changelog/changes/06-create-videos-table.yaml
+      file: /db/changelog/changes/06-create-content-photos-table.yaml
   - include:
-      file: /db/changelog/changes/07-insert-test-course.yaml
+      file: /db/changelog/changes/07-create-courses-table.yaml
+  - include:
+      file: /db/changelog/changes/08-create-homework-table.yaml
+  - include:
+      file: /db/changelog/changes/09-create-lessons-table.yaml
+  - include:
+      file: /db/changelog/changes/10-create-lessons-content-table.yaml
+  - include:
+      file: /db/changelog/changes/11-create-course-progress-table.yaml
+  - include:
+      file: /db/changelog/changes/12-create-homework-progress-table.yaml
+  - include:
+      file: /db/changelog/changes/13-create-homework-progress-messages-table.yaml
+  - include:
+      file: /db/changelog/changes/14-create-payment-details-table.yaml
+  - include:
+      file: /db/changelog/changes/15-insert-test-course.yaml
+  - include:
+      file: /db/changelog/changes/16-insert-test-course-homework.yaml
+  - include:
+      file: /db/changelog/changes/17-insert-test-course-lessons.yaml
+  - include:
+      file: /db/changelog/changes/18-insert-test-course-lessons-content.yaml
+  - include:
+      file: /db/changelog/changes/19-create-homework-progress-send-homework-messages-table.yaml

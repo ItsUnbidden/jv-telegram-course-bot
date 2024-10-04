@@ -1,10 +1,10 @@
 databaseChangeLog:
   - changeSet:
-      id: create-courses-table
+      id: create-homework-progress-table
       author: Unbidden
       changes:
         - createTable:
-            tableName: courses
+            tableName: homework_progress
             columns: 
               - column:
                   name: id
@@ -14,33 +14,38 @@ databaseChangeLog:
                     nullable: false
                     primaryKey: true
               - column:
-                  name: name
-                  type: varchar(255)
+                  name: homework_id
+                  type: bigint
                   constraints:
+                    foreignKeyName: fk_homework_homework_progress
+                    references: homework(id)
                     nullable: false
               - column:
-                  name: sequence_option
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_users_homework_progress
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: curator_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_curator_homework_progress
+                    references: users(id)
+              - column:
+                  name: content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_content_homework_progress
+                    references: content(id)
+              - column:
+                  name: status
                   type: tinyint
                   constraints:
                     nullable: false
               - column:
-                  name: price
-                  type: int
-                  constraints:
-                    nullable: false
-              - column:
-                  name: amount_of_lessons
-                  type: int
-                  constraints:
-                    nullable: false
-              - column:
-                  name: is_homework_included
-                  type: boolean
-                  defaultValueBoolean: false
-                  constraints:
-                    nullable: false
-              - column:
-                  name: is_feedback_included
+                  name: is_completed
                   type: boolean
                   defaultValueBoolean: false
                   constraints:

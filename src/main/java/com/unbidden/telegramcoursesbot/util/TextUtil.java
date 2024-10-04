@@ -2,9 +2,7 @@ package com.unbidden.telegramcoursesbot.util;
 
 import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-
 import jakarta.annotation.PostConstruct;
-import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -55,21 +53,6 @@ public class TextUtil {
             text = text.replace(entry.getKey(), entry.getValue().toString());
         }
         return text;
-    }
-
-    @NonNull
-    public Photo parsePhoto(@NonNull String rawFileStr) {
-        final String[] data = rawFileStr.split("\n");
-
-        if (data.length == 4) {
-            Photo photo = new Photo();
-            photo.setUrl(data[0]);
-            photo.setSize(Integer.parseInt(data[1]));
-            photo.setWidth(Integer.parseInt(data[2]));
-            photo.setHeight(Integer.parseInt(data[3]));
-            return photo;
-        }
-        throw new InvalidParameterException("Unable to parse photo in file.");
     }
 
     @NonNull

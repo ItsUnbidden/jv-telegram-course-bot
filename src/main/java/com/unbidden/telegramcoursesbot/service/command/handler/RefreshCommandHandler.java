@@ -22,9 +22,13 @@ public class RefreshCommandHandler implements CommandHandler {
     @Override
     public void handle(@NonNull Message message, @NonNull String[] commandParts) {
         if (userService.isAdmin(message.getFrom())) {
+            bot.setOnMaintenance(true);
+
             localizationLoader.reloadResourses();
             bot.setUpMenuButton();
             bot.setUpMenus();
+            
+            bot.setOnMaintenance(false);
 
             final Localization localization = localizationLoader.getLocalizationForUser(
                     "service_refresh_success", message.getFrom());

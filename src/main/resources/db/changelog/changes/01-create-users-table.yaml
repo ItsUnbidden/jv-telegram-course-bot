@@ -26,6 +26,8 @@ databaseChangeLog:
               - column:
                   name: language_code
                   type: varchar(255)
+                  constraints:
+                    nullable: false
               - column:
                   name: is_bot
                   type: boolean
@@ -39,6 +41,12 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: is_admin
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_receiving_homework_requests
                   type: boolean
                   defaultValueBoolean: false
                   constraints:

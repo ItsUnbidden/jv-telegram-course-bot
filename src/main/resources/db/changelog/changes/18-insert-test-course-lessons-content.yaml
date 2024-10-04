@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-test-course-lessons-content.yaml
+      author: Unbidden
+      changes:
+        - insert:  
+            tableName: lessons_content
+            columns:
+              - column:
+                  name: lesson_id
+                  valueNumeric: 1
+              - column:
+                  name: content_id
+                  valueNumeric: 15
+        - insert:  
+            tableName: lessons_content
+            columns:
+              - column:
+                  name: lesson_id
+                  valueNumeric: 1
+              - column:
+                  name: content_id
+                  valueNumeric: 16
+        - insert:  
+            tableName: lessons_content
+            columns:
+              - column:
+                  name: lesson_id
+                  valueNumeric: 2
+              - column:
+                  name: content_id
+                  valueNumeric: 17
+        - insert:  
+            tableName: lessons_content
+            columns:
+              - column:
+                  name: lesson_id
+                  valueNumeric: 2
+              - column:
+                  name: content_id
+                  valueNumeric: 18
+        - insert:  
+            tableName: lessons_content
+            columns:
+              - column:
+                  name: lesson_id
+                  valueNumeric: 3
+              - column:
+                  name: content_id
+                  valueNumeric: 19

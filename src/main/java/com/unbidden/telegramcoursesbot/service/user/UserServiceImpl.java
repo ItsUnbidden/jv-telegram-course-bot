@@ -26,6 +26,9 @@ public class UserServiceImpl implements UserService {
     @Value("${telegram.bot.authorization.default.admin.id}")
     private Long defaultAdminId;
 
+    @Value("${telegram.bot.message.language.default}")
+    private String defaultLanguageCode;
+
     @Override
     @Nullable
     public UserEntity addAdmin(@NonNull Long userId) {
@@ -99,6 +102,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @NonNull
+    public List<UserEntity> getHomeworkReveivingAdmins() {
+        return userRepository.findAllHomeworkReceivingAdmins();
+    }
+
+    @Override
+    @NonNull
     public Long getDefaultAdminId() {
         return defaultAdminId;
     }
@@ -108,5 +117,71 @@ public class UserServiceImpl implements UserService {
     public UserEntity getUser(@NonNull Long id) {
         return userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("User "
                 + id + " is not registred in the database."));
+    }
+
+    /**
+     * Creates or updates user entity if anything changed. Returns true if any change occured.
+     */
+    @Override
+    public boolean updateUser(@NonNull User user) {
+        LOGGER.info("Checking if user " + user.getId() + "' data is up to date...");
+        final UserEntity userFromDb = userRepository.findById(user.getId())
+                .orElse(new UserEntity(user.getId()));
+
+        boolean hasChanged = false;
+        if (!userFromDb.isAdmin() && user.getId().longValue() == defaultAdminId) {
+            userFromDb.setAdmin(true);
+            hasChanged = true;
+            LOGGER.info("User " + user.getId() + " is the default admin. Setting...");
+        }
+        if (user.getIsBot() != userFromDb.isBot()) {
+            userFromDb.setBot(user.getIsBot());
+            hasChanged = true;
+            LOGGER.info("User is bot. Setting...");
+        }
+        if (!user.getFirstName().equals(userFromDb.getFirstName())) {
+            userFromDb.setFirstName(user.getFirstName());
+            hasChanged = true;
+            LOGGER.info("First name is " + user.getFirstName() + ". Setting...");
+        }
+        if (user.getLanguageCode() != null) {
+            if (!user.getLanguageCode().equals(userFromDb.getLanguageCode())) {
+                userFromDb.setLanguageCode(user.getLanguageCode());
+                hasChanged = true;
+                LOGGER.info("Language code is " + user.getLanguageCode() + ". Setting...");
+            }
+        } else {
+            userFromDb.setLanguageCode(defaultLanguageCode);
+            hasChanged = true;
+            LOGGER.info("Language code is unavailable. Setting to "
+                    + defaultLanguageCode + "...");
+        }
+        if (user.getLastName() != null && !user.getLastName()
+                .equals(userFromDb.getLastName())) {
+            userFromDb.setLastName(user.getLastName());
+            hasChanged = true;
+            LOGGER.info("Last name is " + user.getLastName() + ". Setting...");
+        }
+        if (user.getUserName() != null && !user.getUserName()
+                .equals(userFromDb.getUsername())) {
+            userFromDb.setUsername(user.getUserName());
+            hasChanged = true;
+            LOGGER.info("Username is " + user.getUserName() + ". Setting...");
+        }
+        if (hasChanged) {
+            LOGGER.info("Stuff has changed for user " + user.getId() + ". Persisting...");
+            userRepository.save(userFromDb);
+            LOGGER.info("Persist is successful.");
+        } else {
+            LOGGER.info("User data is up to date with telegram servers.");
+        }
+        return hasChanged;
+    }
+
+    @Override
+    @NonNull
+    public UserEntity toogleReceiveHomework(@NonNull UserEntity user) {
+        user.setReceivingHomeworkRequests(!user.isReceivingHomeworkRequests());
+        return userRepository.save(user);
     }
 }

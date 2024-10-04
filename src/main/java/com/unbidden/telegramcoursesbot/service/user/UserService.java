@@ -21,8 +21,16 @@ public interface UserService {
     List<UserEntity> getAdminList();
 
     @NonNull
+    List<UserEntity> getHomeworkReveivingAdmins();
+
+    @NonNull
     Long getDefaultAdminId();
 
     @NonNull
     UserEntity getUser(@NonNull Long id);
+
+    boolean updateUser(@NonNull User user);
+
+    @NonNull
+    UserEntity toogleReceiveHomework(@NonNull UserEntity user);
 }

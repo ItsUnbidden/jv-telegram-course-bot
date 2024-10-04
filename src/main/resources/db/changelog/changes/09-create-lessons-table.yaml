@@ -14,11 +14,10 @@ databaseChangeLog:
                     nullable: false
                     primaryKey: true
               - column:
-                  name: description
-                  type: varchar(1000)
-              - column:
-                  name: video_id
-                  type: varchar(255)
+                  name: index
+                  type: int
+                  constraints:
+                    nullable: false
               - column:
                   name: course_id
                   type: bigint
@@ -32,3 +31,8 @@ databaseChangeLog:
                   constraints:
                     foreignKeyName: fk_homework_lessons
                     references: homework(id)
+              - column:
+                  name: sequence_option
+                  type: tinyint
+                  constraints:
+                    nullable: false

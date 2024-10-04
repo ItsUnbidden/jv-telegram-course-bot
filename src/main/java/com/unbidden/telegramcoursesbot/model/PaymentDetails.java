@@ -28,7 +28,7 @@ public class PaymentDetails {
 
     @ManyToOne
     @JoinColumn(name = "course_id")
-    private CourseModel course;
+    private Course course;
     
     @Column(nullable = false)
     private Integer totalAmount;

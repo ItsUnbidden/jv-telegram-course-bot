@@ -1,8 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
-import com.unbidden.telegramcoursesbot.model.CourseModel;
-import com.unbidden.telegramcoursesbot.repository.CourseRepository;
+import com.unbidden.telegramcoursesbot.model.Course;
+import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.SessionService;
@@ -24,7 +24,7 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
 
     private final TelegramBot bot;
 
-    private final CourseRepository courseRepository;
+    private final CourseService courseService;
 
     private final SessionService sessionService;
 
@@ -33,7 +33,7 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
     @Override
     @Blockable
     public void handle(String[] params, User user) {
-        final CourseModel course = courseRepository.findByName(params[0]).get();
+        final Course course = courseService.getCourseByName(params[0]);
         final Map<String, Object> messageParams = new HashMap<>();
         
         messageParams.put("${courseName}", course.getName());
@@ -50,7 +50,7 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
                     LOGGER.info("New price " + newPrice + " for course " + course.getName()
                             + " parsed successfuly.");
                     course.setPrice(newPrice);
-                    courseRepository.save(course);
+                    courseService.save(course);
                     LOGGER.info("New price saved.");
                     response = localizationLoader.getLocalizationForUser(
                             "service_course_price_update_success", user, messageParams);

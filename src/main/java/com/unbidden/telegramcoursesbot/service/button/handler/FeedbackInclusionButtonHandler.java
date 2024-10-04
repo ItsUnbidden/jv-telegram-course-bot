@@ -1,8 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
-import com.unbidden.telegramcoursesbot.model.CourseModel;
-import com.unbidden.telegramcoursesbot.repository.CourseRepository;
+import com.unbidden.telegramcoursesbot.model.Course;
+import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.util.Blockable;
@@ -21,7 +21,7 @@ public class FeedbackInclusionButtonHandler implements ButtonHandler {
     private static final Logger LOGGER =
             LogManager.getLogger(FeedbackInclusionButtonHandler.class);
 
-    private final CourseRepository courseRepository;
+    private final CourseService courseService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -30,12 +30,12 @@ public class FeedbackInclusionButtonHandler implements ButtonHandler {
     @Override
     @Blockable
     public void handle(String[] params, User user) {
-        final CourseModel course = courseRepository.findByName(params[0]).get();
+        final Course course = courseService.getCourseByName(params[0]);
         LOGGER.info("Feedback inclusion handler was triggered. Current value is: "
                 + course.isFeedbackIncluded() + ".");
 
         course.setFeedbackIncluded(!course.isFeedbackIncluded());
-        courseRepository.save(course);
+        courseService.save(course);
 
         Map<String, Object> messageParams = new HashMap<>();
         messageParams.put("${status}", (course.isFeedbackIncluded()) ? "ENABLED" : "DISABLED");
