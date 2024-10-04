@@ -70,7 +70,8 @@ public class HomeworkServiceImpl implements HomeworkService {
     public void sendHomework(@NonNull UserEntity user, @NonNull Homework homework) {
         final UserEntity userFromDb = userService.getUser(user.getId());
 
-        bot.sendContent(contentRepository.findById(homework.getContent().getId()).get(), user);
+        final List<Message> sendContent = bot.sendContent(contentRepository.findById(
+                homework.getContent().getId()).get(), user);
 
         final Optional<HomeworkProgress> potentialProgress = homeworkProgressRepository
                 .findByUserIdAndHomeworkIdUnresolved(userFromDb.getId(), homework.getId());
@@ -103,10 +104,10 @@ public class HomeworkServiceImpl implements HomeworkService {
                         .getLocalizationForUser("error_homework_already_completed", userFromDb);
                 break;
             default:
-                final Message menuMessage = menuService.initiateMenu("m_sHw", user,
-                homeworkProgress.getId().toString());
+                menuService.initiateMenu("m_sHw", user, homeworkProgress.getId().toString(),
+                        sendContent.get(0).getMessageId());
                 MessageEntity menuMessageEntity = new MessageEntity();
-                menuMessageEntity.setMessageId(menuMessage.getMessageId());
+                menuMessageEntity.setMessageId(sendContent.get(0).getMessageId());
                 menuMessageEntity.setUser(userFromDb);
                 homeworkProgress.getSendHomeworkMessages().add(messageRepository
                         .save(menuMessageEntity));
@@ -154,8 +155,18 @@ public class HomeworkServiceImpl implements HomeworkService {
                 "service_homework_accepted_auto", homeworkProgress.getUser());
 
             final List<UserEntity> admins = userService.getHomeworkReveivingAdmins();
-            admins.forEach(a -> bot.sendContent(contentRepository.findById(homeworkProgress
-                    .getContent().getId()).get(), a));
+            admins.forEach(a -> {
+                final Localization adminNotification = localizationLoader.getLocalizationForUser(
+                        "service_homework_feedback_notification", a,
+                        getParameterMapForUserAndCourseInfo(homeworkProgress));
+                bot.sendMessage(SendMessage.builder()
+                        .chatId(a.getId())
+                        .text(adminNotification.getData())
+                        .entities(adminNotification.getEntities())
+                        .build());
+                bot.sendContent(contentRepository.findById(homeworkProgress
+                        .getContent().getId()).get(), a);
+            });
             bot.sendMessage(SendMessage.builder()
                     .chatId(homeworkProgress.getUser().getId())
                     .text(localization.getData())
@@ -165,9 +176,7 @@ public class HomeworkServiceImpl implements HomeworkService {
                     .getLesson().getCourse().getName());
         }
         for (MessageEntity message : homeworkProgress.getSendHomeworkMessages()) {
-            menuService.terminateMenu(message.getUser().getId(), message.getMessageId(),
-                    localizationLoader.getLocalizationForUser("service_homework_sent",
-                    message.getUser()));
+            menuService.terminateMenu(message.getUser().getId(), message.getMessageId(), null);
         }
         homeworkProgress.getSendHomeworkMessages().clear();
         homeworkProgressRepository.save(homeworkProgress);
@@ -178,38 +187,21 @@ public class HomeworkServiceImpl implements HomeworkService {
         final List<UserEntity> admins = userService.getHomeworkReveivingAdmins();
         
         for (UserEntity admin : admins) {
-            final Map<String, Object> parameterMap = new HashMap<>();
-            parameterMap.put("${targetId}", homeworkProgress.getUser().getId());
-            parameterMap.put("${targetFirstName}", homeworkProgress.getUser().getFirstName());
-            parameterMap.put("${targetLastName}",
-                    (homeworkProgress.getUser().getLastName() != null) ? homeworkProgress
-                    .getUser().getLastName() : "Not available");
-            parameterMap.put("${targetUsername}",
-                    (homeworkProgress.getUser().getUsername() != null) ? homeworkProgress
-                    .getUser().getUsername() : "Not available");
-            parameterMap.put("${targetLanguageCode}", homeworkProgress
-                    .getUser().getLanguageCode());
-
-            parameterMap.put("${courseName}", homeworkProgress.getHomework()
-                    .getLesson().getCourse().getName());
-
-            parameterMap.put("${lessonIndex}", homeworkProgress.getHomework()
-                    .getLesson().getIndex());
-
             final Localization localization = localizationLoader.getLocalizationForUser(
-                    "service_homework_feedback_request_notification", admin, parameterMap);
+                    "service_homework_feedback_request_notification", admin,
+                    getParameterMapForUserAndCourseInfo(homeworkProgress));
             bot.sendMessage(SendMessage.builder()
                     .chatId(admin.getId())
                     .text(localization.getData())
                     .entities(localization.getEntities())
                     .build());
-            bot.sendContent(contentRepository.findById(homeworkProgress
-                    .getContent().getId()).get(), admin);
-            final Message menuMessage = menuService.initiateMenu("m_rqF", admin,
-                    homeworkProgress.getId().toString());
+            final List<Message> sendContent = bot.sendContent(contentRepository
+                    .findById(homeworkProgress.getContent().getId()).get(), admin);
+            menuService.initiateMenu("m_rqF", admin,
+                    homeworkProgress.getId().toString(), sendContent.get(0).getMessageId());
             
             homeworkProgress.getApproveMessages().add(new MessageEntity(
-                    admin, menuMessage.getMessageId()));
+                    admin, sendContent.get(0).getMessageId()));
         }
         messageRepository.saveAll(homeworkProgress.getApproveMessages());
     }
@@ -230,10 +222,8 @@ public class HomeworkServiceImpl implements HomeworkService {
             homeworkProgressRepository.save(homeworkProgress);
     
             for (MessageEntity message : homeworkProgress.getApproveMessages()) {
-                final Localization success = localizationLoader
-                        .getLocalizationForUser("service_homework_approved", message.getUser());
                 menuService.terminateMenu(message.getUser().getId(), message.getMessageId(),
-                        success);
+                        null);
             }
 
             sendHomeworkNotification(homeworkProgress, (adminCommentContent != null)
@@ -262,10 +252,8 @@ public class HomeworkServiceImpl implements HomeworkService {
             homeworkProgressRepository.save(homeworkProgress);
     
             for (MessageEntity message : homeworkProgress.getApproveMessages()) {
-                final Localization failure = localizationLoader
-                        .getLocalizationForUser("service_homework_declined", message.getUser());
                 menuService.terminateMenu(message.getUser().getId(), message.getMessageId(),
-                        failure);
+                        null);
             }
 
             sendHomeworkNotification(homeworkProgress, 
@@ -313,5 +301,27 @@ public class HomeworkServiceImpl implements HomeworkService {
                 .text(notification.getData())
                 .entities(notification.getEntities())
                 .build());
+    }
+
+    private Map<String, Object> getParameterMapForUserAndCourseInfo(
+            HomeworkProgress homeworkProgress) {
+        final Map<String, Object> parameterMap = new HashMap<>();
+        parameterMap.put("${targetId}", homeworkProgress.getUser().getId());
+        parameterMap.put("${targetFirstName}", homeworkProgress.getUser().getFirstName());
+        parameterMap.put("${targetLastName}",
+                (homeworkProgress.getUser().getLastName() != null) ? homeworkProgress
+                .getUser().getLastName() : "Not available");
+        parameterMap.put("${targetUsername}",
+                (homeworkProgress.getUser().getUsername() != null) ? homeworkProgress
+                .getUser().getUsername() : "Not available");
+        parameterMap.put("${targetLanguageCode}", homeworkProgress
+                .getUser().getLanguageCode());
+
+        parameterMap.put("${courseName}", homeworkProgress.getHomework()
+                .getLesson().getCourse().getName());
+
+        parameterMap.put("${lessonIndex}", homeworkProgress.getHomework()
+                .getLesson().getIndex());
+        return parameterMap;
     }
 }

@@ -5,14 +5,10 @@ import com.unbidden.telegramcoursesbot.service.button.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-
-import java.util.List;
-
 import com.unbidden.telegramcoursesbot.service.button.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
-
+import java.util.List;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Component;
 
 @Component
@@ -30,8 +26,6 @@ public class UpdateContentMenu implements MenuConfigurer {
         final Page page = new Page();
         page.setMenu(menu);
         page.setPageIndex(0);
-        page.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
-            "menu_content_update_page_0", u));
         page.setButtonsFunction(u -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser("button_update_content", u)
                     .getData(), "updC", updateContentHandler)));
@@ -40,6 +34,7 @@ public class UpdateContentMenu implements MenuConfigurer {
         menu.setInitialParameterPresent(true);
         menu.setOneTimeMenu(false);
         menu.setUpdateAfterTerminalButtonRequired(false);
+        menu.setAttachedToMessage(true);
         menuService.save(menu);
     }
 }

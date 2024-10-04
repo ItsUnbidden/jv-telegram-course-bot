@@ -21,7 +21,9 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup.EditMessageReplyMarkupBuilder;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText.EditMessageTextBuilder;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -74,22 +76,56 @@ public class MenuServiceImpl implements MenuService {
             @NonNull String param) {
         final Menu menu = menuRepository.find(menuName).orElseThrow(() ->
                 new EntityNotFoundException("Menu " + menuName + " was not found"));
+        if (menu.isAttachedToMessage()) {
+            throw new UnsupportedOperationException("Menu " + menuName + " is supposed to be "
+                    + "attached to a message, but the wrong initialization method was called.");
+        }
         final Page firstPage = menu.getPages().get(0);
         final Localization localization = firstPage.getLocalizationFunction()
                 .apply(user, List.of(param));
         
-        LOGGER.info("Menu " + menuName + "'s message' is being compiled for user "
+        LOGGER.info("Menu " + menuName + "'s message is being compiled for user "
                 + user.getId() + "...");
         SendMessage sendMessage = SendMessage.builder()
-                    .chatId(user.getId())
-                    .text(localization.getData())
-                    .entities(localization.getEntities())
-                    .replyMarkup(getInitialMarkup(firstPage, param, user))
-                    .build();
+                .chatId(user.getId())
+                .text(localization.getData())
+                .entities(localization.getEntities())
+                .replyMarkup(getInitialMarkup(firstPage, param, user))
+                .build();
         LOGGER.info("Menu " + menuName + "'s message compiled. Sending...");
         final Message message = bot.sendMessage(sendMessage);
         LOGGER.info("Message sent.");
         return message;
+    }
+
+    @Override
+    public void initiateMenu(@NonNull String menuName, @NonNull UserEntity user,
+            @NonNull Integer messageId) {
+        initiateMenu(menuName, user, "", messageId);
+    }
+
+    @Override
+    public void initiateMenu(@NonNull String menuName, @NonNull UserEntity user,
+            @NonNull String param, @NonNull Integer messageId) {
+        final Menu menu = menuRepository.find(menuName).orElseThrow(() ->
+                new EntityNotFoundException("Menu " + menuName + " was not found"));
+        final Page firstPage = menu.getPages().get(0);
+        
+        LOGGER.info("Menu " + menuName + "'s markup is being compiled for message " + messageId
+                + " and user " + user.getId() + "...");
+        EditMessageReplyMarkup editMessageReplyMarkup = EditMessageReplyMarkup.builder()
+                .chatId(user.getId())
+                .messageId(messageId)
+                .replyMarkup(getInitialMarkup(firstPage, param, user))
+                .build();
+        LOGGER.info("Menu " + menuName + "'s markup compiled. Sending...");
+        try {
+            bot.execute(editMessageReplyMarkup);
+        } catch (TelegramApiException e) {
+            throw new TelegramException("Unable to update markup for message " + messageId
+                    + " for user " + user.getId(), e);
+        }
+        LOGGER.info("Markup sent.");
     }
 
     @Override
@@ -106,7 +142,11 @@ public class MenuServiceImpl implements MenuService {
         LOGGER.info("Current page is " + data[PAGE_NUMBER] + ".");
         
         boolean hasMessageChanged = false;
-        EditMessageTextBuilder editMessageBuilder = EditMessageText.builder()
+        final EditMessageTextBuilder editMessageBuilder = EditMessageText.builder()
+                .chatId(user.getId())
+                .messageId(query.getMessage().getMessageId());
+        final EditMessageReplyMarkupBuilder editMessageReplyMarkupBuilder = EditMessageReplyMarkup
+                .builder()
                 .chatId(user.getId())
                 .messageId(query.getMessage().getMessageId());
             
@@ -118,41 +158,59 @@ public class MenuServiceImpl implements MenuService {
                 final TransitoryButton transitoryButton = (TransitoryButton)button;
                 LOGGER.info("Button parsed to transitory button. Next page will be "
                         + transitoryButton.getPagePointer() + ".");
-                Page nextPage = menu.getPages().get(transitoryButton.getPagePointer());
-                localization = nextPage.getLocalizationFunction().apply(
-                        userFromDb, Arrays.asList(Arrays.copyOfRange(data, 2, data.length)));
-
-                editMessageBuilder.replyMarkup(getTransitoryMarkup(nextPage,
-                        Arrays.copyOfRange(data, 2, data.length), userFromDb));
-                editMessageBuilder.text(localization.getData());
-                editMessageBuilder.entities(localization.getEntities());
-                hasMessageChanged = true;
+                final Page nextPage = menu.getPages().get(transitoryButton.getPagePointer());
+                final InlineKeyboardMarkup markup = getTransitoryMarkup(nextPage,
+                            Arrays.copyOfRange(data, 2, data.length), userFromDb);
                 LOGGER.info("Markup for page " + nextPage.getPageIndex() + " created.");
+
+                if (menu.isAttachedToMessage()) {
+                    editMessageReplyMarkupBuilder.replyMarkup(markup);
+                } else {
+                    localization = nextPage.getLocalizationFunction().apply(
+                            userFromDb, Arrays.asList(Arrays.copyOfRange(data, 2, data.length)));
+
+                    editMessageBuilder.replyMarkup(markup);
+                    editMessageBuilder.text(localization.getData());
+                    editMessageBuilder.entities(localization.getEntities());
+                    LOGGER.info("Page requires its own content.");
+                }
+                hasMessageChanged = true;
                 break;
             default:
                 LOGGER.info("Button " + button.getData() + " is terminal.");
                 if (menu.isOneTimeMenu()) {
-                    localization = menu.getPages().get(menu.getPages().size() - 1)
-                            .getLocalizationFunction().apply(userFromDb,
-                            (menu.isInitialParameterPresent()) ? List.of(data[2]) : List.of());
-                    editMessageBuilder.text(localization.getData());
-                    editMessageBuilder.entities(localization.getEntities());
-                    editMessageBuilder.replyMarkup(InlineKeyboardMarkup.builder()
+                    final InlineKeyboardMarkup clearMarkup = InlineKeyboardMarkup.builder()
                             .clearKeyboard()
                             .keyboard(List.of())
-                            .build());
-                    hasMessageChanged = true;
-                } else {
-                    if (Integer.parseInt(data[PAGE_NUMBER]) != 0) {
-                        localization = menu.getPages().get(0)
+                            .build();
+                    if (menu.isAttachedToMessage()) {
+                        editMessageReplyMarkupBuilder.replyMarkup(clearMarkup);
+                    } else {
+                        localization = menu.getPages().get(menu.getPages().size() - 1)
                                 .getLocalizationFunction().apply(userFromDb,
                                 (menu.isInitialParameterPresent()) ? List.of(data[2])
                                 : List.of());
                         editMessageBuilder.text(localization.getData());
                         editMessageBuilder.entities(localization.getEntities());
-                        editMessageBuilder.replyMarkup(getInitialMarkup(menu.getPages().get(0),
-                                (menu.isInitialParameterPresent()) ? data[2] : "", userFromDb));
-                        
+                        editMessageBuilder.replyMarkup(clearMarkup);
+                    }
+                    hasMessageChanged = true;
+                } else {
+                    if (Integer.parseInt(data[PAGE_NUMBER]) != 0) {
+                        final InlineKeyboardMarkup page0Markup = getInitialMarkup(
+                                menu.getPages().get(0), (menu.isInitialParameterPresent())
+                                ? data[2] : "", userFromDb);
+                        if (menu.isAttachedToMessage()) {
+                            editMessageReplyMarkupBuilder.replyMarkup(page0Markup);
+                        } else {
+                            localization = menu.getPages().get(0)
+                                .getLocalizationFunction().apply(userFromDb,
+                                (menu.isInitialParameterPresent()) ? List.of(data[2])
+                                : List.of());
+                            editMessageBuilder.text(localization.getData());
+                            editMessageBuilder.entities(localization.getEntities());
+                            editMessageBuilder.replyMarkup(page0Markup);
+                        }             
                         hasMessageChanged = true;
                     }
                 }
@@ -171,10 +229,17 @@ public class MenuServiceImpl implements MenuService {
             if (hasMessageChanged && (button.getType().equals(Button.Type.TERMINAL)
                     && menu.isUpdateAfterTerminalButtonRequired()
                     || button.getType().equals(Button.Type.TRANSITORY))) {
-                LOGGER.info("Sending new message content...");
-                bot.execute(editMessageBuilder.build());
-                LOGGER.info("New content sent.");
+                if (menu.isAttachedToMessage()) {
+                    LOGGER.info("Sending new message markup...");
+                    bot.execute(editMessageReplyMarkupBuilder.build());
+                    LOGGER.info("New markup sent.");
+                } else {
+                    LOGGER.info("Sending new message content...");
+                    bot.execute(editMessageBuilder.build());
+                    LOGGER.info("New content sent.");
+                }  
             }
+            
             LOGGER.info("Sending answer to callback query...");
             bot.execute(answerCallbackQuery);
             LOGGER.info("Answer sent.");
@@ -193,17 +258,26 @@ public class MenuServiceImpl implements MenuService {
 
     @Override
     public void terminateMenu(@NonNull Long chatId, @NonNull Integer messageId,
-            @NonNull Localization terminalPageLocalization) {
+            Localization terminalPageLocalization) {
+        final InlineKeyboardMarkup clearMarkup = InlineKeyboardMarkup.builder()
+                .clearKeyboard()
+                .keyboard(List.of())
+                .build();
         try {
+            if (terminalPageLocalization == null) {
+                bot.execute(EditMessageReplyMarkup.builder()
+                        .chatId(chatId)
+                        .messageId(messageId)
+                        .replyMarkup(clearMarkup)
+                        .build());
+                return;
+            }
             bot.execute(EditMessageText.builder()
                     .chatId(chatId)
                     .messageId(messageId)
                     .text(terminalPageLocalization.getData())
                     .entities(terminalPageLocalization.getEntities())
-                    .replyMarkup(InlineKeyboardMarkup.builder()
-                        .clearKeyboard()
-                        .keyboard(List.of())
-                        .build())
+                    .replyMarkup(clearMarkup)
                     .build());
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to update message "

@@ -1,17 +1,19 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.ContentRepository;
 import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.SessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
-
 import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.User;
 
 @Component
@@ -31,7 +33,8 @@ public class GetContentButtonHandler implements ButtonHandler {
     
     @Override
     public void handle(String[] params, User user) {
-        if (!userService.isAdmin(user)) {
+        final UserEntity userFromDb = userService.getUser(user.getId());
+        if (!userService.isAdmin(userFromDb)) {
             return;
         }
         sessionService.createSession(user, m -> {
@@ -44,10 +47,11 @@ public class GetContentButtonHandler implements ButtonHandler {
                     .text(success.getData())
                     .entities(success.getEntities())
                     .build());
-            bot.sendContent(contentRepository.findById(contentId).orElseThrow(() ->
-                    new EntityNotFoundException("Content with id " + contentId
+            List<Message> content = bot.sendContent(contentRepository.findById(contentId)
+                    .orElseThrow(() -> new EntityNotFoundException("Content with id " + contentId
                     + " does not exist.")), m.getFrom());
-            menuService.initiateMenu("m_cntUpd", user, contentId.toString());
+            menuService.initiateMenu("m_cntUpd", userFromDb, contentId.toString(),
+                    content.get(0).getMessageId());
         }, false);
         final Localization request = localizationLoader.getLocalizationForUser(
                 "service_get_content_request", user);

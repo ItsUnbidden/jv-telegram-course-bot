@@ -16,6 +16,8 @@ import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import jakarta.persistence.EntityNotFoundException;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.User;
 
 @Service
@@ -111,7 +114,7 @@ public class CourseServiceImpl implements CourseService {
 
         LOGGER.info("Sending content for lesson " + lesson.getId() + " to user "
                 + user.getId() + "...");
-        sendContents(lesson.getStructure(), user);
+        final List<Message> sendContents = sendContents(lesson.getStructure(), user);
         LOGGER.info("Content sent.");
 
         if (course.isHomeworkIncluded() && lesson.isHomeworkIncluded()) {
@@ -124,7 +127,8 @@ public class CourseServiceImpl implements CourseService {
                 
         LOGGER.info("Lesson " + lesson.getId() + " or the course does not have any homework."
                 +" Sending next lesson menu...");
-        menuService.initiateMenu("m_crsNxtStg", user, course.getName());
+        menuService.initiateMenu("m_crsNxtStg", user, course.getName(),
+                sendContents.get(sendContents.size() - 1).getMessageId());
         LOGGER.info("Next lesson menu sent.");
     }
 
@@ -163,9 +167,13 @@ public class CourseServiceImpl implements CourseService {
         return courseRepository.save(course);
     }
 
-    private void sendContents(List<Content> contents, UserEntity user) {
+    private List<Message> sendContents(List<Content> contents, UserEntity user) {
+        final List<Message> messages = new ArrayList<>();
+
         for (Content content : contents) {
-            bot.sendContent(contentRepository.findById(content.getId()).get(), user);
+            messages.addAll(bot.sendContent(contentRepository.findById(
+                    content.getId()).get(), user));
         }
+        return messages;
     }
 }

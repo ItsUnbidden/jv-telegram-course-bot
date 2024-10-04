@@ -27,8 +27,6 @@ public class TestMenu implements MenuConfigurer {
         final Page page = new Page();
         page.setMenu(menu);
         page.setPageIndex(0);
-        page.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
-                "menu_test_page_0", u));
         page.setButtonsFunction(u -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser("button_test_menu", u)
                 .getData(), "sh", (p, u1) -> {
@@ -40,13 +38,12 @@ public class TestMenu implements MenuConfigurer {
         final Page terminalPage = new Page();
         terminalPage.setMenu(menu);
         terminalPage.setPageIndex(1);
-        terminalPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
-                "menu_test_terminal_page", u));
         menu.setName("m_tst");
         menu.setPages(List.of(page, terminalPage));
         menu.setInitialParameterPresent(false);
         menu.setOneTimeMenu(true);
         menu.setUpdateAfterTerminalButtonRequired(true);
+        menu.setAttachedToMessage(true);
         menuService.save(menu);
     }
 }

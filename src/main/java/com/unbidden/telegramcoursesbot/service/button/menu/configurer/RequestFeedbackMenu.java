@@ -29,8 +29,6 @@ public class RequestFeedbackMenu implements MenuConfigurer {
         final Page page1 = new Page();
         page1.setMenu(menu);
         page1.setPageIndex(0);
-        page1.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
-                "menu_resolve_homework_page_0", u));
         page1.setButtonsFunction(u -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser("button_decline_homework", u)
                 .getData(), "dh", declineHandler), new TransitoryButton(
@@ -39,8 +37,6 @@ public class RequestFeedbackMenu implements MenuConfigurer {
         final Page page2 = new Page();
         page2.setMenu(menu);
         page2.setPageIndex(1);
-        page2.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
-                "menu_resolve_homework_page_1", u));
         page2.setButtonsFunction(u -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser("button_accept_homework", u)
                 .getData(), "ah", acceptHandler), new TerminalButton(
@@ -51,6 +47,7 @@ public class RequestFeedbackMenu implements MenuConfigurer {
         menu.setInitialParameterPresent(true);
         menu.setOneTimeMenu(false);
         menu.setUpdateAfterTerminalButtonRequired(false);
+        menu.setAttachedToMessage(true);
         menuService.save(menu);
     }
 }

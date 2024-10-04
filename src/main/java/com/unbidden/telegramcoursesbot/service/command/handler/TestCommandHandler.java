@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import lombok.RequiredArgsConstructor;
@@ -20,12 +21,14 @@ public class TestCommandHandler implements CommandHandler {
 
     @Override
     public void handle(@NonNull Message message, @NonNull String[] commandParts) {
-        if (userService.isAdmin(message.getFrom())) {
-            bot.sendMessage(SendMessage.builder()
+        final UserEntity userFromDb = userService.getUser(message.getFrom().getId());
+
+        if (userService.isAdmin(userFromDb)) {
+            final Message sentMessage = bot.sendMessage(SendMessage.builder()
                     .chatId(message.getFrom().getId())
                     .text("This is a debug command.")
                     .build());
-            menuService.initiateMenu("m_tst", message.getFrom());
+            menuService.initiateMenu("m_tst", userFromDb, sentMessage.getMessageId());
         }
     }
 

@@ -21,6 +21,8 @@ public class Menu {
 
     private boolean isUpdateAfterTerminalButtonRequired;
 
+    private boolean isAttachedToMessage;
+
     @Data
     public static class Page {
         private int pageIndex;
