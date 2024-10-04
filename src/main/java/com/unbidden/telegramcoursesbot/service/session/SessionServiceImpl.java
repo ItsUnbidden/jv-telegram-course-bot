@@ -30,7 +30,7 @@ public class SessionServiceImpl implements SessionService {
             removeSessionsForUser(user);
         }
 
-        LOGGER.info("Creating new session for user " + user.getId() + "...");
+        LOGGER.debug("Creating new session for user " + user.getId() + "...");
         Session session = new Session();
         session.setId(ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE));
         session.setUser(user);
@@ -38,29 +38,29 @@ public class SessionServiceImpl implements SessionService {
         session.setFunction(function);
         session.setUserOrChatRequestButton(isUserOrChatRequestButton);
         sessionRepository.save(session);
-        LOGGER.info("Session saved.");
+        LOGGER.debug("Session saved.");
         return session.getId();
     }
 
     @Override
     public void removeSessionsForUser(@NonNull User user) {
-        LOGGER.info("Removing any current sessions for user " + user.getId() + "...");
+        LOGGER.debug("Removing any current sessions for user " + user.getId() + "...");
         sessionRepository.removeForUser(user.getId());
-        LOGGER.info("Session removed or action skipped.");
+        LOGGER.debug("Session removed or action skipped.");
     }
 
     @Override
     public void processResponse(@NonNull Message message) {
         final User user = message.getFrom();
 
-        LOGGER.info("Response from user " + user.getId() + " recieved. Looking for session...");
+        LOGGER.debug("Response from user " + user.getId() + " recieved. Looking for session...");
         List<Session> sessions = sessionRepository.findForUser(user.getId());
         if (sessions != null && !sessions.isEmpty()) {
             if (sessions.size() == 1) {
-                LOGGER.info("Session found.");
+                LOGGER.debug("Session found.");
                 sessions.get(0).getFunction().accept(message);
             } else {
-                LOGGER.info(sessions.size() + " button session(s) found.");
+                LOGGER.debug(sessions.size() + " button session(s) found.");
                 if (message.getChatShared() != null) {
                     sessions.stream()
                             .filter(s -> s.getId().intValue() == Integer.parseInt(
@@ -73,7 +73,7 @@ public class SessionServiceImpl implements SessionService {
                             .toList().get(0).getFunction().accept(message);
                 }
             }
-            LOGGER.info("Function completed execution.");    
+            LOGGER.debug("Function completed execution.");    
             removeSessionsForUser(user);    
         }
     }

@@ -44,7 +44,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
 
     @Override
     public void removeExpired() {
-        LOGGER.info("Checking for expired sessions...");
+        LOGGER.debug("Checking for expired sessions...");
         List<Integer> keysToRemove = new ArrayList<>();
 
         for (Entry<Integer, Session> entry : sessions.entrySet()) {
@@ -55,10 +55,10 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
         }
 
         if (keysToRemove.isEmpty()) {
-            LOGGER.info("All sessions are valid.");
+            LOGGER.debug("All sessions are valid.");
             return;
         }
-        LOGGER.info("Some expired sessions have been found.");
+        LOGGER.debug("Some expired sessions have been found.");
         for (Integer key : keysToRemove) {
             removeFromIndexedSessions(sessions.get(key));
             sessions.remove(key);
@@ -101,12 +101,12 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
         List<Session> sessions = sessionsIndexedByUser.get(user.getId());
 
         if (sessions != null) {
-            LOGGER.info("For user " + user.getId()
+            LOGGER.debug("For user " + user.getId()
                     + " there is a list for sessions in index map.");
             sessions.add(session);
             return;
         }
-        LOGGER.info("For user " + user.getId()
+        LOGGER.debug("For user " + user.getId()
                 + " there is no list for sessions in index map.");
         sessions = new ArrayList<>();
         sessions.add(session);
@@ -115,7 +115,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
 
     private void removeFromIndexedSessions(Session session) {
         sessionsIndexedByUser.get(session.getUser().getId()).remove(session);
-        LOGGER.info("Session for user " + session.getUser().getId()
+        LOGGER.debug("Session for user " + session.getUser().getId()
                 + " was removed from the index map.");
 
         final List<Long> usersWithNoSessions = new ArrayList<>();
@@ -126,7 +126,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
             }
         });
         if (!usersWithNoSessions.isEmpty()) {
-            LOGGER.info("Users " + usersWithNoSessions
+            LOGGER.debug("Users " + usersWithNoSessions
                     + " have no sessions. Removing them from the index map...");
         }
         for (Long id : usersWithNoSessions) {

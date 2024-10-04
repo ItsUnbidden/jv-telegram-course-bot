@@ -1,14 +1,11 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
-import com.unbidden.telegramcoursesbot.repository.ContentRepository;
-import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
+import com.unbidden.telegramcoursesbot.model.Content;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.SessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
-
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -16,46 +13,40 @@ import org.telegram.telegrambots.meta.api.objects.User;
 
 @Component
 @RequiredArgsConstructor
-public class GetContentButtonHandler implements ButtonHandler {
-    private final LocalizationLoader localizationLoader;
-
-    private final ContentRepository contentRepository;
+public class UpdateContentButtonHandler implements ButtonHandler {
+    private final TelegramBot bot;
 
     private final SessionService sessionService;
 
     private final UserService userService;
 
-    private final MenuService menuService;
+    private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
-    
     @Override
     public void handle(String[] params, User user) {
         if (!userService.isAdmin(user)) {
             return;
         }
         sessionService.createSession(user, m -> {
-            final Long contentId = Long.parseLong(m.getText());
+            final Content content = bot.parseAndPersistContent(m,
+                    Long.parseLong(params[0]));
             final Localization success = localizationLoader.getLocalizationForUser(
-                    "service_get_content_success", m.getFrom(), "${contentId}",
-                    contentId);
+                    "service_update_content_success", m.getFrom(), "${contentId}",
+                    content.getId());
             bot.sendMessage(SendMessage.builder()
                     .chatId(m.getFrom().getId())
                     .text(success.getData())
                     .entities(success.getEntities())
                     .build());
-            bot.sendContent(contentRepository.findById(contentId).orElseThrow(() ->
-                    new EntityNotFoundException("Content with id " + contentId
-                    + " does not exist.")), m.getFrom());
-            menuService.initiateMenu("m_cntUpd", user, contentId.toString());
         }, false);
-        final Localization request = localizationLoader.getLocalizationForUser(
-                "service_get_content_request", user);
+        
+        final Localization requestId = localizationLoader.getLocalizationForUser(
+                "service_update_content_request", user);
 
         bot.sendMessage(SendMessage.builder()
                 .chatId(user.getId())
-                .text(request.getData())
-                .entities(request.getEntities())
+                .text(requestId.getData())
+                .entities(requestId.getEntities())
                 .build());
     }
 }

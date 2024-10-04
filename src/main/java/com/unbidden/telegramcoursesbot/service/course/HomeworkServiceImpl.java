@@ -178,6 +178,31 @@ public class HomeworkServiceImpl implements HomeworkService {
         final List<UserEntity> admins = userService.getHomeworkReveivingAdmins();
         
         for (UserEntity admin : admins) {
+            final Map<String, Object> parameterMap = new HashMap<>();
+            parameterMap.put("${targetId}", homeworkProgress.getUser().getId());
+            parameterMap.put("${targetFirstName}", homeworkProgress.getUser().getFirstName());
+            parameterMap.put("${targetLastName}",
+                    (homeworkProgress.getUser().getLastName() != null) ? homeworkProgress
+                    .getUser().getLastName() : "Not available");
+            parameterMap.put("${targetUsername}",
+                    (homeworkProgress.getUser().getUsername() != null) ? homeworkProgress
+                    .getUser().getUsername() : "Not available");
+            parameterMap.put("${targetLanguageCode}", homeworkProgress
+                    .getUser().getLanguageCode());
+
+            parameterMap.put("${courseName}", homeworkProgress.getHomework()
+                    .getLesson().getCourse().getName());
+
+            parameterMap.put("${lessonIndex}", homeworkProgress.getHomework()
+                    .getLesson().getIndex());
+
+            final Localization localization = localizationLoader.getLocalizationForUser(
+                    "service_homework_feedback_request_notification", admin, parameterMap);
+            bot.sendMessage(SendMessage.builder()
+                    .chatId(admin.getId())
+                    .text(localization.getData())
+                    .entities(localization.getEntities())
+                    .build());
             bot.sendContent(contentRepository.findById(homeworkProgress
                     .getContent().getId()).get(), admin);
             final Message menuMessage = menuService.initiateMenu("m_rqF", admin,

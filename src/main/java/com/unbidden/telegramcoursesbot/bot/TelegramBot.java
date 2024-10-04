@@ -301,7 +301,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     @NonNull
-    public Content parseAndPersistContent(@NonNull Message message) {
+    public Content parseAndPersistContent(@NonNull Message message, Long contentId) {
         LOGGER.info("Initiating parsing of a message to content.");
         List<Photo> photos = null;
         Video video = null;
@@ -347,11 +347,16 @@ public class TelegramBot extends TelegramLongPollingBot {
                     + " has sent invalid homework response.");
         }
         final Content content = new Content();
+        content.setId(contentId);
         content.setData(text);
         content.setVideo(video);
         content.setPhotos(photos);
         LOGGER.info("Persisting content...");
         return contentRepository.save(content);
+    }
+
+    public Content parseAndPersistContent(@NonNull Message message) {
+        return parseAndPersistContent(message, null);
     }
 
     public boolean isOnMaintenance() {
