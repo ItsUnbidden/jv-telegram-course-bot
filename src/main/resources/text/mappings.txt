@@ -1,20 +1,99 @@
-error_new_price_cannot_parse
-service_course_price_update_success ${courseName} ${currentPrice}
-service_course_price_update_request ${courseName} ${currentPrice}
-service_course_feedback_update_successful ${status} ${courseName}
-service_course_homework_update_successful ${status} ${courseName}
-menu_course_settings_page_0
-menu_course_settings_page_1
-button_course_price_change
-button_course_feedback_setting
-button_course_homework_setting
-service_on_maintenance_status_change
-service_refresh_success
-service_start
-service_terms
-error_precheckout_unknown_course
-pre_checkout_course_already_present
-pre_checkout_currency_mismatch
-pre_checkout_price_mismatch
-error_payment_unknown_course
-message_successful_payment
+error new_price_cannot_parse
+service course_price_update_success ${courseName} ${currentPrice}
+service course_price_update_request ${courseName} ${currentPrice}
+service course_feedback_update_successful ${status} ${courseName}
+service course_homework_update_successful ${status} ${courseName}
+menu course_settings_page_0
+menu course_settings_page_1 ${id} ${name} ${sequenceMode} ${numberOfLessons} ${price} ${isHomeworkIncluded} ${isFeedbackIncluded}
+button course_price_change
+button course_feedback_setting
+button course_homework_setting
+service on_maintenance_status_change
+service refresh_success
+service start
+service terms
+error pre_checkout_unknown_course
+error pre_checkout_course_already_present
+error pre_checkout_currency_mismatch
+error pre_checkout_price_mismatch
+error payment_unknown_course
+service successful_payment
+error new_admin_assign_failure ${userId}
+service new_admin_assign_success ${targetFirstName}
+button add_new_admin
+service admin_choose_action
+service new_admin_notification
+error admin_remove_failure ${userId}
+service admin_remove_success ${targetFirstName}
+service removed_admin_notification
+service get_admin_list ${adminList}
+menu admin_actions_page_0
+button add_or_remove_admin
+button list_admins
+service_about_creator
+error give_take_course_no_longer_available ${courseName}
+button give_course
+button take_course
+service give_take_course_choose_action ${courseName}
+service course_gifted_successfuly ${courseName} ${targetFirstName}
+service course_gifted_notification ${courseName}
+error give_course_user_not_found ${courseName} ${targetId}
+error give_course_already_owned ${courseName} ${targetFirstName}
+service course_taken_successfuly ${courseName} ${targetFirstName}
+service course_taken_notification ${courseName}
+error take_course_user_not_found ${courseName} ${targetId}
+error take_course_bought ${courseName} ${targetFirstName}
+button give_or_take_course
+service toggle_receive_homework ${status}
+button toggle_receive_homework
+service approve_homework_comment_request
+service decline_homework_comment_request
+service get_content_success ${contentId}
+service get_content_request 
+service send_homework_request
+service upload_content_success ${contentId}
+service upload_content_request
+menu confirm_send_homework_page_0
+button confirm_send_homework
+button resend_homework
+menu confirm_send_homework_terminal_page
+menu content_actions_page_0
+button upload_content
+button get_content
+button course_next_stage
+button decline_homework
+button general_accept_homework
+button accept_homework
+button accept_homework_with_comment
+button send_homework
+menu test_page_0                    ****
+button test_menu                    ****
+menu test_terminal_page             ****
+course <courseName>_end_repeat
+course <courseName>_end
+error homework_already_awaits_approval
+error homework_already_declined
+error homework_already_completed
+service feedback_for_homework_waiting
+service homework_accepted_auto
+service homework_feedback_request_notification ${targetId} ${targetFirstName} ${targetLastName} ${targetUsername} ${targetLanguageCode} ${courseName} ${lessonIndex}
+service homework_approved_notification_plus_comment ${courseName} ${lessonIndex} ${commenterName}
+service homework_approved_notification ${courseName} ${lessonIndex} ${commenterName}
+service homework_declined_notification_plus_comment ${courseName} ${lessonIndex} ${commenterName}
+menu command_<commandName>_description
+button update_content
+service homework_feedback_notification
+menu_available_courses_page_0
+menu_courses_page_0
+button_available_courses
+button_my_courses
+menu_courses_page_1
+course_<courseName>_name
+menu_courses_page_2
+menu_courses_page_3
+button_begin_course
+button_leave_review
+menu_my_courses_page_0
+menu_my_courses_page_1
+course_<courseName>_end
+course_<courseName>_end_repeat
