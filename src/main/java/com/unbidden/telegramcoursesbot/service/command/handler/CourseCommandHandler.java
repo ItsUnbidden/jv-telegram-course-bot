@@ -36,10 +36,10 @@ public class CourseCommandHandler implements CommandHandler {
         final List<Course> availableCourses = courseService.getAll().stream()
                 .filter(c -> !allCoursesNamesOwnedByUser.contains(c.getName())).toList();
 
-        // if (availableCourses.isEmpty()) {
-        //     menuService.initiateMenu("m_myCrs", user);
-        //     return;
-        // }
+        if (availableCourses.isEmpty()) {
+            menuService.initiateMenu("m_myCrs", user);
+            return;
+        }
         menuService.initiateMenu("m_crs", user);
     }
 
