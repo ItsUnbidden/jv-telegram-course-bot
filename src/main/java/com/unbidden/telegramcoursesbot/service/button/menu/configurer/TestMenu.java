@@ -29,11 +29,11 @@ public class TestMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setButtonsFunction(u -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser("button_test_menu", u)
-                .getData(), "sh", (p, u1) -> {
+                .getData(), "sh", (p1, u1) -> {
                     bot.sendMessage(SendMessage.builder()
-                            .chatId(u1.getId())
-                            .text("Test button triggered.")
-                            .build());
+                        .chatId(u1.getId())
+                        .text("Test button triggered.")
+                        .build());
                 })));
         final Page terminalPage = new Page();
         terminalPage.setMenu(menu);

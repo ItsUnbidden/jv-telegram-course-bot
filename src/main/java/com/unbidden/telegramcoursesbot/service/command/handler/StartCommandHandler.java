@@ -1,15 +1,13 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.repository.UserRepository;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.Blockable;
+import jakarta.persistence.EntityNotFoundException;
 import java.util.Arrays;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,8 +33,7 @@ public class StartCommandHandler implements CommandHandler {
     @Override
     @Blockable
     public void handle(@NonNull Message message, @NonNull String[] commandParts) {
-        final User user =
-                message.getFrom();
+        final User user = message.getFrom();
         userService.updateUser(user);
         
         LOGGER.info("Sending /start message to user " + user.getId() + "...");
@@ -52,9 +49,12 @@ public class StartCommandHandler implements CommandHandler {
         if (commandParts.length > 1) {
             LOGGER.info("Additional command parameters present: "
                     + Arrays.toString(commandParts) + ".");
-            // TODO: make it so start message can launch courses when params present
-            LOGGER.warn("Additional parameters sent by user " + user.getId()
-                    + " are invalid and will be ignored.");
+            try {
+                courseService.initMessage(user, commandParts[0]);
+            } catch (EntityNotFoundException e) {
+                LOGGER.warn("Additional parameters sent by user " + user.getId()
+                        + " are invalid and will be ignored.");
+            }
         }
     }
 

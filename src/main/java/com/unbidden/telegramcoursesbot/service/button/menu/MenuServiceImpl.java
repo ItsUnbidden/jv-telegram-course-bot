@@ -286,15 +286,14 @@ public class MenuServiceImpl implements MenuService {
     }
 
     private InlineKeyboardMarkup getInitialMarkup(Page menuPage, String param, UserEntity user) {
-        final String initialParam = menuPage.getMenu().getName() + DIVIDER
-                + menuPage.getPageIndex() + DIVIDER;
+        final String callbackData = menuPage.getMenu().getName() + DIVIDER
+                + menuPage.getPageIndex() + DIVIDER + ((param == "") ? param : param + DIVIDER);
 
         List<InlineKeyboardButton> buttons = menuPage.getButtonsFunction()
                 .apply(user)
                 .stream()
                 .map(b -> InlineKeyboardButton.builder()
-                    .callbackData(initialParam + ((param == "") ? param : param + DIVIDER)
-                        + b.getData())
+                    .callbackData(callbackData + b.getData())
                     .text(b.getName())
                     .build())
                 .toList();
@@ -310,12 +309,13 @@ public class MenuServiceImpl implements MenuService {
         for (String param : data) {
             builder.append(param).append(DIVIDER);
         }
+        final String callbackData = builder.toString();
         
         List<InlineKeyboardButton> buttons = menuPage.getButtonsFunction()
                 .apply(user)
                 .stream()
                 .map(b -> InlineKeyboardButton.builder()
-                    .callbackData(builder.toString() + b.getData())
+                    .callbackData(callbackData + b.getData())
                     .text(b.getName())
                     .build())
                 .toList();

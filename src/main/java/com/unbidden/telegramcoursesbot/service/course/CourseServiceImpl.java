@@ -5,6 +5,7 @@ import com.unbidden.telegramcoursesbot.model.Content;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Lesson;
+import com.unbidden.telegramcoursesbot.model.PaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.ContentRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
@@ -16,13 +17,13 @@ import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import jakarta.persistence.EntityNotFoundException;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -33,6 +34,8 @@ import org.telegram.telegrambots.meta.api.objects.User;
 @RequiredArgsConstructor
 public class CourseServiceImpl implements CourseService {
     private static final Logger LOGGER = LogManager.getLogger(CourseServiceImpl.class);
+
+    private static final String TEST_COURSE_NAME = "test_course";
 
     private final CourseRepository courseRepository;
 
@@ -54,8 +57,16 @@ public class CourseServiceImpl implements CourseService {
 
     private final TelegramBot bot;
 
+    @Value("${telegram.bot.course.show-test-course}")
+    private Boolean isTestCourseShown;
+
     @Override
     public void initMessage(@NonNull User user, @NonNull String courseName) {
+        initMessage(userService.getUser(user.getId()), courseName);
+    }
+
+    @Override
+    public void initMessage(@NonNull UserEntity user, @NonNull String courseName) {
         if (!paymentService.isAvailable(user, courseName)) {
             paymentService.sendInvoice(user, courseName);
             return;
@@ -157,8 +168,20 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @NonNull
-    public List<Course> getCourses() {
-        return courseRepository.findAll();
+    public List<Course> getAll() {
+        return (isTestCourseShown) ? courseRepository.findAll() : courseRepository.findAll()
+                .stream().filter(c -> !c.getName().equals(TEST_COURSE_NAME)).toList();
+    }
+
+    @Override
+    @NonNull
+    public List<Course> getAllOwnedByUser(@NonNull UserEntity user) {
+        final List<PaymentDetails> paymentDetails = paymentService.getAllForUser(user);
+
+        return (isTestCourseShown) ? paymentDetails.stream()         
+                .map(pd -> pd.getCourse()).toList() : paymentDetails.stream()
+                .filter(pd -> !pd.getCourse().getName().equals(TEST_COURSE_NAME))
+                .map(pd -> pd.getCourse()).toList();
     }
 
     @Override

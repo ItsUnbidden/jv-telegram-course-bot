@@ -11,6 +11,8 @@ import org.telegram.telegrambots.meta.api.objects.User;
 public interface CourseService {
     void initMessage(@NonNull User user, @NonNull String courseName);
 
+    void initMessage(@NonNull UserEntity user, @NonNull String courseName);
+
     void next(@NonNull UserEntity user, @NonNull String courseName);
 
     void current(@NonNull Course course, @NonNull CourseProgress courseProgress);
@@ -21,7 +23,10 @@ public interface CourseService {
     Course getCourseByName(@NonNull String courseName);
 
     @NonNull
-    List<Course> getCourses();
+    List<Course> getAll();
+
+    @NonNull
+    List<Course> getAllOwnedByUser(@NonNull UserEntity user);
 
     @NonNull
     Course save(@NonNull Course course);

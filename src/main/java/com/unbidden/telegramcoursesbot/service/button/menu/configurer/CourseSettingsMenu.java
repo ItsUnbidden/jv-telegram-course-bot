@@ -47,9 +47,9 @@ public class CourseSettingsMenu implements MenuConfigurer {
         firstPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
                 "menu_course_settings_page_0", u));
         firstPage.setMenu(courseSettingsMenu);
-        firstPage.setButtonsFunction(u -> courseService.getCourses().stream()
+        firstPage.setButtonsFunction(u -> courseService.getAll().stream()
                 .map(c -> (Button)new TransitoryButton(localizationLoader
-                    .getLocalizationForUser("course_" + c.getName(), u).getData(),
+                    .getLocalizationForUser("course_" + c.getName() + "_name", u).getData(),
                     c.getName(), 1))
                 .toList());
 

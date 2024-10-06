@@ -6,6 +6,7 @@ import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

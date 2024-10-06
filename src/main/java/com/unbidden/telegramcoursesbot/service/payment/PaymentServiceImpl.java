@@ -95,7 +95,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public void sendInvoice(User user, String courseName) {
+    public void sendInvoice(UserEntity user, String courseName) {
         final Course course = courseService.getCourseByName(courseName);
 
                 //TODO: revamp invoice system if possible
@@ -225,6 +225,12 @@ public class PaymentServiceImpl implements PaymentService {
         throw new UnsupportedOperationException("Unable to refund course " + courseName
                 + " for user " + user.getId()
                 + " because there is no valid payment details present.");
+    }
+
+    @Override
+    @NonNull
+    public List<PaymentDetails> getAllForUser(@NonNull UserEntity user) {
+        return paymentDetailsRepository.findByUser(user.getId());
     }
 
     private void refund0(PaymentDetails paymentDetails) {

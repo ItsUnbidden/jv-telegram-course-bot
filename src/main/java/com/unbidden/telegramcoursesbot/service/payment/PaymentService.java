@@ -2,6 +2,9 @@ package com.unbidden.telegramcoursesbot.service.payment;
 
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+
+import java.util.List;
+
 import org.springframework.lang.NonNull;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.User;
@@ -14,7 +17,7 @@ public interface PaymentService {
 
     boolean isAvailableAndGifted(@NonNull UserEntity user, @NonNull String courseName);
     
-    void sendInvoice(@NonNull User user, @NonNull String courseName);
+    void sendInvoice(@NonNull UserEntity user, @NonNull String courseName);
 
     void resolvePreCheckout(@NonNull PreCheckoutQuery preCheckoutQuery);
 
@@ -26,4 +29,7 @@ public interface PaymentService {
     PaymentDetails addPaymentDetails(@NonNull PaymentDetails paymentDetails);
 
     void deleteByCourseForUser(@NonNull String courseName, @NonNull Long userId);
+
+    @NonNull
+    List<PaymentDetails> getAllForUser(@NonNull UserEntity user);
 }
