@@ -20,6 +20,10 @@ import org.telegram.telegrambots.meta.api.objects.User;
 @Component
 @RequiredArgsConstructor
 public class StartCommandHandler implements CommandHandler {
+    private static final String COMMAND = "/start";
+
+    private static final String SERVICE_START = "service_start";
+
     private static final Logger LOGGER = LogManager.getLogger(StartCommandHandler.class);
 
     private final LocalizationLoader localizationLoader;
@@ -38,7 +42,7 @@ public class StartCommandHandler implements CommandHandler {
         
         LOGGER.info("Sending /start message to user " + user.getId() + "...");
         final Localization localization = localizationLoader.getLocalizationForUser(
-            "service_start", message.getFrom());
+            SERVICE_START, message.getFrom());
         bot.sendMessage(SendMessage.builder()
                 .chatId(user.getId())
                 .text(localization.getData())
@@ -61,7 +65,7 @@ public class StartCommandHandler implements CommandHandler {
     @Override
     @NonNull
     public String getCommand() {
-        return "/start";
+        return COMMAND;
     }
 
     @Override

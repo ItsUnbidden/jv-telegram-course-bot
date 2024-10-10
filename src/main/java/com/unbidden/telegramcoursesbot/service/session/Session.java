@@ -1,16 +1,16 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import java.time.LocalDateTime;
 import java.util.function.Consumer;
 import lombok.Data;
 import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 @Data
 public class Session {
     private Integer id;
 
-    private User user;
+    private UserEntity user;
 
     private LocalDateTime timestamp;
 

@@ -14,6 +14,12 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class SendHomeworkMenu implements MenuConfigurer {
+    private static final String MENU_NAME = "m_sHw";
+
+    private static final String SEND_HOMEWORK = "sh";
+    
+    private static final String BUTTON_SEND_HOMEWORK = "button_send_homework";
+
     private final SendHomeworkButtonHandler sendHomeworkHandler;
 
     private final LocalizationLoader localizationLoader;
@@ -26,14 +32,14 @@ public class SendHomeworkMenu implements MenuConfigurer {
         final Page page = new Page();
         page.setMenu(menu);
         page.setPageIndex(0);
-        page.setButtonsFunction(u -> List.of(new TerminalButton(
-                localizationLoader.getLocalizationForUser("button_send_homework", u)
-                .getData(), "sh", sendHomeworkHandler)));
-        menu.setName("m_sHw");
+        page.setButtonsRowSize(1);
+        page.setButtonsFunction((u, p) -> List.of(new TerminalButton(
+                localizationLoader.getLocalizationForUser(BUTTON_SEND_HOMEWORK, u)
+                .getData(), SEND_HOMEWORK, sendHomeworkHandler)));
+        menu.setName(MENU_NAME);
         menu.setPages(List.of(page));
         menu.setInitialParameterPresent(true);
         menu.setOneTimeMenu(false);
-        menu.setUpdateAfterTerminalButtonRequired(false);
         menu.setAttachedToMessage(true);
         menuService.save(menu);
     }

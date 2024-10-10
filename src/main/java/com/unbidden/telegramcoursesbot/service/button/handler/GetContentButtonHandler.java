@@ -11,14 +11,17 @@ import com.unbidden.telegramcoursesbot.service.user.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 @Component
 @RequiredArgsConstructor
 public class GetContentButtonHandler implements ButtonHandler {
+    private static final String SERVICE_GET_CONTENT_REQUEST = "service_get_content_request";
+    private static final String SERVICE_GET_CONTENT_SUCCESS = "service_get_content_success";
+
     private final LocalizationLoader localizationLoader;
 
     private final ContentRepository contentRepository;
@@ -32,15 +35,15 @@ public class GetContentButtonHandler implements ButtonHandler {
     private final TelegramBot bot;
     
     @Override
-    public void handle(String[] params, User user) {
+    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         final UserEntity userFromDb = userService.getUser(user.getId());
         if (!userService.isAdmin(userFromDb)) {
             return;
         }
-        sessionService.createSession(user, m -> {
+        sessionService.createSession(user, false, m -> {
             final Long contentId = Long.parseLong(m.getText());
             final Localization success = localizationLoader.getLocalizationForUser(
-                    "service_get_content_success", m.getFrom(), "${contentId}",
+                    SERVICE_GET_CONTENT_SUCCESS, m.getFrom(), "${contentId}",
                     contentId);
             bot.sendMessage(SendMessage.builder()
                     .chatId(m.getFrom().getId())
@@ -52,9 +55,9 @@ public class GetContentButtonHandler implements ButtonHandler {
                     + " does not exist.")), m.getFrom());
             menuService.initiateMenu("m_cntUpd", userFromDb, contentId.toString(),
                     content.get(0).getMessageId());
-        }, false);
+        });
         final Localization request = localizationLoader.getLocalizationForUser(
-                "service_get_content_request", user);
+                SERVICE_GET_CONTENT_REQUEST, user);
 
         bot.sendMessage(SendMessage.builder()
                 .chatId(user.getId())

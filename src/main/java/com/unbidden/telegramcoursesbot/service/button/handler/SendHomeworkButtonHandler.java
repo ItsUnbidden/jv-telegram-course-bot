@@ -1,18 +1,21 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.SessionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 @Component
 @RequiredArgsConstructor
 public class SendHomeworkButtonHandler implements ButtonHandler {
+    private static final String SERVICE_SEND_HOMEWORK_REQUEST = "service_send_homework_request";
+
     private final HomeworkService homeworkService;
 
     private final SessionService sessionService;
@@ -22,15 +25,14 @@ public class SendHomeworkButtonHandler implements ButtonHandler {
     private final TelegramBot bot;
 
     @Override
-    public void handle(String[] params, User user) {
+    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         final Long homeworkProgressId = Long.parseLong(params[0]);
 
-        sessionService.createSession(user, m -> {
-            homeworkService.process(homeworkProgressId, m);
-        }, false);
+        sessionService.createSession(user, false, m ->
+                homeworkService.process(homeworkProgressId, m));
 
         final Localization localization = localizationLoader.getLocalizationForUser(
-                "service_send_homework_request", user);
+                SERVICE_SEND_HOMEWORK_REQUEST, user);
         
         bot.sendMessage(SendMessage.builder()
                 .chatId(user.getId())

@@ -45,8 +45,13 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: is_completed
-                  type: boolean
-                  defaultValueBoolean: false
+                  name: initialized_at
+                  type: datetime
                   constraints:
                     nullable: false
+              - column:
+                  name: approve_requested_at
+                  type: datetime
+              - column:
+                  name: finished_at
+                  type: datetime

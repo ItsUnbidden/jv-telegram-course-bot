@@ -1,16 +1,16 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import java.util.function.Consumer;
 import org.springframework.lang.NonNull;
 import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 public interface SessionService {
     @NonNull
-    Integer createSession(@NonNull User user, @NonNull Consumer<Message> function,
-            boolean isUserOrChatRequestButton);
+    Integer createSession(@NonNull UserEntity user, boolean isUserOrChatRequestButton,
+            @NonNull Consumer<Message> function);
 
-    void removeSessionsForUser(@NonNull User user);
+    void removeSessionsForUser(@NonNull UserEntity user);
 
     void processResponse(@NonNull Message message);
 }

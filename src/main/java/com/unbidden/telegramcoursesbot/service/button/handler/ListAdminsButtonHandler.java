@@ -7,13 +7,15 @@ import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 @Component
 @RequiredArgsConstructor
 public class ListAdminsButtonHandler implements ButtonHandler {
+    private static final String SERVICE_GET_ADMIN_LIST = "service_get_admin_list";
+
     private final TelegramBot bot;
 
     private final LocalizationLoader localizationLoader;
@@ -21,7 +23,7 @@ public class ListAdminsButtonHandler implements ButtonHandler {
     private final UserService userService;
 
     @Override
-    public void handle(String[] params, User user) {
+    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         if (userService.isAdmin(user)) {
             final List<UserEntity> adminList = userService.getAdminList();
             final StringBuilder builder = new StringBuilder();
@@ -35,7 +37,7 @@ public class ListAdminsButtonHandler implements ButtonHandler {
                         .append('\n');
             }
             final Localization localization = localizationLoader.getLocalizationForUser(
-                    "service_get_admin_list", user, "${adminList}", builder.toString());
+                    SERVICE_GET_ADMIN_LIST, user, "${adminList}", builder.toString());
     
             bot.sendMessage(SendMessage.builder()
                     .chatId(user.getId())

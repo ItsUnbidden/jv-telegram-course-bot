@@ -13,6 +13,10 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 @Component
 @RequiredArgsConstructor
 public class TestCommandHandler implements CommandHandler {
+    private static final String TEST_MENU = "m_tst";
+
+    private static final String COMMAND = "/test";
+
     private final TelegramBot bot;
 
     private final UserService userService;
@@ -28,14 +32,14 @@ public class TestCommandHandler implements CommandHandler {
                     .chatId(message.getFrom().getId())
                     .text("This is a debug command.")
                     .build());
-            menuService.initiateMenu("m_tst", userFromDb, sentMessage.getMessageId());
+            menuService.initiateMenu(TEST_MENU, userFromDb, sentMessage.getMessageId());
         }
     }
 
     @Override
     @NonNull
     public String getCommand() {
-        return "/test";
+        return COMMAND;
     }
 
     @Override

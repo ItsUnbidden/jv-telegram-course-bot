@@ -1,23 +1,23 @@
 databaseChangeLog:
   - changeSet:
-      id: create-homework-progress-send-homework-messages
+      id: create-menu-termination-groups-messages-table
       author: Unbidden
       changes:
         - createTable:
-            tableName: homework_progress_send_homework_messages
+            tableName: menu_termination_groups_messages
             columns: 
               - column:
-                  name: homework_progress_id
+                  name: group_id
                   type: bigint
                   constraints:
-                    foreignKeyName: fk_homework_progress_homework_progress_send_homework_messages
-                    references: homework_progress(id)
+                    foreignKeyName: fk_groups_menu_termination_groups_messages
+                    references: menu_termination_groups(id)
                     nullable: false
               - column:
                   name: message_id
                   type: bigint
                   constraints:
-                    foreignKeyName: fk_messages_homework_progress_send_homework_messages
+                    foreignKeyName: fk_messages_menu_termination_groups_messages
                     references: messages(id)
                     nullable: false
                 

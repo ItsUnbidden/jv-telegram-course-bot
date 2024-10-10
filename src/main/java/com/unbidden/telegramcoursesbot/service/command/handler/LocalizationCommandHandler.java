@@ -13,6 +13,8 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 @Component
 @RequiredArgsConstructor
 public class LocalizationCommandHandler implements CommandHandler {
+    private static final String COMMAND = "/localization";
+
     private final TelegramBot bot;
 
     private final LocalizationLoader localizationLoader;
@@ -35,7 +37,7 @@ public class LocalizationCommandHandler implements CommandHandler {
     @Override
     @NonNull
     public String getCommand() {
-        return "/localization";
+        return COMMAND;
     }
 
     @Override

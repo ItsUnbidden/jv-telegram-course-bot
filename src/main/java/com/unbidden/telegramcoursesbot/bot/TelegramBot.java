@@ -50,6 +50,10 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
+    private static final String MENU_COMMAND_DESCRIPTION = "menu_command_%s_description";
+    
+    private static final String ERROR_CONTENT_EMPTY = "error_content_empty";
+
     private static final Logger LOGGER = LogManager.getLogger(TelegramBot.class);
 
     private static final List<String> COMMAND_MENU_EXCEPTIONS = new ArrayList<>();
@@ -97,37 +101,49 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
+        final UserEntity user;
+        
         if (update.hasMessage() && update.getMessage().isCommand()) {
-            userService.updateUser(update.getMessage().getFrom());
             final String[] commandParts = update.getMessage().getText().split(" ");
+            user = userService.updateUser(update.getMessage().getFrom());
 
             LOGGER.info("Update with command " + update.getMessage().getText()
-                    + " triggered by user " + update.getMessage().getFrom().getId() + ".");
-            sessionService.removeSessionsForUser(update.getMessage().getFrom());
+                    + " triggered by user " + user.getId() + ".");
+            sessionService.removeSessionsForUser(user);
             commandHandlerManager.getHandler(commandParts[0]).handle(update.getMessage(),
                     commandParts);
             return;
         }
         if (update.hasPreCheckoutQuery()) {
-            userService.updateUser(update.getPreCheckoutQuery().getFrom());
-            sessionService.removeSessionsForUser(update.getPreCheckoutQuery().getFrom());
+            user = userService.updateUser(update.getPreCheckoutQuery().getFrom());
+
+            LOGGER.info("Update with precheckout query triggered by user "
+                    + user.getId() + ".");
+            sessionService.removeSessionsForUser(user);
             paymentService.resolvePreCheckout(update.getPreCheckoutQuery());
             return;
         }
         if (update.hasMessage() && update.getMessage().hasSuccessfulPayment()) {
-            userService.updateUser(update.getMessage().getFrom());
-            sessionService.removeSessionsForUser(update.getMessage().getFrom());
+            user = userService.updateUser(update.getMessage().getFrom());
+
+            LOGGER.info("Update with successful payment triggered by user "
+                    + user.getId() + ".");
+            sessionService.removeSessionsForUser(user);
             paymentService.resolveSuccessfulPayment(update.getMessage());
             return;
         }
         if (update.hasCallbackQuery()) {
-            userService.updateUser(update.getCallbackQuery().getFrom());
-            sessionService.removeSessionsForUser(update.getCallbackQuery().getFrom());
+            user = userService.updateUser(update.getCallbackQuery().getFrom());
+
+            LOGGER.info("Update with callback query triggered by user "
+                    + user.getId() + ". Button " + update.getCallbackQuery().getData() + ".");
+            sessionService.removeSessionsForUser(user);
             menuService.processCallbackQuery(update.getCallbackQuery());
             return;
         }
         if (update.hasMessage()) {
             userService.updateUser(update.getMessage().getFrom());
+
             sessionService.processResponse(update.getMessage());
             return;
         }
@@ -200,6 +216,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         List<InputMediaPhoto> inputPhotos = null;
         final Localization textLocalization = (content.getData() != null) ?
                 localizationLoader.getLocalizationForUser(content.getData(), user) : null;
+        
+        content = contentRepository.findById(content.getId()).get();
         
         LOGGER.info("Content " + content.getId() + " sending initiated...");
         if (content.getVideo() != null) {
@@ -289,7 +307,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
             LOGGER.warn("There is no relevant content present.");
             final Localization errorLocalization = localizationLoader.getLocalizationForUser(
-                    "error_content_empty", user);
+                    ERROR_CONTENT_EMPTY, user);
             return List.of(sendMessage(SendMessage.builder()
                     .chatId(user.getId())
                     .text(errorLocalization.getData())
@@ -403,7 +421,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 .map(c -> BotCommand.builder()
                     .command(c)
                     .description(localizationLoader.loadLocalization(
-                        "menu_command_" + c.replace("/", "") + "_description",
+                        MENU_COMMAND_DESCRIPTION.formatted(c.replace("/", "")),
                         languageCode).getData())
                     .build())
                 .toList();

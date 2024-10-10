@@ -15,6 +15,11 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 @Component
 @RequiredArgsConstructor
 public class MaintenanceCommandHandler implements CommandHandler {
+    private static final String COMMAND = "/maintenance";
+
+    private static final String SERVICE_ON_MAINTENANCE_STATUS_CHANGE =
+            "service_on_maintenance_status_change";
+
     private final TelegramBot bot;
 
     private final LocalizationLoader localizationLoader;
@@ -29,7 +34,7 @@ public class MaintenanceCommandHandler implements CommandHandler {
             paramsMap.put("${status}", !bot.isOnMaintenance());
             
             final Localization localization = localizationLoader.getLocalizationForUser(
-                "service_on_maintenance_status_change", message.getFrom(), paramsMap);
+                SERVICE_ON_MAINTENANCE_STATUS_CHANGE, message.getFrom(), paramsMap);
             bot.sendMessage(SendMessage.builder()
                     .chatId(message.getFrom().getId())
                     .text(localization.getData())
@@ -41,7 +46,7 @@ public class MaintenanceCommandHandler implements CommandHandler {
     @Override
     @NonNull
     public String getCommand() {
-        return "/maintenance";
+        return COMMAND;
     }
 
     @Override

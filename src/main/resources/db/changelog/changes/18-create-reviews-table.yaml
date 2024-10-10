@@ -1,0 +1,87 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-reviews-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: reviews
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_users_reviews
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: course_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_courses_reviews
+                    references: courses(id)
+                    nullable: false
+              - column:
+                  name: basic_submitted_timestamp
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: advanced_submitted_timestamp
+                  type: datetime
+              - column:
+                  name: last_update_timestamp
+                  type: datetime
+              - column:
+                  name: original_course_grade
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: original_platform_grade
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: course_grade
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: platform_grade
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: original_content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_original_content_reviews
+                    references: content(id)
+              - column:
+                  name: content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_content_reviews
+                    references: content(id)
+              - column:
+                  name: comment_content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_comment_content_reviews
+                    references: content(id)
+              - column:
+                  name: user_who_commented_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_users_who_commented_reviews
+                    references: users(id)
+              - column:
+                  name: commented_at
+                  type: datetime

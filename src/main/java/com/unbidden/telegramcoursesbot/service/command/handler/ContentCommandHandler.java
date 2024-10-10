@@ -10,6 +10,9 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 @Component
 @RequiredArgsConstructor
 public class ContentCommandHandler implements CommandHandler {
+    private static final String CONTENT_MENU = "m_cntAct";
+    private static final String COMMAND = "/content";
+
     private final MenuService menuService;
 
     private final UserService userService;
@@ -17,14 +20,14 @@ public class ContentCommandHandler implements CommandHandler {
     @Override
     public void handle(@NonNull Message message, @NonNull String[] commandParts) {
         if (userService.isAdmin(message.getFrom())) {
-            menuService.initiateMenu("m_cntAct", message.getFrom());
+            menuService.initiateMenu(CONTENT_MENU, message.getFrom());
         }
     }
 
     @Override
     @NonNull
     public String getCommand() {
-        return "/content";
+        return COMMAND;
     }
 
     @Override

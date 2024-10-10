@@ -2,22 +2,29 @@ package com.unbidden.telegramcoursesbot.service.button.menu;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
+import com.unbidden.telegramcoursesbot.model.MenuTerminationGroup;
+import com.unbidden.telegramcoursesbot.model.MessageEntity;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.MenuRepository;
+import com.unbidden.telegramcoursesbot.repository.MenuTerminationGroupRepository;
+import com.unbidden.telegramcoursesbot.repository.MessageRepository;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.TransitoryButton;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.KeyboardUtil;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -38,14 +45,18 @@ public class MenuServiceImpl implements MenuService {
     private static final Logger LOGGER = LogManager.getLogger(MenuServiceImpl.class);
 
     private static final String DIVIDER = ":";
-
     private static final int MENU_NAME = 0;
-
     private static final int PAGE_NUMBER = 1;
 
     private final MenuRepository menuRepository;
 
+    private final MenuTerminationGroupRepository menuTerminationGroupRepository;
+
+    private final MessageRepository messageRepository;
+
     private final UserService userService;
+
+    private final LocalizationLoader localizationLoader;
 
     private final KeyboardUtil keyboardUtil;
 
@@ -130,8 +141,6 @@ public class MenuServiceImpl implements MenuService {
 
     @Override
     public void processCallbackQuery(@NonNull CallbackQuery query) {
-        LOGGER.info("Menu callback detected. Button: " + query.getData() + ", User: "
-                + query.getFrom().getId() + ".");
         final User user = query.getFrom();
         final UserEntity userFromDb = userService.getUser(user.getId());
         final String[] data = query.getData().split(DIVIDER);
@@ -151,7 +160,8 @@ public class MenuServiceImpl implements MenuService {
                 .messageId(query.getMessage().getMessageId());
             
         final Localization localization;
-        final Button button = page.getButtonByData(userFromDb, data[data.length - 1]);
+        final String[] paramsOnly = Arrays.copyOfRange(data, 2, data.length);
+        final Button button = page.getButtonByData(userFromDb, data[data.length - 1], paramsOnly);
         switch (button.getType()) {
             case Button.Type.TRANSITORY:
                 LOGGER.info("Button " + button.getData() + " is transitory.");
@@ -160,14 +170,14 @@ public class MenuServiceImpl implements MenuService {
                         + transitoryButton.getPagePointer() + ".");
                 final Page nextPage = menu.getPages().get(transitoryButton.getPagePointer());
                 final InlineKeyboardMarkup markup = getTransitoryMarkup(nextPage,
-                            Arrays.copyOfRange(data, 2, data.length), userFromDb);
+                        paramsOnly, userFromDb);
                 LOGGER.info("Markup for page " + nextPage.getPageIndex() + " created.");
 
                 if (menu.isAttachedToMessage()) {
                     editMessageReplyMarkupBuilder.replyMarkup(markup);
                 } else {
                     localization = nextPage.getLocalizationFunction().apply(
-                            userFromDb, Arrays.asList(Arrays.copyOfRange(data, 2, data.length)));
+                            userFromDb, Arrays.asList(paramsOnly));
 
                     editMessageBuilder.replyMarkup(markup);
                     editMessageBuilder.text(localization.getData());
@@ -217,8 +227,7 @@ public class MenuServiceImpl implements MenuService {
                 
                 final TerminalButton terminalButton = (TerminalButton)button;
                 LOGGER.info("Button parsed to terminal button. Activating handler...");
-                terminalButton.getHandler().handle(Arrays.copyOfRange(data, 2, data.length),
-                        user);
+                terminalButton.getHandler().handle(userService.getUser(user.getId()), paramsOnly);
                 break;
         }
         AnswerCallbackQuery answerCallbackQuery = AnswerCallbackQuery.builder()
@@ -257,8 +266,53 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
+    @NonNull
+    public MenuTerminationGroup addToMenuTerminationGroup(@NonNull UserEntity user,
+            @NonNull UserEntity messagedUser, @NonNull Integer messageId, @NonNull String key,
+            @Nullable String terminalLocalizationName) {
+        final Optional<MenuTerminationGroup> groupOpt = menuTerminationGroupRepository
+                .findByUserIdAndName(user.getId(), key);
+        final MenuTerminationGroup group;
+        if (groupOpt.isPresent()) {
+            LOGGER.info("MTG for user " + user.getId() + " and key " + key + " already exists.");
+            group = groupOpt.get();
+            
+            group.getMessages().add(messageRepository.save(new MessageEntity(messagedUser,
+                    messageId)));
+        } else {
+            LOGGER.info("MTG " + user.getId() + " and key " + key + " does not exist yet.");
+            group = new MenuTerminationGroup();
+            group.setName(key);
+            group.setMessages(List.of(messageRepository.save(
+                    new MessageEntity(messagedUser, messageId))));
+            group.setTerminalLocalizationName(terminalLocalizationName);
+            group.setUser(user);
+        }
+        LOGGER.info("Persisting or updating the MTG...");
+        menuTerminationGroupRepository.save(group);
+        LOGGER.info("Operation successful.");
+        return group;
+    }
+
+    @Override
+    public void terminateMenuGroup(@NonNull UserEntity user, @NonNull String key) {
+        final MenuTerminationGroup group = menuTerminationGroupRepository.findByUserIdAndName(
+                user.getId(), key).orElseThrow(() -> new EntityNotFoundException
+                ("Menu termination group for user " + user.getId() + " and key " + key
+                + " does not exist."));
+        
+        for (MessageEntity message : group.getMessages()) {
+            terminateMenu(message.getUser().getId(), message.getMessageId(),
+                    (group.getTerminalLocalizationName() != null) ? localizationLoader
+                    .getLocalizationForUser(group.getTerminalLocalizationName(),
+                    message.getUser()) : null);
+        }
+        menuTerminationGroupRepository.delete(group);
+    }
+
+    @Override
     public void terminateMenu(@NonNull Long chatId, @NonNull Integer messageId,
-            Localization terminalPageLocalization) {
+            @Nullable Localization terminalPageLocalization) {
         final InlineKeyboardMarkup clearMarkup = InlineKeyboardMarkup.builder()
                 .clearKeyboard()
                 .keyboard(List.of())
@@ -290,7 +344,7 @@ public class MenuServiceImpl implements MenuService {
                 + menuPage.getPageIndex() + DIVIDER + ((param == "") ? param : param + DIVIDER);
 
         List<InlineKeyboardButton> buttons = menuPage.getButtonsFunction()
-                .apply(user)
+                .apply(user, List.of(param))
                 .stream()
                 .map(b -> InlineKeyboardButton.builder()
                     .callbackData(callbackData + b.getData())
@@ -298,7 +352,7 @@ public class MenuServiceImpl implements MenuService {
                     .build())
                 .toList();
         return InlineKeyboardMarkup.builder()
-                .keyboard(keyboardUtil.getInlineKeyboard(buttons))
+                .keyboard(keyboardUtil.getInlineKeyboard(buttons, menuPage.getButtonsRowSize()))
                 .build();
     }
 
@@ -312,7 +366,7 @@ public class MenuServiceImpl implements MenuService {
         final String callbackData = builder.toString();
         
         List<InlineKeyboardButton> buttons = menuPage.getButtonsFunction()
-                .apply(user)
+                .apply(user, Arrays.asList(data))
                 .stream()
                 .map(b -> InlineKeyboardButton.builder()
                     .callbackData(callbackData + b.getData())
@@ -320,7 +374,7 @@ public class MenuServiceImpl implements MenuService {
                     .build())
                 .toList();
         return InlineKeyboardMarkup.builder()
-                .keyboard(keyboardUtil.getInlineKeyboard(buttons))
+                .keyboard(keyboardUtil.getInlineKeyboard(buttons, menuPage.getButtonsRowSize()))
                 .build();
     }
 }

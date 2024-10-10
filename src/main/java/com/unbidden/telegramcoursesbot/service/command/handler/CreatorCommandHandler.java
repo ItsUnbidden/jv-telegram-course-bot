@@ -12,6 +12,10 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 @Component
 @RequiredArgsConstructor
 public class CreatorCommandHandler implements CommandHandler {
+    private static final String COMMAND = "/creator";
+    
+    private static final String SERVICE_ABOUT_CREATOR = "service_about_creator";
+
     private final TelegramBot bot;
 
     private final LocalizationLoader localizationLoader;
@@ -19,7 +23,7 @@ public class CreatorCommandHandler implements CommandHandler {
     @Override
     public void handle(@NonNull Message message, @NonNull String[] commandParts) {
         final Localization localization = localizationLoader.getLocalizationForUser(
-                "service_about_creator", message.getFrom());
+                SERVICE_ABOUT_CREATOR, message.getFrom());
 
         bot.sendMessage(SendMessage.builder()
                 .chatId(message.getFrom().getId())
@@ -31,7 +35,7 @@ public class CreatorCommandHandler implements CommandHandler {
     @Override
     @NonNull
     public String getCommand() {
-        return "/creator";
+        return COMMAND;
     }
 
     @Override

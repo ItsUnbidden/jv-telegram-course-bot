@@ -9,15 +9,19 @@ import org.springframework.lang.NonNull;
 
 public interface HomeworkProgressRepository extends JpaRepository<HomeworkProgress, Long> {
     @NonNull
-    @EntityGraph(attributePaths = {"user", "homework", "content", "approveMessages",
-            "approveMessages.user", "sendHomeworkMessages", "sendHomeworkMessages.user",
-            "homework.lesson", "homework.lesson.course", "homework.content"})
+    @EntityGraph(attributePaths = {"user", "homework", "content", "homework.lesson",
+            "homework.lesson.course", "homework.content"})
     Optional<HomeworkProgress> findById(@NonNull Long id);
 
     @NonNull
-    @Query("from HomeworkProgress hp left join fetch hp.user u left join fetch hp.homework h "
-            + "left join fetch hp.sendHomeworkMessages shm where u.id = :userId and h.id = "
-            + ":homeworkId and hp.status != 0 and hp.status != 1 and hp.status != 2")
+    @EntityGraph(attributePaths = {"user", "homework"})
+    Optional<HomeworkProgress> findByUserIdAndHomeworkId(@NonNull Long id,
+            @NonNull Long homeworkId);
+
+    @NonNull
+    @Query("from HomeworkProgress hp left join fetch hp.user u left join fetch hp.homework h"
+            + " left join fetch h.lesson l left join fetch l.course c where u.id = :userId and "
+            + "h.id = :homeworkId and hp.status != 1")
     Optional<HomeworkProgress> findByUserIdAndHomeworkIdUnresolved(@NonNull Long userId,
             @NonNull Long homeworkId);
 }

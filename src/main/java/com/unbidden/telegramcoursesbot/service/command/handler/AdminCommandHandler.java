@@ -12,6 +12,9 @@ import org.telegram.telegrambots.meta.api.objects.User;
 @Component
 @RequiredArgsConstructor
 public class AdminCommandHandler implements CommandHandler {
+    private static final String ADMIN_MENU = "m_admAct";
+    private static final String COMMAND = "/admin";
+
     private final UserService userService;
 
     private final MenuService menuService;
@@ -22,14 +25,14 @@ public class AdminCommandHandler implements CommandHandler {
         final User user = message.getFrom();
 
         if (userService.isAdmin(user)) {
-            menuService.initiateMenu("m_admAct", user);
+            menuService.initiateMenu(ADMIN_MENU, user);
         }
     }
 
     @Override
     @NonNull
     public String getCommand() {
-        return "/admin";
+        return COMMAND;
     }
 
     @Override

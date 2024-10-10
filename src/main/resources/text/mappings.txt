@@ -97,3 +97,38 @@ menu_my_courses_page_0
 menu_my_courses_page_1
 course_<courseName>_end
 course_<courseName>_end_repeat
+service_review_comment_request
+service_review_content_request
+service_get_archive_reviews
+service_get_new_reviews
+button_all_courses_reviews
+menu_get_reviews_page_1
+menu_get_reviews_page_0
+button_send_advanced_review
+button_update_advanced_review
+button_update_platform_grade
+button_update_course_grade
+button_update_basic_review_and_leave_advanced_options
+button_update_review_options
+menu_my_courses_page_5
+menu_my_courses_page_4
+menu_my_courses_page_3
+menu_my_courses_page_2
+button_leave_review_comment
+button_get_review_comment
+button_mark_review_as_read
+button_send_homework
+service_review_info ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead}
+service_review_info_comment ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt}
+service_review_info_content ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${contentId} ${originalContentId} ${advancedTimestamp}
+service_review_info_content_comment ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt} ${contentId} ${originalContentId} ${advancedTimestamp}
+service_no_new_reviews_for_user
+service_review_course_content_updated ${courseName}
+service_review_platform_grade_updated ${courseName}
+service_review_course_grade_updated ${courseName}
+service_comment_submitted_notification ${courseName} ${commenterFullName}
+service_comment_submitted ${reviewId}
+service_advanced_review_submitted ${courseName}
+service_basic_review_submitted ${courseName}
+service_advanced_review_terminal
+service_basic_review_terminal

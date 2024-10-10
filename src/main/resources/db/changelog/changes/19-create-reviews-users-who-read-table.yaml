@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-reviews-users-who-read-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: reviews_users_who_read
+            columns: 
+              - column:
+                  name: review_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_reviews_reviews_users_who_read
+                    references: reviews(id)
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_users_reviews_users_who_read
+                    references: users(id)
+                    nullable: false
+                

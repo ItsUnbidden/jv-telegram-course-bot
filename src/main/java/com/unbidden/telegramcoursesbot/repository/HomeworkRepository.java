@@ -8,6 +8,7 @@ import org.springframework.lang.NonNull;
 
 public interface HomeworkRepository extends JpaRepository<Homework, Long> {
     @NonNull
-    @EntityGraph(attributePaths = {"content", "content.photos", "content.video"})
+    @EntityGraph(attributePaths = {"lesson", "lesson.course", "content", "content.photos",
+            "content.video"})
     Optional<Homework> findById(@NonNull Long id);
 }

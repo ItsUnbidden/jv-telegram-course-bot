@@ -29,7 +29,7 @@ public interface UserService {
     @NonNull
     UserEntity getUser(@NonNull Long id);
 
-    boolean updateUser(@NonNull User user);
+    UserEntity updateUser(@NonNull User user);
 
     @NonNull
     UserEntity toogleReceiveHomework(@NonNull UserEntity user);

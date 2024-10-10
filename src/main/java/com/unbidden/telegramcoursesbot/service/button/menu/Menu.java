@@ -3,10 +3,10 @@ package com.unbidden.telegramcoursesbot.service.button.menu;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.button.handler.ButtonHandler;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Function;
-
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -30,20 +30,25 @@ public class Menu {
 
         private Menu menu;
 
+        private int buttonsRowSize;
+
         private BiFunction<UserEntity, List<String>, Localization> localizationFunction;
 
-        private Function<UserEntity, List<Button>> buttonsFunction;
+        private BiFunction<UserEntity, List<String>, List<Button>> buttonsFunction;
 
-        public Button getButtonByData(UserEntity user, String data) {
-            List<Button> potentialButton = buttonsFunction.apply(user).stream()
-                    .filter(b -> b.getData().equals(data))
+        public Button getButtonByData(UserEntity user, String currentButtonData,
+                String[] params) {
+            List<Button> potentialButton = buttonsFunction.apply(user, Arrays.asList(params))
+                    .stream()
+                    .filter(b -> b.getData().equals(currentButtonData))
                     .toList();
             if (potentialButton.isEmpty()) {
-                throw new IllegalArgumentException("There is no button with data " + data);
+                throw new IllegalArgumentException("There is no button with data "
+                        + currentButtonData);
             }
             if (potentialButton.size() > 1) {
                 throw new IllegalArgumentException("There seem to be several buttons with data "
-                        + data);
+                        + currentButtonData);
             }
             return potentialButton.get(0);
         }

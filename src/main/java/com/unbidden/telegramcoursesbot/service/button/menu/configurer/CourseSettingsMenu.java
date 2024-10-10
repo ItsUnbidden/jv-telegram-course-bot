@@ -26,6 +26,23 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class CourseSettingsMenu implements MenuConfigurer {
+    private static final String MENU_NAME = "m_crsOpt";
+
+    private static final String HOMEWORK = "hw";
+    private static final String FEEDBACK = "fb";
+    private static final String GIVE_OR_TAKE_COURSE = "gtC";
+    private static final String PRICE_CHANGE = "prCh";
+
+    private static final String BUTTON_COURSE_HOMEWORK_SETTING = "button_course_homework_setting";
+    private static final String BUTTON_COURSE_FEEDBACK_SETTING = "button_course_feedback_setting";
+    private static final String BUTTON_GIVE_OR_TAKE_COURSE = "button_give_or_take_course";
+    private static final String BUTTON_COURSE_PRICE_CHANGE = "button_course_price_change";
+
+    private static final String COURSE_NAME = "course_%s_name";
+
+    private static final String MENU_COURSE_SETTINGS_PAGE_1 = "menu_course_settings_page_1";
+    private static final String MENU_COURSE_SETTINGS_PAGE_0 = "menu_course_settings_page_0";
+    
     private final CoursePriceChangeButtonHandler priceChangeHandler;
     private final GiveOrTakeAwayCourseButtonHandler giveOrTakeAwayCourseHandler;
     private final FeedbackInclusionButtonHandler feedbackHandler;
@@ -44,12 +61,13 @@ public class CourseSettingsMenu implements MenuConfigurer {
         final Menu courseSettingsMenu = new Menu();
         final Page firstPage = new Page();
         firstPage.setPageIndex(0);
+        firstPage.setButtonsRowSize(2);
         firstPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
-                "menu_course_settings_page_0", u));
+                MENU_COURSE_SETTINGS_PAGE_0, u));
         firstPage.setMenu(courseSettingsMenu);
-        firstPage.setButtonsFunction(u -> courseService.getAll().stream()
+        firstPage.setButtonsFunction((u, p) -> courseService.getAll().stream()
                 .map(c -> (Button)new TransitoryButton(localizationLoader
-                    .getLocalizationForUser("course_" + c.getName() + "_name", u).getData(),
+                    .getLocalizationForUser(COURSE_NAME.formatted(c.getName()), u).getData(),
                     c.getName(), 1))
                 .toList());
 
@@ -85,20 +103,20 @@ public class CourseSettingsMenu implements MenuConfigurer {
             parameterMap.put("${lessons}", lessonsStrBuilder.toString());
 
             return localizationLoader.getLocalizationForUser(
-                "menu_course_settings_page_1", u, parameterMap);
+                MENU_COURSE_SETTINGS_PAGE_1, u, parameterMap);
         });
         secondPage.setMenu(courseSettingsMenu);
-        secondPage.setButtonsFunction(u -> List.of(new TerminalButton(
-            localizationLoader.getLocalizationForUser("button_course_price_change", u).getData(),
-            "prCh", priceChangeHandler), new TerminalButton(
-            localizationLoader.getLocalizationForUser("button_give_or_take_course", u).getData(),
-            "gtC", giveOrTakeAwayCourseHandler), new TerminalButton(
-            localizationLoader.getLocalizationForUser("button_course_feedback_setting", u)
-                .getData(), "fb", feedbackHandler), new TerminalButton(
-            localizationLoader.getLocalizationForUser("button_course_homework_setting", u)
-                .getData(), "hw", homeworkHandler)));
+        secondPage.setButtonsFunction((u, p) -> List.of(new TerminalButton(
+            localizationLoader.getLocalizationForUser(BUTTON_COURSE_PRICE_CHANGE, u).getData(),
+            PRICE_CHANGE, priceChangeHandler), new TerminalButton(
+            localizationLoader.getLocalizationForUser(BUTTON_GIVE_OR_TAKE_COURSE, u).getData(),
+            GIVE_OR_TAKE_COURSE, giveOrTakeAwayCourseHandler), new TerminalButton(
+            localizationLoader.getLocalizationForUser(BUTTON_COURSE_FEEDBACK_SETTING, u)
+                .getData(), FEEDBACK, feedbackHandler), new TerminalButton(
+            localizationLoader.getLocalizationForUser(BUTTON_COURSE_HOMEWORK_SETTING, u)
+                .getData(), HOMEWORK, homeworkHandler)));
 
-        courseSettingsMenu.setName("m_crsOpt");
+        courseSettingsMenu.setName(MENU_NAME);
         courseSettingsMenu.setPages(List.of(firstPage, secondPage));
         courseSettingsMenu.setInitialParameterPresent(false);
         courseSettingsMenu.setOneTimeMenu(false);

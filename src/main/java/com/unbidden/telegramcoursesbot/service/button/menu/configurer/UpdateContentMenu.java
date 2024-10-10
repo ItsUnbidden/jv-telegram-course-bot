@@ -14,6 +14,12 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class UpdateContentMenu implements MenuConfigurer {
+    private static final String MENU_NAME = "m_cntUpd";
+
+    private static final String UPDATE_CONTENT = "updC";
+
+    private static final String BUTTON_UPDATE_CONTENT = "button_update_content";
+
     private final UpdateContentButtonHandler updateContentHandler;
 
     private final MenuService menuService;
@@ -26,14 +32,14 @@ public class UpdateContentMenu implements MenuConfigurer {
         final Page page = new Page();
         page.setMenu(menu);
         page.setPageIndex(0);
-        page.setButtonsFunction(u -> List.of(new TerminalButton(
-                localizationLoader.getLocalizationForUser("button_update_content", u)
-                    .getData(), "updC", updateContentHandler)));
-        menu.setName("m_cntUpd");
+        page.setButtonsRowSize(1);
+        page.setButtonsFunction((u, p) -> List.of(new TerminalButton(
+                localizationLoader.getLocalizationForUser(BUTTON_UPDATE_CONTENT, u)
+                    .getData(), UPDATE_CONTENT, updateContentHandler)));
+        menu.setName(MENU_NAME);
         menu.setPages(List.of(page));
         menu.setInitialParameterPresent(true);
         menu.setOneTimeMenu(false);
-        menu.setUpdateAfterTerminalButtonRequired(false);
         menu.setAttachedToMessage(true);
         menuService.save(menu);
     }

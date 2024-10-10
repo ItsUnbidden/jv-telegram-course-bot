@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.repository;
 
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.session.Session;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -13,7 +14,6 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 @Repository
 public class InMemorySessionRepository implements SessionRepository, AutoClearable {
@@ -97,7 +97,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
         return sessionsIndexedByUser.get(userId);
     }
 
-    private void indexByUser(User user, Session session) {
+    private void indexByUser(UserEntity user, Session session) {
         List<Session> sessions = sessionsIndexedByUser.get(user.getId());
 
         if (sessions != null) {

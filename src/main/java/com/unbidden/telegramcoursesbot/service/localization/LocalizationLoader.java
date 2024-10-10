@@ -26,6 +26,10 @@ public interface LocalizationLoader {
     Localization getLocalizationForUser(@NonNull String name, @NonNull User user,
             @NonNull String paramKey, @NonNull Object param);
 
+    @NonNull
+    Localization getLocalizationForUser(@NonNull String name, @NonNull UserEntity user,
+            @NonNull String paramKey, @NonNull Object param);
+
     void reloadResourses();
 
     @NonNull

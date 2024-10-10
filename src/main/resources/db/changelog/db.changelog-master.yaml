@@ -24,16 +24,20 @@ databaseChangeLog:
   - include:
       file: /db/changelog/changes/12-create-homework-progress-table.yaml
   - include:
-      file: /db/changelog/changes/13-create-homework-progress-messages-table.yaml
+      file: /db/changelog/changes/13-create-payment-details-table.yaml
   - include:
-      file: /db/changelog/changes/14-create-payment-details-table.yaml
+      file: /db/changelog/changes/14-insert-test-course.yaml
   - include:
-      file: /db/changelog/changes/15-insert-test-course.yaml
+      file: /db/changelog/changes/15-insert-test-course-homework.yaml
   - include:
-      file: /db/changelog/changes/16-insert-test-course-homework.yaml
+      file: /db/changelog/changes/16-insert-test-course-lessons.yaml
   - include:
-      file: /db/changelog/changes/17-insert-test-course-lessons.yaml
+      file: /db/changelog/changes/17-insert-test-course-lessons-content.yaml
   - include:
-      file: /db/changelog/changes/18-insert-test-course-lessons-content.yaml
+      file: /db/changelog/changes/18-create-reviews-table.yaml
   - include:
-      file: /db/changelog/changes/19-create-homework-progress-send-homework-messages-table.yaml
+      file: /db/changelog/changes/19-create-reviews-users-who-read-table.yaml
+  - include:
+      file: /db/changelog/changes/20-create-menu-termination-groups-table.yaml
+  - include:
+      file: /db/changelog/changes/21-create-menu-termination-groups-messages-table.yaml

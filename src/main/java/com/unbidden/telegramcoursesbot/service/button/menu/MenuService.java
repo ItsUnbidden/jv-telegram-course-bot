@@ -1,8 +1,10 @@
 package com.unbidden.telegramcoursesbot.service.button.menu;
 
+import com.unbidden.telegramcoursesbot.model.MenuTerminationGroup;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.User;
@@ -32,6 +34,13 @@ public interface MenuService {
     @NonNull
     Menu save(@NonNull Menu menu);
 
+    @NonNull
+    MenuTerminationGroup addToMenuTerminationGroup(@NonNull UserEntity user,
+            @NonNull UserEntity messagedUser, @NonNull Integer messageId, @NonNull String key,
+            @Nullable String terminalLocalizationName);
+
+    void terminateMenuGroup(@NonNull UserEntity user, @NonNull String key);
+    
     void terminateMenu(@NonNull Long chatId, @NonNull Integer messageId,
-            Localization terminalPageLocalization);
+            @Nullable Localization terminalPageLocalization);
 }

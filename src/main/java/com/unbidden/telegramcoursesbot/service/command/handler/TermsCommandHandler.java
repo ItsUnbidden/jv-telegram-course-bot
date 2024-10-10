@@ -13,6 +13,10 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 @Component
 @RequiredArgsConstructor
 public class TermsCommandHandler implements CommandHandler {
+    private static final String COMMAND = "/terms";
+
+    private static final String SERVICE_TERMS = "service_terms";
+
     private final LocalizationLoader localizationLoader;
 
     private final TelegramBot bot;
@@ -21,7 +25,7 @@ public class TermsCommandHandler implements CommandHandler {
     @Blockable
     public void handle(@NonNull Message message, @NonNull String[] commandParts) {
         final Localization localization = localizationLoader.getLocalizationForUser(
-            "service_terms", message.getFrom());
+            SERVICE_TERMS, message.getFrom());
         bot.sendMessage(SendMessage.builder()
                 .chatId(message.getFrom().getId())
                 .text(localization.getData())
@@ -32,7 +36,7 @@ public class TermsCommandHandler implements CommandHandler {
     @Override
     @NonNull
     public String getCommand() {
-        return "/terms";
+        return COMMAND;
     }
 
     @Override

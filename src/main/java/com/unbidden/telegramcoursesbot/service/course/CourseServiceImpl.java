@@ -7,7 +7,6 @@ import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.repository.ContentRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
 import com.unbidden.telegramcoursesbot.repository.LessonRepository;
@@ -15,8 +14,10 @@ import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
+import com.unbidden.telegramcoursesbot.service.review.ReviewService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import jakarta.persistence.EntityNotFoundException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -33,15 +34,18 @@ import org.telegram.telegrambots.meta.api.objects.User;
 @Service
 @RequiredArgsConstructor
 public class CourseServiceImpl implements CourseService {
+    private static final String NEXT_STAGE_MENU = "m_crsNxtStg";
+    private static final String TEST_COURSE_NAME = "test_course";
+
+    private static final String COURSE_END = "course_%s_end";
+    private static final String COURSE_END_REPEAT = "course_%s_end_repeat";
+
     private static final Logger LOGGER = LogManager.getLogger(CourseServiceImpl.class);
 
-    private static final String TEST_COURSE_NAME = "test_course";
 
     private final CourseRepository courseRepository;
 
     private final LessonRepository lessonRepository;
-
-    private final ContentRepository contentRepository;
 
     private final CourseProgressRepository courseProgressRepository;
 
@@ -52,6 +56,8 @@ public class CourseServiceImpl implements CourseService {
     private final UserService userService;
 
     private final HomeworkService homeworkService;
+
+    private final ReviewService reviewService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -86,7 +92,8 @@ public class CourseServiceImpl implements CourseService {
             progress.setUser(userService.getUser(user.getId()));
             progress.setCourse(course);
             progress.setStage(0);
-            progress.setCompleted(false);
+            progress.setFirstTimeStartedAt(LocalDateTime.now());
+            progress.setNumberOfTimesCompleted(0);
             LOGGER.info("New course progress for user " + user.getId() + " and course "
                     + courseName + " has been set up. Saving...");
             courseProgressRepository.save(progress);
@@ -138,25 +145,42 @@ public class CourseServiceImpl implements CourseService {
                 
         LOGGER.info("Lesson " + lesson.getId() + " or the course does not have any homework."
                 +" Sending next lesson menu...");
-        menuService.initiateMenu("m_crsNxtStg", user, course.getName(),
+        menuService.initiateMenu(NEXT_STAGE_MENU, user, course.getName()
+                + COURSE_NAME_LESSON_INDEX_DIVIDER + courseProgress.getStage(),
                 sendContents.get(sendContents.size() - 1).getMessageId());
+        menuService.addToMenuTerminationGroup(user, user, sendContents
+                .get(sendContents.size() - 1).getMessageId(), COURSE_NEXT_STAGE_MENU_TERMINATION
+                .formatted(courseProgress.getId()), null);
         LOGGER.info("Next lesson menu sent.");
     }
 
     @Override
     public void end(@NonNull UserEntity user, @NonNull CourseProgress courseProgress) {
+        if (courseProgress.getNumberOfTimesCompleted() > 0) {
+            LOGGER.info("User " + user.getId() + " has completed course "
+                    + courseProgress.getCourse().getName() + " for the "
+                    + courseProgress.getNumberOfTimesCompleted() + " time!");
+        } else {
+            LOGGER.info("User " + user.getId() + " has completed course "
+                    + courseProgress.getCourse().getName() + " for the first time!");
+        }
         courseProgress.setStage(0);
-        final Localization localization = (courseProgress.isCompleted()) ? localizationLoader
-                .getLocalizationForUser("course_"+ courseProgress.getCourse().getName()
-                + "_end_repeat", user) : localizationLoader.getLocalizationForUser("course_"
-                + courseProgress.getCourse().getName() + "_end", user);
-        courseProgress.setCompleted(true);
+        final Localization localization = (courseProgress.getNumberOfTimesCompleted() > 0)
+                ? localizationLoader.getLocalizationForUser(COURSE_END_REPEAT.formatted(
+                    courseProgress.getCourse().getName()), user) : localizationLoader
+                    .getLocalizationForUser(COURSE_END.formatted(courseProgress.getCourse()
+                    .getName()), user);
+        courseProgress.setNumberOfTimesCompleted(courseProgress.getNumberOfTimesCompleted() + 1);
         courseProgressRepository.save(courseProgress);
         bot.sendMessage(SendMessage.builder()
                 .chatId(user.getId())
                 .text(localization.getData())
                 .entities(localization.getEntities())
                 .build());
+        if (!reviewService.isBasicReviewForCourseAndUserAvailable(user,
+                courseProgress.getCourse())) {
+            reviewService.initiateBasicReview(user, courseProgress.getCourse());
+        }
     }
 
     @Override
@@ -164,6 +188,13 @@ public class CourseServiceImpl implements CourseService {
     public Course getCourseByName(@NonNull String courseName) {
         return courseRepository.findByName(courseName).orElseThrow(() ->
                 new EntityNotFoundException("Course " + courseName + " does not exist."));
+    }
+
+    @Override
+    @NonNull
+    public Course getCourseById(@NonNull Long id) {
+        return courseRepository.findById(id).orElseThrow(() ->
+                new EntityNotFoundException("Course " + id + " does not exist."));
     }
 
     @Override
@@ -190,12 +221,30 @@ public class CourseServiceImpl implements CourseService {
         return courseRepository.save(course);
     }
 
+    @Override
+    public boolean hasCourseBeenCompleted(@NonNull UserEntity user, @NonNull Course course) {
+        final Optional<CourseProgress> progressOpt = courseProgressRepository
+                .findByUserIdAndCourseName(user.getId(), course.getName());
+
+        if (progressOpt.isPresent()) {
+            return progressOpt.get().getNumberOfTimesCompleted() > 0;
+        }
+        return false;
+    }
+
+    @Override
+    @NonNull
+    public CourseProgress getCurrentCourseProgressForUser(@NonNull Long userId, @NonNull String courseName) {
+        return courseProgressRepository.findByUserIdAndCourseName(userId, courseName)
+                .orElseThrow(() -> new EntityNotFoundException("Course progress for user "
+                + userId + " and course " + courseName));
+    }
+
     private List<Message> sendContents(List<Content> contents, UserEntity user) {
         final List<Message> messages = new ArrayList<>();
 
         for (Content content : contents) {
-            messages.addAll(bot.sendContent(contentRepository.findById(
-                    content.getId()).get(), user));
+            messages.addAll(bot.sendContent(content, user));
         }
         return messages;
     }

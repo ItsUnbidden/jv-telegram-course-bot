@@ -1,6 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.SessionRepository;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -20,10 +22,12 @@ public class SessionServiceImpl implements SessionService {
 
     private final SessionRepository sessionRepository;
 
+    private final UserService userService;
+
     @Override
     @NonNull
-    public Integer createSession(@NonNull User user, @NonNull Consumer<Message> function,
-            boolean isUserOrChatRequestButton) {
+    public Integer createSession(@NonNull UserEntity user, boolean isUserOrChatRequestButton,
+            @NonNull Consumer<Message> function) {
         if (isUserOrChatRequestButton) {
             sessionRepository.removeForUserIfNotRequestUserOrChat(user.getId());
         } else {
@@ -43,7 +47,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
-    public void removeSessionsForUser(@NonNull User user) {
+    public void removeSessionsForUser(@NonNull UserEntity user) {
         LOGGER.debug("Removing any current sessions for user " + user.getId() + "...");
         sessionRepository.removeForUser(user.getId());
         LOGGER.debug("Session removed or action skipped.");
@@ -74,7 +78,7 @@ public class SessionServiceImpl implements SessionService {
                 }
             }
             LOGGER.debug("Function completed execution.");    
-            removeSessionsForUser(user);    
+            removeSessionsForUser(userService.getUser(user.getId()));    
         }
     }
 }

@@ -1,0 +1,570 @@
+package com.unbidden.telegramcoursesbot.service.review;
+
+import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.dao.ArchiveReviewsDao;
+import com.unbidden.telegramcoursesbot.exception.ArchiveReviewsException;
+import com.unbidden.telegramcoursesbot.exception.TelegramException;
+import com.unbidden.telegramcoursesbot.model.Content;
+import com.unbidden.telegramcoursesbot.model.Course;
+import com.unbidden.telegramcoursesbot.model.Review;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.repository.ReviewRepository;
+import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.util.TextUtil;
+
+import jakarta.persistence.EntityNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.lang.NonNull;
+import org.springframework.stereotype.Service;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+@Service
+@RequiredArgsConstructor
+public class ReviewServiceImpl implements ReviewService {
+    private static final String REVIEW_ACTIONS_MENU = "m_rwA";
+    private static final String LEAVE_ADVANCED_REVIEW_MENU = "m_laR";
+    private static final String LEAVE_BASIC_REVIEW_MENU = "m_lbR";
+
+    private static final String ARCHIVE_REVIEWS_FILE_NAME = "archive_reviews_user_%s_course_%s";
+    private static final String ARCHIVE_REVIEWS_FILE_FORMAT = ".txt";
+    private static final String TEMP_FILE_NAME = "reviews_for_%s";
+
+    private static final String SERVICE_REVIEW_INFO = "service_review_info";
+    private static final String SERVICE_REVIEW_INFO_COMMENT = "service_review_info_comment";
+    private static final String SERVICE_REVIEW_INFO_CONTENT = "service_review_info_content";
+    private static final String SERVICE_REVIEW_INFO_CONTENT_COMMENT =
+            "service_review_info_content_comment";
+    private static final String SERVICE_NO_NEW_REVIEWS_FOR_USER =
+            "service_no_new_reviews_for_user";
+    private static final String SERVICE_REVIEW_COURSE_CONTENT_UPDATED =
+            "service_review_course_content_updated";
+    private static final String SERVICE_REVIEW_PLATFORM_GRADE_UPDATED =
+            "service_review_platform_grade_updated";
+    private static final String SERVICE_REVIEW_COURSE_GRADE_UPDATED =
+            "service_review_course_grade_updated";
+    private static final String SERVICE_COMMENT_SUBMITTED_NOTIFICATION =
+            "service_comment_submitted_notification";
+    private static final String SERVICE_COMMENT_SUBMITTED = "service_comment_submitted";
+    private static final String SERVICE_ADVANCED_REVIEW_SUBMITTED =
+            "service_advanced_review_submitted";
+    private static final String SERVICE_BASIC_REVIEW_SUBMITTED = "service_basic_review_submitted";
+    private static final String SERVICE_ADVANCED_REVIEW_TERMINAL =
+            "service_advanced_review_terminal";
+    private static final String SERVICE_BASIC_REVIEW_TERMINAL = "service_basic_review_terminal";
+
+    public static final String REVIEW_ACTIONS_MENU_TERMINATION = "review_%s_actions";
+    private static final String SEND_BASIC_REVIEW_TERMINATION = "course_%s_send_basic_review";
+    private static final String SEND_ADVANCED_REVIEW_TERMINATION =
+            "review_%s_send_advanced_review";
+
+    private static final Logger LOGGER = LogManager.getLogger(ReviewServiceImpl.class);
+
+    private static final Map<Long, ReviewSession> CURRENT_REVIEW_COUNTER = new HashMap<>();
+
+    private final ReviewRepository reviewRepository;
+
+    private final MenuService menuService;
+
+    private final LocalizationLoader localizationLoader;
+
+    private final ArchiveReviewsDao archiveReviewsDao;
+
+    private final TextUtil textUtil;
+
+    private final TelegramBot bot;
+
+    @Value("${telegram.bot.reviews.page_size}")
+    private Integer pageSize;
+
+    @Override
+    public void initiateBasicReview(@NonNull UserEntity user, @NonNull Course course) {
+        final Optional<Review> reviewOpt = reviewRepository.findByCourseNameAndUserId(
+                course.getName(), user.getId());
+        if (reviewOpt.isPresent()) {
+            throw new UnsupportedOperationException("Unable to initiate a new review menu "
+                    + "for user " + user.getId() + " since they have already left a review "
+                    + "for course " + course.getName());
+        }
+        LOGGER.info("Sending basic review menu for course " + course.getName() + " to user "
+                + user.getId() + "...");
+        final Message menuMessage = menuService.initiateMenu(LEAVE_BASIC_REVIEW_MENU, user,
+                course.getId().toString());
+        LOGGER.info("Menu sent. Adding menu message " + menuMessage.getMessageId()
+                + " to an MTG...");
+        menuService.addToMenuTerminationGroup(user, user, menuMessage.getMessageId(),
+                SEND_BASIC_REVIEW_TERMINATION.formatted(course.getId()),
+                SERVICE_BASIC_REVIEW_TERMINAL);
+        LOGGER.info("Message added to the MTG.");
+    }
+
+    @Override
+    public void initiateAdvancedReview(@NonNull Review review, @NonNull Integer messageId) {
+        if (review.getContent() != null) {
+            throw new UnsupportedOperationException("Unable to initiate a new advanced review"
+                    + " menu " + review.getId() + " because this review already has "
+                    + "some content.");
+        }
+        LOGGER.info("Sending advanced review menu for course " + review.getCourse().getName()
+                + " to user " +  review.getUser().getId() + "...");
+        menuService.initiateMenu(LEAVE_ADVANCED_REVIEW_MENU, review.getUser(),
+                review.getId().toString(), messageId);
+        LOGGER.info("Menu sent. Adding message " + messageId + " to an MTG...");
+        menuService.addToMenuTerminationGroup(review.getUser(), review.getUser(), messageId,
+                SEND_ADVANCED_REVIEW_TERMINATION.formatted(review.getId()), 
+                SERVICE_ADVANCED_REVIEW_TERMINAL);
+        LOGGER.info("Message added to the MTG.");
+    }
+
+    @Override
+    @NonNull
+    public Review commitBasicReview(@NonNull UserEntity user, @NonNull Course course,
+            int courseGrade, int platformGrade) {
+        final Optional<Review> reviewOpt = reviewRepository.findByCourseNameAndUserId(
+                course.getName(), user.getId());
+        if (reviewOpt.isPresent()) {
+            throw new UnsupportedOperationException("Unable to create a new review entity "
+                    + "for user " + user.getId() + " since they have already left a review "
+                    + "for course " + course.getName());
+        }
+
+        LOGGER.info("User " + user.getId() + " wants to submit a basic review for course "
+                + course.getName() + ". Their course grade is " + courseGrade
+                + " and platform grade is " + platformGrade + ".");
+        final Review review = new Review();
+        review.setUser(user);
+        review.setCourse(course);
+        review.setBasicSubmittedTimestamp(LocalDateTime.now());
+        review.setOriginalCourseGrade(courseGrade);
+        review.setCourseGrade(courseGrade);
+        review.setOriginalPlatformGrade(platformGrade);
+        review.setPlatformGrade(platformGrade);
+        review.setMarkedAsReadBy(new ArrayList<>());
+
+        LOGGER.info("Review object compiled. Sending confirmation message...");
+        final Localization localization = localizationLoader.getLocalizationForUser(
+                SERVICE_BASIC_REVIEW_SUBMITTED, user, "${courseName}", course.getName());
+        final Message confirmationMessage = bot.sendMessage(SendMessage.builder()
+                .chatId(user.getId())
+                .text(localization.getData())
+                .entities(localization.getEntities())
+                .build());
+        LOGGER.info("Message sent. Persisting review to the db...");
+        reviewRepository.save(review);
+        LOGGER.info("Persisted successfuly. An offer to provide an advanced review "
+                + "will be sent. Also all 'leave basic review' menus will be terminated.");
+        menuService.terminateMenuGroup(user, SEND_BASIC_REVIEW_TERMINATION.formatted(
+                course.getId()));
+        initiateAdvancedReview(review, confirmationMessage.getMessageId());
+        return review;
+    }
+
+    @Override
+    @NonNull
+    public Review commitAdvancedReview(@NonNull Long reviewId, @NonNull Content content) {
+        final Review review = getReviewById(reviewId);
+        if (review.getContent() != null) {
+            throw new UnsupportedOperationException("Unable to submit content for basic review "
+                    + reviewId + " because this review already has some content. ");
+        }
+        
+        LOGGER.info("User " + review.getUser().getId() + " wants to submit an advanced review "
+                + "for course " + review.getCourse().getName() + ". Content id is "
+                + content.getId() + ".");  
+        review.setAdvancedSubmittedTimestamp(LocalDateTime.now());
+        review.setOriginalContent(content);
+        review.setContent(content);
+
+        LOGGER.info("Review object recompiled. Sending confirmation message...");
+        final Localization localization = localizationLoader.getLocalizationForUser(
+                SERVICE_ADVANCED_REVIEW_SUBMITTED, review.getUser(), "${courseName}",
+                review.getCourse().getName());
+        bot.sendMessage(SendMessage.builder()
+                .chatId(review.getUser().getId())
+                .text(localization.getData())
+                .entities(localization.getEntities())
+                .build());
+        LOGGER.info("Message sent. Updating review in the db..."); 
+        reviewRepository.save(review);
+        LOGGER.info("Review " + reviewId + " has been updated to include advanced feedback. "
+                + "All advanced review menus will be terminated.");
+        menuService.terminateMenuGroup(review.getUser(), SEND_ADVANCED_REVIEW_TERMINATION
+                .formatted(review.getId()));
+        return review;
+    }
+
+    @Override
+    @NonNull
+    public Review leaveComment(@NonNull UserEntity user, @NonNull Review review,
+            @NonNull Content content) {
+        if (review.getCommentContent() != null) {
+            throw new UnsupportedOperationException("Unable to submit comment content for review "
+                    + review.getId() + " because this review already has a comment from user "
+                    + review.getCommentedBy().getId());
+        }
+        
+        LOGGER.info("User " + user.getId() + " wants to comment review " + review.getId() + ".");
+        review.setCommentContent(content);
+        review.setCommentedBy(user);
+        review.setCommentedAt(LocalDateTime.now());
+
+        LOGGER.info("Review object recompiled. Sending confirmation message...");
+        final Localization success = localizationLoader.getLocalizationForUser(
+                SERVICE_COMMENT_SUBMITTED, user, "${reviewId}", review.getId());
+        bot.sendMessage(SendMessage.builder()
+                .chatId(user.getId())
+                .text(success.getData())
+                .entities(success.getEntities())
+                .build());
+        LOGGER.info("Message sent. Updating review in the db..."); 
+        reviewRepository.save(review);
+        LOGGER.info("Review " + review.getId() + " has been updated to include comment.");
+
+        final Map<String, Object> parameterMap = new HashMap<>();
+        parameterMap.put("${courseName}", review.getCourse().getName());
+        parameterMap.put("${commenterFullName}", user.getFullName());
+
+        LOGGER.info("Sending notification to the review's owner...");
+        final Localization notification = localizationLoader.getLocalizationForUser(
+                SERVICE_COMMENT_SUBMITTED_NOTIFICATION, user, parameterMap);
+        bot.sendMessage(SendMessage.builder()
+                .chatId(review.getUser().getId())
+                .text(notification.getData())
+                .entities(notification.getEntities())
+                .build());
+        LOGGER.info("Notificaton sent. Marking review as read...");
+        markReviewAsRead(review, user);
+        LOGGER.info("Review marked as archived. Terminating all related menus...");
+        menuService.terminateMenuGroup(user, REVIEW_ACTIONS_MENU_TERMINATION
+                .formatted(review.getId()));
+        LOGGER.info("Menus terminated.");
+        return review;
+    }
+
+    @Override
+    @NonNull
+    public Review updateCourseGrade(@NonNull Long reviewId, int newGrade) {
+        final Review review = getReviewById(reviewId);
+
+        LOGGER.info("User " + review.getUser().getId()
+                + " wants to update their grade for course " + review.getCourse().getName()
+                + ". Current grade is " + review.getCourseGrade() + " and new grade is "
+                + newGrade + ".");
+        review.setCourseGrade(newGrade);
+        review.setLastUpdateTimestamp(LocalDateTime.now());
+
+        LOGGER.info("Review object recompiled. Sending confirmation message...");
+        final Localization localization = localizationLoader.getLocalizationForUser(
+                SERVICE_REVIEW_COURSE_GRADE_UPDATED, review.getUser(), "${courseName}",
+                review.getCourse().getName());
+        bot.sendMessage(SendMessage.builder()
+                .chatId(review.getUser().getId())
+                .text(localization.getData())
+                .entities(localization.getEntities())
+                .build());
+        LOGGER.info("Message sent. Updating review in the db..."); 
+        reviewRepository.save(review);
+        LOGGER.info("Review " + reviewId + " has been updated.");
+        return review;
+    }
+
+    @Override
+    @NonNull
+    public Review updatePlatformGrade(@NonNull Long reviewId, int newGrade) {
+        final Review review = getReviewById(reviewId);
+
+        LOGGER.info("User " + review.getUser().getId()
+                + " wants to update their grade for platform in review " + review.getId()
+                + ". Current grade is " + review.getPlatformGrade() + " and new grade is "
+                + newGrade + ".");
+        review.setPlatformGrade(newGrade);
+        review.setLastUpdateTimestamp(LocalDateTime.now());
+
+        LOGGER.info("Review object recompiled. Sending confirmation message...");
+        final Localization localization = localizationLoader.getLocalizationForUser(
+                SERVICE_REVIEW_PLATFORM_GRADE_UPDATED, review.getUser(), "${courseName}",
+                review.getCourse().getName());
+        bot.sendMessage(SendMessage.builder()
+                .chatId(review.getUser().getId())
+                .text(localization.getData())
+                .entities(localization.getEntities())
+                .build());
+        LOGGER.info("Message sent. Updating review in the db..."); 
+        reviewRepository.save(review);
+        LOGGER.info("Review " + reviewId + " has been updated.");
+        return review;
+    }
+
+    @Override
+    @NonNull
+    public Review updateAdvancedReview(@NonNull Long reviewId, @NonNull Content content) {
+        final Review review = getReviewById(reviewId);
+        if (review.getContent() == null) {
+            throw new UnsupportedOperationException("Unable to update review " + reviewId
+                    + "'s content because it has never been submitted.");
+        }
+
+        LOGGER.info("User " + review.getUser().getId()
+                + " wants to update their review's content for course " + review.getCourse()
+                .getName() + ". Current content id is " + review.getContent().getId() + ".");
+        review.setContent(content);
+        review.setLastUpdateTimestamp(LocalDateTime.now());
+
+        LOGGER.info("Review object recompiled. Sending confirmation message...");
+        final Localization localization = localizationLoader.getLocalizationForUser(
+                SERVICE_REVIEW_COURSE_CONTENT_UPDATED, review.getUser(), "${courseName}",
+                review.getCourse().getName());
+        bot.sendMessage(SendMessage.builder()
+                .chatId(review.getUser().getId())
+                .text(localization.getData())
+                .entities(localization.getEntities())
+                .build());
+        LOGGER.info("Message sent. Updating review in the db..."); 
+        reviewRepository.save(review);
+        LOGGER.info("Review " + reviewId + " has been updated.");
+        return review;
+    }
+
+    @Override
+    @NonNull
+    public List<Review> getReviewsForCourse(@NonNull Course course, Pageable pageable) {
+        return reviewRepository.findByCourseId(course.getId(), pageable);
+    }
+
+    @Override
+    public void sendNewReviewsForUser(@NonNull UserEntity user) {
+        final List<Review> reviews = reviewRepository.findNewReviewsForUser(
+                user, PageRequest.of(0, pageSize));
+
+        LOGGER.info("Sending " + reviews.size() + " new review(s) to user " + user.getId());
+        sendReviews(reviews, user);
+        LOGGER.info("Reviews sent. Updating review session...");
+
+        updateReviewSession(user, reviews, false);
+        LOGGER.info("Review session updated.");
+    }
+
+    @Override
+    public void sendNewReviewsForUserAndCourse(@NonNull UserEntity user, @NonNull Long courseId) {
+        final List<Review> reviews = reviewRepository.findNewReviewsForUserAndCourse(user,
+                courseId, PageRequest.of(0, pageSize));
+
+        LOGGER.info("Sending " + reviews.size() + " new review(s) for course " + courseId
+                + " to user " + user.getId());
+        sendReviews(reviews, user);
+        LOGGER.info("Reviews sent. Updating review session...");
+
+        updateReviewSession(user, reviews, true);
+        LOGGER.info("Review session updated.");
+    }
+
+    @Override
+    public void sendArchiveReviewsForUser(@NonNull UserEntity user) {
+        final List<Review> archiveReviews = reviewRepository.findArchiveReviewsForUser(user);
+        
+        LOGGER.info("Sending " + archiveReviews.size() + " archive review(s) to user "
+                + user.getId());
+        sendArchiveReviews(archiveReviews, user, null);
+        LOGGER.info("Reviews sent.");
+    }
+
+    @Override
+    public void sendArchiveReviewsForUserAndCourse(@NonNull UserEntity user, @NonNull Long courseId) {
+        final List<Review> archiveReviews = reviewRepository
+                .findArchiveReviewsForUserAndCourse(user, courseId);
+        
+        LOGGER.info("Sending " + archiveReviews.size() + " archive review(s) for course "
+                + courseId + " to user " + user.getId());
+        sendArchiveReviews(archiveReviews, user, courseId);
+        LOGGER.info("Reviews sent.");
+    }
+
+    @Override
+    @NonNull
+    public Review getReviewByCourseAndUser(@NonNull UserEntity user, @NonNull Course course) {
+        return reviewRepository.findByCourseNameAndUserId(course.getName(), user.getId())
+                .orElseThrow(() -> new EntityNotFoundException("User " + user.getId()
+                + " has never left a review for course " + course.getName()));
+    }
+
+    @Override
+    @NonNull
+    public Review getReviewById(@NonNull Long reviewId) {
+        return reviewRepository.findById(reviewId).orElseThrow(() ->
+                new EntityNotFoundException("Review with id " + reviewId + " does not exist."));
+    }
+
+    @Override
+    public boolean isBasicReviewForCourseAndUserAvailable(@NonNull UserEntity user,
+            @NonNull Course course) {
+        return reviewRepository.findByCourseNameAndUserId(course.getName(),
+                user.getId()).isPresent();
+    }
+
+    @Override
+    public boolean isAdvancedReviewForCourseAndUserAvailable(@NonNull UserEntity user,
+            @NonNull Course course) {
+        final Optional<Review> reviewOpt = reviewRepository.findByCourseNameAndUserId(
+                course.getName(), user.getId());
+
+        if (reviewOpt.isPresent()) {
+            return reviewOpt.get().getContent() != null;
+        }
+        return false;
+    }
+
+    @Override
+    @NonNull
+    public Review markReviewAsRead(@NonNull Review review, @NonNull UserEntity user) {
+        review.getMarkedAsReadBy().add(user);
+
+        final ReviewSession currentReviewSession = CURRENT_REVIEW_COUNTER.get(user.getId());
+        currentReviewSession.counter--;
+
+        menuService.terminateMenuGroup(user, REVIEW_ACTIONS_MENU_TERMINATION
+                .formatted(review.getId()));
+        review = reviewRepository.save(review);
+
+        if (currentReviewSession.counter < 1) {
+            if (currentReviewSession.course != null) {
+                sendNewReviewsForUserAndCourse(user, currentReviewSession.course.getId());
+            } else {
+                sendNewReviewsForUser(user);
+            }
+        }
+        return review;
+    }
+
+    private void sendReviews(List<Review> reviews, UserEntity user) {
+        if (reviews.isEmpty()) {
+            LOGGER.info("No further reviews are availbable.");
+            sendMessage(user, localizationLoader.getLocalizationForUser(
+                    SERVICE_NO_NEW_REVIEWS_FOR_USER, user));
+            return;
+        }
+        for (Review review : reviews) {
+            LOGGER.info("Compiling review info for review " + review.getId() + ".");
+            final Localization reviewInfo;
+            
+            final Message message;
+            if (review.getContent() != null && review.getCommentContent() != null) {
+                LOGGER.info("Review is advanced and has a comment.");
+                reviewInfo = localizationLoader.getLocalizationForUser(
+                    SERVICE_REVIEW_INFO_CONTENT_COMMENT, user, textUtil
+                    .getParamsMapForNewReview(review));
+                sendMessage(user, reviewInfo);
+                message = bot.sendContent(review.getContent(), user).get(0);
+                
+            } else if (review.getContent() != null) {
+                LOGGER.info("Review is advanced.");
+                reviewInfo = localizationLoader.getLocalizationForUser(
+                    SERVICE_REVIEW_INFO_CONTENT, user, textUtil.getParamsMapForNewReview(review));
+                sendMessage(user, reviewInfo);
+                message = bot.sendContent(review.getContent(), user).get(0);
+            } else if (review.getCommentContent() != null) {
+                LOGGER.info("Review has a comment.");
+                reviewInfo = localizationLoader.getLocalizationForUser(
+                    SERVICE_REVIEW_INFO_COMMENT, user, textUtil.getParamsMapForNewReview(review));
+                message = sendMessage(user, reviewInfo);
+            } else {
+                LOGGER.info("Review is basic with no comment.");
+                reviewInfo = localizationLoader.getLocalizationForUser(
+                    SERVICE_REVIEW_INFO, user, textUtil.getParamsMapForNewReview(review));
+                message = sendMessage(user, reviewInfo);
+            }
+            menuService.initiateMenu(REVIEW_ACTIONS_MENU, user, review.getId().toString(),
+                    message.getMessageId());
+            menuService.addToMenuTerminationGroup(user, user, message.getMessageId(),
+                    REVIEW_ACTIONS_MENU_TERMINATION.formatted(review.getId()), null);
+        }
+    }
+
+    private void sendArchiveReviews(List<Review> reviews, UserEntity user, Long courseId) {
+        final Path tempFile = archiveReviewsDao.createTempFile(TEMP_FILE_NAME.formatted(
+                user.getId()));
+        final StringBuilder builder = new StringBuilder();
+
+        for (Review review : reviews) {
+            final String reviewInfo = textUtil.getArchiveReviewInfo(review, builder);
+            LOGGER.info("Writing review " + review.getId() + " to a temp file "
+                    + tempFile + "...");
+            archiveReviewsDao.write(tempFile, reviewInfo);
+            LOGGER.info("Review has been saved to the temp file.");
+            builder.delete(0, builder.length());
+        }
+        final String fileName = ARCHIVE_REVIEWS_FILE_NAME.formatted(user.getId(),
+                (user.getId() == null) ? "all" : courseId) + ARCHIVE_REVIEWS_FILE_FORMAT;
+        try {
+            LOGGER.info("Reading temp file " + tempFile + " and sending reviews file to user "
+                    + user.getId() + "...");
+            final InputStream inputStream = archiveReviewsDao.read(tempFile);
+            try {
+                bot.execute(SendDocument.builder()
+                        .chatId(user.getId())
+                        .document(new InputFile(inputStream, fileName))
+                        .build());
+                LOGGER.info("File has been sent.");
+            } catch (TelegramApiException e) {
+                throw new TelegramException("Unable to send file " + fileName + " to user "
+                        + user.getId(), e);
+            } finally {
+                inputStream.close();
+                LOGGER.info("Input stream has been closed.");
+            }
+        } catch (IOException e) {
+            throw new ArchiveReviewsException("Unable to close the stream after the temp file "
+                    + tempFile + " has been read for user " + user.getId(), e);
+        }
+    }
+
+    private Message sendMessage(UserEntity user, Localization localization) {
+        return bot.sendMessage(SendMessage.builder()
+                .chatId(user.getId())
+                .text(localization.getData())
+                .entities(localization.getEntities())
+                .build());
+    }
+
+    private void updateReviewSession(UserEntity user, List<Review> reviews,
+            boolean includeCourse) {
+        final ReviewSession reviewSession = CURRENT_REVIEW_COUNTER.get(user.getId());
+        if (reviewSession != null) {
+            reviewSession.counter = reviews.size();
+            reviewSession.course = (includeCourse && !reviews.isEmpty()) ? reviews.get(0)
+                .getCourse() : null;
+        } else {
+            CURRENT_REVIEW_COUNTER.put(user.getId(), new ReviewSession((includeCourse &&
+                    !reviews.isEmpty()) ? reviews.get(0).getCourse() : null, reviews.size()));
+        }
+    }
+
+    private class ReviewSession {
+        Course course;
+
+        int counter;
+
+        ReviewSession(Course course, int counter) {
+            this.counter = counter;
+            this.course = course;
+        }
+    }
+}

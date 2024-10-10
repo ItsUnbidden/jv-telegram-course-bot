@@ -9,17 +9,21 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 @Component
 @RequiredArgsConstructor
 public class TestCourseCommandHandler implements CommandHandler {
+    private static final String COMMAND = "/testcourse";
+
+    private static final String TEST_COURSE = "test_course";
+    
     private final CourseService courseService;
 
     @Override
     public void handle(@NonNull Message message, @NonNull String[] commandParts) {
-        courseService.initMessage(message.getFrom(), "test_course");
+        courseService.initMessage(message.getFrom(), TEST_COURSE);
     }
 
     @Override
     @NonNull
     public String getCommand() {
-        return "/testcourse";
+        return COMMAND;
     }
 
     @Override

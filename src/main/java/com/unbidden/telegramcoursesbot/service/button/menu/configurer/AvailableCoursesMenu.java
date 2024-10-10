@@ -15,6 +15,12 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class AvailableCoursesMenu implements MenuConfigurer {
+    private static final String MENU_NAME = "m_aCrs";
+
+    private static final String COURSE_NAME = "course_%s_name";
+
+    private static final String MENU_AVAILABLE_COURSES_PAGE_0 = "menu_available_courses_page_0";
+
     private final LocalizationLoader localizationLoader;
 
     private final CourseService courseService;
@@ -27,23 +33,23 @@ public class AvailableCoursesMenu implements MenuConfigurer {
         final Page firstPage = new Page();
         firstPage.setPageIndex(0);
         firstPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
-            "menu_available_courses_page_0", u));
+            MENU_AVAILABLE_COURSES_PAGE_0, u));
+        firstPage.setButtonsRowSize(2);
         firstPage.setMenu(menu);
-        firstPage.setButtonsFunction(u -> {
+        firstPage.setButtonsFunction((u, p) -> {
             final List<String> ownedCoursesNames = courseService.getAllOwnedByUser(u).stream()
                     .map(c -> c.getName()).toList();
             final List<String> allCoursesNames = courseService.getAll().stream()
                     .map(c -> c.getName()).toList();
             return allCoursesNames.stream().filter(cn -> !ownedCoursesNames.contains(cn))
                     .map(cn -> (Button)new TerminalButton(localizationLoader
-                    .getLocalizationForUser("course_" + cn + "_name", u).getData(), cn,
-                    (p1, u1) -> courseService.initMessage(u, cn))).toList();
+                    .getLocalizationForUser(COURSE_NAME.formatted(cn), u).getData(), cn,
+                    (u1, pa) -> courseService.initMessage(u, cn))).toList();
         });
-        menu.setName("m_aCrs");
+        menu.setName(MENU_NAME);
         menu.setPages(List.of(firstPage));
         menu.setInitialParameterPresent(false);
         menu.setOneTimeMenu(false);
-        menu.setUpdateAfterTerminalButtonRequired(false);
         menu.setAttachedToMessage(false);
         menuService.save(menu);
     }

@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.util;
 
 import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationException;
+import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
@@ -86,7 +87,7 @@ public class TextUtil {
     @NonNull
     public Map<Tag, String> getMappedTagContent(@NonNull String data)
             throws TaggedStringInterpretationException {
-        LOGGER.info("Parsing tagged string...");
+        LOGGER.debug("Parsing tagged string...");
         final int[] chars = data.chars().toArray();
         final Map<Tag, String> result = new HashMap<>();
 
@@ -95,7 +96,7 @@ public class TextUtil {
         
         for (int i = 0; i < chars.length; i++) {
             if (isRecording && chars[i] == TAG_CLOSE && (i == 0 || chars[i - 1] != '\\')) {
-                LOGGER.info("Current char " + (char)chars[i] + " on  position " + i
+                LOGGER.debug("Current char " + (char)chars[i] + " on  position " + i
                         + ". Stopping recording of new tag...");
                 final String[] splitTag = builder.toString().split(TAG_PARAMS_DIVIDER);
                 final Tag tag = new Tag(splitTag[0], (splitTag.length > 1)
@@ -110,20 +111,20 @@ public class TextUtil {
                 }
 
                 final String locData = data.substring(i + 1, indexOfEndTag).trim();
-                LOGGER.info("Tag is " + tag + ". End tag begins on " + indexOfEndTag
+                LOGGER.debug("Tag is " + tag + ". End tag begins on " + indexOfEndTag
                         + ". Adding " + locData.length() + " chars to the map.");
 
                 result.put(tag, locData);
                 i = indexOfEndTag + tag.getName().length() + 2;
                 builder.delete(0, builder.length());
-                LOGGER.info("New tag recording might begin anywhere from index "
+                LOGGER.debug("New tag recording might begin anywhere from index "
                         + i + ". Tag builder cleared.");
             }
             if (isRecording) {
                 builder.append((char)chars[i]);
             }
             if (chars[i] == TAG_OPEN && (i == 0 || chars[i - 1] != '\\')) {
-                LOGGER.info("Current char " + (char)chars[i] + " on  position " + i
+                LOGGER.debug("Current char " + (char)chars[i] + " on  position " + i
                         + ". Activating recording of new tag...");
                 isRecording = true;
             }
@@ -146,6 +147,73 @@ public class TextUtil {
     @NonNull
     public String removeEndLineOverrides(@NonNull String text) {
         return text.replace(END_LINE_OVERRIDE_MARKER, "");
+    }
+
+    @NonNull
+    public String getArchiveReviewInfo(@NonNull Review review, @NonNull StringBuilder builder) {
+        LOGGER.info("Compiling review info for archive review " + review.getId() + "...");
+        builder.append("Id: ").append(review.getId()).append("\n")
+                .append("User: ").append(review.getUser().getFullName()).append("\n")
+                .append("Course: ").append(review.getCourse().getName()).append("\n")
+                .append("Course grade: ").append(review.getCourseGrade()).append("\n")
+                .append("Platform grade: ").append(review.getPlatformGrade()).append("\n")
+                .append("Original course grade: ").append(review.getOriginalCourseGrade())
+                .append("\n")
+                .append("Original platform grade: ").append(review.getOriginalPlatformGrade())
+                .append("\n")
+                .append("Basic review submitted at: ").append(
+                    review.getBasicSubmittedTimestamp()).append("\n")
+                .append("Advanced review content id: ").append((review.getContent() != null)
+                    ? review.getContent().getId() : "Not available.").append("\n")
+                .append("Advanced review original content id: ").append(
+                    (review.getOriginalContent() != null) ? review.getOriginalContent()
+                    .getId() : "Not available.").append("\n")
+                .append("Advanced review submitted at: ").append((review
+                    .getAdvancedSubmittedTimestamp() != null)
+                    ? review.getAdvancedSubmittedTimestamp() : "Not available.").append("\n")
+                .append("Last updated at: ").append((review.getLastUpdateTimestamp() != null)
+                    ? review.getLastUpdateTimestamp() : "Not available.").append("\n")
+                .append("Comment content id: ").append((review.getCommentContent() != null)
+                    ? review.getCommentContent().getId() : "Not available.").append("\n")
+                .append("Commented by: ").append((review.getCommentedBy() != null)
+                    ? review.getCommentedBy().getFullName() : "Not available.").append("\n")
+                .append("Commented at: ").append((review.getCommentedAt() != null)
+                    ? review.getCommentedAt() : "Not available.").append("\n")
+                .append("Users, who already marked this review as read: ").append(review
+                    .getUsersWhoReadAsString()).append("\n");
+        if (review.getContent() != null) {
+            LOGGER.info("Review " + review.getId() + " contains advanced user feedback.");
+            builder.append("Advanced review text: ").append("\n")
+                    .append(review.getContent().getData()).append("\n");
+        }
+        builder.append("--------------------------------------------------------------------")
+                .append("\n");
+        return builder.toString();
+    }
+
+    @NonNull
+    public Map<String, Object> getParamsMapForNewReview(@NonNull Review review) {
+        final Map<String, Object> parameterMap = new HashMap<>();
+
+        parameterMap.put("${basicTimestamp}", review.getBasicSubmittedTimestamp());
+        parameterMap.put("${courseGrade}", review.getCourseGrade());
+        parameterMap.put("${platformGrade}", review.getPlatformGrade());
+        parameterMap.put("${originalCourseGrade}", review.getOriginalCourseGrade());
+        parameterMap.put("${originalPlatformGrade}", review.getOriginalPlatformGrade());
+        parameterMap.put("${usersWhoRead}", review.getUsersWhoReadAsString());
+
+        if (review.getCommentContent() != null) {
+            parameterMap.put("${userWhoCommented}", review.getCommentedBy()
+                    .getFullName());
+            parameterMap.put("${commentedAt}", review.getCommentedAt());
+        }
+
+        if (review.getContent() != null) {
+            parameterMap.put("${contentId}", review.getContent().getId());
+            parameterMap.put("${originalContentId}", review.getOriginalContent().getId());
+            parameterMap.put("${advancedTimestamp}", review.getAdvancedSubmittedTimestamp());
+        }
+        return parameterMap;
     }
 
     private int extractEntities(MarkerDataDto markerData, List<MessageEntity> entities) {

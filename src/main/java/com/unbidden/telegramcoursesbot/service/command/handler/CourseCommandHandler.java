@@ -15,6 +15,12 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 @Component
 @RequiredArgsConstructor
 public class CourseCommandHandler implements CommandHandler {
+    private static final String COURSES_MENU = "m_crs";
+    private static final String MY_COURSES_MENU = "m_myCrs";
+    private static final String AVAILABLE_COURSES_MENU = "m_aCrs";
+
+    private static final String COMMAND = "/courses";
+
     private final MenuService menuService;
 
     private final CourseService courseService;
@@ -29,7 +35,7 @@ public class CourseCommandHandler implements CommandHandler {
                 .stream().map(c -> c.getName()).toList();
 
         if (allCoursesNamesOwnedByUser.isEmpty()) {
-            menuService.initiateMenu("m_aCrs", user);
+            menuService.initiateMenu(AVAILABLE_COURSES_MENU, user);
             return;
         }
 
@@ -37,16 +43,16 @@ public class CourseCommandHandler implements CommandHandler {
                 .filter(c -> !allCoursesNamesOwnedByUser.contains(c.getName())).toList();
 
         if (availableCourses.isEmpty()) {
-            menuService.initiateMenu("m_myCrs", user);
+            menuService.initiateMenu(MY_COURSES_MENU, user);
             return;
         }
-        menuService.initiateMenu("m_crs", user);
+        menuService.initiateMenu(COURSES_MENU, user);
     }
 
     @Override
     @NonNull
     public String getCommand() {
-        return "/courses";
+        return COMMAND;
     }
 
     @Override

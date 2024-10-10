@@ -33,8 +33,15 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: is_completed
-                  type: boolean
-                  defaultValueBoolean: false
+                  name: first_time_started_at
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: first_time_finished_at
+                  type: datetime
+              - column:
+                  name: number_of_times_completed
+                  type: int
                   constraints:
                     nullable: false

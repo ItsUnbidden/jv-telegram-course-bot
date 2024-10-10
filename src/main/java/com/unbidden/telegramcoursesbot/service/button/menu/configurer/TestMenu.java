@@ -15,6 +15,12 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 @Component
 @RequiredArgsConstructor
 public class TestMenu implements MenuConfigurer {
+    private static final String MENU_NAME = "m_tst";
+
+    private static final String TEST = "test";
+
+    private static final String BUTTON_TEST_MENU = "button_test_menu";
+
     private final MenuService menuService;
 
     private final LocalizationLoader localizationLoader;
@@ -27,9 +33,10 @@ public class TestMenu implements MenuConfigurer {
         final Page page = new Page();
         page.setMenu(menu);
         page.setPageIndex(0);
-        page.setButtonsFunction(u -> List.of(new TerminalButton(
-                localizationLoader.getLocalizationForUser("button_test_menu", u)
-                .getData(), "sh", (p1, u1) -> {
+        page.setButtonsRowSize(1);
+        page.setButtonsFunction((u, p) -> List.of(new TerminalButton(
+                localizationLoader.getLocalizationForUser(BUTTON_TEST_MENU, u)
+                .getData(), TEST, (u1, pa) -> {
                     bot.sendMessage(SendMessage.builder()
                         .chatId(u1.getId())
                         .text("Test button triggered.")
@@ -38,12 +45,12 @@ public class TestMenu implements MenuConfigurer {
         final Page terminalPage = new Page();
         terminalPage.setMenu(menu);
         terminalPage.setPageIndex(1);
-        menu.setName("m_tst");
+        menu.setName(MENU_NAME);
         menu.setPages(List.of(page, terminalPage));
         menu.setInitialParameterPresent(false);
         menu.setOneTimeMenu(true);
-        menu.setUpdateAfterTerminalButtonRequired(true);
         menu.setAttachedToMessage(true);
+        menu.setUpdateAfterTerminalButtonRequired(true);
         menuService.save(menu);
     }
 }

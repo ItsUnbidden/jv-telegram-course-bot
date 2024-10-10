@@ -2,9 +2,7 @@ package com.unbidden.telegramcoursesbot.service.user;
 
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.UserRepository;
-
 import jakarta.persistence.EntityNotFoundException;
-
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -120,10 +118,10 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * Creates or updates user entity if anything changed. Returns true if any change occured.
+     * Creates or updates user entity if anything changed. Returns the user.
      */
     @Override
-    public boolean updateUser(@NonNull User user) {
+    public UserEntity updateUser(@NonNull User user) {
         LOGGER.info("Checking if user " + user.getId() + "' data is up to date...");
         final UserEntity userFromDb = userRepository.findById(user.getId())
                 .orElse(new UserEntity(user.getId()));
@@ -175,7 +173,7 @@ public class UserServiceImpl implements UserService {
         } else {
             LOGGER.info("User data is up to date with telegram servers.");
         }
-        return hasChanged;
+        return userFromDb;
     }
 
     @Override

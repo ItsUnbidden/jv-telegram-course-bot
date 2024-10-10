@@ -13,6 +13,10 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 @Component
 @RequiredArgsConstructor
 public class RefreshCommandHandler implements CommandHandler {
+    private static final String COMMAND = "/refresh";
+
+    private static final String SERVICE_REFRESH_SUCCESS = "service_refresh_success";
+
     private final TelegramBot bot;
 
     private final LocalizationLoader localizationLoader;
@@ -31,7 +35,7 @@ public class RefreshCommandHandler implements CommandHandler {
             bot.setOnMaintenance(false);
 
             final Localization localization = localizationLoader.getLocalizationForUser(
-                    "service_refresh_success", message.getFrom());
+                    SERVICE_REFRESH_SUCCESS, message.getFrom());
             bot.sendMessage(SendMessage.builder()
                     .chatId(message.getFrom().getId())
                     .text(localization.getData())
@@ -43,7 +47,7 @@ public class RefreshCommandHandler implements CommandHandler {
     @Override
     @NonNull
     public String getCommand() {
-        return "/refresh";
+        return COMMAND;
     }
 
     @Override

@@ -8,10 +8,10 @@ import com.unbidden.telegramcoursesbot.service.session.SessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.UserShared;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
@@ -22,6 +22,20 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 @Component
 @RequiredArgsConstructor
 public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
+    private static final String SERVICE_REMOVED_ADMIN_NOTIFICATION =
+            "service_removed_admin_notification";
+    private static final String SERVICE_ADMIN_REMOVE_SUCCESS = "service_admin_remove_success";
+    private static final String SERVICE_NEW_ADMIN_NOTIFICATION = "service_new_admin_notification";
+    private static final String SERVICE_NEW_ADMIN_ASSIGN_SUCCESS =
+            "service_new_admin_assign_success";
+    private static final String SERVICE_ADMIN_CHOOSE_ACTION = "service_admin_choose_action";
+
+    private static final String ERROR_ADMIN_REMOVE_FAILURE = "error_admin_remove_failure";
+    private static final String ERROR_NEW_ADMIN_ASSIGN_FAILURE = "error_new_admin_assign_failure";
+
+    private static final String BUTTON_REMOVE_ADMIN = "button_remove_admin";
+    private static final String BUTTON_ADD_NEW_ADMIN = "button_add_new_admin";
+
     private final TelegramBot bot;
 
     private final LocalizationLoader localizationLoader;
@@ -33,25 +47,25 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
     private final ReplyKeyboardRemove keyboardRemove;
 
     @Override
-    public void handle(String[] params, User user) {
+    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         if (userService.isAdmin(user)) {
             KeyboardButtonRequestUser requestUserAddAdmin = KeyboardButtonRequestUser.builder()
                     .userIsBot(false)
-                    .requestId(String.valueOf(sessionService.createSession(user,
-                    getAddAdminFunction(user), true))).build();
+                    .requestId(String.valueOf(sessionService.createSession(user, true,
+                        getAddAdminFunction(user)))).build();
             KeyboardButtonRequestUser requestUserRemoveAdmin = KeyboardButtonRequestUser.builder()
                     .userIsBot(false)
-                    .requestId(String.valueOf(sessionService.createSession(user,
-                    getRemoveAdminFunction(user), true))).build();
+                    .requestId(String.valueOf(sessionService.createSession(user, true,
+                        getRemoveAdminFunction(user)))).build();
 
             KeyboardButton addButton = KeyboardButton.builder()
                     .requestUser(requestUserAddAdmin)
-                    .text(localizationLoader.getLocalizationForUser("button_add_new_admin", user)
+                    .text(localizationLoader.getLocalizationForUser(BUTTON_ADD_NEW_ADMIN, user)
                         .getData())
                     .build();
             KeyboardButton removeButton = KeyboardButton.builder()
                     .requestUser(requestUserRemoveAdmin)
-                    .text(localizationLoader.getLocalizationForUser("button_remove_admin", user)
+                    .text(localizationLoader.getLocalizationForUser(BUTTON_REMOVE_ADMIN, user)
                         .getData())
                     .build();
             KeyboardRow row = new KeyboardRow();
@@ -62,7 +76,7 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
                     .keyboardRow(row)
                     .build();
             final Localization localization = localizationLoader.getLocalizationForUser(
-                    "service_admin_choose_action", user);
+                    SERVICE_ADMIN_CHOOSE_ACTION, user);
             bot.sendMessage(SendMessage.builder()
                     .text(localization.getData())
                     .chatId(user.getId())
@@ -72,50 +86,51 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
         }
     }
 
-    private Consumer<Message> getAddAdminFunction(final User sender) {
+    private Consumer<Message> getAddAdminFunction(final UserEntity sender) {
         return m -> {
             final UserShared sharedUser = m.getUserShared();
             final UserEntity newAdmin = userService.addAdmin(sharedUser.getUserId());
 
             final Localization error = localizationLoader.getLocalizationForUser(
-                    "error_new_admin_assign_failure", sender, "${userId}",
+                    ERROR_NEW_ADMIN_ASSIGN_FAILURE, sender, "${userId}",
                     sharedUser.getUserId());
             Localization success = null;
             Localization notification = null;
             if (newAdmin != null) {
+                bot.setUpMenusForAdmin(newAdmin.getId());
                 success = localizationLoader.getLocalizationForUser(
-                        "service_new_admin_assign_success", sender, "${targetFirstName}",
+                        SERVICE_NEW_ADMIN_ASSIGN_SUCCESS, sender, "${targetFirstName}",
                         newAdmin.getFirstName());
                 notification = localizationLoader.getLocalizationForUser(
-                        "service_new_admin_notification", newAdmin);
+                        SERVICE_NEW_ADMIN_NOTIFICATION, newAdmin);
             }
             sendMessages(sender, newAdmin, error, success, notification);
         };
     }
 
-    private Consumer<Message> getRemoveAdminFunction(final User sender) {
+    private Consumer<Message> getRemoveAdminFunction(final UserEntity sender) {
         return m -> {
             final UserShared sharedUser = m.getUserShared();
             final UserEntity removedAdmin = userService.removeAdmin(sharedUser.getUserId());
 
             final Localization error = localizationLoader.getLocalizationForUser(
-                    "error_admin_remove_failure", sender, "${userId}",
+                    ERROR_ADMIN_REMOVE_FAILURE, sender, "${userId}",
                     sharedUser.getUserId());
             Localization success = null;
             Localization notification = null;
             if (removedAdmin != null) {
                 bot.removeMenusForUser(removedAdmin.getId());
                 success = localizationLoader.getLocalizationForUser(
-                        "service_admin_remove_success", sender, "${targetFirstName}",
+                        SERVICE_ADMIN_REMOVE_SUCCESS, sender, "${targetFirstName}",
                         removedAdmin.getFirstName());
                 notification = localizationLoader.getLocalizationForUser(
-                        "service_removed_admin_notification", removedAdmin);
+                        SERVICE_REMOVED_ADMIN_NOTIFICATION, removedAdmin);
             }
             sendMessages(sender, removedAdmin, error, success, notification);
         };
     }
 
-    private void sendMessages(User sender, UserEntity target, Localization error,
+    private void sendMessages(UserEntity sender, UserEntity target, Localization error,
             Localization success, Localization notification) {
         if (target == null) {
             bot.sendMessage(SendMessage.builder()

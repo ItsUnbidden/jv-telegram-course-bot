@@ -9,6 +9,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+
+import java.time.LocalDateTime;
+
 import lombok.Data;
 
 @Entity
@@ -30,5 +33,11 @@ public class CourseProgress {
     @Column(nullable = false)
     private Integer stage;
 
-    private boolean isCompleted;
+    @Column(nullable = false)
+    private LocalDateTime firstTimeStartedAt;
+
+    private LocalDateTime firstTimeFinishedAt;
+
+    @Column(nullable = false)
+    private Integer numberOfTimesCompleted;
 }
