@@ -4,6 +4,8 @@ target/
 **/src/main/resources/application.properties
 **/src/main/resources/liquibase.properties
 **/src/main/resources/text/*
+**/src/main/resources/image/*
+**/src/main/resources/temp/*
 !**/src/main/resources/text/mappings.txt
 
 *.sql
