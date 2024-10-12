@@ -1,17 +1,33 @@
 package com.unbidden.telegramcoursesbot.service.payment;
 
+import com.unbidden.telegramcoursesbot.model.PaymentDetails;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
+import java.util.List;
+import org.springframework.lang.NonNull;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.payments.PreCheckoutQuery;
 
 public interface PaymentService {
-    boolean isAvailable(User user, String courseName);
+    boolean isAvailable(@NonNull User user, @NonNull String courseName);
 
-    void sendInvoice(User user, String courseName);
+    boolean isAvailable(@NonNull UserEntity user, @NonNull String courseName);
 
-    void resolvePreCheckout(PreCheckoutQuery preCheckoutQuery);
+    boolean isAvailableAndGifted(@NonNull UserEntity user, @NonNull String courseName);
+    
+    void sendInvoice(@NonNull UserEntity user, @NonNull String courseName);
 
-    void resolveSuccessfulPayment(Message message);
+    void resolvePreCheckout(@NonNull PreCheckoutQuery preCheckoutQuery);
 
-    void refund(User user, String courseName);
+    void resolveSuccessfulPayment(@NonNull Message message);
+
+    void refund(@NonNull User user, @NonNull String courseName);
+
+    @NonNull
+    PaymentDetails addPaymentDetails(@NonNull PaymentDetails paymentDetails);
+
+    void deleteByCourseForUser(@NonNull String courseName, @NonNull Long userId);
+
+    @NonNull
+    List<PaymentDetails> getAllForUser(@NonNull UserEntity user);
 }

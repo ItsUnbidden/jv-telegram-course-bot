@@ -1,0 +1,57 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-homework-progress-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: homework_progress
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: homework_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_homework_homework_progress
+                    references: homework(id)
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_users_homework_progress
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: curator_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_curator_homework_progress
+                    references: users(id)
+              - column:
+                  name: content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_content_homework_progress
+                    references: content(id)
+              - column:
+                  name: status
+                  type: tinyint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: initialized_at
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: approve_requested_at
+                  type: datetime
+              - column:
+                  name: finished_at
+                  type: datetime

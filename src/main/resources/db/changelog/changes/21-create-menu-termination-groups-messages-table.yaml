@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-menu-termination-groups-messages-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: menu_termination_groups_messages
+            columns: 
+              - column:
+                  name: group_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_groups_menu_termination_groups_messages
+                    references: menu_termination_groups(id)
+                    nullable: false
+              - column:
+                  name: message_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_messages_menu_termination_groups_messages
+                    references: messages(id)
+                    nullable: false
+                

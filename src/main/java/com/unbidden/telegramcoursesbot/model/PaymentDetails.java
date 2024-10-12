@@ -9,10 +9,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Data
 @Table(name = "payment_details")
+@SQLDelete(sql = "UPDATE payment_details SET is_valid = false WHERE id = ?")
+@SQLRestriction("is_valid = true")
 public class PaymentDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,11 +24,11 @@ public class PaymentDetails {
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private UserEntity user;
 
     @ManyToOne
     @JoinColumn(name = "course_id")
-    private CourseModel course;
+    private Course course;
     
     @Column(nullable = false)
     private Integer totalAmount;
@@ -32,9 +36,9 @@ public class PaymentDetails {
     @Column(nullable = false)
     private String telegramPaymentChargeId;
 
-    @Column(nullable = false)
     private boolean isValid;
 
-    @Column(nullable = false)
     private boolean isSuccessful;
+
+    private boolean isGifted;
 }

@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-test-course-homework
+      author: Unbidden
+      changes:
+        - insert:  
+            tableName: homework
+            columns:
+              - column:
+                  name: content_id
+                  valueNumeric: 20
+              - column:
+                  name: is_feedback_required
+                  valueBoolean: true
+        - insert:  
+            tableName: homework
+            columns:
+              - column:
+                  name: content_id
+                  valueNumeric: 21
+              - column:
+                  name: is_feedback_required
+                  valueBoolean: false

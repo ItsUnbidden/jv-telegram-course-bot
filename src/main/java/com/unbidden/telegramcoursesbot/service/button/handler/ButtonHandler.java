@@ -1,7 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import org.telegram.telegrambots.meta.api.objects.User;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
+import org.springframework.lang.NonNull;
 
 public interface ButtonHandler {
-    void handle(String[] params, User user);
+    void handle(@NonNull UserEntity user, @NonNull String[] params);
 }

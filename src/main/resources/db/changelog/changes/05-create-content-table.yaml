@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-content-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: content
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: data
+                  type: varchar(1024)
+              - column:
+                  name: video_id
+                  type: varchar(255)
+                  constraints:
+                    foreignKeyName: fk_videos_content
+                    references: videos(unique_id)

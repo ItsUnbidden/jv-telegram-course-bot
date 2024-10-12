@@ -1,11 +1,14 @@
 package com.unbidden.telegramcoursesbot.service.button.menu;
 
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.button.handler.ButtonHandler;
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
+
+import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 @Data
 public class Menu {
@@ -13,28 +16,39 @@ public class Menu {
 
     private List<Page> pages;
 
+    private boolean isInitialParameterPresent;
+
+    private boolean isOneTimeMenu;
+
+    private boolean isUpdateAfterTerminalButtonRequired;
+
+    private boolean isAttachedToMessage;
+
     @Data
     public static class Page {
         private int pageIndex;
 
-        private Type type;
-
         private Menu menu;
 
-        private Function<User, String> textFunction;
+        private int buttonsRowSize;
 
-        private Function<User, List<Button>> buttonsFunction;
+        private BiFunction<UserEntity, List<String>, Localization> localizationFunction;
 
-        public Button getButtonByData(User user, String data) {
-            List<Button> potentialButton = buttonsFunction.apply(user).stream()
-                    .filter(b -> b.getData().equals(data))
+        private BiFunction<UserEntity, List<String>, List<Button>> buttonsFunction;
+
+        public Button getButtonByData(UserEntity user, String currentButtonData,
+                String[] params) {
+            List<Button> potentialButton = buttonsFunction.apply(user, Arrays.asList(params))
+                    .stream()
+                    .filter(b -> b.getData().equals(currentButtonData))
                     .toList();
             if (potentialButton.isEmpty()) {
-                throw new IllegalArgumentException("There is no button with data " + data);
+                throw new IllegalArgumentException("There is no button with data "
+                        + currentButtonData);
             }
             if (potentialButton.size() > 1) {
                 throw new IllegalArgumentException("There seem to be several buttons with data "
-                        + data);
+                        + currentButtonData);
             }
             return potentialButton.get(0);
         }
@@ -45,7 +59,7 @@ public class Menu {
             private ButtonHandler handler;
 
             public TerminalButton(String name, String data, ButtonHandler handler) {
-                super(name, data);
+                super(name, data, Type.TERMINAL);
                 this.handler = handler;
             }
         }
@@ -53,8 +67,11 @@ public class Menu {
         @Data
         @EqualsAndHashCode(callSuper = true)
         public static class TransitoryButton extends Button {
-            public TransitoryButton(String name, String data) {
-                super(name, data);
+            private int pagePointer;
+
+            public TransitoryButton(String name, String data, int pagePointer) {
+                super(name, data, Type.TRANSITORY);
+                this.pagePointer = pagePointer;
             }
         }
 
@@ -64,15 +81,18 @@ public class Menu {
 
             private String data;
 
-            public Button(String name, String data) {
+            private Type type;
+
+            public Button(String name, String data, Type type) {
                 this.name = name;
                 this.data = data;
+                this.type = type;
             }
-        }
 
-        public enum Type {
-            TERMINAL,
-            TRANSITORY
+            public enum Type {
+                TERMINAL,
+                TRANSITORY
+            }
         }
     }
 }

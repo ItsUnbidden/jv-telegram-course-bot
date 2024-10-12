@@ -3,6 +3,10 @@ logs/
 target/
 **/src/main/resources/application.properties
 **/src/main/resources/liquibase.properties
+**/src/main/resources/text/*
+!**/src/main/resources/text/mappings.txt
+
+*.sql
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

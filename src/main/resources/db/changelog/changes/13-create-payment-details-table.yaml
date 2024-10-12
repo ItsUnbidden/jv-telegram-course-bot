@@ -1,0 +1,56 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-payment-details-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: payment_details
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_users_payment_details
+                    references: users(id)
+              - column:
+                  name: course_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_courses_payment_details
+                    references: courses(id)
+              - column:
+                  name: total_amount
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: telegram_payment_charge_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_valid
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_successful
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_gifted
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

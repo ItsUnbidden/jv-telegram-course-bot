@@ -1,0 +1,214 @@
+package com.unbidden.telegramcoursesbot.service.user;
+
+import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
+import org.springframework.stereotype.Service;
+import org.telegram.telegrambots.meta.api.objects.User;
+
+@Service
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService {
+    private static final Logger LOGGER = LogManager.getLogger(UserServiceImpl.class);
+
+    private final UserRepository userRepository;
+
+    @Value("${telegram.bot.authorization.default.admin.id}")
+    private Long defaultAdminId;
+
+    @Value("${telegram.bot.message.language.default}")
+    private String defaultLanguageCode;
+
+    @Override
+    @Nullable
+    public UserEntity addAdmin(@NonNull Long userId) {
+        Optional<UserEntity> potentialUser = userRepository
+                .findById(userId);
+        if (potentialUser.isPresent()) {
+            final UserEntity userFromDb = potentialUser.get();
+
+            LOGGER.info("Adding user " + userFromDb.getId() + " to the admin list...");
+            if (userFromDb.isAdmin()) {
+                LOGGER.warn("User " + userFromDb.getId()
+                        + " is already an admin. Action ignored.");
+                return null;
+            }
+            userFromDb.setAdmin(true);
+            return userRepository.save(userFromDb);
+        } else {
+            LOGGER.warn("User " + userId + " is inaccessable. This may be because they "
+                    + "have never called /start on the bot.");
+        }
+        return null;
+    }
+
+    @Override
+    @Nullable
+    public UserEntity removeAdmin(@NonNull Long userId) {
+        if (userId.longValue() == defaultAdminId.longValue()) {
+            LOGGER.warn("Default admin cannot be removed. Action skipped.");
+            return null;
+        }
+        Optional<UserEntity> potentialUser = userRepository
+                .findById(userId);
+        if (potentialUser.isPresent()) {
+            final UserEntity userFromDb = potentialUser.get();
+
+            LOGGER.info("Removing user " + userFromDb.getId() + " from the admin list...");
+            if (!userFromDb.isAdmin()) {
+                LOGGER.warn("User " + userFromDb.getId() + " is not an admin. Action ignored.");
+                return null;
+            }
+            userFromDb.setAdmin(false);
+            return userRepository.save(userFromDb);
+        } else {
+            LOGGER.warn("User " + userId + " is inaccessable. This may be because they "
+                    + "have never called /start on the bot.");
+        }
+        return null;
+    }
+
+    @Override
+    public boolean isAdmin(@NonNull UserEntity user) {
+        return user.isAdmin();
+    }
+
+    @Override
+    public boolean isAdmin(@NonNull User user) {
+        Optional<UserEntity> potentialUser = userRepository.findById(user.getId());
+        if (potentialUser.isEmpty()) {
+            LOGGER.warn("User " + user.getId() + " is not recorded in the db, "
+                    + "but isAdmin(User user) was called for them."); 
+            return false;
+        }
+        return potentialUser.get().isAdmin();
+    }
+
+    @Override
+    @NonNull
+    public List<UserEntity> getAdminList() {
+        return userRepository.findAllAdmins();
+    }
+
+    @Override
+    @NonNull
+    public List<UserEntity> getHomeworkReveivingAdmins() {
+        return userRepository.findAllHomeworkReceivingAdmins();
+    }
+
+    @Override
+    @NonNull
+    public Long getDefaultAdminId() {
+        return defaultAdminId;
+    }
+
+    @Override
+    @NonNull
+    public UserEntity getUser(@NonNull Long id) {
+        return userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("User "
+                + id + " is not registred in the database."));
+    }
+
+    /**
+     * Creates or updates user entity if anything changed. Returns the user.
+     */
+    @Override
+    @NonNull
+    public UserEntity updateUser(@NonNull User user) {
+        LOGGER.info("Checking if user " + user.getId() + "' data is up to date...");
+        final UserEntity userFromDb = userRepository.findById(user.getId())
+                .orElse(new UserEntity(user.getId()));
+
+        boolean hasChanged = false;
+        if (!userFromDb.isAdmin() && user.getId().longValue() == defaultAdminId) {
+            userFromDb.setAdmin(true);
+            hasChanged = true;
+            LOGGER.info("User " + user.getId() + " is the default admin. Setting...");
+        }
+        if (user.getIsBot() != userFromDb.isBot()) {
+            userFromDb.setBot(user.getIsBot());
+            hasChanged = true;
+            LOGGER.info("User is bot. Setting...");
+        }
+        if (!user.getFirstName().equals(userFromDb.getFirstName())) {
+            userFromDb.setFirstName(user.getFirstName());
+            hasChanged = true;
+            LOGGER.info("First name is " + user.getFirstName() + ". Setting...");
+        }
+        if (user.getLanguageCode() != null) {
+            if (!user.getLanguageCode().equals(userFromDb.getLanguageCode())) {
+                userFromDb.setLanguageCode(user.getLanguageCode());
+                hasChanged = true;
+                LOGGER.info("Language code is " + user.getLanguageCode() + ". Setting...");
+            }
+        } else {
+            userFromDb.setLanguageCode(defaultLanguageCode);
+            hasChanged = true;
+            LOGGER.info("Language code is unavailable. Setting to "
+                    + defaultLanguageCode + "...");
+        }
+        if (user.getLastName() != null && !user.getLastName()
+                .equals(userFromDb.getLastName())) {
+            userFromDb.setLastName(user.getLastName());
+            hasChanged = true;
+            LOGGER.info("Last name is " + user.getLastName() + ". Setting...");
+        }
+        if (user.getUserName() != null && !user.getUserName()
+                .equals(userFromDb.getUsername())) {
+            userFromDb.setUsername(user.getUserName());
+            hasChanged = true;
+            LOGGER.info("Username is " + user.getUserName() + ". Setting...");
+        }
+        if (hasChanged) {
+            LOGGER.info("Stuff has changed for user " + user.getId() + ". Persisting...");
+            userRepository.save(userFromDb);
+            LOGGER.info("Persist is successful.");
+        } else {
+            LOGGER.info("User data is up to date with telegram servers.");
+        }
+        return userFromDb;
+    }
+
+    @Override
+    @NonNull
+    public UserEntity toogleReceiveHomework(@NonNull UserEntity user) {
+        user.setReceivingHomeworkRequests(!user.isReceivingHomeworkRequests());
+        return userRepository.save(user);
+    }
+
+    @Override
+    @NonNull
+    public UserEntity getDiretor() {
+        // TODO: this is a temporary solution.
+        return getUser(defaultAdminId);
+    }
+
+    @Override
+    @NonNull
+    public UserEntity getCreator() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getCreator'");
+    }
+
+    @Override
+    @NonNull
+    public List<UserEntity> getSupport() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getSupport'");
+    }
+
+    @Override
+    @NonNull
+    public List<UserEntity> getMentors() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getMentors'");
+    }
+}

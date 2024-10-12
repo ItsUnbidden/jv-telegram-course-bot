@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-test-course
+      author: Unbidden
+      changes:
+        - insert:  
+            tableName: courses
+            columns:
+              - column:
+                  name: name
+                  value: test_course
+              - column:
+                  name: price
+                  valueNumeric: 1
+              - column:
+                  name: amount_of_lessons
+                  valueNumeric: 3
+              - column:
+                  name: is_homework_included
+                  valueBoolean: true
+              - column:
+                  name: is_feedback_included
+                  valueBoolean: true

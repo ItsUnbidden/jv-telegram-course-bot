@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-menu-termination-groups-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: menu_termination_groups
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_users_menu_termination_groups
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: terminal_localization_name
+                  type: varchar(255)

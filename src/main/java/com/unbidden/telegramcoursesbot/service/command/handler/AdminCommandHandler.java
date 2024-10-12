@@ -1,31 +1,42 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
-import com.unbidden.telegramcoursesbot.model.User;
-
+import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
+import com.unbidden.telegramcoursesbot.util.Blockable;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.User;
 
 @Component
 @RequiredArgsConstructor
 public class AdminCommandHandler implements CommandHandler {
-    private final TelegramBot bot;
+    private static final String ADMIN_MENU = "m_admAct";
+    private static final String COMMAND = "/admin";
+
+    private final UserService userService;
+
+    private final MenuService menuService;
 
     @Override
-    public void handle(Message message, String[] commandParts) {
-        if (bot.isAdmin(new User(message.getFrom()))) {
-            SendMessage sendMessage = SendMessage.builder()
-                    .chatId(message.getFrom().getId())
-                    .text("/admin command is currently not implemented.")
-                    .build();
-            bot.sendMessage(sendMessage);
+    @Blockable
+    public void handle(@NonNull Message message, @NonNull String[] commandParts) {
+        final User user = message.getFrom();
+
+        if (userService.isAdmin(user)) {
+            menuService.initiateMenu(ADMIN_MENU, user);
         }
     }
 
     @Override
+    @NonNull
     public String getCommand() {
-        return "/admin";
+        return COMMAND;
+    }
+
+    @Override
+    public boolean isAdminCommand() {
+        return true;
     }
 }

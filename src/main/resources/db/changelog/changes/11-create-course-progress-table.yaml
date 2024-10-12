@@ -1,0 +1,47 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-course-progress-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: course_progress
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: course_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_courses_course_progress
+                    references: courses(id)
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_users_course_progress
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: stage
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: first_time_started_at
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: first_time_finished_at
+                  type: datetime
+              - column:
+                  name: number_of_times_completed
+                  type: int
+                  constraints:
+                    nullable: false

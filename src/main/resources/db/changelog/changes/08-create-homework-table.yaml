@@ -1,0 +1,28 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-homework-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: homework
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_content_homework
+                    references: content(id)
+                    nullable: false
+              - column:
+                  name: is_feedback_required
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
