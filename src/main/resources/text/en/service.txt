@@ -1,7 +1,0 @@
-<start true>
-Start message **${firstName}****${lastName}**--${username}--~~${firstName}~~^^dfsfsdfsfsd^^.
-<start/>
-
-<terms>
-Terms message.
-<terms/>
