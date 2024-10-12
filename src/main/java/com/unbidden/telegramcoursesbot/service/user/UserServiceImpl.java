@@ -121,6 +121,7 @@ public class UserServiceImpl implements UserService {
      * Creates or updates user entity if anything changed. Returns the user.
      */
     @Override
+    @NonNull
     public UserEntity updateUser(@NonNull User user) {
         LOGGER.info("Checking if user " + user.getId() + "' data is up to date...");
         final UserEntity userFromDb = userRepository.findById(user.getId())
@@ -181,5 +182,33 @@ public class UserServiceImpl implements UserService {
     public UserEntity toogleReceiveHomework(@NonNull UserEntity user) {
         user.setReceivingHomeworkRequests(!user.isReceivingHomeworkRequests());
         return userRepository.save(user);
+    }
+
+    @Override
+    @NonNull
+    public UserEntity getDiretor() {
+        // TODO: this is a temporary solution.
+        return getUser(defaultAdminId);
+    }
+
+    @Override
+    @NonNull
+    public UserEntity getCreator() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getCreator'");
+    }
+
+    @Override
+    @NonNull
+    public List<UserEntity> getSupport() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getSupport'");
+    }
+
+    @Override
+    @NonNull
+    public List<UserEntity> getMentors() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getMentors'");
     }
 }

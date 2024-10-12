@@ -13,6 +13,8 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 @Component
 @RequiredArgsConstructor
 public class ReceiveHomeworkToggleButtonHandler implements ButtonHandler {
+    private static final String PARAM_STATUS = "${status}";
+
     private static final String SERVICE_TOGGLE_RECEIVE_HOMEWORK =
             "service_toggle_receive_homework";
 
@@ -28,7 +30,7 @@ public class ReceiveHomeworkToggleButtonHandler implements ButtonHandler {
             final UserEntity updatedUser = userService.toogleReceiveHomework(
                     userService.getUser(user.getId()));
             final Localization success = localizationLoader.getLocalizationForUser(
-                    SERVICE_TOGGLE_RECEIVE_HOMEWORK, user, "${status}",
+                    SERVICE_TOGGLE_RECEIVE_HOMEWORK, user, PARAM_STATUS,
                     (updatedUser.isReceivingHomeworkRequests()) ? "ENABLED" : "DISABLED");
 
             bot.sendMessage(SendMessage.builder()

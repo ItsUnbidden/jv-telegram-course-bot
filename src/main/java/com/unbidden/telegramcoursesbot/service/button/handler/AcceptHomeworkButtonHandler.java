@@ -15,6 +15,8 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 @Component
 @RequiredArgsConstructor
 public class AcceptHomeworkButtonHandler implements ButtonHandler {
+    private static final String ACCEPT_HOMEWORK_WITH_COMMENT_BUTTON = "ahwc";
+
     private static final String SERVICE_APPROVE_HOMEWORK_COMMENT_REQUEST =
             "service_approve_homework_comment_request";
 
@@ -34,7 +36,7 @@ public class AcceptHomeworkButtonHandler implements ButtonHandler {
             final Long homeworkProgressId = Long.parseLong(params[0]);
 
             switch (params[params.length - 1]) {
-                case "ahwc":
+                case ACCEPT_HOMEWORK_WITH_COMMENT_BUTTON:
                     sessionService.createSession(user, false, m ->
                             homeworkService.approve(homeworkProgressId, user, m));
                             

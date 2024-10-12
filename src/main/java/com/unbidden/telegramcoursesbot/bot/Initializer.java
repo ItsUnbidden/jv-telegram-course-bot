@@ -28,7 +28,7 @@ public class Initializer implements ApplicationRunner {
         bot.setUpMenuButton();
         bot.setUpMenus();
 
-        userService.getAdminList().forEach(a -> bot.setUpMenusForAdmin(a.getId()));
+        userService.getAdminList().forEach(a -> bot.setUpMenuForAdmin(a));
     }
 
     private void initializeMenus() {

@@ -22,6 +22,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 @Component
 @RequiredArgsConstructor
 public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
+    private static final String PARAM_TARGET_FIRST_NAME = "${targetFirstName}";
+    private static final String PARAM_USER_ID = "${userId}";
+    
     private static final String SERVICE_REMOVED_ADMIN_NOTIFICATION =
             "service_removed_admin_notification";
     private static final String SERVICE_ADMIN_REMOVE_SUCCESS = "service_admin_remove_success";
@@ -92,14 +95,14 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
             final UserEntity newAdmin = userService.addAdmin(sharedUser.getUserId());
 
             final Localization error = localizationLoader.getLocalizationForUser(
-                    ERROR_NEW_ADMIN_ASSIGN_FAILURE, sender, "${userId}",
+                    ERROR_NEW_ADMIN_ASSIGN_FAILURE, sender, PARAM_USER_ID,
                     sharedUser.getUserId());
             Localization success = null;
             Localization notification = null;
             if (newAdmin != null) {
-                bot.setUpMenusForAdmin(newAdmin.getId());
+                bot.setUpMenuForAdmin(newAdmin);
                 success = localizationLoader.getLocalizationForUser(
-                        SERVICE_NEW_ADMIN_ASSIGN_SUCCESS, sender, "${targetFirstName}",
+                        SERVICE_NEW_ADMIN_ASSIGN_SUCCESS, sender, PARAM_TARGET_FIRST_NAME,
                         newAdmin.getFirstName());
                 notification = localizationLoader.getLocalizationForUser(
                         SERVICE_NEW_ADMIN_NOTIFICATION, newAdmin);
@@ -114,14 +117,14 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
             final UserEntity removedAdmin = userService.removeAdmin(sharedUser.getUserId());
 
             final Localization error = localizationLoader.getLocalizationForUser(
-                    ERROR_ADMIN_REMOVE_FAILURE, sender, "${userId}",
+                    ERROR_ADMIN_REMOVE_FAILURE, sender, PARAM_USER_ID,
                     sharedUser.getUserId());
             Localization success = null;
             Localization notification = null;
             if (removedAdmin != null) {
-                bot.removeMenusForUser(removedAdmin.getId());
+                bot.deleteAdminMenuForUser(removedAdmin);
                 success = localizationLoader.getLocalizationForUser(
-                        SERVICE_ADMIN_REMOVE_SUCCESS, sender, "${targetFirstName}",
+                        SERVICE_ADMIN_REMOVE_SUCCESS, sender, PARAM_TARGET_FIRST_NAME,
                         removedAdmin.getFirstName());
                 notification = localizationLoader.getLocalizationForUser(
                         SERVICE_REMOVED_ADMIN_NOTIFICATION, removedAdmin);

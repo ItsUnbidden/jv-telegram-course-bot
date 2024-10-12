@@ -14,6 +14,8 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 @Component
 @RequiredArgsConstructor
 public class ListAdminsButtonHandler implements ButtonHandler {
+    private static final String PARAM_ADMIN_LIST = "${adminList}";
+
     private static final String SERVICE_GET_ADMIN_LIST = "service_get_admin_list";
 
     private final TelegramBot bot;
@@ -37,7 +39,7 @@ public class ListAdminsButtonHandler implements ButtonHandler {
                         .append('\n');
             }
             final Localization localization = localizationLoader.getLocalizationForUser(
-                    SERVICE_GET_ADMIN_LIST, user, "${adminList}", builder.toString());
+                    SERVICE_GET_ADMIN_LIST, user, PARAM_ADMIN_LIST, builder.toString());
     
             bot.sendMessage(SendMessage.builder()
                     .chatId(user.getId())

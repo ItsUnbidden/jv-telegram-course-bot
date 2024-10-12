@@ -20,6 +20,9 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 @Component
 @RequiredArgsConstructor
 public class FeedbackInclusionButtonHandler implements ButtonHandler {
+    private static final String PARAM_COURSE_NAME = "${courseName}";
+    private static final String PARAM_STATUS = "${status}";
+
     private static final String SERVICE_COURSE_FEEDBACK_UPDATE_SUCCESSFUL =
             "service_course_feedback_update_successful";
 
@@ -46,9 +49,9 @@ public class FeedbackInclusionButtonHandler implements ButtonHandler {
             courseService.save(course);
 
             Map<String, Object> messageParams = new HashMap<>();
-            messageParams.put("${status}", (course.isFeedbackIncluded()) ? "ENABLED"
+            messageParams.put(PARAM_STATUS, (course.isFeedbackIncluded()) ? "ENABLED"
                     : "DISABLED");
-            messageParams.put("${courseName}", course.getName());
+            messageParams.put(PARAM_COURSE_NAME, course.getName());
             LOGGER.info("Value has been changed to: " + course.isFeedbackIncluded() + ".");
             Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_COURSE_FEEDBACK_UPDATE_SUCCESSFUL, user, messageParams);

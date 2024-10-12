@@ -1,11 +1,13 @@
 package com.unbidden.telegramcoursesbot.bot;
 
+import com.unbidden.telegramcoursesbot.exception.ExceptionHandlerManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.Content;
 import com.unbidden.telegramcoursesbot.model.Photo;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.Video;
+import com.unbidden.telegramcoursesbot.repository.CallbackQueryRepository;
 import com.unbidden.telegramcoursesbot.repository.ContentRepository;
 import com.unbidden.telegramcoursesbot.repository.PhotoRepository;
 import com.unbidden.telegramcoursesbot.repository.VideoRepository;
@@ -18,6 +20,8 @@ import com.unbidden.telegramcoursesbot.service.session.SessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +31,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.commands.DeleteMyCommands;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.menubutton.SetChatMenuButton;
@@ -34,6 +39,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
@@ -73,8 +79,15 @@ public class TelegramBot extends TelegramLongPollingBot {
     private VideoRepository videoRepository;
 
     @Autowired
+    private CallbackQueryRepository callbackQueryRepository;
+
+    @Autowired
     @Lazy
     private CommandHandlerManager commandHandlerManager;
+
+    @Autowired
+    @Lazy
+    private ExceptionHandlerManager exceptionHandlerManager;
 
     @Autowired
     @Lazy
@@ -101,51 +114,82 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        final UserEntity user;
+        UserEntity user = null;
         
-        if (update.hasMessage() && update.getMessage().isCommand()) {
-            final String[] commandParts = update.getMessage().getText().split(" ");
-            user = userService.updateUser(update.getMessage().getFrom());
-
-            LOGGER.info("Update with command " + update.getMessage().getText()
-                    + " triggered by user " + user.getId() + ".");
-            sessionService.removeSessionsForUser(user);
-            commandHandlerManager.getHandler(commandParts[0]).handle(update.getMessage(),
-                    commandParts);
-            return;
+        try {
+            if (update.hasMessage() && update.getMessage().isCommand()) {
+                final String[] commandParts = update.getMessage().getText().split(" ");
+                user = userService.updateUser(update.getMessage().getFrom());
+    
+                LOGGER.info("Update with command " + update.getMessage().getText()
+                        + " triggered by user " + user.getId() + ".");
+                sessionService.removeSessionsForUser(user);
+                commandHandlerManager.getHandler(commandParts[0]).handle(update.getMessage(),
+                        commandParts);
+                return;
+            }
+            if (update.hasPreCheckoutQuery()) {
+                user = userService.updateUser(update.getPreCheckoutQuery().getFrom());
+    
+                LOGGER.info("Update with precheckout query triggered by user "
+                        + user.getId() + ".");
+                sessionService.removeSessionsForUser(user);
+                paymentService.resolvePreCheckout(update.getPreCheckoutQuery());
+                return;
+            }
+            if (update.hasMessage() && update.getMessage().hasSuccessfulPayment()) {
+                user = userService.updateUser(update.getMessage().getFrom());
+    
+                LOGGER.info("Update with successful payment triggered by user "
+                        + user.getId() + ".");
+                sessionService.removeSessionsForUser(user);
+                paymentService.resolveSuccessfulPayment(update.getMessage());
+                return;
+            }
+            if (update.hasCallbackQuery()) {
+                user = userService.updateUser(update.getCallbackQuery().getFrom());
+    
+                LOGGER.info("Update with callback query triggered by user "
+                        + user.getId() + ". Button " + update.getCallbackQuery().getData() + ".");
+                sessionService.removeSessionsForUser(user);
+                menuService.processCallbackQuery(update.getCallbackQuery());
+                return;
+            }
+            if (update.hasMessage()) {
+                user = userService.updateUser(update.getMessage().getFrom());
+    
+                sessionService.processResponse(update.getMessage());
+                return;
+            }
+        } catch (Exception e) { 
+            if (user != null) {
+                sendMessage(exceptionHandlerManager.handleException(user, e));
+            } else {
+                LOGGER.error("Strange situation occured - unable to handle "
+                        + "exception due to the user being unknown. Theoretically, "
+                        + "this should not be possible. Invesigate immediately.", e);
+                
+                sendMessage(exceptionHandlerManager.handleException(userService.getDiretor(), e));
+            }
         }
-        if (update.hasPreCheckoutQuery()) {
-            user = userService.updateUser(update.getPreCheckoutQuery().getFrom());
-
-            LOGGER.info("Update with precheckout query triggered by user "
-                    + user.getId() + ".");
-            sessionService.removeSessionsForUser(user);
-            paymentService.resolvePreCheckout(update.getPreCheckoutQuery());
-            return;
-        }
-        if (update.hasMessage() && update.getMessage().hasSuccessfulPayment()) {
-            user = userService.updateUser(update.getMessage().getFrom());
-
-            LOGGER.info("Update with successful payment triggered by user "
-                    + user.getId() + ".");
-            sessionService.removeSessionsForUser(user);
-            paymentService.resolveSuccessfulPayment(update.getMessage());
-            return;
-        }
-        if (update.hasCallbackQuery()) {
-            user = userService.updateUser(update.getCallbackQuery().getFrom());
-
-            LOGGER.info("Update with callback query triggered by user "
-                    + user.getId() + ". Button " + update.getCallbackQuery().getData() + ".");
-            sessionService.removeSessionsForUser(user);
-            menuService.processCallbackQuery(update.getCallbackQuery());
-            return;
-        }
-        if (update.hasMessage()) {
-            userService.updateUser(update.getMessage().getFrom());
-
-            sessionService.processResponse(update.getMessage());
-            return;
+        if (user != null) {
+            final Optional<CallbackQuery> query = callbackQueryRepository
+                    .findAndRemove(user.getId());
+            if (query.isPresent()) {
+                LOGGER.debug("User " + user.getId() + " has an unanwered callback query.");
+                try {
+                    execute(AnswerCallbackQuery.builder()
+                            .callbackQueryId(query.get().getId())
+                            .build());
+                    LOGGER.debug("Callback query resolved.");
+                } catch (TelegramApiException e) {
+                    LOGGER.error("Unable to answer callback query. This should not break "
+                            + "anything but should be invesigated.", e);
+                    
+                    sendMessage(exceptionHandlerManager.handleException(
+                            userService.getDiretor(), e));
+                }
+            }
         }
     }
 
@@ -162,18 +206,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     public void setUpMenus() {
         localizationLoader.getAvailableLanguageCodes().forEach(c -> setUpMenu(c));
-        userService.getAdminList().forEach(a -> setUpMenusForAdmin(a.getId()));
-    }
-
-    public void setUpMenusForAdmin(@NonNull Long userId) {
-        LOGGER.info("Setting up admin menu for user " + userId);
-        localizationLoader.getAvailableLanguageCodes().forEach(c ->
-                setUpMenuForAdmin(userId, c));
-    }
-
-    public void removeMenusForUser(@NonNull Long userId) {
-        localizationLoader.getAvailableLanguageCodes().forEach(c ->
-                deleteAdminMenuForUser(userId, c));
+        userService.getAdminList().forEach(a -> setUpMenuForAdmin(a));
     }
 
     private void setUpMenu(String languageCode) {
@@ -385,34 +418,36 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.isOnMaintenance = isOnMaintenance;
     }
 
-    private void deleteAdminMenuForUser(@NonNull Long userId, @NonNull String languageCode) {
+    public void deleteAdminMenuForUser(@NonNull UserEntity user) {
         try {
             execute(DeleteMyCommands.builder()
-                    .languageCode(languageCode)
+                    .languageCode(user.getLanguageCode())
                     .scope(BotCommandScopeChat.builder()
-                        .chatId(userId).build())
+                        .chatId(user.getId()).build())
                     .build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to clear commands for user " + userId
-                    + " and language code " + languageCode, e);
+            throw new TelegramException("Unable to clear commands for user " + user.getId()
+                    + " and language code " + user.getLanguageCode(), e);
         }
+        LOGGER.info("Admin menu for user " + user.getId() + " has been removed.");
     }
 
-    private void setUpMenuForAdmin(@NonNull Long userId, @NonNull String languageCode) {
+    public void setUpMenuForAdmin(@NonNull UserEntity user) {
         final List<BotCommand> userCommands = parseToBotCommands(commandHandlerManager
-                .getUserCommands(), languageCode);
+                .getUserCommands(), user.getLanguageCode());
         final List<BotCommand> adminCommands = new ArrayList<>(parseToBotCommands(
-                commandHandlerManager.getAdminCommands(), languageCode));
+                commandHandlerManager.getAdminCommands(), user.getLanguageCode()));
         adminCommands.addAll(userCommands);
 
         try {
             execute(SetMyCommands.builder().commands(adminCommands)
-                    .scope(BotCommandScopeChat.builder().chatId(userId).build())
-                    .languageCode(languageCode).build());
+                    .scope(BotCommandScopeChat.builder().chatId(user.getId()).build())
+                    .languageCode(user.getLanguageCode()).build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to set admin commands for user " + userId
-                    + " and language code " + languageCode, e);
+            throw new TelegramException("Unable to set admin commands for user " + user.getId()
+                    + " and language code " + user.getLanguageCode(), e);
         }
+        LOGGER.info("Admin menu for user " + user.getId() + " has been added.");
     }
 
     private List<BotCommand> parseToBotCommands(List<String> commands, String languageCode) {

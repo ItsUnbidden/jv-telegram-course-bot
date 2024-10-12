@@ -19,8 +19,19 @@ import org.telegram.telegrambots.meta.api.objects.User;
 @Component
 public class TextUtil {
     private static final Logger LOGGER = LogManager.getLogger(TextUtil.class);
-
     private static final Map<String, String> MARKERS = new HashMap<>();
+
+    private static final String PARAM_ADVANCED_TIMESTAMP = "${advancedTimestamp}";
+    private static final String PARAM_ORIGINAL_CONTENT_ID = "${originalContentId}";
+    private static final String PARAM_CONTENT_ID = "${contentId}";
+    private static final String PARAM_COMMENTED_AT = "${commentedAt}";
+    private static final String PARAM_USER_WHO_COMMENTED = "${userWhoCommented}";
+    private static final String PARAM_USERS_WHO_READ = "${usersWhoRead}";
+    private static final String PARAM_ORIGINAL_PLATFORM_GRADE = "${originalPlatformGrade}";
+    private static final String PARAM_ORIGINAL_COURSE_GRADE = "${originalCourseGrade}";
+    private static final String PARAM_PLATFORM_GRADE = "${platformGrade}";
+    private static final String PARAM_COURSE_GRADE = "${courseGrade}";
+    private static final String PARAM_BASIC_TIMESTAMP = "${basicTimestamp}";
     private static final String FIRST_NAME_PATTERN = "${firstName}";
     private static final String LAST_NAME_PATTERN = "${lastName}";
     private static final String USERNAME_PATTERN = "${username}";
@@ -195,23 +206,23 @@ public class TextUtil {
     public Map<String, Object> getParamsMapForNewReview(@NonNull Review review) {
         final Map<String, Object> parameterMap = new HashMap<>();
 
-        parameterMap.put("${basicTimestamp}", review.getBasicSubmittedTimestamp());
-        parameterMap.put("${courseGrade}", review.getCourseGrade());
-        parameterMap.put("${platformGrade}", review.getPlatformGrade());
-        parameterMap.put("${originalCourseGrade}", review.getOriginalCourseGrade());
-        parameterMap.put("${originalPlatformGrade}", review.getOriginalPlatformGrade());
-        parameterMap.put("${usersWhoRead}", review.getUsersWhoReadAsString());
+        parameterMap.put(PARAM_BASIC_TIMESTAMP, review.getBasicSubmittedTimestamp());
+        parameterMap.put(PARAM_COURSE_GRADE, review.getCourseGrade());
+        parameterMap.put(PARAM_PLATFORM_GRADE, review.getPlatformGrade());
+        parameterMap.put(PARAM_ORIGINAL_COURSE_GRADE, review.getOriginalCourseGrade());
+        parameterMap.put(PARAM_ORIGINAL_PLATFORM_GRADE, review.getOriginalPlatformGrade());
+        parameterMap.put(PARAM_USERS_WHO_READ, review.getUsersWhoReadAsString());
 
         if (review.getCommentContent() != null) {
-            parameterMap.put("${userWhoCommented}", review.getCommentedBy()
+            parameterMap.put(PARAM_USER_WHO_COMMENTED, review.getCommentedBy()
                     .getFullName());
-            parameterMap.put("${commentedAt}", review.getCommentedAt());
+            parameterMap.put(PARAM_COMMENTED_AT, review.getCommentedAt());
         }
 
         if (review.getContent() != null) {
-            parameterMap.put("${contentId}", review.getContent().getId());
-            parameterMap.put("${originalContentId}", review.getOriginalContent().getId());
-            parameterMap.put("${advancedTimestamp}", review.getAdvancedSubmittedTimestamp());
+            parameterMap.put(PARAM_CONTENT_ID, review.getContent().getId());
+            parameterMap.put(PARAM_ORIGINAL_CONTENT_ID, review.getOriginalContent().getId());
+            parameterMap.put(PARAM_ADVANCED_TIMESTAMP, review.getAdvancedSubmittedTimestamp());
         }
         return parameterMap;
     }

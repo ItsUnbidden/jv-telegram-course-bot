@@ -15,6 +15,8 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 @Component
 @RequiredArgsConstructor
 public class UpdateContentButtonHandler implements ButtonHandler {
+    private static final String PARAM_CONTENT_ID = "${contentId}";
+    
     private static final String SERVICE_UPDATE_CONTENT_REQUEST = "service_update_content_request";
     private static final String SERVICE_UPDATE_CONTENT_SUCCESS = "service_update_content_success";
 
@@ -35,7 +37,7 @@ public class UpdateContentButtonHandler implements ButtonHandler {
             final Content content = bot.parseAndPersistContent(m,
                     Long.parseLong(params[0]));
             final Localization success = localizationLoader.getLocalizationForUser(
-                    SERVICE_UPDATE_CONTENT_SUCCESS, m.getFrom(), "${contentId}",
+                    SERVICE_UPDATE_CONTENT_SUCCESS, m.getFrom(), PARAM_CONTENT_ID,
                     content.getId());
             bot.sendMessage(SendMessage.builder()
                     .chatId(m.getFrom().getId())

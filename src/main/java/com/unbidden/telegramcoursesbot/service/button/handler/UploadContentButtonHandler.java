@@ -15,6 +15,8 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 @Component
 @RequiredArgsConstructor
 public class UploadContentButtonHandler implements ButtonHandler {
+    private static final String PARAM_CONTENT_ID = "${contentId}";
+    
     private static final String SERVICE_UPLOAD_CONTENT_REQUEST = "service_upload_content_request";
     private static final String SERVICE_UPLOAD_CONTENT_SUCCESS = "service_upload_content_success";
 
@@ -34,7 +36,7 @@ public class UploadContentButtonHandler implements ButtonHandler {
         sessionService.createSession(user, false, m -> {
             final Content content = bot.parseAndPersistContent(m);
             final Localization success = localizationLoader.getLocalizationForUser(
-                    SERVICE_UPLOAD_CONTENT_SUCCESS, m.getFrom(), "${contentId}",
+                    SERVICE_UPLOAD_CONTENT_SUCCESS, m.getFrom(), PARAM_CONTENT_ID,
                     content.getId());
             bot.sendMessage(SendMessage.builder()
                     .chatId(m.getFrom().getId())

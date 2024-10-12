@@ -41,6 +41,9 @@ public class TestMenu implements MenuConfigurer {
                         .chatId(u1.getId())
                         .text("Test button triggered.")
                         .build());
+                    final RuntimeException exception = new RuntimeException("Test exception");
+
+                    throw exception;
                 })));
         final Page terminalPage = new Page();
         terminalPage.setMenu(menu);

@@ -2,6 +2,7 @@ package com.unbidden.telegramcoursesbot.service.review;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
 import com.unbidden.telegramcoursesbot.dao.ArchiveReviewsDao;
+import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.ArchiveReviewsException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.Content;
@@ -13,7 +14,6 @@ import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
-
 import jakarta.persistence.EntityNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,6 +48,10 @@ public class ReviewServiceImpl implements ReviewService {
     private static final String ARCHIVE_REVIEWS_FILE_NAME = "archive_reviews_user_%s_course_%s";
     private static final String ARCHIVE_REVIEWS_FILE_FORMAT = ".txt";
     private static final String TEMP_FILE_NAME = "reviews_for_%s";
+
+    private static final String PARAM_COURSE_NAME = "${courseName}";
+    private static final String PARAM_COMMENTER_FULL_NAME = "${commenterFullName}";
+    private static final String PARAM_REVIEW_ID = "${reviewId}";
 
     private static final String SERVICE_REVIEW_INFO = "service_review_info";
     private static final String SERVICE_REVIEW_INFO_COMMENT = "service_review_info_comment";
@@ -101,8 +105,8 @@ public class ReviewServiceImpl implements ReviewService {
         final Optional<Review> reviewOpt = reviewRepository.findByCourseNameAndUserId(
                 course.getName(), user.getId());
         if (reviewOpt.isPresent()) {
-            throw new UnsupportedOperationException("Unable to initiate a new review menu "
-                    + "for user " + user.getId() + " since they have already left a review "
+            throw new ActionExpiredException("Unable to initiate a new review menu "
+                    + "for user " + user.getId() + " since they already have left a review "
                     + "for course " + course.getName());
         }
         LOGGER.info("Sending basic review menu for course " + course.getName() + " to user "
@@ -120,7 +124,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public void initiateAdvancedReview(@NonNull Review review, @NonNull Integer messageId) {
         if (review.getContent() != null) {
-            throw new UnsupportedOperationException("Unable to initiate a new advanced review"
+            throw new ActionExpiredException("Unable to initiate a new advanced review"
                     + " menu " + review.getId() + " because this review already has "
                     + "some content.");
         }
@@ -142,7 +146,7 @@ public class ReviewServiceImpl implements ReviewService {
         final Optional<Review> reviewOpt = reviewRepository.findByCourseNameAndUserId(
                 course.getName(), user.getId());
         if (reviewOpt.isPresent()) {
-            throw new UnsupportedOperationException("Unable to create a new review entity "
+            throw new ActionExpiredException("Unable to create a new review entity "
                     + "for user " + user.getId() + " since they have already left a review "
                     + "for course " + course.getName());
         }
@@ -162,7 +166,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         LOGGER.info("Review object compiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
-                SERVICE_BASIC_REVIEW_SUBMITTED, user, "${courseName}", course.getName());
+                SERVICE_BASIC_REVIEW_SUBMITTED, user, PARAM_COURSE_NAME, course.getName());
         final Message confirmationMessage = bot.sendMessage(SendMessage.builder()
                 .chatId(user.getId())
                 .text(localization.getData())
@@ -183,7 +187,7 @@ public class ReviewServiceImpl implements ReviewService {
     public Review commitAdvancedReview(@NonNull Long reviewId, @NonNull Content content) {
         final Review review = getReviewById(reviewId);
         if (review.getContent() != null) {
-            throw new UnsupportedOperationException("Unable to submit content for basic review "
+            throw new ActionExpiredException("Unable to submit content for basic review "
                     + reviewId + " because this review already has some content. ");
         }
         
@@ -196,7 +200,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         LOGGER.info("Review object recompiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
-                SERVICE_ADVANCED_REVIEW_SUBMITTED, review.getUser(), "${courseName}",
+                SERVICE_ADVANCED_REVIEW_SUBMITTED, review.getUser(), PARAM_COURSE_NAME,
                 review.getCourse().getName());
         bot.sendMessage(SendMessage.builder()
                 .chatId(review.getUser().getId())
@@ -217,7 +221,7 @@ public class ReviewServiceImpl implements ReviewService {
     public Review leaveComment(@NonNull UserEntity user, @NonNull Review review,
             @NonNull Content content) {
         if (review.getCommentContent() != null) {
-            throw new UnsupportedOperationException("Unable to submit comment content for review "
+            throw new ActionExpiredException("Unable to submit comment content for review "
                     + review.getId() + " because this review already has a comment from user "
                     + review.getCommentedBy().getId());
         }
@@ -229,7 +233,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         LOGGER.info("Review object recompiled. Sending confirmation message...");
         final Localization success = localizationLoader.getLocalizationForUser(
-                SERVICE_COMMENT_SUBMITTED, user, "${reviewId}", review.getId());
+                SERVICE_COMMENT_SUBMITTED, user, PARAM_REVIEW_ID, review.getId());
         bot.sendMessage(SendMessage.builder()
                 .chatId(user.getId())
                 .text(success.getData())
@@ -240,8 +244,8 @@ public class ReviewServiceImpl implements ReviewService {
         LOGGER.info("Review " + review.getId() + " has been updated to include comment.");
 
         final Map<String, Object> parameterMap = new HashMap<>();
-        parameterMap.put("${courseName}", review.getCourse().getName());
-        parameterMap.put("${commenterFullName}", user.getFullName());
+        parameterMap.put(PARAM_COURSE_NAME, review.getCourse().getName());
+        parameterMap.put(PARAM_COMMENTER_FULL_NAME, user.getFullName());
 
         LOGGER.info("Sending notification to the review's owner...");
         final Localization notification = localizationLoader.getLocalizationForUser(
@@ -274,7 +278,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         LOGGER.info("Review object recompiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
-                SERVICE_REVIEW_COURSE_GRADE_UPDATED, review.getUser(), "${courseName}",
+                SERVICE_REVIEW_COURSE_GRADE_UPDATED, review.getUser(), PARAM_COURSE_NAME,
                 review.getCourse().getName());
         bot.sendMessage(SendMessage.builder()
                 .chatId(review.getUser().getId())
@@ -301,7 +305,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         LOGGER.info("Review object recompiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
-                SERVICE_REVIEW_PLATFORM_GRADE_UPDATED, review.getUser(), "${courseName}",
+                SERVICE_REVIEW_PLATFORM_GRADE_UPDATED, review.getUser(), PARAM_COURSE_NAME,
                 review.getCourse().getName());
         bot.sendMessage(SendMessage.builder()
                 .chatId(review.getUser().getId())
@@ -331,7 +335,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         LOGGER.info("Review object recompiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
-                SERVICE_REVIEW_COURSE_CONTENT_UPDATED, review.getUser(), "${courseName}",
+                SERVICE_REVIEW_COURSE_CONTENT_UPDATED, review.getUser(), PARAM_COURSE_NAME,
                 review.getCourse().getName());
         bot.sendMessage(SendMessage.builder()
                 .chatId(review.getUser().getId())

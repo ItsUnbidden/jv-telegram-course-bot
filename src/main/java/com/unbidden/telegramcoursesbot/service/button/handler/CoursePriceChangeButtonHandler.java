@@ -21,15 +21,18 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 @Component
 @RequiredArgsConstructor
 public class CoursePriceChangeButtonHandler implements ButtonHandler {
+    private static final Logger LOGGER =
+            LogManager.getLogger(CoursePriceChangeButtonHandler.class);
+            
+    private static final String PARAM_CURRENT_PRICE = "${currentPrice}";
+    private static final String PARAM_COURSE_NAME = "${courseName}";
+
     private static final String SERVICE_COURSE_PRICE_UPDATE_REQUEST =
             "service_course_price_update_request";
     private static final String SERVICE_COURSE_PRICE_UPDATE_SUCCESS =
             "service_course_price_update_success";
 
     private static final String ERROR_NEW_PRICE_CANNOT_PARSE = "error_new_price_cannot_parse";
-
-    private static final Logger LOGGER =
-            LogManager.getLogger(CoursePriceChangeButtonHandler.class);
 
     private final TelegramBot bot;
 
@@ -48,8 +51,8 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
             final Course course = courseService.getCourseByName(params[0]);
             final Map<String, Object> messageParams = new HashMap<>();
             
-            messageParams.put("${courseName}", course.getName());
-            messageParams.put("${currentPrice}", course.getPrice());
+            messageParams.put(PARAM_COURSE_NAME, course.getName());
+            messageParams.put(PARAM_CURRENT_PRICE, course.getPrice());
     
             LOGGER.info("Course price change handler was triggered. Current value is: "
                     + course.getPrice() + ".");

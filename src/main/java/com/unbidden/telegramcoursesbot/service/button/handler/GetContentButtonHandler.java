@@ -19,6 +19,10 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 @Component
 @RequiredArgsConstructor
 public class GetContentButtonHandler implements ButtonHandler {
+    private static final String CONTENT_UPDATE_MENU = "m_cntUpd";
+
+    private static final String PARAM_CONTENT_ID = "${contentId}";
+
     private static final String SERVICE_GET_CONTENT_REQUEST = "service_get_content_request";
     private static final String SERVICE_GET_CONTENT_SUCCESS = "service_get_content_success";
 
@@ -43,7 +47,7 @@ public class GetContentButtonHandler implements ButtonHandler {
         sessionService.createSession(user, false, m -> {
             final Long contentId = Long.parseLong(m.getText());
             final Localization success = localizationLoader.getLocalizationForUser(
-                    SERVICE_GET_CONTENT_SUCCESS, m.getFrom(), "${contentId}",
+                    SERVICE_GET_CONTENT_SUCCESS, m.getFrom(), PARAM_CONTENT_ID,
                     contentId);
             bot.sendMessage(SendMessage.builder()
                     .chatId(m.getFrom().getId())
@@ -53,7 +57,7 @@ public class GetContentButtonHandler implements ButtonHandler {
             List<Message> content = bot.sendContent(contentRepository.findById(contentId)
                     .orElseThrow(() -> new EntityNotFoundException("Content with id " + contentId
                     + " does not exist.")), m.getFrom());
-            menuService.initiateMenu("m_cntUpd", userFromDb, contentId.toString(),
+            menuService.initiateMenu(CONTENT_UPDATE_MENU, userFromDb, contentId.toString(),
                     content.get(0).getMessageId());
         });
         final Localization request = localizationLoader.getLocalizationForUser(

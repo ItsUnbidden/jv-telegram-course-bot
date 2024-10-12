@@ -5,6 +5,7 @@ import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.MenuTerminationGroup;
 import com.unbidden.telegramcoursesbot.model.MessageEntity;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.repository.CallbackQueryRepository;
 import com.unbidden.telegramcoursesbot.repository.MenuRepository;
 import com.unbidden.telegramcoursesbot.repository.MenuTerminationGroupRepository;
 import com.unbidden.telegramcoursesbot.repository.MessageRepository;
@@ -26,7 +27,6 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
@@ -53,6 +53,8 @@ public class MenuServiceImpl implements MenuService {
     private final MenuTerminationGroupRepository menuTerminationGroupRepository;
 
     private final MessageRepository messageRepository;
+
+    private final CallbackQueryRepository callbackQueryRepository;
 
     private final UserService userService;
 
@@ -95,7 +97,7 @@ public class MenuServiceImpl implements MenuService {
         final Localization localization = firstPage.getLocalizationFunction()
                 .apply(user, List.of(param));
         
-        LOGGER.info("Menu " + menuName + "'s message is being compiled for user "
+        LOGGER.debug("Menu " + menuName + "'s message is being compiled for user "
                 + user.getId() + "...");
         SendMessage sendMessage = SendMessage.builder()
                 .chatId(user.getId())
@@ -103,9 +105,9 @@ public class MenuServiceImpl implements MenuService {
                 .entities(localization.getEntities())
                 .replyMarkup(getInitialMarkup(firstPage, param, user))
                 .build();
-        LOGGER.info("Menu " + menuName + "'s message compiled. Sending...");
+        LOGGER.debug("Menu " + menuName + "'s message compiled. Sending...");
         final Message message = bot.sendMessage(sendMessage);
-        LOGGER.info("Message sent.");
+        LOGGER.debug("Message sent.");
         return message;
     }
 
@@ -122,21 +124,21 @@ public class MenuServiceImpl implements MenuService {
                 new EntityNotFoundException("Menu " + menuName + " was not found"));
         final Page firstPage = menu.getPages().get(0);
         
-        LOGGER.info("Menu " + menuName + "'s markup is being compiled for message " + messageId
+        LOGGER.debug("Menu " + menuName + "'s markup is being compiled for message " + messageId
                 + " and user " + user.getId() + "...");
         EditMessageReplyMarkup editMessageReplyMarkup = EditMessageReplyMarkup.builder()
                 .chatId(user.getId())
                 .messageId(messageId)
                 .replyMarkup(getInitialMarkup(firstPage, param, user))
                 .build();
-        LOGGER.info("Menu " + menuName + "'s markup compiled. Sending...");
+        LOGGER.debug("Menu " + menuName + "'s markup compiled. Sending...");
         try {
             bot.execute(editMessageReplyMarkup);
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to update markup for message " + messageId
                     + " for user " + user.getId(), e);
         }
-        LOGGER.info("Markup sent.");
+        LOGGER.debug("Markup sent.");
     }
 
     @Override
@@ -147,8 +149,11 @@ public class MenuServiceImpl implements MenuService {
         final Menu menu = menuRepository.find(data[MENU_NAME]).orElseThrow(() ->
                 new EntityNotFoundException("Menu " + data[MENU_NAME] + " was not found"));
         
+        LOGGER.debug("Saving callback querry...");
+        callbackQueryRepository.save(query);
+        LOGGER.debug("Callback query saved.");
         Page page = menu.getPages().get(Integer.parseInt(data[PAGE_NUMBER]));
-        LOGGER.info("Current page is " + data[PAGE_NUMBER] + ".");
+        LOGGER.debug("Current page is " + data[PAGE_NUMBER] + ".");
         
         boolean hasMessageChanged = false;
         final EditMessageTextBuilder editMessageBuilder = EditMessageText.builder()
@@ -164,14 +169,14 @@ public class MenuServiceImpl implements MenuService {
         final Button button = page.getButtonByData(userFromDb, data[data.length - 1], paramsOnly);
         switch (button.getType()) {
             case Button.Type.TRANSITORY:
-                LOGGER.info("Button " + button.getData() + " is transitory.");
+                LOGGER.debug("Button " + button.getData() + " is transitory.");
                 final TransitoryButton transitoryButton = (TransitoryButton)button;
-                LOGGER.info("Button parsed to transitory button. Next page will be "
+                LOGGER.debug("Button parsed to transitory button. Next page will be "
                         + transitoryButton.getPagePointer() + ".");
                 final Page nextPage = menu.getPages().get(transitoryButton.getPagePointer());
                 final InlineKeyboardMarkup markup = getTransitoryMarkup(nextPage,
                         paramsOnly, userFromDb);
-                LOGGER.info("Markup for page " + nextPage.getPageIndex() + " created.");
+                LOGGER.debug("Markup for page " + nextPage.getPageIndex() + " created.");
 
                 if (menu.isAttachedToMessage()) {
                     editMessageReplyMarkupBuilder.replyMarkup(markup);
@@ -182,12 +187,12 @@ public class MenuServiceImpl implements MenuService {
                     editMessageBuilder.replyMarkup(markup);
                     editMessageBuilder.text(localization.getData());
                     editMessageBuilder.entities(localization.getEntities());
-                    LOGGER.info("Page requires its own content.");
+                    LOGGER.debug("Page requires its own content.");
                 }
                 hasMessageChanged = true;
                 break;
             default:
-                LOGGER.info("Button " + button.getData() + " is terminal.");
+                LOGGER.debug("Button " + button.getData() + " is terminal.");
                 if (menu.isOneTimeMenu()) {
                     final InlineKeyboardMarkup clearMarkup = InlineKeyboardMarkup.builder()
                             .clearKeyboard()
@@ -226,32 +231,25 @@ public class MenuServiceImpl implements MenuService {
                 }
                 
                 final TerminalButton terminalButton = (TerminalButton)button;
-                LOGGER.info("Button parsed to terminal button. Activating handler...");
+                LOGGER.debug("Button parsed to terminal button. Activating handler...");
                 terminalButton.getHandler().handle(userService.getUser(user.getId()), paramsOnly);
                 break;
         }
-        AnswerCallbackQuery answerCallbackQuery = AnswerCallbackQuery.builder()
-                .callbackQueryId(query.getId())
-                .build();
 
         try {
             if (hasMessageChanged && (button.getType().equals(Button.Type.TERMINAL)
                     && menu.isUpdateAfterTerminalButtonRequired()
                     || button.getType().equals(Button.Type.TRANSITORY))) {
                 if (menu.isAttachedToMessage()) {
-                    LOGGER.info("Sending new message markup...");
+                    LOGGER.debug("Sending new message markup...");
                     bot.execute(editMessageReplyMarkupBuilder.build());
-                    LOGGER.info("New markup sent.");
+                    LOGGER.debug("New markup sent.");
                 } else {
-                    LOGGER.info("Sending new message content...");
+                    LOGGER.debug("Sending new message content...");
                     bot.execute(editMessageBuilder.build());
-                    LOGGER.info("New content sent.");
+                    LOGGER.debug("New content sent.");
                 }  
             }
-            
-            LOGGER.info("Sending answer to callback query...");
-            bot.execute(answerCallbackQuery);
-            LOGGER.info("Answer sent.");
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to update markup for message "
                     + query.getMessage().getMessageId() + " and user "
@@ -274,13 +272,13 @@ public class MenuServiceImpl implements MenuService {
                 .findByUserIdAndName(user.getId(), key);
         final MenuTerminationGroup group;
         if (groupOpt.isPresent()) {
-            LOGGER.info("MTG for user " + user.getId() + " and key " + key + " already exists.");
+            LOGGER.debug("MTG for user " + user.getId() + " and key " + key + " already exists.");
             group = groupOpt.get();
             
             group.getMessages().add(messageRepository.save(new MessageEntity(messagedUser,
                     messageId)));
         } else {
-            LOGGER.info("MTG " + user.getId() + " and key " + key + " does not exist yet.");
+            LOGGER.debug("MTG " + user.getId() + " and key " + key + " does not exist yet.");
             group = new MenuTerminationGroup();
             group.setName(key);
             group.setMessages(List.of(messageRepository.save(
@@ -288,9 +286,9 @@ public class MenuServiceImpl implements MenuService {
             group.setTerminalLocalizationName(terminalLocalizationName);
             group.setUser(user);
         }
-        LOGGER.info("Persisting or updating the MTG...");
+        LOGGER.debug("Persisting or updating the MTG...");
         menuTerminationGroupRepository.save(group);
-        LOGGER.info("Operation successful.");
+        LOGGER.debug("Operation successful.");
         return group;
     }
 

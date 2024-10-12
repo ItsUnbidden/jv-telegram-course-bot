@@ -29,9 +29,10 @@ public class TestCommandHandler implements CommandHandler {
 
         if (userService.isAdmin(userFromDb)) {
             final Message sentMessage = bot.sendMessage(SendMessage.builder()
-                    .chatId(message.getFrom().getId())
-                    .text("This is a debug command.")
+                    .chatId(userFromDb.getId())
+                    .text("Debug command message.")
                     .build());
+
             menuService.initiateMenu(TEST_MENU, userFromDb, sentMessage.getMessageId());
         }
     }

@@ -39,6 +39,15 @@ public class HomeworkServiceImpl implements HomeworkService {
     private static final String SEND_HOMEWORK_MENU = "m_sHw";
     private static final String COURSE_NEXT_STAGE_MENU = "m_crsNxtStg";
 
+    private static final String PARAM_TARGET_LANGUAGE_CODE = "${targetLanguageCode}";
+    private static final String PARAM_TARGET_USERNAME = "${targetUsername}";
+    private static final String PARAM_TARGET_LAST_NAME = "${targetLastName}";
+    private static final String PARAM_TARGET_FIRST_NAME = "${targetFirstName}";
+    private static final String PARAM_TARGET_ID = "${targetId}";
+    private static final String PARAM_COMMENTER_NAME = "${commenterName}";
+    private static final String PARAM_LESSON_INDEX = "${lessonIndex}";
+    private static final String PARAM_COURSE_NAME = "${courseName}";
+
     private static final String SERVICE_HOMEWORK_DECLINED_NOTIFICATION_PLUS_COMMENT =
             "service_homework_declined_notification_plus_comment";
     private static final String SERVICE_HOMEWORK_APPROVED_NOTIFICATION =
@@ -314,7 +323,7 @@ public class HomeworkServiceImpl implements HomeworkService {
         final Course course = progress.getHomework().getLesson().getCourse();
         final Map<String, Object> parameterMap = new HashMap<>();
 
-        parameterMap.put("${courseName}", course.getName());
+        parameterMap.put(PARAM_COURSE_NAME, course.getName());
 
         final CourseProgress courseProgress = courseProgressRepository
                 .findByUserIdAndCourseName(progress.getUser().getId(),
@@ -322,8 +331,8 @@ public class HomeworkServiceImpl implements HomeworkService {
                 "Course progress for course " + course.getName() + " and user "
                 + progress.getUser().getId() + " does not exist."));
 
-        parameterMap.put("${lessonIndex}", courseProgress.getStage());
-        parameterMap.put("${commenterName}", progress.getCurator().getFirstName());
+        parameterMap.put(PARAM_LESSON_INDEX, courseProgress.getStage());
+        parameterMap.put(PARAM_COMMENTER_NAME, progress.getCurator().getFirstName());
 
         final Localization notification = localizationLoader
                 .getLocalizationForUser(localizationName, progress.getUser(), parameterMap);
@@ -338,21 +347,21 @@ public class HomeworkServiceImpl implements HomeworkService {
     private Map<String, Object> getParameterMapForUserAndCourseInfo(
             HomeworkProgress homeworkProgress) {
         final Map<String, Object> parameterMap = new HashMap<>();
-        parameterMap.put("${targetId}", homeworkProgress.getUser().getId());
-        parameterMap.put("${targetFirstName}", homeworkProgress.getUser().getFirstName());
-        parameterMap.put("${targetLastName}",
+        parameterMap.put(PARAM_TARGET_ID, homeworkProgress.getUser().getId());
+        parameterMap.put(PARAM_TARGET_FIRST_NAME, homeworkProgress.getUser().getFirstName());
+        parameterMap.put(PARAM_TARGET_LAST_NAME,
                 (homeworkProgress.getUser().getLastName() != null) ? homeworkProgress
                 .getUser().getLastName() : "Not available");
-        parameterMap.put("${targetUsername}",
+        parameterMap.put(PARAM_TARGET_USERNAME,
                 (homeworkProgress.getUser().getUsername() != null) ? homeworkProgress
                 .getUser().getUsername() : "Not available");
-        parameterMap.put("${targetLanguageCode}", homeworkProgress
+        parameterMap.put(PARAM_TARGET_LANGUAGE_CODE, homeworkProgress
                 .getUser().getLanguageCode());
 
-        parameterMap.put("${courseName}", homeworkProgress.getHomework()
+        parameterMap.put(PARAM_COURSE_NAME, homeworkProgress.getHomework()
                 .getLesson().getCourse().getName());
 
-        parameterMap.put("${lessonIndex}", homeworkProgress.getHomework()
+        parameterMap.put(PARAM_LESSON_INDEX, homeworkProgress.getHomework()
                 .getLesson().getIndex());
         return parameterMap;
     }
