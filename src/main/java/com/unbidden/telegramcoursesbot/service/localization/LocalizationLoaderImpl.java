@@ -9,10 +9,13 @@ import com.unbidden.telegramcoursesbot.util.Tag;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
 import jakarta.annotation.PostConstruct;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,16 +30,20 @@ import org.telegram.telegrambots.meta.api.objects.User;
 public class LocalizationLoaderImpl implements LocalizationLoader {
     private static final Logger LOGGER = LogManager.getLogger(LocalizationLoaderImpl.class);
 
+    private static final String LANGUAGE_PRIORITY_DIVIDER = ",";
+
     @Value("${telegram.bot.message.text.format}")
     private String fileFormat;
 
-    @Value("${telegram.bot.message.language.default}")
-    private String defaultLanguageCode;
+    @Value("${telegram.bot.message.language.priority}")
+    private String languagePriorityStr;
 
     @Value("${telegram.bot.message.text.path}")
     private String pathStr;
 
     private Path localizationFolderPath;
+
+    private List<String> languagePriority;
 
     @Autowired
     private TextUtil textUtil;
@@ -52,6 +59,17 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
         localizationFolderPath = Path.of(System.getProperty("user.dir")).resolve(pathStr);
         LOGGER.info("Initialized localization files directory in "
                 + localizationFolderPath + ".");
+
+        languagePriority = new ArrayList<>();
+        String[] languagePriorityArray = languagePriorityStr.split(LANGUAGE_PRIORITY_DIVIDER);
+        if (languagePriorityArray.length == 0) {
+            throw new LocalizationLoadingException("At least one language code should "
+                    + "be present in the priority list");
+        }
+        for (String code : languagePriorityArray) {
+            languagePriority.add(code.trim());
+        }
+
         cacheLocalizationFiles();
     }
 
@@ -141,9 +159,7 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
     @NonNull
     public Localization loadLocalization(@NonNull String name, @NonNull String languageCode) {
         LOGGER.debug("Loading cached localization " + name + "...");
-        Localization localization = localizationRepository.find(name + "_"
-                + languageCode).orElse(localizationRepository.find(name + "_"
-                + defaultLanguageCode).orElse(new Localization(name)));
+        Localization localization = findAvailableLocalization(name, languageCode);
 
         if (!localization.isInjectionRequired()) {
             return localization;
@@ -172,18 +188,7 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                 .filter(p -> p.toFile().isDirectory())
                 .toList();
 
-        LOGGER.debug("Checking for default localization directory...");
-        if (locDirs.stream()
-                .filter(p -> p.getFileName().toString().equals(defaultLanguageCode))
-                .toList()
-                .isEmpty()) {
-            throw new LocalizationLoadingException("No localization directory for "
-                    + defaultLanguageCode + " was found by path " + localizationFolderPath);
-        }
-        LOGGER.debug("There are " + locDirs.size() + " localization directories present: "
-                + locDirs.stream().map(p -> p.getFileName().toString()).toList().toString()
-                + " where default one is " + defaultLanguageCode);
-
+        
         for (Path locDir : locDirs) {
             final List<Path> locFiles = dao.list(locDir).stream()
                     .filter(p -> p.toFile().isFile())
@@ -192,7 +197,19 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
             LOGGER.debug("There are " + locFiles.size() + " localization files in "
                     + locDir.getFileName() + ": " + locFiles.stream()
                     .map(p -> p.getFileName().toString()).toList().toString() + ".");
-            
+
+            LOGGER.debug("Checking that all specified priority language codes "
+                    + "have a directory...");
+            final List<String> locDirNames = locDirs.stream()
+                    .map(ld -> ld.getFileName().toString()).toList();
+            final List<String> priorityCodesWithNoDir = languagePriority.stream()
+                    .filter(pc -> !locDirNames.contains(pc)).toList();
+            if (priorityCodesWithNoDir.size() != 0) {
+                throw new LocalizationLoadingException("Some specified priority language codes "
+                        + "do not have any directories. Those are: "
+                        + priorityCodesWithNoDir.toString());
+            }
+            LOGGER.debug("Everything is a go.");
             for (Path locFile : locFiles) {
                 final String keyPattern = FilenameUtils.getBaseName(locFile.toString()) + "_%s_"
                         + locDir.getFileName();
@@ -237,5 +254,30 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
         localization.setData(textUtil.removeMarkers(injectedData));
         LOGGER.debug("Entities set up.");
         return localization;
+    }
+
+    private Localization findAvailableLocalization(String name, String preferableLanguageCode) {
+        Optional<Localization> potentialLoc = localizationRepository
+                .find(name + "_" + preferableLanguageCode);
+        
+        if (potentialLoc.isPresent()) {
+            LOGGER.debug("Localization " + name + " for prefered code " + preferableLanguageCode
+                    + " is available.");
+            return potentialLoc.get();
+        }
+        LOGGER.debug("Localization " + name + " for prefered code " + preferableLanguageCode
+                + " is not available. Looking over the language code priority list...");
+        for (String code : languagePriority) {
+            if (!code.equals(preferableLanguageCode)) {
+                potentialLoc = localizationRepository.find(name + "_" + code);
+                if (potentialLoc.isPresent()) {
+                    LOGGER.debug("Localization " + name + " found for code " + code + ".");
+                    return potentialLoc.get();
+                }
+            }
+        }
+        LOGGER.warn("No localization with name " + name
+                + " was found. The name will be sent instead.");
+        return new Localization(name);
     }
 }

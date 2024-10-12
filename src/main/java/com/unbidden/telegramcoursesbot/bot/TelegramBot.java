@@ -21,7 +21,6 @@ import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -126,40 +125,31 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sessionService.removeSessionsForUser(user);
                 commandHandlerManager.getHandler(commandParts[0]).handle(update.getMessage(),
                         commandParts);
-                return;
-            }
-            if (update.hasPreCheckoutQuery()) {
+            } else if (update.hasPreCheckoutQuery()) {
                 user = userService.updateUser(update.getPreCheckoutQuery().getFrom());
     
                 LOGGER.info("Update with precheckout query triggered by user "
                         + user.getId() + ".");
                 sessionService.removeSessionsForUser(user);
                 paymentService.resolvePreCheckout(update.getPreCheckoutQuery());
-                return;
-            }
-            if (update.hasMessage() && update.getMessage().hasSuccessfulPayment()) {
+            } else if (update.hasMessage() && update.getMessage().hasSuccessfulPayment()) {
                 user = userService.updateUser(update.getMessage().getFrom());
     
                 LOGGER.info("Update with successful payment triggered by user "
                         + user.getId() + ".");
                 sessionService.removeSessionsForUser(user);
                 paymentService.resolveSuccessfulPayment(update.getMessage());
-                return;
-            }
-            if (update.hasCallbackQuery()) {
+            } else if (update.hasCallbackQuery()) {
                 user = userService.updateUser(update.getCallbackQuery().getFrom());
     
                 LOGGER.info("Update with callback query triggered by user "
                         + user.getId() + ". Button " + update.getCallbackQuery().getData() + ".");
                 sessionService.removeSessionsForUser(user);
                 menuService.processCallbackQuery(update.getCallbackQuery());
-                return;
-            }
-            if (update.hasMessage()) {
+            } else if (update.hasMessage()) {
                 user = userService.updateUser(update.getMessage().getFrom());
     
                 sessionService.processResponse(update.getMessage());
-                return;
             }
         } catch (Exception e) { 
             if (user != null) {
@@ -172,25 +162,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendMessage(exceptionHandlerManager.handleException(userService.getDiretor(), e));
             }
         }
-        if (user != null) {
-            final Optional<CallbackQuery> query = callbackQueryRepository
-                    .findAndRemove(user.getId());
-            if (query.isPresent()) {
-                LOGGER.debug("User " + user.getId() + " has an unanwered callback query.");
-                try {
-                    execute(AnswerCallbackQuery.builder()
-                            .callbackQueryId(query.get().getId())
-                            .build());
-                    LOGGER.debug("Callback query resolved.");
-                } catch (TelegramApiException e) {
-                    LOGGER.error("Unable to answer callback query. This should not break "
-                            + "anything but should be invesigated.", e);
-                    
-                    sendMessage(exceptionHandlerManager.handleException(
-                            userService.getDiretor(), e));
-                }
-            }
-        }
+        answerPotentialCallbackQuery(user);
     }
 
     public void setUpMenuButton() {
@@ -460,5 +432,27 @@ public class TelegramBot extends TelegramLongPollingBot {
                         languageCode).getData())
                     .build())
                 .toList();
+    }
+
+    private void answerPotentialCallbackQuery(UserEntity user) {
+        if (user != null) {
+            final Optional<CallbackQuery> query = callbackQueryRepository
+                    .findAndRemove(user.getId());
+            if (query.isPresent()) {
+                LOGGER.debug("User " + user.getId() + " has an unanswered callback query.");
+                try {
+                    execute(AnswerCallbackQuery.builder()
+                            .callbackQueryId(query.get().getId())
+                            .build());
+                    LOGGER.debug("Callback query resolved.");
+                } catch (TelegramApiException e) {
+                    LOGGER.error("Unable to answer callback query. This should not break "
+                            + "anything but should be invesigated.", e);
+                    
+                    sendMessage(exceptionHandlerManager.handleException(
+                            userService.getDiretor(), e));
+                }
+            }
+        }
     }
 }

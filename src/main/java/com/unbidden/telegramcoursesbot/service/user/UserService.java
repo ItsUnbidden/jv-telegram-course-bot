@@ -52,14 +52,14 @@ public interface UserService {
 
     /**
      * Support staff have the authority to handle support requests.
-     * @return
+     * @return list of support staff
      */
     @NonNull
     List<UserEntity> getSupport();
 
     /**
      * Mentors have the authority to handle homeworks and content related messages.
-     * @return
+     * @return list of mentors
      */
     @NonNull
     List<UserEntity> getMentors();

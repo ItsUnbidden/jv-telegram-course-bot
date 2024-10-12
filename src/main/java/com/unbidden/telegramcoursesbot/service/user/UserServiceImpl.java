@@ -19,13 +19,15 @@ import org.telegram.telegrambots.meta.api.objects.User;
 public class UserServiceImpl implements UserService {
     private static final Logger LOGGER = LogManager.getLogger(UserServiceImpl.class);
 
+    private static final String LANGUAGE_PRIORITY_DIVIDER = ",";
+
     private final UserRepository userRepository;
 
     @Value("${telegram.bot.authorization.default.admin.id}")
     private Long defaultAdminId;
 
-    @Value("${telegram.bot.message.language.default}")
-    private String defaultLanguageCode;
+    @Value("${telegram.bot.message.language.priority}")
+    private String languagePriorityStr;
 
     @Override
     @Nullable
@@ -150,10 +152,12 @@ public class UserServiceImpl implements UserService {
                 LOGGER.info("Language code is " + user.getLanguageCode() + ". Setting...");
             }
         } else {
-            userFromDb.setLanguageCode(defaultLanguageCode);
+            final String theMostPreferedLanguage = languagePriorityStr
+                    .split(LANGUAGE_PRIORITY_DIVIDER)[0].trim();
+            userFromDb.setLanguageCode(theMostPreferedLanguage);
             hasChanged = true;
             LOGGER.info("Language code is unavailable. Setting to "
-                    + defaultLanguageCode + "...");
+                    + theMostPreferedLanguage + "...");
         }
         if (user.getLastName() != null && !user.getLastName()
                 .equals(userFromDb.getLastName())) {

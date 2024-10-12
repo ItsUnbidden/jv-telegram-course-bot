@@ -1,7 +1,6 @@
 package com.unbidden.telegramcoursesbot.bot;
 
 import com.unbidden.telegramcoursesbot.service.button.menu.MenuConfigurer;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
@@ -18,8 +17,6 @@ public class Initializer implements ApplicationRunner {
 
     private final TelegramBot bot;
 
-    private final UserService userService;
-
     @Override
     public void run(ApplicationArguments args) throws Exception {
         initializeMenus();
@@ -27,8 +24,6 @@ public class Initializer implements ApplicationRunner {
         api.registerBot(bot);
         bot.setUpMenuButton();
         bot.setUpMenus();
-
-        userService.getAdminList().forEach(a -> bot.setUpMenuForAdmin(a));
     }
 
     private void initializeMenus() {
