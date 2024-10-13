@@ -2,6 +2,7 @@ package com.unbidden.telegramcoursesbot.service.command;
 
 import com.unbidden.telegramcoursesbot.exception.NoImplementationException;
 import com.unbidden.telegramcoursesbot.service.command.handler.CommandHandler;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
@@ -39,5 +40,14 @@ public class CommandHandlerManagerImpl implements CommandHandlerManager {
                 .filter(h -> !h.isAdminCommand())
                 .map(h -> h.getCommand())
                 .toList();
+    }
+
+    @Override
+    @NonNull
+    public List<String> getAllCommands() {
+        final List<String> commandNames = new ArrayList<>(getAdminCommands());
+        commandNames.addAll(getUserCommands());
+
+        return commandNames;
     }
 }

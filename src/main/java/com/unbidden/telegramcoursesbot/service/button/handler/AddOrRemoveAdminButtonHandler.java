@@ -2,6 +2,7 @@ package com.unbidden.telegramcoursesbot.service.button.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.SessionService;
@@ -48,6 +49,8 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
     private final UserService userService;
 
     private final ReplyKeyboardRemove keyboardRemove;
+
+    private final CommandHandlerManager commandHandlerManager;
 
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
@@ -100,7 +103,7 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
             Localization success = null;
             Localization notification = null;
             if (newAdmin != null) {
-                bot.setUpMenuForAdmin(newAdmin);
+                bot.setUpMenuForAdmin(newAdmin, commandHandlerManager.getAllCommands());
                 success = localizationLoader.getLocalizationForUser(
                         SERVICE_NEW_ADMIN_ASSIGN_SUCCESS, sender, PARAM_TARGET_FIRST_NAME,
                         newAdmin.getFirstName());

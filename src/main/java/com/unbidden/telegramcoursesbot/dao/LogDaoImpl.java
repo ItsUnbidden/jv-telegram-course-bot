@@ -1,5 +1,7 @@
 package com.unbidden.telegramcoursesbot.dao;
 
+import com.unbidden.telegramcoursesbot.exception.FileDaoOperationException;
+
 import jakarta.annotation.PostConstruct;
 
 import java.io.IOException;
@@ -12,7 +14,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class LogDaoImpl implements LogDao {
-    private static final String currentLogsFilePathStr = "logs/tcb-2024-10-11.log";
+    private static final String currentLogsFilePathStr = "logs/tcb.log";
 
     private Path currentLogsFilePath;
 
@@ -29,9 +31,9 @@ public class LogDaoImpl implements LogDao {
             if (Files.exists(currentLogsFilePath)) {
                 return Files.newInputStream(currentLogsFilePath, StandardOpenOption.READ);
             }
-            throw new RuntimeException("Current log file does not exist.");
+            throw new FileDaoOperationException("Current log file does not exist");
         } catch (IOException e) {
-            throw new RuntimeException("Unable to read log file.");
+            throw new FileDaoOperationException("Unable to read log file", e);
         }
     }
 }

@@ -9,6 +9,8 @@ target/
 !**/src/main/resources/text/mappings.txt
 
 *.sql
+*.pem
+*.key
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

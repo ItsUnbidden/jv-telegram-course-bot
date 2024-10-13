@@ -13,4 +13,7 @@ public interface CommandHandlerManager {
 
     @NonNull
     List<String> getUserCommands();
+
+    @NonNull
+    List<String> getAllCommands();
 }
