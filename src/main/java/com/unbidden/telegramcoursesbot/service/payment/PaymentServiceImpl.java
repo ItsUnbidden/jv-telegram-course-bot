@@ -5,7 +5,6 @@ import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.repository.CourseRepository;
 import com.unbidden.telegramcoursesbot.repository.PaymentDetailsRepository;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
@@ -13,11 +12,10 @@ import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
-import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -30,13 +28,14 @@ import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.payments.LabeledPrice;
 import org.telegram.telegrambots.meta.api.objects.payments.PreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.objects.payments.SuccessfulPayment;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 // TODO: accomodate for the new isGifted field.
 @Service
 public class PaymentServiceImpl implements PaymentService {
     private static final Logger LOGGER = LogManager.getLogger(PaymentServiceImpl.class);
+
+    private static final String INVOICE_IMAGES_ENDPOINT = "/invoiceimages";
 
     private static final String DEFAULT_CURRENCY = "XTR";
 
@@ -60,6 +59,9 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Autowired
     private TextUtil textUtil;
+
+    @Value("${telegram.bot.webhook.url}")
+    private String serverUrl;
 
     @Override
     public boolean isAvailable(User user, String courseName) {
@@ -98,8 +100,9 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public void sendInvoice(UserEntity user, String courseName) {
         final Course course = courseService.getCourseByName(courseName);
+        final String imageUrl = serverUrl + INVOICE_IMAGES_ENDPOINT + "/" + courseName;
 
-                //TODO: revamp invoice system if possible
+        //TODO: revamp invoice system if possible
         SendInvoice sendInvoice = SendInvoice.builder()
                 .chatId(user.getId())
                 .title(localizationLoader.getLocalizationForUser(course.getName()
@@ -114,6 +117,9 @@ public class PaymentServiceImpl implements PaymentService {
                     .label("labeled_price")
                     .build())
                 .startParameter(course.getName())
+                .photoUrl(imageUrl)
+                // .photoWidth(1920)
+                // .photoHeight(1080)
                 .build();
         try {
             LOGGER.info("Sending invoice for course " + course.getName()

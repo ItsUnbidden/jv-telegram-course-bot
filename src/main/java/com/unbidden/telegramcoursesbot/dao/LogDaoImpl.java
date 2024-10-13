@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class LogDaoImpl implements LogDao {
-    private static final String currentLogsFilePathStr = "logs/tcb-2024-10-11.log";
+    private static final String currentLogsFilePathStr = "logs/tcb.log";
 
     private Path currentLogsFilePath;
 
