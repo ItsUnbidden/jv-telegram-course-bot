@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.dao;
 
-import com.unbidden.telegramcoursesbot.exception.UnableToReadTextFileException;
+import com.unbidden.telegramcoursesbot.exception.FileDaoOperationException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -19,7 +19,7 @@ public class LocalizationDaoImpl implements LocalizationDao {
         try {
             return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new UnableToReadTextFileException("File reading on path " + path
+            throw new FileDaoOperationException("File reading on path " + path
                     + " is obstructed.", e);
         }
     }
@@ -35,7 +35,7 @@ public class LocalizationDaoImpl implements LocalizationDao {
         try {
             return Files.list(path).toList();
         } catch (IOException e) {
-            throw new UnableToReadTextFileException("Unable to list entities on path " + path, e);
+            throw new FileDaoOperationException("Unable to list entities on path " + path, e);
         }
     }
 }

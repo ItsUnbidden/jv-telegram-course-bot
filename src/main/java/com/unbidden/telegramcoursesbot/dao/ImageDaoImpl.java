@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.dao;
 
+import com.unbidden.telegramcoursesbot.exception.FileDaoOperationException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,7 +14,7 @@ public class ImageDaoImpl implements ImageDao {
         try {
             return Files.readAllBytes(path);
         } catch (IOException e) {
-            throw new RuntimeException("Unable to read the image by path " + path, e);
+            throw new FileDaoOperationException("Unable to read the image by path " + path, e);
         }
     }
 }

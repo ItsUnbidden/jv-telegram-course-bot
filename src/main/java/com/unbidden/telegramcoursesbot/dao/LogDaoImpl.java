@@ -1,5 +1,7 @@
 package com.unbidden.telegramcoursesbot.dao;
 
+import com.unbidden.telegramcoursesbot.exception.FileDaoOperationException;
+
 import jakarta.annotation.PostConstruct;
 
 import java.io.IOException;
@@ -29,9 +31,9 @@ public class LogDaoImpl implements LogDao {
             if (Files.exists(currentLogsFilePath)) {
                 return Files.newInputStream(currentLogsFilePath, StandardOpenOption.READ);
             }
-            throw new RuntimeException("Current log file does not exist.");
+            throw new FileDaoOperationException("Current log file does not exist");
         } catch (IOException e) {
-            throw new RuntimeException("Unable to read log file.");
+            throw new FileDaoOperationException("Unable to read log file", e);
         }
     }
 }

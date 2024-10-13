@@ -56,7 +56,7 @@ public class GetContentButtonHandler implements ButtonHandler {
                     .build());
             List<Message> content = bot.sendContent(contentRepository.findById(contentId)
                     .orElseThrow(() -> new EntityNotFoundException("Content with id " + contentId
-                    + " does not exist.")), m.getFrom());
+                    + " does not exist.")), userService.getUser(m.getFrom().getId()));
             menuService.initiateMenu(CONTENT_UPDATE_MENU, userFromDb, contentId.toString(),
                     content.get(0).getMessageId());
         });

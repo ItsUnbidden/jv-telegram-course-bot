@@ -7,7 +7,8 @@ import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
+import org.telegram.telegrambots.meta.generics.BotSession;
+import org.telegram.telegrambots.updatesreceivers.ServerlessWebhook;
 
 @Configuration
 @RequiredArgsConstructor
@@ -15,7 +16,7 @@ public class ApplicationConfig {
     @Bean
     public TelegramBotsApi telegramBotsApi() {
         try {
-            return new TelegramBotsApi(DefaultBotSession.class);
+            return new TelegramBotsApi(BotSession.class, new ServerlessWebhook());
         } catch (TelegramApiException e) {
             throw new RuntimeException("Unable to initialize telegram api.", e);
         }

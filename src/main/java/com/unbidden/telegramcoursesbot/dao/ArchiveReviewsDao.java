@@ -4,7 +4,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import org.springframework.lang.NonNull;
 
-public interface ArchiveReviewsDao {
+public interface ArchiveReviewsDao extends FileDao {
     @NonNull
     Path createTempFile(@NonNull String name);
 

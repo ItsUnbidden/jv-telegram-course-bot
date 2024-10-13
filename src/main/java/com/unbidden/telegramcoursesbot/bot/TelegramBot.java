@@ -1,36 +1,27 @@
 package com.unbidden.telegramcoursesbot.bot;
 
-import com.unbidden.telegramcoursesbot.exception.ExceptionHandlerManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.Content;
 import com.unbidden.telegramcoursesbot.model.Photo;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.Video;
-import com.unbidden.telegramcoursesbot.repository.CallbackQueryRepository;
 import com.unbidden.telegramcoursesbot.repository.ContentRepository;
 import com.unbidden.telegramcoursesbot.repository.PhotoRepository;
 import com.unbidden.telegramcoursesbot.repository.VideoRepository;
-import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
-import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
-import com.unbidden.telegramcoursesbot.service.session.SessionService;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
-import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
+import org.telegram.telegrambots.bots.TelegramWebhookBot;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.commands.DeleteMyCommands;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.menubutton.SetChatMenuButton;
@@ -38,12 +29,12 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
-import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
+import org.telegram.telegrambots.meta.api.methods.updates.GetWebhookInfo;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.User;
+import org.telegram.telegrambots.meta.api.objects.WebhookInfo;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeChat;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
@@ -54,7 +45,9 @@ import org.telegram.telegrambots.meta.api.objects.menubutton.MenuButtonCommands;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
-public class TelegramBot extends TelegramLongPollingBot {
+public class TelegramBot extends TelegramWebhookBot {
+    private static final String UPDATE_ENDPOINT_PATH = "bot";
+
     private static final String MENU_COMMAND_DESCRIPTION = "menu_command_%s_description";
     
     private static final String ERROR_CONTENT_EMPTY = "error_content_empty";
@@ -78,31 +71,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     private VideoRepository videoRepository;
 
     @Autowired
-    private CallbackQueryRepository callbackQueryRepository;
-
-    @Autowired
-    @Lazy
-    private CommandHandlerManager commandHandlerManager;
-
-    @Autowired
-    @Lazy
-    private ExceptionHandlerManager exceptionHandlerManager;
-
-    @Autowired
-    @Lazy
-    private PaymentService paymentService;
-
-    @Autowired
-    @Lazy
-    private MenuService menuService;
-
-    @Autowired
-    private SessionService sessionService;
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
     private LocalizationLoader localizationLoader;
 
     public TelegramBot(@Autowired DefaultBotOptions botOptions,
@@ -112,57 +80,22 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     @Override
-    public void onUpdateReceived(Update update) {
-        UserEntity user = null;
-        
+    public BotApiMethod<?> onWebhookUpdateReceived(Update update) {
+        LOGGER.info("On webhook update received method is not supported.");
+        return null;
+    }
+
+    @Override
+    public String getBotPath() {
+        return UPDATE_ENDPOINT_PATH;
+    }
+
+    public WebhookInfo getInfo() {
         try {
-            if (update.hasMessage() && update.getMessage().isCommand()) {
-                final String[] commandParts = update.getMessage().getText().split(" ");
-                user = userService.updateUser(update.getMessage().getFrom());
-    
-                LOGGER.info("Update with command " + update.getMessage().getText()
-                        + " triggered by user " + user.getId() + ".");
-                sessionService.removeSessionsForUser(user);
-                commandHandlerManager.getHandler(commandParts[0]).handle(update.getMessage(),
-                        commandParts);
-            } else if (update.hasPreCheckoutQuery()) {
-                user = userService.updateUser(update.getPreCheckoutQuery().getFrom());
-    
-                LOGGER.info("Update with precheckout query triggered by user "
-                        + user.getId() + ".");
-                sessionService.removeSessionsForUser(user);
-                paymentService.resolvePreCheckout(update.getPreCheckoutQuery());
-            } else if (update.hasMessage() && update.getMessage().hasSuccessfulPayment()) {
-                user = userService.updateUser(update.getMessage().getFrom());
-    
-                LOGGER.info("Update with successful payment triggered by user "
-                        + user.getId() + ".");
-                sessionService.removeSessionsForUser(user);
-                paymentService.resolveSuccessfulPayment(update.getMessage());
-            } else if (update.hasCallbackQuery()) {
-                user = userService.updateUser(update.getCallbackQuery().getFrom());
-    
-                LOGGER.info("Update with callback query triggered by user "
-                        + user.getId() + ". Button " + update.getCallbackQuery().getData() + ".");
-                sessionService.removeSessionsForUser(user);
-                menuService.processCallbackQuery(update.getCallbackQuery());
-            } else if (update.hasMessage()) {
-                user = userService.updateUser(update.getMessage().getFrom());
-    
-                sessionService.processResponse(update.getMessage());
-            }
-        } catch (Exception e) { 
-            if (user != null) {
-                sendMessage(exceptionHandlerManager.handleException(user, e));
-            } else {
-                LOGGER.error("Strange situation occured - unable to handle "
-                        + "exception due to the user being unknown. Theoretically, "
-                        + "this should not be possible. Invesigate immediately.", e);
-                
-                sendMessage(exceptionHandlerManager.handleException(userService.getDiretor(), e));
-            }
+            return execute(GetWebhookInfo.builder().build());
+        } catch (TelegramApiException e) {
+            throw new TelegramException("Unable to get webhook info.", e);
         }
-        answerPotentialCallbackQuery(user);
     }
 
     public void setUpMenuButton() {
@@ -176,16 +109,11 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    public void setUpMenus() {
-        localizationLoader.getAvailableLanguageCodes().forEach(c -> setUpMenu(c));
-        userService.getAdminList().forEach(a -> setUpMenuForAdmin(a));
-    }
+    public void setUpUserMenu(@NonNull String languageCode,
+            @NonNull List<String> userCommandNames) {
+        final List<BotCommand> userCommands = parseToBotCommands(userCommandNames, languageCode);
 
-    private void setUpMenu(String languageCode) {
-        final List<BotCommand> userCommands = parseToBotCommands(commandHandlerManager
-                .getUserCommands(), languageCode);
-
-        SetMyCommands setMyUserCommands = SetMyCommands.builder()
+        final SetMyCommands setMyUserCommands = SetMyCommands.builder()
                 .commands(userCommands)
                 .scope(BotCommandScopeDefault.builder().build())
                 .languageCode(languageCode)
@@ -208,11 +136,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to send message.", e);
         }
-    }
-
-    @NonNull
-    public List<Message> sendContent(@NonNull Content content, @NonNull User user) {
-        return sendContent(content, userService.getUser(user.getId()));
     }
     
     @NonNull
@@ -404,12 +327,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         LOGGER.info("Admin menu for user " + user.getId() + " has been removed.");
     }
 
-    public void setUpMenuForAdmin(@NonNull UserEntity user) {
-        final List<BotCommand> userCommands = parseToBotCommands(commandHandlerManager
-                .getUserCommands(), user.getLanguageCode());
-        final List<BotCommand> adminCommands = new ArrayList<>(parseToBotCommands(
-                commandHandlerManager.getAdminCommands(), user.getLanguageCode()));
-        adminCommands.addAll(userCommands);
+    public void setUpMenuForAdmin(@NonNull UserEntity user, @NonNull List<String> allCommands) {
+        final List<BotCommand> adminCommands = parseToBotCommands(allCommands,
+                user.getLanguageCode());
 
         try {
             execute(SetMyCommands.builder().commands(adminCommands)
@@ -432,27 +352,5 @@ public class TelegramBot extends TelegramLongPollingBot {
                         languageCode).getData())
                     .build())
                 .toList();
-    }
-
-    private void answerPotentialCallbackQuery(UserEntity user) {
-        if (user != null) {
-            final Optional<CallbackQuery> query = callbackQueryRepository
-                    .findAndRemove(user.getId());
-            if (query.isPresent()) {
-                LOGGER.debug("User " + user.getId() + " has an unanswered callback query.");
-                try {
-                    execute(AnswerCallbackQuery.builder()
-                            .callbackQueryId(query.get().getId())
-                            .build());
-                    LOGGER.debug("Callback query resolved.");
-                } catch (TelegramApiException e) {
-                    LOGGER.error("Unable to answer callback query. This should not break "
-                            + "anything but should be invesigated.", e);
-                    
-                    sendMessage(exceptionHandlerManager.handleException(
-                            userService.getDiretor(), e));
-                }
-            }
-        }
     }
 }
