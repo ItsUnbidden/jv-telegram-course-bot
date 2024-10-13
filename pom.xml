@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.unbidden</groupId>
 	<artifactId>telegram-courses-bot</artifactId>
-	<version>0.2.4-Alpha</version>
+	<version>0.2.5-Alpha</version>
 	<name>telegram-courses-bot</name>
 	<description>Telegram bot for providing courses</description>
 	<url/>
