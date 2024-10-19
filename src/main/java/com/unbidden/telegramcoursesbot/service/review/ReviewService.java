@@ -1,9 +1,10 @@
 package com.unbidden.telegramcoursesbot.service.review;
 
-import com.unbidden.telegramcoursesbot.model.Content;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.content.Content;
+
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;

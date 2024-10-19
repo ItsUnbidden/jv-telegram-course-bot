@@ -1,5 +1,7 @@
 package com.unbidden.telegramcoursesbot.model;
 
+import com.unbidden.telegramcoursesbot.model.content.Content;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

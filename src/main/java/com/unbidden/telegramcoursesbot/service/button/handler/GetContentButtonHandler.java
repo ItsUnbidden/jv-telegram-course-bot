@@ -1,14 +1,14 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.repository.ContentRepository;
 import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
+import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.session.SessionService;
+import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
-import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
@@ -28,13 +28,13 @@ public class GetContentButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final ContentRepository contentRepository;
-
-    private final SessionService sessionService;
+    private final ContentSessionService sessionService;
 
     private final UserService userService;
 
     private final MenuService menuService;
+
+    private final ContentService contentService;
 
     private final TelegramBot bot;
     
@@ -44,19 +44,25 @@ public class GetContentButtonHandler implements ButtonHandler {
         if (!userService.isAdmin(userFromDb)) {
             return;
         }
-        sessionService.createSession(user, false, m -> {
-            final Long contentId = Long.parseLong(m.getText());
+        sessionService.createSession(user, m -> {
+            final String providedNumberStr = m.get(0).getText().trim();
+            final Long contentId;
+            try {
+                contentId = Long.parseLong(m.get(0).getText().trim());
+            } catch (NumberFormatException e) {
+                throw new InvalidDataSentException("Unable to parse provided string "
+                        + providedNumberStr + " content id long", e);
+            }
             final Localization success = localizationLoader.getLocalizationForUser(
-                    SERVICE_GET_CONTENT_SUCCESS, m.getFrom(), PARAM_CONTENT_ID,
+                    SERVICE_GET_CONTENT_SUCCESS, user, PARAM_CONTENT_ID,
                     contentId);
             bot.sendMessage(SendMessage.builder()
-                    .chatId(m.getFrom().getId())
+                    .chatId(user.getId())
                     .text(success.getData())
                     .entities(success.getEntities())
                     .build());
-            List<Message> content = bot.sendContent(contentRepository.findById(contentId)
-                    .orElseThrow(() -> new EntityNotFoundException("Content with id " + contentId
-                    + " does not exist.")), userService.getUser(m.getFrom().getId()));
+            List<Message> content = contentService.sendContent(
+                    contentService.getById(contentId), user);
             menuService.initiateMenu(CONTENT_UPDATE_MENU, userFromDb, contentId.toString(),
                     content.get(0).getMessageId());
         });

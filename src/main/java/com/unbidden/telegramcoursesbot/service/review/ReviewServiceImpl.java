@@ -5,12 +5,13 @@ import com.unbidden.telegramcoursesbot.dao.ArchiveReviewsDao;
 import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.ArchiveReviewsException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
-import com.unbidden.telegramcoursesbot.model.Content;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.repository.ReviewRepository;
 import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
+import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
@@ -88,6 +89,8 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewRepository reviewRepository;
 
     private final MenuService menuService;
+
+    private final ContentService contentService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -476,14 +479,14 @@ public class ReviewServiceImpl implements ReviewService {
                     SERVICE_REVIEW_INFO_CONTENT_COMMENT, user, textUtil
                     .getParamsMapForNewReview(review));
                 sendMessage(user, reviewInfo);
-                message = bot.sendContent(review.getContent(), user).get(0);
+                message = contentService.sendContent(review.getContent(), user).get(0);
                 
             } else if (review.getContent() != null) {
                 LOGGER.info("Review is advanced.");
                 reviewInfo = localizationLoader.getLocalizationForUser(
                     SERVICE_REVIEW_INFO_CONTENT, user, textUtil.getParamsMapForNewReview(review));
                 sendMessage(user, reviewInfo);
-                message = bot.sendContent(review.getContent(), user).get(0);
+                message = contentService.sendContent(review.getContent(), user).get(0);
             } else if (review.getCommentContent() != null) {
                 LOGGER.info("Review has a comment.");
                 reviewInfo = localizationLoader.getLocalizationForUser(

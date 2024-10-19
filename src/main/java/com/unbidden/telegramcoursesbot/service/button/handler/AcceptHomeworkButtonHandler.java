@@ -5,7 +5,7 @@ import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.session.SessionService;
+import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
@@ -22,7 +22,7 @@ public class AcceptHomeworkButtonHandler implements ButtonHandler {
 
     private final HomeworkService homeworkService;
 
-    private final SessionService sessionService;
+    private final ContentSessionService sessionService;
 
     private final UserService userService;
 
@@ -37,8 +37,8 @@ public class AcceptHomeworkButtonHandler implements ButtonHandler {
 
             switch (params[params.length - 1]) {
                 case ACCEPT_HOMEWORK_WITH_COMMENT_BUTTON:
-                    sessionService.createSession(user, false, m ->
-                            homeworkService.approve(homeworkProgressId, user, m));
+                    sessionService.createSession(user, m -> homeworkService.approve(
+                            homeworkProgressId, user, m));
                             
                     final Localization localization = localizationLoader.getLocalizationForUser(
                             SERVICE_APPROVE_HOMEWORK_COMMENT_REQUEST, user);

@@ -1,14 +1,16 @@
 package com.unbidden.telegramcoursesbot.repository;
 
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.service.session.ContentSession;
 import com.unbidden.telegramcoursesbot.service.session.Session;
+import com.unbidden.telegramcoursesbot.service.session.UserOrChatRequestSession;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,9 +21,10 @@ import org.springframework.stereotype.Repository;
 public class InMemorySessionRepository implements SessionRepository, AutoClearable {
     private static final Logger LOGGER = LogManager.getLogger(InMemorySessionRepository.class);
 
-    private static final Map<Integer, Session> sessions = new HashMap<>();
+    private static final ConcurrentMap<Integer, Session> sessions = new ConcurrentHashMap<>();
 
-    private static final Map<Long, List<Session>> sessionsIndexedByUser = new HashMap<>();
+    private static final ConcurrentMap<Long, List<Session>> sessionsIndexedByUser =
+            new ConcurrentHashMap<>();
 
     @Value("${telegram.bot.message.session.expiration}")
     private Integer expiration;
@@ -42,6 +45,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
         return Optional.ofNullable(sessions.get(id));
     }
 
+    // TODO: implement task scheduling
     @Override
     public void removeExpired() {
         LOGGER.debug("Checking for expired sessions...");
@@ -79,12 +83,27 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     }
 
     @Override
-    public void removeForUserIfNotRequestUserOrChat(@NonNull Long userId) {
+    public void removeContentSessionsForUser(@NonNull Long userId) {
         final List<Session> userSessions = sessionsIndexedByUser.get(userId);
 
         if (userSessions != null) {
             final List<Integer> keysToRemove = userSessions.stream()
-                    .filter(s -> !s.isUserOrChatRequestButton()).map(s -> s.getId()).toList();
+                    .filter(s -> s.getClass().equals(ContentSession.class))
+                    .map(s -> s.getId()).toList();
+            for (Integer key : keysToRemove) {
+                removeFromIndexedSessions(sessions.remove(key));
+            }
+        }
+    }
+
+    @Override
+    public void removeUserOrChatRequestSessionsForUser(@NonNull Long userId) {
+        final List<Session> userSessions = sessionsIndexedByUser.get(userId);
+
+        if (userSessions != null) {
+            final List<Integer> keysToRemove = userSessions.stream()
+                    .filter(s -> s.getClass().equals(UserOrChatRequestSession.class))
+                    .map(s -> s.getId()).toList();
             for (Integer key : keysToRemove) {
                 removeFromIndexedSessions(sessions.remove(key));
             }

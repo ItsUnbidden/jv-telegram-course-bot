@@ -10,10 +10,11 @@ import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
-import com.unbidden.telegramcoursesbot.service.session.SessionService;
+import com.unbidden.telegramcoursesbot.service.session.UserOrChatRequestSessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
@@ -67,7 +68,7 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
 
     private final UserService userService;
 
-    private final SessionService sessionService;
+    private final UserOrChatRequestSessionService sessionService;
 
     private final PaymentService paymentService;
 
@@ -87,12 +88,12 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
                 KeyboardButtonRequestUser requestUserGiveCourse = KeyboardButtonRequestUser
                         .builder()
                         .userIsBot(false)
-                        .requestId(String.valueOf(sessionService.createSession(user, true,
+                        .requestId(String.valueOf(sessionService.createSession(user,
                             getGiveCourseFunction(user, course)))).build();
                 KeyboardButtonRequestUser requestUserTakeCourse = KeyboardButtonRequestUser
                         .builder()
                         .userIsBot(false)
-                        .requestId(String.valueOf(sessionService.createSession(user, true,
+                        .requestId(String.valueOf(sessionService.createSession(user,
                             getTakeCourseFunction(user, course)))).build();
 
                 KeyboardButton giveButton = KeyboardButton.builder()
@@ -130,10 +131,10 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
         }
     }
 
-    private Consumer<Message> getGiveCourseFunction(final UserEntity sender,
+    private Consumer<List<Message>> getGiveCourseFunction(final UserEntity sender,
             final Course course) {
         return m -> {
-            final UserShared sharedUser = m.getUserShared();
+            final UserShared sharedUser = m.get(0).getUserShared();
             final Map<String, Object> parametersMap = new HashMap<>();
                     parametersMap.put(PARAM_COURSE_NAME, course.getName());
                     parametersMap.put(PARAM_TARGET_ID, course.getName());
@@ -178,10 +179,10 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
         };
     }
 
-    private Consumer<Message> getTakeCourseFunction(final UserEntity sender,
+    private Consumer<List<Message>> getTakeCourseFunction(final UserEntity sender,
             final Course course) {
         return m -> {
-            final UserShared sharedUser = m.getUserShared();
+            final UserShared sharedUser = m.get(0).getUserShared();
             final Map<String, Object> parametersMap = new HashMap<>();
                     parametersMap.put(PARAM_COURSE_NAME, course.getName());
                     parametersMap.put(PARAM_TARGET_ID, course.getName());

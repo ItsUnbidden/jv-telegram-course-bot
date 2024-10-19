@@ -1,8 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.button.menu.configurer;
 
-import com.unbidden.telegramcoursesbot.model.Content;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Lesson;
+import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.repository.LessonRepository;
 import com.unbidden.telegramcoursesbot.service.button.handler.CoursePriceChangeButtonHandler;
 import com.unbidden.telegramcoursesbot.service.button.handler.FeedbackInclusionButtonHandler;

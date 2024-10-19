@@ -5,8 +5,9 @@ import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.session.SessionService;
+import com.unbidden.telegramcoursesbot.service.session.UserOrChatRequestSessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
+import java.util.List;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
@@ -44,7 +45,7 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final SessionService sessionService;
+    private final UserOrChatRequestSessionService sessionService;
 
     private final UserService userService;
 
@@ -57,11 +58,11 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
         if (userService.isAdmin(user)) {
             KeyboardButtonRequestUser requestUserAddAdmin = KeyboardButtonRequestUser.builder()
                     .userIsBot(false)
-                    .requestId(String.valueOf(sessionService.createSession(user, true,
+                    .requestId(String.valueOf(sessionService.createSession(user,
                         getAddAdminFunction(user)))).build();
             KeyboardButtonRequestUser requestUserRemoveAdmin = KeyboardButtonRequestUser.builder()
                     .userIsBot(false)
-                    .requestId(String.valueOf(sessionService.createSession(user, true,
+                    .requestId(String.valueOf(sessionService.createSession(user,
                         getRemoveAdminFunction(user)))).build();
 
             KeyboardButton addButton = KeyboardButton.builder()
@@ -92,9 +93,9 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
         }
     }
 
-    private Consumer<Message> getAddAdminFunction(final UserEntity sender) {
+    private Consumer<List<Message>> getAddAdminFunction(final UserEntity sender) {
         return m -> {
-            final UserShared sharedUser = m.getUserShared();
+            final UserShared sharedUser = m.get(0).getUserShared();
             final UserEntity newAdmin = userService.addAdmin(sharedUser.getUserId());
 
             final Localization error = localizationLoader.getLocalizationForUser(
@@ -114,9 +115,9 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
         };
     }
 
-    private Consumer<Message> getRemoveAdminFunction(final UserEntity sender) {
+    private Consumer<List<Message>> getRemoveAdminFunction(final UserEntity sender) {
         return m -> {
-            final UserShared sharedUser = m.getUserShared();
+            final UserShared sharedUser = m.get(0).getUserShared();
             final UserEntity removedAdmin = userService.removeAdmin(sharedUser.getUserId());
 
             final Localization error = localizationLoader.getLocalizationForUser(

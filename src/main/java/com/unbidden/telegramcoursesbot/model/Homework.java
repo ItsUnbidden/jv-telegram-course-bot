@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.model;
 
+import com.unbidden.telegramcoursesbot.model.content.Content;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -21,6 +22,8 @@ public class Homework {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "content_id", nullable = false)
     private Content content;
+
+    private String allowedMediaTypes;
 
     @OneToOne(mappedBy = "homework")
     private Lesson lesson;

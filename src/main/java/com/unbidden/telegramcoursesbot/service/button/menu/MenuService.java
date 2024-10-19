@@ -43,4 +43,6 @@ public interface MenuService {
     
     void terminateMenu(@NonNull Long chatId, @NonNull Integer messageId,
             @Nullable Localization terminalPageLocalization);
+
+    void terminateMenu(@NonNull Long chatId, @NonNull Integer messageId);
 }

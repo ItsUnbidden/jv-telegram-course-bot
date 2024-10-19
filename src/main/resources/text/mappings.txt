@@ -137,3 +137,4 @@ error_unspecified_exception ${excMessage} ${excClassName}
 error_critical_director_notification ${excMessage} ${excClassName}
 error_unsupported_operation_exception
 error_telegram_exception ${excMessage}
+service_resend_content

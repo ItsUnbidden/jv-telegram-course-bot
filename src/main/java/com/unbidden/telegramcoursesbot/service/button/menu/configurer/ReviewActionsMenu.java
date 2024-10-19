@@ -1,12 +1,12 @@
 package com.unbidden.telegramcoursesbot.service.button.menu.configurer;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.service.button.handler.LeaveReviewCommentButtonHandler;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.TerminalButton;
+import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.review.ReviewService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
@@ -38,9 +38,9 @@ public class ReviewActionsMenu implements MenuConfigurer {
 
     private final UserService userService;
 
-    private final LocalizationLoader localizationLoader;
+    private final ContentService contentService;
 
-    private final TelegramBot bot;
+    private final LocalizationLoader localizationLoader;
 
     @Override
     public void configure() {
@@ -64,7 +64,7 @@ public class ReviewActionsMenu implements MenuConfigurer {
                 buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
                         BUTTON_GET_REVIEW_COMMENT, u).getData(), GET_REVIEW_COMMENT, (u1, pa) -> {
                             if (userService.isAdmin(u1)) {
-                                bot.sendContent(review.getCommentContent(), u1);
+                                contentService.sendContent(review.getCommentContent(), u1);
                             }
                         }));
             } else {

@@ -5,7 +5,7 @@ import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.session.SessionService;
+import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -18,7 +18,7 @@ public class SendHomeworkButtonHandler implements ButtonHandler {
 
     private final HomeworkService homeworkService;
 
-    private final SessionService sessionService;
+    private final ContentSessionService sessionService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -28,8 +28,8 @@ public class SendHomeworkButtonHandler implements ButtonHandler {
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         final Long homeworkProgressId = Long.parseLong(params[0]);
 
-        sessionService.createSession(user, false, m ->
-                homeworkService.process(homeworkProgressId, m));
+        sessionService.createSession(user, m ->
+                homeworkService.commit(homeworkProgressId, m));
 
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_SEND_HOMEWORK_REQUEST, user);
