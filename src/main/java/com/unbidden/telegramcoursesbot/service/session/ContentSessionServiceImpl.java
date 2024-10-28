@@ -3,7 +3,6 @@ package com.unbidden.telegramcoursesbot.service.session;
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
 import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.SessionException;
-import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.SessionRepository;
 import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
@@ -44,6 +43,12 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     @NonNull
     public Integer createSession(@NonNull UserEntity user,
             @NonNull Consumer<List<Message>> function) {
+        return createSession(user, function, false);
+    }
+
+    @Override
+    public Integer createSession(@NonNull UserEntity user, @NonNull Consumer<List<Message>> function,
+            boolean isSkippingConfirmation) {
         sessionRepository.removeUserOrChatRequestSessionsForUser(user.getId());
         final List<Session> sessions = sessionRepository.findForUser(user.getId());
         if (sessions.size() > 1) {
@@ -62,6 +67,8 @@ public class ContentSessionServiceImpl implements ContentSessionService {
         session.setTimestamp(LocalDateTime.now());
         session.setFunction(function);
         session.setMessages(new ArrayList<>());
+        session.setMenuInitialized(false);
+        session.setSkippingConfirmation(isSkippingConfirmation);
         sessionRepository.save(session);
         LOGGER.debug("Session saved.");
         return session.getId();
@@ -75,24 +82,20 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     @Override
     public void processResponse(@NonNull Session session, @NonNull Message message) {
         final ContentSession contentSession = (ContentSession)session;
-        if (contentSession.getLastMessageId() != null) {
-            LOGGER.debug("Other messages are present. Removing previous markup...");
-            try {
-                menuService.terminateMenu(session.getUser().getId(),
-                        contentSession.getLastMessageId());
-            } catch (TelegramException e) {
-                throw new SessionException("Unable to clear message "
-                        + contentSession.getLastMessageId() + "'s markup for user "
-                        + contentSession.getUser().getId(), e);
-            }
-            LOGGER.debug("Previous message's " + " markup has been removed.");
-        }
-        LOGGER.debug("Adding new message to the confirmation list "
-                + "and sending confirmation menu...");
+        
         contentSession.getMessages().add(message);
-        menuService.initiateMenu(CONFIRMATION_MENU, session.getUser(),
-                session.getId().toString(), message.getMessageId());
-        LOGGER.debug("Confirmation menu has been sent.");
+        LOGGER.debug("Adding new message to the confirmation list...");
+        if (contentSession.isSkippingConfirmation()) {
+            LOGGER.debug("Only one message is expected, no confirmation message will be sent.");
+            commit(session.getId());
+        } else if (!contentSession.isMenuInitialized()) {
+            LOGGER.debug("Sending confirmation menu...");
+            menuService.initiateMenu(CONFIRMATION_MENU, contentSession.getUser(),
+                    contentSession.getId().toString());
+            contentSession.setMenuInitialized(true);
+        }
+        LOGGER.debug("Session response of user " + contentSession.getUser().getId()
+                + " has been processed.");
     }
 
     @Override

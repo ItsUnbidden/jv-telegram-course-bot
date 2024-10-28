@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.model.content;
 
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
@@ -11,6 +12,7 @@ import lombok.EqualsAndHashCode;
 @Entity
 @Data
 @EqualsAndHashCode(callSuper = true)
+@DiscriminatorValue("1")
 public class GraphicsContent extends LocalizedContent {
     @ManyToMany()
     @JoinTable(name = "content_videos",
@@ -23,8 +25,4 @@ public class GraphicsContent extends LocalizedContent {
             joinColumns = @JoinColumn(name = "content_id"),
             inverseJoinColumns = @JoinColumn(name = "photo_id"))
     private List<Photo> photos;
-
-    public GraphicsContent() {
-        super(MediaType.GRAPHICS);
-    }
 }

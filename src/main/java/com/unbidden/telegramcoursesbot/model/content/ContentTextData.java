@@ -1,6 +1,10 @@
 package com.unbidden.telegramcoursesbot.model.content;
 
 import jakarta.persistence.Embeddable;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.OneToMany;
+import java.util.List;
 import lombok.Data;
 import org.springframework.lang.NonNull;
 
@@ -11,12 +15,19 @@ public class ContentTextData {
 
     private boolean isLocalization;
 
+    @OneToMany
+    @JoinTable(name = "content_markers", joinColumns = @JoinColumn(name = "content_id"),
+            inverseJoinColumns = @JoinColumn(name = "marker_id"))
+    private List<MarkerArea> entities;
+
     public ContentTextData() {
 
     }
 
-    public ContentTextData(@NonNull String data, boolean isLocalization) {
+    public ContentTextData(@NonNull String data, @NonNull List<MarkerArea> markers,
+            boolean isLocalization) {
         this.data = data;
+        this.entities = markers;
         this.isLocalization = isLocalization;
     }
 }

@@ -39,7 +39,6 @@ public class LeaveReviewCommentButtonHandler implements ButtonHandler {
             sessionService.createSession(user, m -> {
                 reviewService.leaveComment(user, review,
                         contentService.parseAndPersistContent(m));
-                reviewService.markReviewAsRead(review, user);
             });
 
             final Localization request = localizationLoader.getLocalizationForUser(

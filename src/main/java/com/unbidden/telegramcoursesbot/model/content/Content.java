@@ -18,12 +18,8 @@ public abstract class Content {
     @Embedded
     private ContentTextData data;
 
-    @Column(nullable = false)
+    @Column(nullable = false, insertable = false, updatable = false)
     private MediaType type;
-
-    public Content(MediaType type) {
-        this.type = type;
-    }
 
     public enum MediaType {
         TEXT,

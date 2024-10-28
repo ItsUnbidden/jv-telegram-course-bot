@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.model.content;
 
+import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
@@ -10,11 +11,12 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.lang.NonNull;
 
+@Data
 @Entity
 @Table(name = "documents")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@Data
 @EqualsAndHashCode(callSuper = true)
+@DiscriminatorColumn(name = "document_type")
 public class Document extends File {
     private String fileName;
 

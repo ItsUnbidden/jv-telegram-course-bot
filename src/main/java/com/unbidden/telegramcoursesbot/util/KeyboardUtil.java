@@ -20,7 +20,7 @@ public class KeyboardUtil {
             rows.add(new ArrayList<>());
         }
         for (int i = 0; i < buttons.size(); i++) {
-            if (i % rowSize == 0) {
+            if (i % ((rowSize != 0) ? rowSize : 1) == 0) {
                 counter++;
             }
             rows.get(counter).add(buttons.get(i));

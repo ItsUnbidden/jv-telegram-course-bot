@@ -133,6 +133,7 @@ public class UserServiceImpl implements UserService {
         if (!userFromDb.isAdmin() && user.getId().longValue() == defaultAdminId) {
             userFromDb.setAdmin(true);
             hasChanged = true;
+            userFromDb.setReceivingHomeworkRequests(true);
             LOGGER.info("User " + user.getId() + " is the default admin. Setting...");
         }
         if (user.getIsBot() != userFromDb.isBot()) {

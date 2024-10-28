@@ -1,7 +1,6 @@
 package com.unbidden.telegramcoursesbot.model;
 
-import com.unbidden.telegramcoursesbot.model.content.Content;
-
+import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -55,11 +54,11 @@ public class Review {
 
     @OneToOne
     @JoinColumn(name = "original_content_id")
-    private Content originalContent;
+    private LocalizedContent originalContent;
 
     @OneToOne
     @JoinColumn(name = "content_id")
-    private Content content;
+    private LocalizedContent content;
 
     @ManyToMany
     @JoinTable(name = "reviews_users_who_read", joinColumns = @JoinColumn(name = "review_id"),
@@ -68,7 +67,7 @@ public class Review {
 
     @OneToOne
     @JoinColumn(name = "comment_content_id")
-    private Content commentContent;
+    private LocalizedContent commentContent;
 
     @ManyToOne
     @JoinColumn(name = "user_who_commented_id")

@@ -5,8 +5,10 @@ import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.model.content.ContentTextData;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
+import com.unbidden.telegramcoursesbot.model.content.MarkerArea;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 import com.unbidden.telegramcoursesbot.repository.LocalizedContentRepository;
+import com.unbidden.telegramcoursesbot.repository.MarkerAreaRepository;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import java.util.List;
@@ -22,6 +24,8 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 public class TextContentHandler implements LocalizedContentHandler<LocalizedContent> {
     private final LocalizedContentRepository localizedContentRepository;
 
+    private final MarkerAreaRepository markerAreaRepository;
+
     private final LocalizationLoader localizationLoader;
 
     private final TelegramBot bot;
@@ -29,7 +33,13 @@ public class TextContentHandler implements LocalizedContentHandler<LocalizedCont
     @Override
     public LocalizedContent parseLocalized(@NonNull List<Message> messages, boolean isLocalized) {
         final LocalizedContent localizedContent = new LocalizedContent();
-        localizedContent.setData(new ContentTextData(messages.get(0).getText(), isLocalized));
+        final Message message = messages.get(0);
+        final List<MarkerArea> markers = (message.getEntities() != null) ? message.getEntities()
+                .stream().map(e -> markerAreaRepository.save(new MarkerArea(e)))
+                .toList() : List.of();
+
+        localizedContent.setData(new ContentTextData(message.getText(),
+                markers, isLocalized));
 
         return localizedContent;
     }
@@ -50,6 +60,8 @@ public class TextContentHandler implements LocalizedContentHandler<LocalizedCont
                     .getData().getData(), user)
                 : new Localization(localizedContent.getData().getData());
         
+        localization.setEntities(localizedContent.getData().getEntities().stream()
+                .map(m -> m.toMessageEntity()).toList());
         return List.of(bot.sendMessage(SendMessage.builder()
                 .chatId(user.getId())
                 .text(localization.getData())

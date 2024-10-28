@@ -14,11 +14,19 @@ databaseChangeLog:
                     nullable: false
                     primaryKey: true
               - column:
-                  name: data
-                  type: varchar(1024)
-              - column:
-                  name: video_id
-                  type: varchar(255)
+                  name: type
+                  type: tinyint
                   constraints:
-                    foreignKeyName: fk_videos_content
-                    references: videos(unique_id)
+                    nullable: false
+              - column:
+                  name: data
+                  type: varchar(4096)
+              - column:
+                  name: is_localization
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: language_code
+                  type: varchar(8)

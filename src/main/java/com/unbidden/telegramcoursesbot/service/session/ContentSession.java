@@ -8,9 +8,11 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ContentSession extends Session {
-    private Integer lastMessageId;
+    private boolean isMenuInitialized;
 
     private List<Message> messages;
+
+    private boolean isSkippingConfirmation;
 
     public void execute() {
         super.getFunction().accept(messages);

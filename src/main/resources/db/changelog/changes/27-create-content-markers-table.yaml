@@ -1,22 +1,22 @@
 databaseChangeLog:
   - changeSet:
-      id: create-content-photos-table
+      id: create-content-markers-table
       author: Unbidden
       changes:
         - createTable:
-            tableName: content_photos
+            tableName: content_markers
             columns: 
               - column:
                   name: content_id
                   type: bigint
                   constraints:
-                    foreignKeyName: fk_content_content_photos
+                    foreignKeyName: fk_content_content_markers
                     references: content(id)
                     nullable: false
               - column:
-                  name: photo_id
-                  type: varchar(255) COLLATE latin1_general_cs
+                  name: marker_id
+                  type: bigint
                   constraints:
-                    foreignKeyName: fk_photos_content_photos
-                    references: photos(unique_id)
+                    foreignKeyName: fk_markers_content_markers
+                    references: markers(id)
                     nullable: false

@@ -6,8 +6,8 @@ import jakarta.persistence.MappedSuperclass;
 import lombok.Data;
 import org.springframework.lang.NonNull;
 
-@MappedSuperclass
 @Data
+@MappedSuperclass
 public abstract class File {
     @Id
     private String uniqueId;

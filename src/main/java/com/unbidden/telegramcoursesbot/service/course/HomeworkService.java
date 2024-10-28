@@ -13,7 +13,7 @@ public interface HomeworkService {
 
     void commit(@NonNull Long id, @NonNull List<Message> messages);
 
-    void requestFeedback(@NonNull HomeworkProgress homeworkProgress);
+    boolean requestFeedback(@NonNull HomeworkProgress homeworkProgress);
 
     void approve(@NonNull Long id, @NonNull UserEntity user,
             @Nullable List<Message> adminComment);

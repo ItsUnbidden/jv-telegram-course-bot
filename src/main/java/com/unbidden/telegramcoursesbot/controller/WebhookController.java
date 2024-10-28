@@ -89,7 +89,6 @@ public class WebhookController {
                 paymentService.resolveSuccessfulPayment(update.getMessage());
             } else if (update.hasCallbackQuery()) {
                 user = userService.updateUser(update.getCallbackQuery().getFrom());
-                sessionDistributor.removeSessionsForUser(user);
 
                 LOGGER.info("Update with callback query triggered by user "
                         + user.getId() + ". Button " + update.getCallbackQuery().getData() + ".");

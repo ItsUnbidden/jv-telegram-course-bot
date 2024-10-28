@@ -7,6 +7,7 @@ import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
+import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
 import com.unbidden.telegramcoursesbot.repository.LessonRepository;
@@ -242,7 +243,7 @@ public class CourseServiceImpl implements CourseService {
                 + userId + " and course " + courseName));
     }
 
-    private List<Message> sendContents(List<Content> contents, UserEntity user) {
+    private List<Message> sendContents(List<LocalizedContent> contents, UserEntity user) {
         final List<Message> messages = new ArrayList<>();
 
         for (Content content : contents) {

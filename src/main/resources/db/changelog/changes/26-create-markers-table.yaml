@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-markers-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: markers
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: offset
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: length
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: url
+                  type: varchar(64)
+              - column:
+                  name: language
+                  type: varchar(64)
+              - column:
+                  name: custom_emoji_id
+                  type: varchar(255)
+              - column:
+                  name: text
+                  type: varchar(1024)

@@ -73,6 +73,7 @@ public class CourseSettingsMenu implements MenuConfigurer {
 
         final Page secondPage = new Page();
         secondPage.setPageIndex(1);
+        secondPage.setButtonsRowSize(2);
         secondPage.setLocalizationFunction((u, p) -> {
             final Course course = courseService.getCourseByName(p.get(0));
             final Map<String, Object> parameterMap = new HashMap<>();

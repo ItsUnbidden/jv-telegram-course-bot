@@ -15,11 +15,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class InMemorySessionRepository implements SessionRepository, AutoClearable {
     private static final Logger LOGGER = LogManager.getLogger(InMemorySessionRepository.class);
+
+    private static final int INITIAL_EXPIRY_CHECK_DELAY = 10000;
 
     private static final ConcurrentMap<Integer, Session> sessions = new ConcurrentHashMap<>();
 
@@ -32,7 +35,6 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     @NonNull
     @Override
     public Session save(@NonNull Session session) {
-        removeExpired();
         sessions.put(session.getId(), session);
         indexByUser(session.getUser(), session);
         return session;
@@ -41,12 +43,12 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     @NonNull
     @Override
     public Optional<Session> find(@NonNull Integer id) {
-        removeExpired();
         return Optional.ofNullable(sessions.get(id));
     }
 
-    // TODO: implement task scheduling
     @Override
+    @Scheduled(initialDelay = INITIAL_EXPIRY_CHECK_DELAY,
+            fixedDelayString = "${telegram.bot.message.session.schedule.delay}")
     public void removeExpired() {
         LOGGER.debug("Checking for expired sessions...");
         List<Integer> keysToRemove = new ArrayList<>();
@@ -113,7 +115,8 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     @Override
     @NonNull
     public List<Session> findForUser(@NonNull Long userId) {
-        return sessionsIndexedByUser.get(userId);
+        final List<Session> sessions = sessionsIndexedByUser.get(userId);
+        return (sessions != null) ? sessions : new ArrayList<>();
     }
 
     private void indexByUser(UserEntity user, Session session) {

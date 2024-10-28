@@ -2,8 +2,10 @@ package com.unbidden.telegramcoursesbot.service.content;
 
 import com.unbidden.telegramcoursesbot.exception.NoImplementationException;
 import com.unbidden.telegramcoursesbot.model.content.Content;
+import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 import com.unbidden.telegramcoursesbot.service.content.handler.LocalizedContentHandler;
+import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +23,7 @@ public class ContentManagerImpl implements ContentManager {
 
     private final List<LocalizedContentHandler<? extends Content>> handlers;
 
+    @PostConstruct
     public void init() {
         for (LocalizedContentHandler<? extends Content> handler : handlers) {
             handlerMap.put(handler.getContentType(), handler);
@@ -36,18 +39,18 @@ public class ContentManagerImpl implements ContentManager {
         if (potentialHandler != null) {
             return potentialHandler;
         }
-        throw new NoImplementationException("There is no parser implementation for content type "
+        throw new NoImplementationException("There is no handler implementation for content type "
                 + contentType);
     }
 
     @Override
     @NonNull
-    public Content getById(@NonNull Long id) {
+    public LocalizedContent getById(@NonNull Long id) {
         for (LocalizedContentHandler<? extends Content> handler : handlers) {
             final Optional<? extends Content> potentialContent = handler.findById(id);
 
             if (potentialContent.isPresent()) {
-                return potentialContent.get();
+                return (LocalizedContent)potentialContent.get();
             }
         }
         throw new EntityNotFoundException("Content with id " + id + " does not exist");

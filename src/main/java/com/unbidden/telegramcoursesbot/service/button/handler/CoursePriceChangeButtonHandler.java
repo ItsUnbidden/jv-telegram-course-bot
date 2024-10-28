@@ -76,7 +76,7 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
                     throw new InvalidDataSentException("Unable to parse provided string "
                             + providedStr + " to new price int", e);
                 }
-            });
+            }, true);
             Localization updateRequestLocalization = localizationLoader.getLocalizationForUser(
                     SERVICE_COURSE_PRICE_UPDATE_REQUEST, user, messageParams);
             bot.sendMessage(SendMessage.builder()

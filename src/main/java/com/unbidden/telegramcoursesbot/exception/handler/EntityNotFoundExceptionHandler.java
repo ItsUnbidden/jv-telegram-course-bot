@@ -5,6 +5,8 @@ import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -12,6 +14,9 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 @Component
 @RequiredArgsConstructor
 public class EntityNotFoundExceptionHandler implements ExceptionHandler {
+    private static final Logger LOGGER =
+            LogManager.getLogger(EntityNotFoundExceptionHandler.class);
+
     private static final String ERROR_ENTITY_NOT_FOUND_EXCEPTION =
             "error_entity_not_found_exception";
 
@@ -22,6 +27,7 @@ public class EntityNotFoundExceptionHandler implements ExceptionHandler {
         final Localization errorLoc = localizationLoader.getLocalizationForUser(
                 ERROR_ENTITY_NOT_FOUND_EXCEPTION, user);
         
+        LOGGER.warn("Unable to find an entity. Error message: " + exc.getMessage() + ".");
         return SendMessage.builder()
                 .chatId(user.getId())
                 .text(errorLoc.getData())

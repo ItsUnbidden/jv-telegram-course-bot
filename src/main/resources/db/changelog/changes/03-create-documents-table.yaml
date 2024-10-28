@@ -1,0 +1,54 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-documents-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: documents
+            columns:
+              - column:
+                  name: unique_id
+                  type: varchar(255) COLLATE latin1_general_cs
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: document_type
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_size
+                  type: bigint
+              - column:
+                  name: file_name
+                  type: varchar(255)
+              - column:
+                  name: thumbnail_photo_id
+                  type: varchar(255) COLLATE latin1_general_cs
+                  constraints:
+                    foreignKeyName: fk_thumbnail_documents
+                    references: photos(unique_id)
+              - column:
+                  name: mime_type
+                  type: varchar(255)
+              - column:
+                  name: title
+                  type: varchar(255)
+              - column:
+                  name: performer
+                  type: varchar(255)
+              - column:
+                  name: duration
+                  type: int
+              - column:
+                  name: height
+                  type: int
+              - column:
+                  name: width
+                  type: int

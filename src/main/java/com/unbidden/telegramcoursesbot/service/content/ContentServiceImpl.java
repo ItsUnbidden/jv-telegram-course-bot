@@ -4,8 +4,8 @@ import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
+import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.service.content.handler.LocalizedContentHandler;
-
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -26,40 +26,43 @@ public class ContentServiceImpl implements ContentService {
 
     @Override
     @NonNull
-    public Content parseAndPersistContent(@NonNull List<Message> messages) {
+    public LocalizedContent parseAndPersistContent(@NonNull List<Message> messages) {
         return parseAndPersistContent(messages, List.of());
     }
 
     @Override
     @NonNull
-    public Content parseAndPersistContent(@NonNull List<Message> messages, boolean isLocalized) {
+    public LocalizedContent parseAndPersistContent(@NonNull List<Message> messages, boolean isLocalized) {
         return persistContent(null, messages, List.of(), isLocalized);
     }
 
     @Override
     @NonNull
-    public Content parseAndPersistContent(@NonNull List<Message> messages,
+    public LocalizedContent parseAndPersistContent(@NonNull List<Message> messages,
             @NonNull List<MediaType> allowedContentTypes) {
         return persistContent(null, messages, allowedContentTypes, false);
     }
 
     @Override
     @NonNull
-    public Content parseAndUpdateContent(@NonNull Long contentId,
+    @Deprecated
+    public LocalizedContent parseAndUpdateContent(@NonNull Long contentId,
             @NonNull List<Message> messages) {
         return persistContent(contentId, messages, List.of(), false);
     }
 
     @Override
     @NonNull
-    public Content parseAndUpdateContent(@NonNull Long contentId, @NonNull List<Message> messages,
+    @Deprecated
+    public LocalizedContent parseAndUpdateContent(@NonNull Long contentId, @NonNull List<Message> messages,
             boolean isLocalized) {
         return persistContent(contentId, messages, List.of(), isLocalized);
     }
 
     @Override
     @NonNull
-    public Content parseAndUpdateContent(@NonNull Long contentId, @NonNull List<Message> messages,
+    @Deprecated
+    public LocalizedContent parseAndUpdateContent(@NonNull Long contentId, @NonNull List<Message> messages,
             @NonNull List<MediaType> allowedContentTypes) {
         return persistContent(contentId, messages, allowedContentTypes, false);
     }
@@ -72,65 +75,91 @@ public class ContentServiceImpl implements ContentService {
 
     @Override
     @NonNull
-    public Content getById(@NonNull Long id) {
+    public LocalizedContent getById(@NonNull Long id) {
         return contentManager.getById(id);
     }
 
     @Override
     @NonNull
     public List<MediaType> parseMediaTypes(@NonNull String mediaTypesStr) {
-        final String[] mediaTypesStrArray = mediaTypesStr.split(MEDIA_TYPES_DIVIDER);
         final List<MediaType> mediaTypes = new ArrayList<>();
 
-        for (String mediaTypeStr : mediaTypesStrArray) {
-            mediaTypes.add(MediaType.valueOf(mediaTypeStr));
+        if (!mediaTypesStr.isBlank()) {
+            final String[] mediaTypesStrArray = mediaTypesStr.split(MEDIA_TYPES_DIVIDER);
+
+            for (String mediaTypeStr : mediaTypesStrArray) {
+                mediaTypes.add(MediaType.valueOf(mediaTypeStr));
+            }
         }
         return mediaTypes;
     }
 
     private MediaType defineContentType(List<Message> messages) {
         LOGGER.info("Trying to define content type of messages...");
-        final int numberOfAudio = messages.stream().filter(m -> m.hasAudio()).toList().size();
+
+        int numberOfText = 0;
+        int numberOfAudio = 0;
+        int numberOfDocuments = 0;
+        int numberOfGraphics = 0;
+        boolean isCaptionPresent = false;
+        for (Message message : messages) {
+            if (message.hasText()) {
+                numberOfText++;
+            }
+            if (message.hasAudio()) {
+                numberOfAudio++;
+            }
+            if (message.hasDocument()) {
+                numberOfDocuments++;
+            }
+            if (message.hasVideo() || message.hasPhoto()) {
+                numberOfGraphics++;
+            }
+            if (message.getCaption() != null && !message.getCaption().isEmpty()) {
+                isCaptionPresent = true;
+            }
+        }
+
+        if (numberOfText != 0 && isCaptionPresent) {
+            throw new InvalidDataSentException("Captions and text in the "
+                    + "same content are not supported");
+        }
+        if (numberOfText > 1) {
+            throw new InvalidDataSentException("Several text messages are not supported");
+        }
 
         if (numberOfAudio != 0) {
-            if (messages.size() != numberOfAudio) {
+            if (messages.size() != numberOfAudio + numberOfText) {
                 throw new InvalidDataSentException("Audio files can only be "
-                        + "grouped with other audio files");
+                        + "grouped with other audio files and text");
             }
             LOGGER.info("Content type is audio.");
             return MediaType.AUDIO;
         }
-        final int numberOfDocuments = messages.stream().filter(m -> m.hasDocument())
-                .toList().size();
         
         if (numberOfDocuments != 0) {
-            if (messages.size() != numberOfDocuments) {
+            if (messages.size() != numberOfDocuments + numberOfText) {
                 throw new InvalidDataSentException("Documents can only be "
-                        + "grouped with other documents");
+                        + "grouped with other documents and text");
             }
             LOGGER.info("Content type is document.");
             return MediaType.DOCUMENT;
         }
-        final int numberOfGraphics = messages.stream().filter(m -> m.hasVideo() || m.hasPhoto())
-                .toList().size();
 
         if (numberOfGraphics != 0) {
-            if (messages.size() != numberOfGraphics) {
+            if (messages.size() != numberOfGraphics + numberOfText) {
                 throw new InvalidDataSentException("Videos and photos cannot be grouped "
-                        + "with text messages, only with captions");
+                        + "with other media types");
             }
             LOGGER.info("Content type is graphic.");
             return MediaType.GRAPHICS;
         }
 
-        if (messages.size() != 1) {
-            throw new InvalidDataSentException("Several text messages are not supported");
-        }
         LOGGER.info("Content type is text.");
         return MediaType.TEXT;
     }
 
-    private Content persistContent(Long contentId, List<Message> messages,
+    private LocalizedContent persistContent(Long contentId, List<Message> messages,
             List<MediaType> allowedContentTypes,
             boolean isLocalized) {
         LOGGER.info("Initiating parsing of a message to content.");
@@ -150,7 +179,9 @@ public class ContentServiceImpl implements ContentService {
 
         final Content content = (isLocalized) ? handler.parseLocalized(messages, isLocalized)
                 : handler.parse(messages);
+        content.setType(messagesContentType);
         content.setId(contentId);
-        return handler.persist(content);
+
+        return (LocalizedContent)handler.persist(content);
     }
 }

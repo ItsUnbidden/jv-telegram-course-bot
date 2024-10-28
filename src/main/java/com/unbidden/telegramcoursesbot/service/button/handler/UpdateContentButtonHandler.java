@@ -15,6 +15,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 @Component
 @RequiredArgsConstructor
+@Deprecated
 public class UpdateContentButtonHandler implements ButtonHandler {
     private static final String PARAM_CONTENT_ID = "${contentId}";
     

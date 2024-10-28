@@ -3,7 +3,7 @@ package com.unbidden.telegramcoursesbot.service.review;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.model.content.Content;
+import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
@@ -19,11 +19,11 @@ public interface ReviewService {
             int courseGrade, int platformGrade);
 
     @NonNull
-    Review commitAdvancedReview(@NonNull Long reviewId, @NonNull Content content);
+    Review commitAdvancedReview(@NonNull Long reviewId, @NonNull LocalizedContent content);
 
     @NonNull
     Review leaveComment(@NonNull UserEntity user, @NonNull Review review,
-            @NonNull Content content);
+            @NonNull LocalizedContent content);
 
     @NonNull
     Review updateCourseGrade(@NonNull Long reviewId, int newGrade);
@@ -32,7 +32,7 @@ public interface ReviewService {
     Review updatePlatformGrade(@NonNull Long reviewId, int newGrade);
 
     @NonNull
-    Review updateAdvancedReview(@NonNull Long reviewId, @NonNull Content content);
+    Review updateAdvancedReview(@NonNull Long reviewId, @NonNull LocalizedContent content);
 
     @NonNull
     List<Review> getReviewsForCourse(@NonNull Course course, Pageable pageable);
