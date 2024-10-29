@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.model;
 
+import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -30,7 +31,7 @@ public class HomeworkProgress {
 
     @OneToOne
     @JoinColumn(name = "content_id")
-    private Content content;
+    private LocalizedContent content;
 
     @ManyToOne
     @JoinColumn(name = "curator_id")

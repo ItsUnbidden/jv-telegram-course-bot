@@ -50,7 +50,7 @@ public class GeneralExceptionHandler implements ExceptionHandler {
         final Localization errorLoc = localizationLoader.getLocalizationForUser(
                 ERROR_UNSPECIFIED_EXCEPTION, user, getParameterMap(exc));
 
-        notifyDirector(exc);
+        // notifyDirector(exc); TODO: this is currently disabled to stop file spamming
 
         return SendMessage.builder()
                 .chatId(user.getId())

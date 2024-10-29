@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Deprecated
 public class UpdateContentMenu implements MenuConfigurer {
     private static final String MENU_NAME = "m_cntUpd";
 

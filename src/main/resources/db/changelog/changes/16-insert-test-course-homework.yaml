@@ -8,7 +8,7 @@ databaseChangeLog:
             columns:
               - column:
                   name: content_id
-                  valueNumeric: 20
+                  valueNumeric: 1
               - column:
                   name: is_feedback_required
                   valueBoolean: true
@@ -17,7 +17,7 @@ databaseChangeLog:
             columns:
               - column:
                   name: content_id
-                  valueNumeric: 21
+                  valueNumeric: 2
               - column:
                   name: is_feedback_required
                   valueBoolean: false

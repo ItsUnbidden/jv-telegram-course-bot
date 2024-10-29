@@ -1,27 +1,33 @@
 package com.unbidden.telegramcoursesbot.repository;
 
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.service.session.ContentSession;
 import com.unbidden.telegramcoursesbot.service.session.Session;
+import com.unbidden.telegramcoursesbot.service.session.UserOrChatRequestSession;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class InMemorySessionRepository implements SessionRepository, AutoClearable {
     private static final Logger LOGGER = LogManager.getLogger(InMemorySessionRepository.class);
 
-    private static final Map<Integer, Session> sessions = new HashMap<>();
+    private static final int INITIAL_EXPIRY_CHECK_DELAY = 10000;
 
-    private static final Map<Long, List<Session>> sessionsIndexedByUser = new HashMap<>();
+    private static final ConcurrentMap<Integer, Session> sessions = new ConcurrentHashMap<>();
+
+    private static final ConcurrentMap<Long, List<Session>> sessionsIndexedByUser =
+            new ConcurrentHashMap<>();
 
     @Value("${telegram.bot.message.session.expiration}")
     private Integer expiration;
@@ -29,7 +35,6 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     @NonNull
     @Override
     public Session save(@NonNull Session session) {
-        removeExpired();
         sessions.put(session.getId(), session);
         indexByUser(session.getUser(), session);
         return session;
@@ -38,11 +43,12 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     @NonNull
     @Override
     public Optional<Session> find(@NonNull Integer id) {
-        removeExpired();
         return Optional.ofNullable(sessions.get(id));
     }
 
     @Override
+    @Scheduled(initialDelay = INITIAL_EXPIRY_CHECK_DELAY,
+            fixedDelayString = "${telegram.bot.message.session.schedule.delay}")
     public void removeExpired() {
         LOGGER.debug("Checking for expired sessions...");
         List<Integer> keysToRemove = new ArrayList<>();
@@ -79,12 +85,27 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     }
 
     @Override
-    public void removeForUserIfNotRequestUserOrChat(@NonNull Long userId) {
+    public void removeContentSessionsForUser(@NonNull Long userId) {
         final List<Session> userSessions = sessionsIndexedByUser.get(userId);
 
         if (userSessions != null) {
             final List<Integer> keysToRemove = userSessions.stream()
-                    .filter(s -> !s.isUserOrChatRequestButton()).map(s -> s.getId()).toList();
+                    .filter(s -> s.getClass().equals(ContentSession.class))
+                    .map(s -> s.getId()).toList();
+            for (Integer key : keysToRemove) {
+                removeFromIndexedSessions(sessions.remove(key));
+            }
+        }
+    }
+
+    @Override
+    public void removeUserOrChatRequestSessionsForUser(@NonNull Long userId) {
+        final List<Session> userSessions = sessionsIndexedByUser.get(userId);
+
+        if (userSessions != null) {
+            final List<Integer> keysToRemove = userSessions.stream()
+                    .filter(s -> s.getClass().equals(UserOrChatRequestSession.class))
+                    .map(s -> s.getId()).toList();
             for (Integer key : keysToRemove) {
                 removeFromIndexedSessions(sessions.remove(key));
             }
@@ -94,7 +115,8 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     @Override
     @NonNull
     public List<Session> findForUser(@NonNull Long userId) {
-        return sessionsIndexedByUser.get(userId);
+        final List<Session> sessions = sessionsIndexedByUser.get(userId);
+        return (sessions != null) ? sessions : new ArrayList<>();
     }
 
     private void indexByUser(UserEntity user, Session session) {

@@ -337,6 +337,11 @@ public class MenuServiceImpl implements MenuService {
         }
     }
 
+    @Override
+    public void terminateMenu(@NonNull Long chatId, @NonNull Integer messageId) {
+        terminateMenu(chatId, messageId, null);
+    }
+
     private InlineKeyboardMarkup getInitialMarkup(Page menuPage, String param, UserEntity user) {
         final String callbackData = menuPage.getMenu().getName() + DIVIDER
                 + menuPage.getPageIndex() + DIVIDER + ((param == "") ? param : param + DIVIDER);

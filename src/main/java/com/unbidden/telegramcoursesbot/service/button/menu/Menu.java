@@ -3,7 +3,6 @@ package com.unbidden.telegramcoursesbot.service.button.menu;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.button.handler.ButtonHandler;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;

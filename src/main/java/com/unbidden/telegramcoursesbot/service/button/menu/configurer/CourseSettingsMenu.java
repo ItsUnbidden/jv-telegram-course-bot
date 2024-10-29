@@ -1,8 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.button.menu.configurer;
 
-import com.unbidden.telegramcoursesbot.model.Content;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Lesson;
+import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.repository.LessonRepository;
 import com.unbidden.telegramcoursesbot.service.button.handler.CoursePriceChangeButtonHandler;
 import com.unbidden.telegramcoursesbot.service.button.handler.FeedbackInclusionButtonHandler;
@@ -73,6 +73,7 @@ public class CourseSettingsMenu implements MenuConfigurer {
 
         final Page secondPage = new Page();
         secondPage.setPageIndex(1);
+        secondPage.setButtonsRowSize(2);
         secondPage.setLocalizationFunction((u, p) -> {
             final Course course = courseService.getCourseByName(p.get(0));
             final Map<String, Object> parameterMap = new HashMap<>();

@@ -21,7 +21,16 @@ databaseChangeLog:
                     references: content(id)
                     nullable: false
               - column:
+                  name: allowed_media_types
+                  type: varchar(255)
+              - column:
                   name: is_feedback_required
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_repeated_completion_available
                   type: boolean
                   defaultValueBoolean: false
                   constraints:

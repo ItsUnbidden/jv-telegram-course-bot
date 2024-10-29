@@ -5,12 +5,13 @@ import com.unbidden.telegramcoursesbot.dao.ArchiveReviewsDao;
 import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.ArchiveReviewsException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
-import com.unbidden.telegramcoursesbot.model.Content;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.repository.ReviewRepository;
 import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
+import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
@@ -89,6 +90,8 @@ public class ReviewServiceImpl implements ReviewService {
 
     private final MenuService menuService;
 
+    private final ContentService contentService;
+
     private final LocalizationLoader localizationLoader;
 
     private final ArchiveReviewsDao archiveReviewsDao;
@@ -131,7 +134,7 @@ public class ReviewServiceImpl implements ReviewService {
         LOGGER.info("Sending advanced review menu for course " + review.getCourse().getName()
                 + " to user " +  review.getUser().getId() + "...");
         menuService.initiateMenu(LEAVE_ADVANCED_REVIEW_MENU, review.getUser(),
-                review.getId().toString(), messageId);
+                review.getCourse().getName(), messageId);
         LOGGER.info("Menu sent. Adding message " + messageId + " to an MTG...");
         menuService.addToMenuTerminationGroup(review.getUser(), review.getUser(), messageId,
                 SEND_ADVANCED_REVIEW_TERMINATION.formatted(review.getId()), 
@@ -184,7 +187,8 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @NonNull
-    public Review commitAdvancedReview(@NonNull Long reviewId, @NonNull Content content) {
+    public Review commitAdvancedReview(@NonNull Long reviewId,
+            @NonNull LocalizedContent content) {
         final Review review = getReviewById(reviewId);
         if (review.getContent() != null) {
             throw new ActionExpiredException("Unable to submit content for basic review "
@@ -219,7 +223,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @NonNull
     public Review leaveComment(@NonNull UserEntity user, @NonNull Review review,
-            @NonNull Content content) {
+            @NonNull LocalizedContent content) {
         if (review.getCommentContent() != null) {
             throw new ActionExpiredException("Unable to submit comment content for review "
                     + review.getId() + " because this review already has a comment from user "
@@ -255,12 +259,11 @@ public class ReviewServiceImpl implements ReviewService {
                 .text(notification.getData())
                 .entities(notification.getEntities())
                 .build());
-        LOGGER.info("Notificaton sent. Marking review as read...");
+        LOGGER.info("Notificaton sent. Sending comment content...");
+        contentService.sendContent(content, review.getUser());
+        LOGGER.debug("Content sent. Marking review as read...");
         markReviewAsRead(review, user);
-        LOGGER.info("Review marked as archived. Terminating all related menus...");
-        menuService.terminateMenuGroup(user, REVIEW_ACTIONS_MENU_TERMINATION
-                .formatted(review.getId()));
-        LOGGER.info("Menus terminated.");
+        LOGGER.info("Review marked as archived.");
         return review;
     }
 
@@ -320,7 +323,8 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @NonNull
-    public Review updateAdvancedReview(@NonNull Long reviewId, @NonNull Content content) {
+    public Review updateAdvancedReview(@NonNull Long reviewId,
+            @NonNull LocalizedContent content) {
         final Review review = getReviewById(reviewId);
         if (review.getContent() == null) {
             throw new UnsupportedOperationException("Unable to update review " + reviewId
@@ -476,14 +480,14 @@ public class ReviewServiceImpl implements ReviewService {
                     SERVICE_REVIEW_INFO_CONTENT_COMMENT, user, textUtil
                     .getParamsMapForNewReview(review));
                 sendMessage(user, reviewInfo);
-                message = bot.sendContent(review.getContent(), user).get(0);
+                message = contentService.sendContent(review.getContent(), user).get(0);
                 
             } else if (review.getContent() != null) {
                 LOGGER.info("Review is advanced.");
                 reviewInfo = localizationLoader.getLocalizationForUser(
                     SERVICE_REVIEW_INFO_CONTENT, user, textUtil.getParamsMapForNewReview(review));
                 sendMessage(user, reviewInfo);
-                message = bot.sendContent(review.getContent(), user).get(0);
+                message = contentService.sendContent(review.getContent(), user).get(0);
             } else if (review.getCommentContent() != null) {
                 LOGGER.info("Review has a comment.");
                 reviewInfo = localizationLoader.getLocalizationForUser(

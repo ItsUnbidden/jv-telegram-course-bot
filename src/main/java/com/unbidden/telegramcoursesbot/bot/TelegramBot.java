@@ -1,15 +1,7 @@
 package com.unbidden.telegramcoursesbot.bot;
 
-import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
-import com.unbidden.telegramcoursesbot.model.Content;
-import com.unbidden.telegramcoursesbot.model.Photo;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.model.Video;
-import com.unbidden.telegramcoursesbot.repository.ContentRepository;
-import com.unbidden.telegramcoursesbot.repository.PhotoRepository;
-import com.unbidden.telegramcoursesbot.repository.VideoRepository;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,22 +17,14 @@ import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.commands.DeleteMyCommands;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.menubutton.SetChatMenuButton;
-import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
-import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
 import org.telegram.telegrambots.meta.api.methods.updates.GetWebhookInfo;
-import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.WebhookInfo;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeChat;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
-import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
-import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto;
-import org.telegram.telegrambots.meta.api.objects.media.InputMediaVideo;
 import org.telegram.telegrambots.meta.api.objects.menubutton.MenuButtonCommands;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -50,8 +34,6 @@ public class TelegramBot extends TelegramWebhookBot {
 
     private static final String MENU_COMMAND_DESCRIPTION = "menu_command_%s_description";
     
-    private static final String ERROR_CONTENT_EMPTY = "error_content_empty";
-
     private static final Logger LOGGER = LogManager.getLogger(TelegramBot.class);
 
     private static final List<String> COMMAND_MENU_EXCEPTIONS = new ArrayList<>();
@@ -60,15 +42,6 @@ public class TelegramBot extends TelegramWebhookBot {
     private String username;
 
     private volatile boolean isOnMaintenance;
-
-    @Autowired
-    private ContentRepository contentRepository;
-
-    @Autowired 
-    private PhotoRepository photoRepository;
-
-    @Autowired 
-    private VideoRepository videoRepository;
 
     @Autowired
     private LocalizationLoader localizationLoader;
@@ -136,173 +109,6 @@ public class TelegramBot extends TelegramWebhookBot {
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to send message.", e);
         }
-    }
-    
-    @NonNull
-    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user) {
-        InputMediaVideo inputVideo = null;
-        List<InputMediaPhoto> inputPhotos = null;
-        final Localization textLocalization = (content.getData() != null) ?
-                localizationLoader.getLocalizationForUser(content.getData(), user) : null;
-        
-        content = contentRepository.findById(content.getId()).get();
-        
-        LOGGER.info("Content " + content.getId() + " sending initiated...");
-        if (content.getVideo() != null) {
-            LOGGER.info("Content has a video.");
-            inputVideo = new InputMediaVideo();
-            if (textLocalization != null) {
-                inputVideo.setCaption(textLocalization.getData());
-                inputVideo.setCaptionEntities(textLocalization.getEntities());
-            }
-            inputVideo.setDuration(content.getVideo().getDuration());
-            inputVideo.setHasSpoiler(false);
-            inputVideo.setHeight(content.getVideo().getHeight());
-            inputVideo.setMedia(content.getVideo().getId());
-            inputVideo.setMediaName(content.getVideo().getName());
-            inputVideo.setWidth(content.getVideo().getWidth());
-        }
-
-        if (content.getPhotos() != null && !content.getPhotos().isEmpty()) {
-            LOGGER.info("Content has some photos.");
-            inputPhotos = content.getPhotos().stream().map(p -> {
-                    final InputMediaPhoto inputPhoto = new InputMediaPhoto();
-
-                    inputPhoto.setMedia(p.getId());
-                    if (textLocalization != null) {
-                        inputPhoto.setCaption(textLocalization.getData());
-                        inputPhoto.setCaptionEntities(textLocalization.getEntities());
-                    }
-                    return inputPhoto;
-            }).toList();
-        }
-        
-        try {
-            if (inputPhotos != null) {
-                if (inputPhotos.size() > 1 || inputVideo != null) {
-                    LOGGER.info("There is a combination of photos or photos and a video.");
-                    final List<InputMedia> medias = new ArrayList<>();
-
-                    medias.addAll(inputPhotos);
-                    if (inputVideo != null) {
-                        medias.add(inputVideo);
-                    }
-                    LOGGER.info("Sending...");
-                    return execute(SendMediaGroup.builder()
-                            .chatId(user.getId())
-                            .disableNotification(false)
-                            .protectContent(true)
-                            .medias(medias)
-                            .build());
-                }
-                final InputMediaPhoto photo = inputPhotos.get(0);
-                
-                LOGGER.info("There is one photo. Sending...");
-                return List.of(execute(SendPhoto.builder()
-                        .photo(new InputFile(photo.getMedia()))
-                        .caption(photo.getCaption())
-                        .captionEntities(new ArrayList<>())
-                        .chatId(user.getId())
-                        .disableNotification(false)
-                        .protectContent(true)
-                        .hasSpoiler(false)
-                        .build()));
-            }
-            if (inputVideo != null) {
-                LOGGER.info("There is one video. Sending...");
-                return List.of(execute(SendVideo.builder()
-                        .video(new InputFile(inputVideo.getMedia()))
-                        .caption(inputVideo.getCaption())
-                        .captionEntities(new ArrayList<>())
-                        .chatId(user.getId())
-                        .disableNotification(false)
-                        .duration(inputVideo.getDuration())
-                        .hasSpoiler(false)
-                        .height(inputVideo.getHeight())
-                        .protectContent(true)
-                        .width(inputVideo.getWidth())
-                        .build()));
-            }
-            if (textLocalization != null) {
-                LOGGER.info("There is only text. Sending...");
-                return List.of(execute(SendMessage.builder()
-                        .chatId(user.getId())
-                        .disableNotification(false)
-                        .entities(textLocalization.getEntities())
-                        .protectContent(true)
-                        .text(textLocalization.getData())
-                        .build()));
-            }
-            LOGGER.warn("There is no relevant content present.");
-            final Localization errorLocalization = localizationLoader.getLocalizationForUser(
-                    ERROR_CONTENT_EMPTY, user);
-            return List.of(sendMessage(SendMessage.builder()
-                    .chatId(user.getId())
-                    .text(errorLocalization.getData())
-                    .entities(errorLocalization.getEntities())
-                    .build()));
-        } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to send content.", e);
-        }
-    }
-
-    @NonNull
-    public Content parseAndPersistContent(@NonNull Message message, Long contentId) {
-        LOGGER.info("Initiating parsing of a message to content.");
-        List<Photo> photos = null;
-        Video video = null;
-        String text = null;
-        if (message.hasPhoto()) {
-            LOGGER.info("Message has one or more photos.");
-            final PhotoSize photoSize = message.getPhoto().get(message.getPhoto().size() - 1);
-
-            photos = new ArrayList<>();
-            
-            final Photo photo = new Photo();
-            photo.setId(photoSize.getFileId());
-            photo.setUniqueId(photoSize.getFileUniqueId());
-            photo.setSize(photoSize.getFileSize());
-            photo.setHeight(photoSize.getHeight());
-            photo.setWidth(photoSize.getWidth());       
-            photoRepository.save(photo);  
-            photos.add(photo); 
-        }
-        if (message.hasVideo()) {
-            LOGGER.info("Message has a video.");
-            video = new Video();
-            video.setId(message.getVideo().getFileId());
-            video.setUniqueId(message.getVideo().getFileUniqueId());
-            video.setDuration(message.getVideo().getDuration());
-            video.setHeight(message.getVideo().getHeight());
-            video.setWidth(message.getVideo().getWidth());
-            video.setMimeType(message.getVideo().getMimeType());
-            video.setName(message.getVideo().getFileName());
-            video.setSize(message.getVideo().getFileSize());
-            videoRepository.save(video);
-        }
-        if (message.hasText()) {
-            LOGGER.info("Message has text.");
-            text = message.getText();
-        }
-        if (message.getCaption() != null && !message.getCaption().isBlank()) {
-            LOGGER.info("Message has captions.");
-            text = message.getCaption();
-        }
-        if ((photos == null || photos.isEmpty()) && video == null && text == null) {
-            throw new InvalidDataSentException("User " + message.getFrom().getId()
-                    + " has sent invalid homework response.");
-        }
-        final Content content = new Content();
-        content.setId(contentId);
-        content.setData(text);
-        content.setVideo(video);
-        content.setPhotos(photos);
-        LOGGER.info("Persisting content...");
-        return contentRepository.save(content);
-    }
-
-    public Content parseAndPersistContent(@NonNull Message message) {
-        return parseAndPersistContent(message, null);
     }
 
     public boolean isOnMaintenance() {

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="warn">
+<Configuration status="WARN">
 	<Appenders>
         <Console name="stdout">
             <PatternLayout>
@@ -27,8 +27,8 @@
 	</Appenders>
 	<Loggers>
 		<Root level="info">
-            <appender-ref ref="stdout" level="info"/>
-			<appender-ref ref="fileLogger" level="info"/>
+            <appender-ref ref="stdout" level="DEBUG"/>
+			<appender-ref ref="fileLogger" level="DEBUG"/>
 		</Root>
 	</Loggers>
 </Configuration>

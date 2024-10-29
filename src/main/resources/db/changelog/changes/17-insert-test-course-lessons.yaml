@@ -8,40 +8,40 @@ databaseChangeLog:
             columns:
               - column:
                   name: course_id
-                  valueNumeric: 3
+                  valueNumeric: 1
               - column:
                   name: index
                   valueNumeric: 0
               - column:
                   name: sequence_option
+                  valueNumeric: 0
+        - insert:  
+            tableName: lessons
+            columns:
+              - column:
+                  name: course_id
+                  valueNumeric: 1
+              - column:
+                  name: index
+                  valueNumeric: 1
+              - column:
+                  name: homework_id
+                  valueNumeric: 1
+              - column:
+                  name: sequence_option
                   valueNumeric: 2
         - insert:  
             tableName: lessons
             columns:
               - column:
                   name: course_id
-                  valueNumeric: 3
-              - column:
-                  name: index
                   valueNumeric: 1
-              - column:
-                  name: homework_id
-                  valueNumeric: 3
-              - column:
-                  name: sequence_option
-                  valueNumeric: 1
-        - insert:  
-            tableName: lessons
-            columns:
-              - column:
-                  name: course_id
-                  valueNumeric: 3
               - column:
                   name: index
                   valueNumeric: 2
               - column:
                   name: homework_id
-                  valueNumeric: 4
+                  valueNumeric: 2
               - column:
                   name: sequence_option
-                  valueNumeric: 1
+                  valueNumeric: 2

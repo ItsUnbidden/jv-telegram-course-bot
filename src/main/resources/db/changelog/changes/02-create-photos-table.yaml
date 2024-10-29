@@ -1,14 +1,14 @@
 databaseChangeLog:
   - changeSet:
-      id: create-videos-table
+      id: create-photos-table
       author: Unbidden
       changes:
         - createTable:
-            tableName: videos
+            tableName: photos
             columns: 
               - column:
                   name: unique_id
-                  type: varchar(255)
+                  type: varchar(255) COLLATE latin1_general_cs
                   constraints:
                     nullable: false
                     primaryKey: true
@@ -18,16 +18,8 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: name
-                  type: varchar(255)
-              - column:
-                  name: duration
+                  name: file_size
                   type: int
-                  constraints:
-                    nullable: false
-              - column:
-                  name: size
-                  type: bigint
               - column:
                   name: height
                   type: int
@@ -39,5 +31,5 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: mime_type
+                  name: file_path
                   type: varchar(255)

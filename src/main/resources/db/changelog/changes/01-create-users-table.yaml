@@ -48,6 +48,6 @@ databaseChangeLog:
               - column:
                   name: is_receiving_homework_requests
                   type: boolean
-                  defaultValueBoolean: false
+                  defaultValueBoolean: true
                   constraints:
                     nullable: false

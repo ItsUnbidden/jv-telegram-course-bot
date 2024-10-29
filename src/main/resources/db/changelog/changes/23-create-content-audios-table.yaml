@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-content-audios-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: content_audios
+            columns: 
+              - column:
+                  name: content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_content_content_audios
+                    references: content(id)
+                    nullable: false
+              - column:
+                  name: audio_id
+                  type: varchar(255) COLLATE latin1_general_cs
+                  constraints:
+                    foreignKeyName: fk_audios_content_audios
+                    references: documents(unique_id)
+                    nullable: false

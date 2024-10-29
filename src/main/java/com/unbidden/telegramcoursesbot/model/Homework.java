@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.model;
 
+import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -20,10 +21,14 @@ public class Homework {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "content_id", nullable = false)
-    private Content content;
+    private LocalizedContent content;
+
+    private String allowedMediaTypes;
 
     @OneToOne(mappedBy = "homework")
     private Lesson lesson;
 
     private boolean isFeedbackRequired;
+
+    private boolean isRepeatedCompletionAvailable;
 }

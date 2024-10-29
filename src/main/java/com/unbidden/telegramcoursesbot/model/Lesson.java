@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.model;
 
+import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -30,7 +31,7 @@ public class Lesson {
     @JoinTable(name = "lessons_content",
             joinColumns = @JoinColumn(name = "lesson_id"),
             inverseJoinColumns = @JoinColumn(name = "content_id"))
-    private List<Content> structure;
+    private List<LocalizedContent> structure;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)

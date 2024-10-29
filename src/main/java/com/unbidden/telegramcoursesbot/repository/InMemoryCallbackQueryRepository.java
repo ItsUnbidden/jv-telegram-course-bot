@@ -1,15 +1,15 @@
 package com.unbidden.telegramcoursesbot.repository;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 
 @Repository
 public class InMemoryCallbackQueryRepository implements CallbackQueryRepository {
-    private static final Map<Long, CallbackQuery> queries = new HashMap<>();
+    private static final ConcurrentMap<Long, CallbackQuery> queries = new ConcurrentHashMap<>();
 
     @Override
     @NonNull

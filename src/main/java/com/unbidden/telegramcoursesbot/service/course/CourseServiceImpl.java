@@ -1,16 +1,18 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
-import com.unbidden.telegramcoursesbot.model.Content;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.content.Content;
+import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
 import com.unbidden.telegramcoursesbot.repository.LessonRepository;
 import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
+import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
@@ -42,7 +44,6 @@ public class CourseServiceImpl implements CourseService {
 
     private static final Logger LOGGER = LogManager.getLogger(CourseServiceImpl.class);
 
-
     private final CourseRepository courseRepository;
 
     private final LessonRepository lessonRepository;
@@ -58,6 +59,8 @@ public class CourseServiceImpl implements CourseService {
     private final HomeworkService homeworkService;
 
     private final ReviewService reviewService;
+
+    private final ContentService contentService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -240,11 +243,11 @@ public class CourseServiceImpl implements CourseService {
                 + userId + " and course " + courseName));
     }
 
-    private List<Message> sendContents(List<Content> contents, UserEntity user) {
+    private List<Message> sendContents(List<LocalizedContent> contents, UserEntity user) {
         final List<Message> messages = new ArrayList<>();
 
         for (Content content : contents) {
-            messages.addAll(bot.sendContent(content, user));
+            messages.addAll(contentService.sendContent(content, user));
         }
         return messages;
     }

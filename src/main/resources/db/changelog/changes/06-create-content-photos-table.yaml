@@ -15,9 +15,8 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: photo_id
-                  type: varchar(255)
+                  type: varchar(255) COLLATE latin1_general_cs
                   constraints:
                     foreignKeyName: fk_photos_content_photos
                     references: photos(unique_id)
                     nullable: false
-                

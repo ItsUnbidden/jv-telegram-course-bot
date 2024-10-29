@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: insert-test-course
+      id: insert-test-course-and-content
       author: Unbidden
       changes:
         - insert:  

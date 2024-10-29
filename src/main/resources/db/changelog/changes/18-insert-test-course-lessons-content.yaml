@@ -11,7 +11,7 @@ databaseChangeLog:
                   valueNumeric: 1
               - column:
                   name: content_id
-                  valueNumeric: 15
+                  valueNumeric: 3
         - insert:  
             tableName: lessons_content
             columns:
@@ -20,7 +20,7 @@ databaseChangeLog:
                   valueNumeric: 1
               - column:
                   name: content_id
-                  valueNumeric: 16
+                  valueNumeric: 4
         - insert:  
             tableName: lessons_content
             columns:
@@ -29,7 +29,7 @@ databaseChangeLog:
                   valueNumeric: 2
               - column:
                   name: content_id
-                  valueNumeric: 17
+                  valueNumeric: 5
         - insert:  
             tableName: lessons_content
             columns:
@@ -38,7 +38,7 @@ databaseChangeLog:
                   valueNumeric: 2
               - column:
                   name: content_id
-                  valueNumeric: 18
+                  valueNumeric: 6
         - insert:  
             tableName: lessons_content
             columns:
@@ -47,4 +47,4 @@ databaseChangeLog:
                   valueNumeric: 3
               - column:
                   name: content_id
-                  valueNumeric: 19
+                  valueNumeric: 7

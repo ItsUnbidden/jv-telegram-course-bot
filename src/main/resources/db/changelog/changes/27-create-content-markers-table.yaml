@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-content-markers-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: content_markers
+            columns: 
+              - column:
+                  name: content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_content_content_markers
+                    references: content(id)
+                    nullable: false
+              - column:
+                  name: marker_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_markers_content_markers
+                    references: markers(id)
+                    nullable: false

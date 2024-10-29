@@ -1,15 +1,16 @@
 package com.unbidden.telegramcoursesbot.repository;
 
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class InMemoryLocalizationRepository implements LocalizationRepository {
-    private static final Map<String, Localization> localizations = new HashMap<>();
+    private static final ConcurrentMap<String, Localization> localizations =
+            new ConcurrentHashMap<>();
 
     @Override
     @NonNull

@@ -1,12 +1,13 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.session.SessionService;
+import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.Blockable;
 import java.util.HashMap;
@@ -32,13 +33,11 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
     private static final String SERVICE_COURSE_PRICE_UPDATE_SUCCESS =
             "service_course_price_update_success";
 
-    private static final String ERROR_NEW_PRICE_CANNOT_PARSE = "error_new_price_cannot_parse";
-
     private final TelegramBot bot;
 
     private final CourseService courseService;
 
-    private final SessionService sessionService;
+    private final ContentSessionService sessionService;
     
     private final UserService userService;
 
@@ -56,31 +55,28 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
     
             LOGGER.info("Course price change handler was triggered. Current value is: "
                     + course.getPrice() + ".");
-            sessionService.createSession(user, false, (m) -> {
-                Localization response = localizationLoader.getLocalizationForUser(
-                    ERROR_NEW_PRICE_CANNOT_PARSE, user);
-                if (m.hasText()) {
-                    try {
-                        int newPrice = Integer.parseInt(m.getText().trim());
-                        LOGGER.info("New price " + newPrice + " for course " + course.getName()
-                                + " parsed successfuly.");
-                        course.setPrice(newPrice);
-                        courseService.save(course);
-                        LOGGER.info("New price saved.");
-                        response = localizationLoader.getLocalizationForUser(
-                                SERVICE_COURSE_PRICE_UPDATE_SUCCESS, user, messageParams);
-                    } catch (NumberFormatException e) {
-                        LOGGER.warn("Unable to parse new price provided by the user.");
-                    }
-                } else {
-                    LOGGER.warn("Message provided by the user does not have any text.");
+            sessionService.createSession(user, (m) -> {
+                final String providedStr = m.get(0).getText().trim();
+                try {
+                    final int newPrice = Integer.parseInt(providedStr);
+                    LOGGER.info("New price " + newPrice + " for course " + course.getName()
+                            + " parsed successfuly.");
+                    course.setPrice(newPrice);
+                    courseService.save(course);
+                    LOGGER.info("New price saved.");
+                    final Localization response = localizationLoader.getLocalizationForUser(
+                            SERVICE_COURSE_PRICE_UPDATE_SUCCESS, user, messageParams);
+
+                    bot.sendMessage(SendMessage.builder()
+                                .chatId(user.getId())
+                                .text(response.getData())
+                                .entities(response.getEntities())
+                                .build());
+                } catch (NumberFormatException e) {
+                    throw new InvalidDataSentException("Unable to parse provided string "
+                            + providedStr + " to new price int", e);
                 }
-                bot.sendMessage(SendMessage.builder()
-                            .chatId(user.getId())
-                            .text(response.getData())
-                            .entities(response.getEntities())
-                            .build());
-            });
+            }, true);
             Localization updateRequestLocalization = localizationLoader.getLocalizationForUser(
                     SERVICE_COURSE_PRICE_UPDATE_REQUEST, user, messageParams);
             bot.sendMessage(SendMessage.builder()

@@ -7,7 +7,7 @@ import com.unbidden.telegramcoursesbot.repository.CallbackQueryRepository;
 import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
-import com.unbidden.telegramcoursesbot.service.session.SessionService;
+import com.unbidden.telegramcoursesbot.service.session.SessionDistributor;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Optional;
@@ -45,7 +45,7 @@ public class WebhookController {
 
     private final MenuService menuService;
 
-    private final SessionService sessionService;
+    private final SessionDistributor sessionDistributor;
 
     private final UserService userService;
 
@@ -67,37 +67,36 @@ public class WebhookController {
             if (update.hasMessage() && update.getMessage().isCommand()) {
                 final String[] commandParts = update.getMessage().getText().split(" ");
                 user = userService.updateUser(update.getMessage().getFrom());
+                sessionDistributor.removeSessionsForUser(user);
 
                 LOGGER.info("Update with command " + update.getMessage().getText()
                         + " triggered by user " + user.getId() + ".");
-                sessionService.removeSessionsForUser(user);
                 commandHandlerManager.getHandler(commandParts[0]).handle(update.getMessage(),
                         commandParts);
             } else if (update.hasPreCheckoutQuery()) {
                 user = userService.updateUser(update.getPreCheckoutQuery().getFrom());
+                sessionDistributor.removeSessionsForUser(user);
 
                 LOGGER.info("Update with precheckout query triggered by user "
                         + user.getId() + ".");
-                sessionService.removeSessionsForUser(user);
                 paymentService.resolvePreCheckout(update.getPreCheckoutQuery());
             } else if (update.hasMessage() && update.getMessage().hasSuccessfulPayment()) {
                 user = userService.updateUser(update.getMessage().getFrom());
+                sessionDistributor.removeSessionsForUser(user);
 
                 LOGGER.info("Update with successful payment triggered by user "
                         + user.getId() + ".");
-                sessionService.removeSessionsForUser(user);
                 paymentService.resolveSuccessfulPayment(update.getMessage());
             } else if (update.hasCallbackQuery()) {
                 user = userService.updateUser(update.getCallbackQuery().getFrom());
 
                 LOGGER.info("Update with callback query triggered by user "
                         + user.getId() + ". Button " + update.getCallbackQuery().getData() + ".");
-                sessionService.removeSessionsForUser(user);
                 menuService.processCallbackQuery(update.getCallbackQuery());
             } else if (update.hasMessage()) {
                 user = userService.updateUser(update.getMessage().getFrom());
 
-                sessionService.processResponse(update.getMessage());
+                sessionDistributor.callService(update.getMessage());
             }
         } catch (Exception e) { 
             if (user != null) {

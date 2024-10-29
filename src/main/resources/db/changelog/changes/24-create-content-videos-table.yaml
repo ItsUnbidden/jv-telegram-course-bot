@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-content-videos-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: content_videos
+            columns: 
+              - column:
+                  name: content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_content_content_videos
+                    references: content(id)
+                    nullable: false
+              - column:
+                  name: video_id
+                  type: varchar(255) COLLATE latin1_general_cs
+                  constraints:
+                    foreignKeyName: fk_videos_content_videos
+                    references: documents(unique_id)
+                    nullable: false
