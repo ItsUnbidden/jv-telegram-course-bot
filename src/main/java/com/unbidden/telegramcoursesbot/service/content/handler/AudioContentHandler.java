@@ -210,9 +210,7 @@ public class AudioContentHandler implements LocalizedContentHandler<AudioContent
         }
         audioRepository.saveAll(audios);
         AudioContent audioContent = new AudioContent();
-        if (captions != null) {
-            audioContent.setData(new ContentTextData(captions, markers, isLocalized));
-        }
+        audioContent.setData(new ContentTextData(captions, markers, isLocalized));
         audioContent.setAudios(audios);
         audioContent.setLanguageCode(languageCode);
         return audioContent;

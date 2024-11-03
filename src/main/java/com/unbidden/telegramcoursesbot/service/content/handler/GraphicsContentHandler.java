@@ -230,9 +230,7 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
         videoRepository.saveAll(videos);
         photoRepository.saveAll(photos);
         GraphicsContent graphicsContent = new GraphicsContent();
-        if (captions != null) {
-            graphicsContent.setData(new ContentTextData(captions, markers, isLocalized));
-        }
+        graphicsContent.setData(new ContentTextData(captions, markers, isLocalized));
         graphicsContent.setPhotos(photos);
         graphicsContent.setVideos(videos);
         graphicsContent.setLanguageCode(languageCode);

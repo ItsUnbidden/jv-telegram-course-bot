@@ -13,6 +13,7 @@ import org.springframework.lang.NonNull;
 public class ContentTextData {
     private String data;
 
+    // TODO: make non-null in database
     private boolean isLocalization;
 
     @OneToMany
@@ -24,7 +25,7 @@ public class ContentTextData {
 
     }
 
-    public ContentTextData(@NonNull String data, @NonNull List<MarkerArea> markers,
+    public ContentTextData(String data, @NonNull List<MarkerArea> markers,
             boolean isLocalization) {
         this.data = data;
         this.entities = markers;

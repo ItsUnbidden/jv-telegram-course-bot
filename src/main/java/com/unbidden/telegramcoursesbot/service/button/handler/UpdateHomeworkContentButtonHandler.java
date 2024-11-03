@@ -60,6 +60,7 @@ public class UpdateHomeworkContentButtonHandler implements ButtonHandler {
                 homework.setAllowedMediaTypes("");
                 homework.setFeedbackRequired(true);
                 homework.setLesson(lesson);
+                homework.setMapping(null); // TODO: this is not going to work. Create homework after the content is ready
                 homework.setRepeatedCompletionAvailable(false);
                 homeworkService.save(homework);
                 lesson.setHomework(homework);

@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.localization;
 
+import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -24,6 +25,7 @@ public class Localization implements Cloneable {
 
     public Localization(String data) {
         this.data = data;
+        this.entities = new ArrayList<>();
         this.isInjectionRequired = false;
     }
 

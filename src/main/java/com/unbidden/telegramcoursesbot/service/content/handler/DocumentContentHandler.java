@@ -17,7 +17,6 @@ import com.unbidden.telegramcoursesbot.repository.PhotoRepository;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -208,9 +207,7 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
         }
         documentRepository.saveAll(documents);
         DocumentContent documentContent = new DocumentContent();
-        if (captions != null) {
-            documentContent.setData(new ContentTextData(captions, markers, isLocalized));
-        }
+        documentContent.setData(new ContentTextData(captions, markers, isLocalized));
         documentContent.setDocuments(documents);
         documentContent.setLanguageCode(languageCode);
         
