@@ -6,8 +6,6 @@ import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.model.content.Content;
-import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
 import com.unbidden.telegramcoursesbot.repository.LessonRepository;
@@ -20,7 +18,6 @@ import com.unbidden.telegramcoursesbot.service.review.ReviewService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -29,13 +26,13 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.User;
 
 @Service
 @RequiredArgsConstructor
 public class CourseServiceImpl implements CourseService {
+    private static final String SERVICE_COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS = "service_course_next_stage_media_group_bypass";
     private static final String NEXT_STAGE_MENU = "m_crsNxtStg";
     private static final String TEST_COURSE_NAME = "test_course";
 
@@ -129,32 +126,49 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public void current(@NonNull Course course, @NonNull CourseProgress courseProgress) {
-        final Lesson lesson = lessonRepository.findByIndexAndCourseName(courseProgress.getStage(),
-                course.getName()).get();
+        final Lesson lesson = lessonRepository.findByPositionAndCourseName(
+                courseProgress.getStage(), course.getName()).get();
         final UserEntity user = courseProgress.getUser();
 
-        LOGGER.info("Sending content for lesson " + lesson.getId() + " to user "
+        LOGGER.debug("Sending content for lesson " + lesson.getId() + " to user "
                 + user.getId() + "...");
-        final List<Message> sendContents = sendContents(lesson.getStructure(), user);
-        LOGGER.info("Content sent.");
-
+        for (int i = 0; i < lesson.getStructure().size() - 1; i++) {
+            contentService.sendLocalizedContent(lesson.getStructure().get(i), user);
+        }
+        LOGGER.debug("All except last content has been sent.");
+        final List<Message> lastContent = contentService.sendLocalizedContent(
+                lesson.getStructure().get(lesson.getStructure().size() - 1), user);
+        LOGGER.debug("Last content has been sent.");
         if (course.isHomeworkIncluded() && lesson.isHomeworkIncluded()) {
-            LOGGER.info("Lesson " + lesson.getId() + " includes homework. "
+            LOGGER.debug("Lesson " + lesson.getId() + " includes homework. "
                     + "Commencing homework sequence...");
             homeworkService.sendHomework(user, homeworkService.getHomework(
                     lesson.getHomework().getId()));
             return;
         }
-                
-        LOGGER.info("Lesson " + lesson.getId() + " or the course does not have any homework."
+        
+        LOGGER.debug("Lesson " + lesson.getId() + " or the course does not have any homework."
                 +" Sending next lesson menu...");
+        final Message menuMessage;
+        if (lastContent.size() > 1) {
+            LOGGER.warn("Last content in lesson " + lesson.getId() + " is a media group. "
+                    + "It is a recomendation to avoid such cases since it requires an "
+                    + "additional message to be sent for menu.");
+            final Localization mediaGroupBypassMessageLoc = localizationLoader
+                    .getLocalizationForUser(SERVICE_COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS, user);
+            menuMessage = bot.sendMessage(user, mediaGroupBypassMessageLoc);
+            LOGGER.debug("Additional message for menu has been sent.");
+        } else {
+            LOGGER.debug("Last message in lesson " + lesson.getId() + " is not a media group. "
+                    + "Menu will be attached to it.");    
+            menuMessage = lastContent.get(0);
+        }
         menuService.initiateMenu(NEXT_STAGE_MENU, user, course.getName()
                 + COURSE_NAME_LESSON_INDEX_DIVIDER + courseProgress.getStage(),
-                sendContents.get(sendContents.size() - 1).getMessageId());
-        menuService.addToMenuTerminationGroup(user, user, sendContents
-                .get(sendContents.size() - 1).getMessageId(), COURSE_NEXT_STAGE_MENU_TERMINATION
-                .formatted(courseProgress.getId()), null);
-        LOGGER.info("Next lesson menu sent.");
+                menuMessage.getMessageId());
+        menuService.addToMenuTerminationGroup(user, user, menuMessage.getMessageId(),
+                COURSE_NEXT_STAGE_MENU_TERMINATION.formatted(courseProgress.getId()), null);
+        LOGGER.debug("Next lesson menu sent.");
     }
 
     @Override
@@ -175,11 +189,7 @@ public class CourseServiceImpl implements CourseService {
                     .getName()), user);
         courseProgress.setNumberOfTimesCompleted(courseProgress.getNumberOfTimesCompleted() + 1);
         courseProgressRepository.save(courseProgress);
-        bot.sendMessage(SendMessage.builder()
-                .chatId(user.getId())
-                .text(localization.getData())
-                .entities(localization.getEntities())
-                .build());
+        bot.sendMessage(user, localization);
         if (!reviewService.isBasicReviewForCourseAndUserAvailable(user,
                 courseProgress.getCourse())) {
             reviewService.initiateBasicReview(user, courseProgress.getCourse());
@@ -241,14 +251,5 @@ public class CourseServiceImpl implements CourseService {
         return courseProgressRepository.findByUserIdAndCourseName(userId, courseName)
                 .orElseThrow(() -> new EntityNotFoundException("Course progress for user "
                 + userId + " and course " + courseName));
-    }
-
-    private List<Message> sendContents(List<LocalizedContent> contents, UserEntity user) {
-        final List<Message> messages = new ArrayList<>();
-
-        for (Content content : contents) {
-            messages.addAll(contentService.sendContent(content, user));
-        }
-        return messages;
     }
 }

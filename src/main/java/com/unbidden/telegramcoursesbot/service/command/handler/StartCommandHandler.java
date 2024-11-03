@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
@@ -13,9 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 @Component
 @RequiredArgsConstructor
@@ -37,17 +36,12 @@ public class StartCommandHandler implements CommandHandler {
     @Override
     @Blockable
     public void handle(@NonNull Message message, @NonNull String[] commandParts) {
-        final User user = message.getFrom();
-        userService.updateUser(user);
+        final UserEntity user = userService.updateUser(message.getFrom());
         
         LOGGER.info("Sending /start message to user " + user.getId() + "...");
         final Localization localization = localizationLoader.getLocalizationForUser(
             SERVICE_START, message.getFrom());
-        bot.sendMessage(SendMessage.builder()
-                .chatId(user.getId())
-                .text(localization.getData())
-                .entities(localization.getEntities())
-                .build());
+        bot.sendMessage(user, localization);
         LOGGER.info("Message sent.");
 
         if (commandParts.length > 1) {

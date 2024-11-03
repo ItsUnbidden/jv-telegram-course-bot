@@ -1,0 +1,215 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-test-content
+      author: Unbidden
+      changes:
+        - insert:  
+            tableName: content
+            columns:
+              - column:
+                  name: data
+                  value: course_test_course_lesson_1_homework_content
+              - column:
+                  name: is_localization
+                  valueBoolean: true
+              - column:
+                  name: type
+                  valueNumeric: 0
+              - column:
+                  name: language_code
+                  value: en
+        - insert:  
+            tableName: content
+            columns:
+              - column:
+                  name: data
+                  value: course_test_course_lesson_2_homework_content
+              - column:
+                  name: is_localization
+                  valueBoolean: true
+              - column:
+                  name: type
+                  valueNumeric: 0
+              - column:
+                  name: language_code
+                  value: en
+        - insert:  
+            tableName: content_mappings
+            columns:
+              - column:
+                  name: position
+                  valueNumeric: 0
+        - insert:  
+            tableName: content_mappings
+            columns:
+              - column:
+                  name: position
+                  valueNumeric: 0
+        - insert:  
+            tableName: content_mappings_content
+            columns:
+              - column:
+                  name: mapping_id
+                  valueNumeric: 1
+              - column:
+                  name: content_id
+                  valueNumeric: 1
+        - insert:  
+            tableName: content_mappings_content
+            columns:
+              - column:
+                  name: mapping_id
+                  valueNumeric: 2
+              - column:
+                  name: content_id
+                  valueNumeric: 2
+        - insert:  
+            tableName: content
+            columns:
+              - column:
+                  name: data
+                  value: course_test_course_lesson_0_content_0
+              - column:
+                  name: is_localization
+                  valueBoolean: true
+              - column:
+                  name: type
+                  valueNumeric: 0
+              - column:
+                  name: language_code
+                  value: en
+        - insert:  
+            tableName: content
+            columns:
+              - column:
+                  name: data
+                  value: course_test_course_lesson_0_content_1
+              - column:
+                  name: is_localization
+                  valueBoolean: true
+              - column:
+                  name: type
+                  valueNumeric: 3
+              - column:
+                  name: language_code
+                  value: en
+        - insert:  
+            tableName: content_mappings
+            columns:
+              - column:
+                  name: position
+                  valueNumeric: 0
+        - insert:  
+            tableName: content_mappings
+            columns:
+              - column:
+                  name: position
+                  valueNumeric: 1
+        - insert:  
+            tableName: content_mappings_content
+            columns:
+              - column:
+                  name: mapping_id
+                  valueNumeric: 3
+              - column:
+                  name: content_id
+                  valueNumeric: 3
+        - insert:  
+            tableName: content_mappings_content
+            columns:
+              - column:
+                  name: mapping_id
+                  valueNumeric: 4
+              - column:
+                  name: content_id
+                  valueNumeric: 4
+        - insert:  
+            tableName: content
+            columns:
+              - column:
+                  name: data
+                  value: course_test_course_lesson_1_content_0
+              - column:
+                  name: is_localization
+                  valueBoolean: true
+              - column:
+                  name: type
+                  valueNumeric: 1
+              - column:
+                  name: language_code
+                  value: en
+        - insert:  
+            tableName: content
+            columns:
+              - column:
+                  name: data
+                  value: course_test_course_lesson_1_content_1
+              - column:
+                  name: is_localization
+                  valueBoolean: true
+              - column:
+                  name: type
+                  valueNumeric: 3
+              - column:
+                  name: language_code
+                  value: en
+        - insert:  
+            tableName: content_mappings
+            columns:
+              - column:
+                  name: position
+                  valueNumeric: 0
+        - insert:  
+            tableName: content_mappings
+            columns:
+              - column:
+                  name: position
+                  valueNumeric: 1
+        - insert:  
+            tableName: content_mappings_content
+            columns:
+              - column:
+                  name: mapping_id
+                  valueNumeric: 5
+              - column:
+                  name: content_id
+                  valueNumeric: 5
+        - insert:  
+            tableName: content_mappings_content
+            columns:
+              - column:
+                  name: mapping_id
+                  valueNumeric: 6
+              - column:
+                  name: content_id
+                  valueNumeric: 6
+        - insert:  
+            tableName: content
+            columns:
+              - column:
+                  name: data
+                  value: course_test_course_lesson_2_content_0
+              - column:
+                  name: is_localization
+                  valueBoolean: true
+              - column:
+                  name: type
+                  valueNumeric: 0
+              - column:
+                  name: language_code
+                  value: en
+        - insert:  
+            tableName: content_mappings
+            columns:
+              - column:
+                  name: position
+                  valueNumeric: 0
+        - insert:  
+            tableName: content_mappings_content
+            columns:
+              - column:
+                  name: mapping_id
+                  valueNumeric: 7
+              - column:
+                  name: content_id
+                  valueNumeric: 7

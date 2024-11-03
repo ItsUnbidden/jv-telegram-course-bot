@@ -14,42 +14,46 @@ databaseChangeLog:
   - include:
       file: /db/changelog/changes/07-create-courses-table.yaml
   - include:
-      file: /db/changelog/changes/08-create-homework-table.yaml
+      file: /db/changelog/changes/08-create-content-mappings-table.yaml
   - include:
-      file: /db/changelog/changes/09-create-lessons-table.yaml
+      file: /db/changelog/changes/09-create-content-mappings-content-table.yaml
   - include:
-      file: /db/changelog/changes/10-create-lessons-content-table.yaml
+      file: /db/changelog/changes/10-create-homework-table.yaml
   - include:
-      file: /db/changelog/changes/11-create-course-progress-table.yaml
+      file: /db/changelog/changes/11-create-lessons-table.yaml
   - include:
-      file: /db/changelog/changes/12-create-homework-progress-table.yaml
+      file: /db/changelog/changes/12-create-lessons-content-mappings-table.yaml
   - include:
-      file: /db/changelog/changes/13-create-payment-details-table.yaml
+      file: /db/changelog/changes/13-create-course-progress-table.yaml
   - include:
-      file: /db/changelog/changes/14-insert-test-course.yaml
+      file: /db/changelog/changes/14-create-homework-progress-table.yaml
   - include:
-      file: /db/changelog/changes/15-insert-test-content.yaml
+      file: /db/changelog/changes/15-create-payment-details-table.yaml
   - include:
-      file: /db/changelog/changes/16-insert-test-course-homework.yaml
+      file: /db/changelog/changes/16-insert-test-course.yaml
   - include:
-      file: /db/changelog/changes/17-insert-test-course-lessons.yaml
+      file: /db/changelog/changes/17-insert-test-content.yaml
   - include:
-      file: /db/changelog/changes/18-insert-test-course-lessons-content.yaml
+      file: /db/changelog/changes/18-insert-test-course-homework.yaml
   - include:
-      file: /db/changelog/changes/19-create-reviews-table.yaml
+      file: /db/changelog/changes/19-insert-test-course-lessons.yaml
   - include:
-      file: /db/changelog/changes/20-create-reviews-users-who-read-table.yaml
+      file: /db/changelog/changes/20-insert-test-course-lessons-content-mappings.yaml
   - include:
-      file: /db/changelog/changes/21-create-menu-termination-groups-table.yaml
+      file: /db/changelog/changes/21-create-reviews-table.yaml
   - include:
-      file: /db/changelog/changes/22-create-menu-termination-groups-messages-table.yaml
+      file: /db/changelog/changes/22-create-reviews-users-who-read-table.yaml
   - include:
-      file: /db/changelog/changes/23-create-content-audios-table.yaml
+      file: /db/changelog/changes/23-create-menu-termination-groups-table.yaml
   - include:
-      file: /db/changelog/changes/24-create-content-videos-table.yaml
+      file: /db/changelog/changes/24-create-menu-termination-groups-messages-table.yaml
   - include:
-      file: /db/changelog/changes/25-create-content-documents-table.yaml
+      file: /db/changelog/changes/25-create-content-audios-table.yaml
   - include:
-      file: /db/changelog/changes/26-create-markers-table.yaml
+      file: /db/changelog/changes/26-create-content-videos-table.yaml
   - include:
-      file: /db/changelog/changes/27-create-content-markers-table.yaml
+      file: /db/changelog/changes/27-create-content-documents-table.yaml
+  - include:
+      file: /db/changelog/changes/28-create-markers-table.yaml
+  - include:
+      file: /db/changelog/changes/29-create-content-markers-table.yaml

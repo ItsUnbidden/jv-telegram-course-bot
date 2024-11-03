@@ -11,7 +11,6 @@ import com.unbidden.telegramcoursesbot.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 @Component
 @RequiredArgsConstructor
@@ -41,19 +40,11 @@ public class UploadContentButtonHandler implements ButtonHandler {
             final Localization success = localizationLoader.getLocalizationForUser(
                     SERVICE_UPLOAD_CONTENT_SUCCESS, user, PARAM_CONTENT_ID,
                     content.getId());
-            bot.sendMessage(SendMessage.builder()
-                    .chatId(user.getId())
-                    .text(success.getData())
-                    .entities(success.getEntities())
-                    .build());
+            bot.sendMessage(user, success);
         });
         final Localization request = localizationLoader.getLocalizationForUser(
                 SERVICE_UPLOAD_CONTENT_REQUEST, user);
 
-        bot.sendMessage(SendMessage.builder()
-                .chatId(user.getId())
-                .text(request.getData())
-                .entities(request.getEntities())
-                .build());
+        bot.sendMessage(user, request);
     }
 }

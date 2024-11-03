@@ -10,7 +10,7 @@ databaseChangeLog:
                   name: course_id
                   valueNumeric: 1
               - column:
-                  name: index
+                  name: position
                   valueNumeric: 0
               - column:
                   name: sequence_option
@@ -22,7 +22,7 @@ databaseChangeLog:
                   name: course_id
                   valueNumeric: 1
               - column:
-                  name: index
+                  name: position
                   valueNumeric: 1
               - column:
                   name: homework_id
@@ -37,7 +37,7 @@ databaseChangeLog:
                   name: course_id
                   valueNumeric: 1
               - column:
-                  name: index
+                  name: position
                   valueNumeric: 2
               - column:
                   name: homework_id

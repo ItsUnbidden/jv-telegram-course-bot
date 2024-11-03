@@ -15,7 +15,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 @Component
 @RequiredArgsConstructor
@@ -55,11 +54,7 @@ public class FeedbackInclusionButtonHandler implements ButtonHandler {
             LOGGER.info("Value has been changed to: " + course.isFeedbackIncluded() + ".");
             Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_COURSE_FEEDBACK_UPDATE_SUCCESSFUL, user, messageParams);
-            bot.sendMessage(SendMessage.builder()
-                    .chatId(user.getId())
-                    .text(localization.getData())
-                    .entities(localization.getEntities())
-                    .build());
+            bot.sendMessage(user, localization);
         }
     }
 }

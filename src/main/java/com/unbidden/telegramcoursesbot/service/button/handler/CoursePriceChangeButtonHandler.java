@@ -17,7 +17,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 @Component
 @RequiredArgsConstructor
@@ -67,11 +66,7 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
                     final Localization response = localizationLoader.getLocalizationForUser(
                             SERVICE_COURSE_PRICE_UPDATE_SUCCESS, user, messageParams);
 
-                    bot.sendMessage(SendMessage.builder()
-                                .chatId(user.getId())
-                                .text(response.getData())
-                                .entities(response.getEntities())
-                                .build());
+                    bot.sendMessage(user, response);
                 } catch (NumberFormatException e) {
                     throw new InvalidDataSentException("Unable to parse provided string "
                             + providedStr + " to new price int", e);
@@ -79,11 +74,7 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
             }, true);
             Localization updateRequestLocalization = localizationLoader.getLocalizationForUser(
                     SERVICE_COURSE_PRICE_UPDATE_REQUEST, user, messageParams);
-            bot.sendMessage(SendMessage.builder()
-                    .chatId(user.getId())
-                    .text(updateRequestLocalization.getData())
-                    .entities(updateRequestLocalization.getEntities())
-                    .build());
+            bot.sendMessage(user, updateRequestLocalization);
         }
     }
 }

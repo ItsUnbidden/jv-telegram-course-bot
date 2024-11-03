@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
@@ -10,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
 @Component
@@ -32,7 +32,9 @@ public class RefreshCommandHandler implements CommandHandler {
 
     @Override
     public void handle(@NonNull Message message, @NonNull String[] commandParts) {
-        if (userService.isAdmin(message.getFrom())) {
+        final UserEntity user = userService.getUser(message.getFrom().getId());
+
+        if (userService.isAdmin(user)) {
             bot.setOnMaintenance(true);
 
             localizationLoader.reloadResourses();
@@ -46,11 +48,7 @@ public class RefreshCommandHandler implements CommandHandler {
 
             final Localization localization = localizationLoader.getLocalizationForUser(
                     SERVICE_REFRESH_SUCCESS, message.getFrom());
-            bot.sendMessage(SendMessage.builder()
-                    .chatId(message.getFrom().getId())
-                    .text(localization.getData())
-                    .entities(localization.getEntities())
-                    .build());
+            bot.sendMessage(user, localization);
         }
     }
 

@@ -27,7 +27,7 @@ public class EntityNotFoundExceptionHandler implements ExceptionHandler {
         final Localization errorLoc = localizationLoader.getLocalizationForUser(
                 ERROR_ENTITY_NOT_FOUND_EXCEPTION, user);
         
-        LOGGER.warn("Unable to find an entity. Error message: " + exc.getMessage() + ".");
+        LOGGER.warn("Unable to find an entity. Error message: " + exc.getMessage(), exc);
         return SendMessage.builder()
                 .chatId(user.getId())
                 .text(errorLoc.getData())

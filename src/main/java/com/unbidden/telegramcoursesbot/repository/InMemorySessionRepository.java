@@ -40,6 +40,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
         return session;
     }
 
+    // TODO: fix the issue where expired sessions might be considered legit
     @NonNull
     @Override
     public Optional<Session> find(@NonNull Integer id) {

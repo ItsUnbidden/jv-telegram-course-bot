@@ -3,16 +3,26 @@ package com.unbidden.telegramcoursesbot.service.content;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
+import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
+import com.unbidden.telegramcoursesbot.repository.ContentMappingRepository;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.service.content.handler.LocalizedContentHandler;
+import com.unbidden.telegramcoursesbot.util.TextUtil;
+
+import jakarta.persistence.EntityNotFoundException;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
 @Service
@@ -22,7 +32,14 @@ public class ContentServiceImpl implements ContentService {
 
     private static final String MEDIA_TYPES_DIVIDER = " ";
 
+    private final ContentMappingRepository contentMappingRepository;
+
     private final ContentManager contentManager;
+
+    private final TextUtil textUtil;
+
+    @Value("${telegram.bot.message.language.priority}")
+    private String languagePriorityStr;
 
     @Override
     @NonNull
@@ -41,6 +58,22 @@ public class ContentServiceImpl implements ContentService {
     public LocalizedContent parseAndPersistContent(@NonNull List<Message> messages,
             @NonNull List<MediaType> allowedContentTypes) {
         return persistContent(null, messages, allowedContentTypes, false);
+    }
+
+    @Override
+    @NonNull
+    public LocalizedContent parseAndPersistContent(@NonNull List<Message> messages,
+            @NonNull String localizationName, @NonNull String languageCode) {
+        LOGGER.info("Initiating parsing of a message to content with predefined localization...");
+        final MediaType messagesContentType = defineContentType(messages);
+
+        final LocalizedContentHandler<? extends Content> handler =
+                contentManager.getHandler(messagesContentType);
+
+        final Content content = handler.parseLocalized(messages, localizationName, languageCode);
+        content.setType(messagesContentType);
+
+        return (LocalizedContent)handler.persist(content);
     }
 
     @Override
@@ -72,11 +105,54 @@ public class ContentServiceImpl implements ContentService {
     public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user) {
         return contentManager.getHandler(content.getType()).sendContent(content, user);
     }
+    
+    @Override
+    @NonNull
+    public List<Message> sendLocalizedContent(@NonNull ContentMapping contentMapping,
+            @NonNull UserEntity user) {
+        Assert.notEmpty(contentMapping.getContent(), "Content mapping cannot be empty");
+        final Map<String, LocalizedContent> contentMap =
+                getContentMap(contentMapping.getContent());
+
+        if (contentMap.containsKey(user.getLanguageCode())) {
+            LOGGER.debug("Localized content in group " + contentMapping.getId()
+                    + " for user " + user.getId() + "'s prefered code " + user.getLanguageCode()
+                    + " is available.");
+            return sendContent(getById(contentMap.get(user.getLanguageCode()).getId()), user);
+        }
+        LOGGER.debug("Localized content in group " + contentMapping.getId() + " for user "
+                + user.getId() + "'s prefered code " + user.getLanguageCode()
+                + " is not available. Looking over the language code priority list...");
+        final String[] languagePriority = textUtil.getLanguagePriority();
+
+        for (String code : languagePriority) {
+            if (!code.equals(user.getLanguageCode())) {
+                if (contentMap.containsKey(code)) {
+                    LOGGER.debug("Localized content in group " + contentMapping.getId()
+                            + " has been found for language code " + code + ".");
+                    return sendContent(getById(contentMap.get(code).getId()), user);
+                }
+            }
+        }
+        final LocalizedContent firstAvailableContent = contentMapping.getContent().get(0);
+        LOGGER.warn("There is no available content in group " + contentMapping.getId()
+                + " for any of the priority language codes. First content in the list (Id: "
+                + firstAvailableContent.getId() + ") will be used instead.");
+        return sendContent(getById(firstAvailableContent.getId()), user);
+    }
 
     @Override
     @NonNull
     public LocalizedContent getById(@NonNull Long id) {
         return contentManager.getById(id);
+    }
+
+    @Override
+    @NonNull
+    public ContentMapping getMappingById(@NonNull Long id) {
+        return contentMappingRepository.findById(id).orElseThrow(() ->
+                new EntityNotFoundException("Content mapping with id " + id
+                + " does not exist"));
     }
 
     @Override
@@ -183,5 +259,28 @@ public class ContentServiceImpl implements ContentService {
         content.setId(contentId);
 
         return (LocalizedContent)handler.persist(content);
+    }
+
+    private Map<String, LocalizedContent> getContentMap(List<LocalizedContent> content) {
+        final Map<String, LocalizedContent> contentMap = new HashMap<>();
+
+        for (LocalizedContent localizedContent : content) {
+            contentMap.put(localizedContent.getLanguageCode(), localizedContent);
+        }
+        return contentMap;
+    }
+
+    @Override
+    @NonNull
+    public ContentMapping addNewLocalization(@NonNull Long mappingId, @NonNull LocalizedContent content) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'addNewLocalization'");
+    }
+
+    @Override
+    @NonNull
+    public ContentMapping removeLocalization(@NonNull Long mappingId, @NonNull Long contentId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'removeLocalization'");
     }
 }

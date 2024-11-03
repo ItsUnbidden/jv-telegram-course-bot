@@ -11,7 +11,6 @@ import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 @Component
 @RequiredArgsConstructor
@@ -39,10 +38,6 @@ public class SendAdvancedReviewButtonHandler implements ButtonHandler {
         });
         final Localization request = localizationLoader.getLocalizationForUser(
                 SERVICE_REVIEW_CONTENT_REQUEST, user);
-        bot.sendMessage(SendMessage.builder()
-                .chatId(user.getId())
-                .text(request.getData())
-                .entities(request.getEntities())
-                .build());
+        bot.sendMessage(user, request);
     }
 }

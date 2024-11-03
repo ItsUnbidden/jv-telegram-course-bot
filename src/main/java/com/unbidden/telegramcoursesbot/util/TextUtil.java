@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
@@ -39,6 +40,10 @@ public class TextUtil {
     private static final char TAG_CLOSE = '>';
     private static final String TAG_PARAMS_DIVIDER = " ";
     private static final String END_LINE_OVERRIDE_MARKER = "\\\n";
+    private static final String LANGUAGE_PRIORITY_DIVIDER = ",";
+
+    @Value("${telegram.bot.message.language.priority}")
+    private String languagePriorityStr;
 
     @PostConstruct
     public void init() {
@@ -225,6 +230,11 @@ public class TextUtil {
             parameterMap.put(PARAM_ADVANCED_TIMESTAMP, review.getAdvancedSubmittedTimestamp());
         }
         return parameterMap;
+    }
+
+    @NonNull
+    public String[] getLanguagePriority() {
+        return languagePriorityStr.split(LANGUAGE_PRIORITY_DIVIDER);
     }
 
     private int extractEntities(MarkerDataDto markerData, List<MessageEntity> entities) {

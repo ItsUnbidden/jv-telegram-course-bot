@@ -1,23 +1,23 @@
 databaseChangeLog:
   - changeSet:
-      id: create-lessons-content-table
+      id: create-lessons-content-mappings-table
       author: Unbidden
       changes:
         - createTable:
-            tableName: lessons_content
+            tableName: lessons_content_mappings
             columns: 
               - column:
                   name: lesson_id
                   type: bigint
                   constraints:
-                    foreignKeyName: fk_lessons_lessons_content
+                    foreignKeyName: fk_lessons_lessons_content_mappings
                     references: lessons(id)
                     nullable: false
               - column:
-                  name: content_id
+                  name: mapping_id
                   type: bigint
                   constraints:
-                    foreignKeyName: fk_content_lessons_content
-                    references: content(id)
+                    foreignKeyName: fk_mapping_lessons_content_mappings
+                    references: content_mappings(id)
                     nullable: false
                 

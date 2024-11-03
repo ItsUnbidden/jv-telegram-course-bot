@@ -4,7 +4,7 @@ service course_price_update_request ${courseName} ${currentPrice}
 service course_feedback_update_successful ${status} ${courseName}
 service course_homework_update_successful ${status} ${courseName}
 menu course_settings_page_0
-menu course_settings_page_1 ${id} ${name} ${sequenceMode} ${numberOfLessons} ${price} ${isHomeworkIncluded} ${isFeedbackIncluded}
+menu course_settings_page_1 ${id} ${name} ${numberOfLessons} ${price} ${isHomeworkIncluded} ${isFeedbackIncluded}
 button course_price_change
 button course_feedback_setting
 button course_homework_setting
@@ -138,3 +138,14 @@ error_critical_director_notification ${excMessage} ${excClassName}
 error_unsupported_operation_exception
 error_telegram_exception ${excMessage}
 service_resend_content
+service_new_course_request
+service_new_course_created ${courseName}
+service_update_homework_content_request
+service_homework_content_updated ${homeworkId}
+service_remove_lesson_content_request 
+service_lesson_content_removed ${contentId} ${lessonId}
+service_add_lesson_content_request
+service_lesson_content_added ${contentId} ${lessonId}
+menu_course_settings_page_2
+menu_course_settings_page_3 ${mappingIds} ${sequenceOption} ${homeworkId} ${index} ${lessonId}
+menu_course_settings_page_4

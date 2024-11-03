@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.model;
 
-import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
+import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -20,9 +20,10 @@ public class Homework {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "content_id", nullable = false)
-    private LocalizedContent content;
+    @JoinColumn(name = "content_mapping_id", nullable = false)
+    private ContentMapping mapping;
 
+    // Should be like: TEXT GRAPHICS
     private String allowedMediaTypes;
 
     @OneToOne(mappedBy = "homework")

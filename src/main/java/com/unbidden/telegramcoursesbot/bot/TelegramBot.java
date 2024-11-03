@@ -2,6 +2,7 @@ package com.unbidden.telegramcoursesbot.bot;
 
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,7 @@ import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeChat;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.api.objects.menubutton.MenuButtonCommands;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
@@ -103,9 +105,56 @@ public class TelegramBot extends TelegramWebhookBot {
         return username;
     }
 
+    /**
+     * Sends message provided in {@link SendMessage}.
+     * @param sendMessage Telegram message builder
+     * @return sent {@link Message}
+     */
     public Message sendMessage(SendMessage sendMessage) {
         try {
             return execute(sendMessage);
+        } catch (TelegramApiException e) {
+            throw new TelegramException("Unable to send message.", e);
+        }
+    }
+
+    /**
+     * Sends message to {@link UserEntity} using provided {@link Localization}.
+     * @param user to whom the message will be sent
+     * @param localization
+     * @return sent {@link Message}
+     */
+    @NonNull
+    public Message sendMessage(@NonNull UserEntity user, @NonNull Localization localization) {
+        try {
+            return execute(SendMessage.builder()
+                    .chatId(user.getId())
+                    .text(localization.getData())
+                    .entities(localization.getEntities())
+                    .build());
+        } catch (TelegramApiException e) {
+            throw new TelegramException("Unable to send message.", e);
+        }
+    }
+
+    /**
+     * Sends message to {@link UserEntity} using provided {@link Localization}
+     * with a specified markup.
+     * @param user to whom the message will be sent
+     * @param localization
+     * @param replyMarkup 
+     * @return sent {@link Message}
+     */
+    @NonNull
+    public Message sendMessage(@NonNull UserEntity user, @NonNull Localization localization,
+            @NonNull ReplyKeyboard replyMarkup) {
+        try {
+            return execute(SendMessage.builder()
+                    .chatId(user.getId())
+                    .text(localization.getData())
+                    .entities(localization.getEntities())
+                    .replyMarkup(replyMarkup)
+                    .build());
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to send message.", e);
         }

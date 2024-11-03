@@ -1,13 +1,13 @@
 package com.unbidden.telegramcoursesbot.repository;
 
-import com.unbidden.telegramcoursesbot.model.Homework;
+import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.lang.NonNull;
 
-public interface HomeworkRepository extends JpaRepository<Homework, Long> {
+public interface ContentMappingRepository extends JpaRepository<ContentMapping, Long> {
     @NonNull
-    @EntityGraph(attributePaths = {"lesson", "lesson.course", "mapping"})
-    Optional<Homework> findById(@NonNull Long id);
+    @EntityGraph(attributePaths = "content")
+    Optional<ContentMapping> findById(@NonNull Long id);
 }

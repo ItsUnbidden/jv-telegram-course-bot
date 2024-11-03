@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.model;
 
-import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
+import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -19,19 +19,19 @@ import lombok.Data;
 @Entity
 @Data
 @Table(name = "lessons")
-public class Lesson {
+public class Lesson implements Comparable<Lesson> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private Integer index;
+    private Integer position;
 
     @OneToMany()
-    @JoinTable(name = "lessons_content",
+    @JoinTable(name = "lessons_content_mappings",
             joinColumns = @JoinColumn(name = "lesson_id"),
-            inverseJoinColumns = @JoinColumn(name = "content_id"))
-    private List<LocalizedContent> structure;
+            inverseJoinColumns = @JoinColumn(name = "mapping_id"))
+    private List<ContentMapping> structure;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
@@ -52,5 +52,16 @@ public class Lesson {
         TIMED,
         BUTTON,
         HOMEWORK
+    }
+
+    @Override
+    public int compareTo(Lesson o) {
+        if (this.position > o.getPosition()) {
+            return 1;
+        }
+        if (this.position < o.getPosition()) {
+            return -1;
+        }
+        return 0;
     }
 }

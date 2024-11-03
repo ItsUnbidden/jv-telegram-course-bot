@@ -16,6 +16,8 @@ import com.unbidden.telegramcoursesbot.repository.MarkerAreaRepository;
 import com.unbidden.telegramcoursesbot.repository.PhotoRepository;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -49,55 +51,21 @@ public class AudioContentHandler implements LocalizedContentHandler<AudioContent
 
     private final TextContentHandler textContentHandler;
 
+    private final UserService userService;
+
     private final TelegramBot bot;
 
     @Override
     public AudioContent parseLocalized(@NonNull List<Message> messages, boolean isLocalized) {
-        final List<Audio> audios = new ArrayList<>();
-        final List<MarkerArea> markers = new ArrayList<>();
-        boolean isTextSetUp = false;
-        String captions = null;
+        return parse0(messages, null, isLocalized);
+    }
 
-        for (Message message : messages) {
-            if (message.hasText()) {
-                isTextSetUp = true;
-                captions = message.getText();
-                if (message.getEntities() != null
-                        && !message.getEntities().isEmpty()) {
-                    markers.addAll(message.getEntities().stream()
-                        .map(e -> markerAreaRepository.save(new MarkerArea(e))).toList());
-                }
-                continue;
-            }
-            final Audio audio = new Audio(message.getAudio());
-
-            if (message.getAudio().getThumbnail() != null) {
-                final Optional<Photo> potentialThumbnail = photoRepository.findById(
-                        message.getAudio().getThumbnail().getFileUniqueId());
-                if (potentialThumbnail.isPresent()) {
-                    audio.setThumbnail(potentialThumbnail.get());
-                } else {
-                    audio.setThumbnail(photoRepository.save(
-                            new Photo(message.getAudio().getThumbnail())));
-                }
-            }
-            if (!isTextSetUp && message.getCaption() != null && !message.getCaption().isEmpty()) {
-                captions = message.getCaption();
-                if (message.getCaptionEntities() != null
-                        && !message.getCaptionEntities().isEmpty()) {
-                    markers.addAll(message.getCaptionEntities().stream()
-                        .map(e -> markerAreaRepository.save(new MarkerArea(e))).toList());
-                }
-            }
-            audios.add(audio);
-        }
-        audioRepository.saveAll(audios);
-        AudioContent audioContent = new AudioContent();
-        if (captions != null) {
-            audioContent.setData(new ContentTextData(captions, markers, isLocalized));
-        }
-        audioContent.setAudios(audios);
-        return audioContent;
+    @Override
+    public AudioContent parseLocalized(@NonNull List<Message> messages,
+            @NonNull String localizationName, @NonNull String languageCode) {
+        final AudioContent content = parse0(messages, localizationName, true);
+        content.setLanguageCode(languageCode);
+        return content;
     }
 
     @Override
@@ -194,5 +162,59 @@ public class AudioContentHandler implements LocalizedContentHandler<AudioContent
     @NonNull
     public MediaType getContentType() {
         return MediaType.AUDIO;
+    }
+
+     private AudioContent parse0(List<Message> messages, String localizationName,
+            boolean isLocalized) {
+        final List<Audio> audios = new ArrayList<>();
+        final List<MarkerArea> markers = new ArrayList<>();
+        boolean isTextSetUp = localizationName != null;
+        String languageCode = null;
+        String captions = localizationName;
+
+        for (Message message : messages) {
+            if (!isTextSetUp && message.hasText()) {
+                isTextSetUp = true;
+                captions = message.getText();
+                if (message.getEntities() != null
+                        && !message.getEntities().isEmpty()) {
+                    markers.addAll(message.getEntities().stream()
+                        .map(e -> markerAreaRepository.save(new MarkerArea(e))).toList());
+                }
+                continue;
+            }
+            final Audio audio = new Audio(message.getAudio());
+
+            if (message.getAudio().getThumbnail() != null) {
+                final Optional<Photo> potentialThumbnail = photoRepository.findById(
+                        message.getAudio().getThumbnail().getFileUniqueId());
+                if (potentialThumbnail.isPresent()) {
+                    audio.setThumbnail(potentialThumbnail.get());
+                } else {
+                    audio.setThumbnail(photoRepository.save(
+                            new Photo(message.getAudio().getThumbnail())));
+                }
+            }
+            if (!isTextSetUp && message.getCaption() != null && !message.getCaption().isEmpty()) {
+                captions = message.getCaption();
+                if (message.getCaptionEntities() != null
+                        && !message.getCaptionEntities().isEmpty()) {
+                    markers.addAll(message.getCaptionEntities().stream()
+                        .map(e -> markerAreaRepository.save(new MarkerArea(e))).toList());
+                }
+            }
+            if (languageCode == null) {
+                languageCode = userService.getUser(message.getFrom().getId()).getLanguageCode();
+            }
+            audios.add(audio);
+        }
+        audioRepository.saveAll(audios);
+        AudioContent audioContent = new AudioContent();
+        if (captions != null) {
+            audioContent.setData(new ContentTextData(captions, markers, isLocalized));
+        }
+        audioContent.setAudios(audios);
+        audioContent.setLanguageCode(languageCode);
+        return audioContent;
     }
 }

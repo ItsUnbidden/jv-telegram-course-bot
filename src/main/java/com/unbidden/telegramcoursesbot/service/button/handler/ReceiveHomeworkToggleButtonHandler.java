@@ -8,7 +8,6 @@ import com.unbidden.telegramcoursesbot.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 @Component
 @RequiredArgsConstructor
@@ -33,11 +32,7 @@ public class ReceiveHomeworkToggleButtonHandler implements ButtonHandler {
                     SERVICE_TOGGLE_RECEIVE_HOMEWORK, user, PARAM_STATUS,
                     (updatedUser.isReceivingHomeworkRequests()) ? "ENABLED" : "DISABLED");
 
-            bot.sendMessage(SendMessage.builder()
-                    .chatId(user.getId())
-                    .text(success.getData())
-                    .entities(success.getEntities())
-                    .build());
+            bot.sendMessage(user, success);
         }
     }
 }

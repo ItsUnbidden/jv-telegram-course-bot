@@ -50,7 +50,7 @@ public class GeneralExceptionHandler implements ExceptionHandler {
         final Localization errorLoc = localizationLoader.getLocalizationForUser(
                 ERROR_UNSPECIFIED_EXCEPTION, user, getParameterMap(exc));
 
-        // notifyDirector(exc); TODO: this is currently disabled to stop file spamming
+        // notifyDirector(exc); TODO: this is currently disabled in order to stop file spamming
 
         return SendMessage.builder()
                 .chatId(user.getId())
@@ -72,11 +72,7 @@ public class GeneralExceptionHandler implements ExceptionHandler {
                 .getLocalizationForUser(ERROR_CRITICAL_DIRECTOR_NOTIFICATION, diretor,
                 getParameterMap(exc));
 
-        bot.sendMessage(SendMessage.builder()
-                .chatId(diretor.getId())
-                .text(criticalErrorDirectorNotification.getData())
-                .entities(criticalErrorDirectorNotification.getEntities())
-                .build());
+        bot.sendMessage(diretor, criticalErrorDirectorNotification);
         
         // TODO: make sending log files to director optional and configurable in the bot's interface
         try {

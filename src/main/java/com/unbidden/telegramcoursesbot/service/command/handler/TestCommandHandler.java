@@ -7,6 +7,7 @@ import com.unbidden.telegramcoursesbot.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
@@ -28,12 +29,7 @@ public class TestCommandHandler implements CommandHandler {
         final UserEntity userFromDb = userService.getUser(message.getFrom().getId());
 
         if (userService.isAdmin(userFromDb)) {
-            final Message sentMessage = bot.sendMessage(SendMessage.builder()
-                    .chatId(userFromDb.getId())
-                    .text("Debug command message.")
-                    .build());
-
-            menuService.initiateMenu(TEST_MENU, userFromDb, sentMessage.getMessageId());
+            
         }
     }
 

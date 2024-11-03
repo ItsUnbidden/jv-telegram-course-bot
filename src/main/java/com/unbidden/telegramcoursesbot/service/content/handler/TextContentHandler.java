@@ -11,6 +11,8 @@ import com.unbidden.telegramcoursesbot.repository.LocalizedContentRepository;
 import com.unbidden.telegramcoursesbot.repository.MarkerAreaRepository;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
+
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,8 @@ public class TextContentHandler implements LocalizedContentHandler<LocalizedCont
 
     private final LocalizationLoader localizationLoader;
 
+    private final UserService userService;
+
     private final TelegramBot bot;
 
     @Override
@@ -40,7 +44,18 @@ public class TextContentHandler implements LocalizedContentHandler<LocalizedCont
 
         localizedContent.setData(new ContentTextData(message.getText(),
                 markers, isLocalized));
+        localizedContent.setLanguageCode(userService.getUser(message
+                .getFrom().getId()).getLanguageCode());
+        return localizedContent;
+    }
 
+    @Override
+    public LocalizedContent parseLocalized(@NonNull List<Message> messages,
+            @NonNull String localizationName, @NonNull String languageCode) {
+        final LocalizedContent localizedContent = new LocalizedContent();
+        
+        localizedContent.setData(new ContentTextData(localizationName, List.of(), true));
+        localizedContent.setLanguageCode(languageCode);
         return localizedContent;
     }
 

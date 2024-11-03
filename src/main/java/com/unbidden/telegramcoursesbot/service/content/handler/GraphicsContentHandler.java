@@ -16,6 +16,8 @@ import com.unbidden.telegramcoursesbot.repository.PhotoRepository;
 import com.unbidden.telegramcoursesbot.repository.VideoRepository;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -52,55 +54,21 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
     
     private final TextContentHandler textContentHandler;
 
+    private final UserService userService;
+
     private final TelegramBot bot;
 
     @Override
     public GraphicsContent parseLocalized(@NonNull List<Message> messages, boolean isLocalized) {
-        final List<Video> videos = new ArrayList<>();
-        final List<Photo> photos = new ArrayList<>();
-        final List<MarkerArea> markers = new ArrayList<>();
-        boolean isTextSetUp = false;
-        String captions = null;
+        return parse0(messages, null, isLocalized);
+    }
 
-        for (Message message : messages) {
-            if (message.hasText()) {
-                isTextSetUp = true;
-                captions = message.getText();
-                if (message.getEntities() != null
-                        && !message.getEntities().isEmpty()) {
-                    markers.addAll(message.getEntities().stream()
-                        .map(e -> markerAreaRepository.save(new MarkerArea(e))).toList());
-                }
-                continue;
-            }
-            if (message.hasVideo()) {
-                final Video video = new Video(message.getVideo());
-                video.setThumbnail(resolveThumbnail(message.getVideo().getThumbnail()));
-                videos.add(video);
-            }
-            if (message.hasPhoto()) {
-                final Photo photo = new Photo(message.getPhoto()
-                        .get(message.getPhoto().size() - 1));
-                photos.add(photo);
-            }
-            if (!isTextSetUp && message.getCaption() != null && !message.getCaption().isEmpty()) {
-                captions = message.getCaption();
-                if (message.getCaptionEntities() != null
-                        && !message.getCaptionEntities().isEmpty()) {
-                    markers.addAll(message.getCaptionEntities().stream()
-                        .map(e -> markerAreaRepository.save(new MarkerArea(e))).toList());
-                }
-            }
-        }
-        videoRepository.saveAll(videos);
-        photoRepository.saveAll(photos);
-        GraphicsContent graphicsContent = new GraphicsContent();
-        if (captions != null) {
-            graphicsContent.setData(new ContentTextData(captions, markers, isLocalized));
-        }
-        graphicsContent.setPhotos(photos);
-        graphicsContent.setVideos(videos);
-        return graphicsContent;
+    @Override
+    public GraphicsContent parseLocalized(@NonNull List<Message> messages,
+            @NonNull String localizationName, @NonNull String languageCode) {
+        final GraphicsContent content = parse0(messages, localizationName, true);
+        content.setLanguageCode(languageCode);
+        return content;
     }
 
     @Override
@@ -215,6 +183,60 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
     @NonNull
     public MediaType getContentType() {
         return MediaType.GRAPHICS;
+    }
+
+    private GraphicsContent parse0(List<Message> messages, String localizationName,
+            boolean isLocalized) {
+        final List<Video> videos = new ArrayList<>();
+        final List<Photo> photos = new ArrayList<>();
+        final List<MarkerArea> markers = new ArrayList<>();
+        boolean isTextSetUp = localizationName != null;
+        String languageCode = null;
+        String captions = localizationName;
+
+        for (Message message : messages) {
+            if (!isTextSetUp && message.hasText()) {
+                isTextSetUp = true;
+                captions = message.getText();
+                if (message.getEntities() != null
+                        && !message.getEntities().isEmpty()) {
+                    markers.addAll(message.getEntities().stream()
+                        .map(e -> markerAreaRepository.save(new MarkerArea(e))).toList());
+                }
+                continue;
+            }
+            if (message.hasVideo()) {
+                final Video video = new Video(message.getVideo());
+                video.setThumbnail(resolveThumbnail(message.getVideo().getThumbnail()));
+                videos.add(video);
+            }
+            if (message.hasPhoto()) {
+                final Photo photo = new Photo(message.getPhoto()
+                        .get(message.getPhoto().size() - 1));
+                photos.add(photo);
+            }
+            if (!isTextSetUp && message.getCaption() != null && !message.getCaption().isEmpty()) {
+                captions = message.getCaption();
+                if (message.getCaptionEntities() != null
+                        && !message.getCaptionEntities().isEmpty()) {
+                    markers.addAll(message.getCaptionEntities().stream()
+                        .map(e -> markerAreaRepository.save(new MarkerArea(e))).toList());
+                }
+            }
+            if (languageCode == null) {
+                languageCode = userService.getUser(message.getFrom().getId()).getLanguageCode();
+            }
+        }
+        videoRepository.saveAll(videos);
+        photoRepository.saveAll(photos);
+        GraphicsContent graphicsContent = new GraphicsContent();
+        if (captions != null) {
+            graphicsContent.setData(new ContentTextData(captions, markers, isLocalized));
+        }
+        graphicsContent.setPhotos(photos);
+        graphicsContent.setVideos(videos);
+        graphicsContent.setLanguageCode(languageCode);
+        return graphicsContent;
     }
 
     private Photo resolveThumbnail(PhotoSize extThumbnail) {

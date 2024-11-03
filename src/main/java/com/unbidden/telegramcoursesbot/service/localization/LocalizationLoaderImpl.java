@@ -29,13 +29,8 @@ import org.telegram.telegrambots.meta.api.objects.User;
 public class LocalizationLoaderImpl implements LocalizationLoader {
     private static final Logger LOGGER = LogManager.getLogger(LocalizationLoaderImpl.class);
 
-    private static final String LANGUAGE_PRIORITY_DIVIDER = ",";
-
     @Value("${telegram.bot.message.text.format}")
     private String fileFormat;
-
-    @Value("${telegram.bot.message.language.priority}")
-    private String languagePriorityStr;
 
     @Value("${telegram.bot.message.text.path}")
     private String pathStr;
@@ -60,7 +55,7 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                 + localizationFolderPath + ".");
 
         languagePriority = new ArrayList<>();
-        String[] languagePriorityArray = languagePriorityStr.split(LANGUAGE_PRIORITY_DIVIDER);
+        String[] languagePriorityArray = textUtil.getLanguagePriority();
         if (languagePriorityArray.length == 0) {
             throw new LocalizationLoadingException("At least one language code should "
                     + "be present in the priority list");
