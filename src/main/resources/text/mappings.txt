@@ -53,10 +53,6 @@ service get_content_request
 service send_homework_request
 service upload_content_success ${contentId}
 service upload_content_request
-menu confirm_send_homework_page_0
-button confirm_send_homework
-button resend_homework
-menu confirm_send_homework_terminal_page
 menu content_actions_page_0
 button upload_content
 button get_content
@@ -81,71 +77,75 @@ service homework_approved_notification_plus_comment ${courseName} ${lessonIndex}
 service homework_approved_notification ${courseName} ${lessonIndex} ${commenterName}
 service homework_declined_notification_plus_comment ${courseName} ${lessonIndex} ${commenterName}
 menu command_<commandName>_description
-button update_content
-service homework_feedback_notification
-menu_available_courses_page_0
-menu_courses_page_0
-button_available_courses
-button_my_courses
-menu_courses_page_1
-course_<courseName>_name
-menu_courses_page_2
-menu_courses_page_3
-button_begin_course
-button_leave_review
-menu_my_courses_page_0
-menu_my_courses_page_1
-course_<courseName>_end
-course_<courseName>_end_repeat
-service_review_comment_request
-service_review_content_request
-service_get_archive_reviews
-service_get_new_reviews
-button_all_courses_reviews
-menu_get_reviews_page_1
-menu_get_reviews_page_0
-button_send_advanced_review
-button_update_advanced_review
-button_update_platform_grade
-button_update_course_grade
-button_update_basic_review_and_leave_advanced_options
-button_update_review_options
-menu_my_courses_page_5
-menu_my_courses_page_4
-menu_my_courses_page_3
-menu_my_courses_page_2
-button_leave_review_comment
-button_get_review_comment
-button_mark_review_as_read
-button_send_homework
-service_review_info ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead}
-service_review_info_comment ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt}
-service_review_info_content ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${contentId} ${originalContentId} ${advancedTimestamp}
-service_review_info_content_comment ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt} ${contentId} ${originalContentId} ${advancedTimestamp}
-service_no_new_reviews_for_user
-service_review_course_content_updated ${courseName}
-service_review_platform_grade_updated ${courseName}
-service_review_course_grade_updated ${courseName}
-service_comment_submitted_notification ${courseName} ${commenterFullName}
-service_comment_submitted ${reviewId}
-service_advanced_review_submitted ${courseName}
-service_basic_review_submitted ${courseName}
-service_advanced_review_terminal
-service_basic_review_terminal
-error_entity_not_found_exception
-error_unspecified_exception ${excMessage} ${excClassName}
-error_critical_director_notification ${excMessage} ${excClassName}
-error_unsupported_operation_exception
-error_telegram_exception ${excMessage}
-service_resend_content
-service_new_course_request
-service_new_course_created ${courseName}
-service_update_homework_content_request
-service_homework_content_updated ${homeworkId}
-service_remove_lesson_content_request 
-service_lesson_content_removed ${contentId} ${lessonId}
-service_add_lesson_content_request
-service_lesson_content_added ${contentId} ${lessonId}
-menu_course_settings_page_2
-menu_course_settings_page_3 ${mappingIds} ${sequenceOption} ${homeworkId} ${index} ${lessonId}
-menu_course_settings_page_4
+button update_content               **** Deprecated
+service homework_feedback_notification ${targetId} ${targetFirstName} ${targetLastName} ${targetUsername} ${targetLanguageCode}
+menu available_courses_page_0
+menu courses_page_0
+button available_courses
+button my_courses
+menu courses_page_1
+course <courseName>_name
+menu courses_page_2
+menu courses_page_3
+button begin_course
+button leave_review
+menu my_courses_page_0
+menu my_courses_page_1
+course <courseName>_end
+course <courseName>_end_repeat
+service review_comment_request
+service review_content_request
+service get_archive_reviews
+service get_new_reviews
+button all_courses_reviews
+menu get_reviews_page_1
+menu get_reviews_page_0
+button send_advanced_review
+button update_advanced_review
+button update_platform_grade
+button update_course_grade
+button update_basic_review_and_leave_advanced_options
+button update_review_options
+menu my_courses_page_5
+menu my_courses_page_4
+menu my_courses_page_3
+menu my_courses_page_2
+button leave_review_comment
+button get_review_comment
+button mark_review_as_read
+service review_info ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead}
+service review_info_comment ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt}
+service review_info_content ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${contentId} ${originalContentId} ${advancedTimestamp}
+service review_info_content_comment ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt} ${contentId} ${originalContentId} ${advancedTimestamp}
+service no_new_reviews_for_user
+service review_course_content_updated ${courseName}
+service review_platform_grade_updated ${courseName}
+service review_course_grade_updated ${courseName}
+service comment_submitted_notification ${courseName} ${commenterFullName}
+service comment_submitted ${reviewId}
+service advanced_review_submitted ${courseName}
+service basic_review_submitted ${courseName}
+service advanced_review_terminal
+service basic_review_terminal
+error entity_not_found_exception
+error unspecified_exception ${excMessage} ${excClassName}
+error critical_director_notification ${excMessage} ${excClassName}
+error unsupported_operation_exception
+error telegram_exception ${excMessage}
+service resend_content
+service new_course_request
+service new_course_created ${courseName}
+service update_homework_content_request
+service homework_content_updated ${homeworkId}
+service remove_lesson_content_request 
+service lesson_content_removed ${contentId} ${lessonId}
+service add_lesson_content_request
+service lesson_content_added ${contentId} ${lessonId}
+menu course_settings_page_2
+menu course_settings_page_3 ${mappingIds} ${sequenceOption} ${homeworkId} ${index} ${lessonId}
+menu course_settings_page_4
+button resend_content
+button confirm_send_content
+button cancel_session
+menu commit_content_page_0
+menu commit_content_terminal_page

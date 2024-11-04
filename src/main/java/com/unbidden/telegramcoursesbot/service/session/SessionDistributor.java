@@ -8,4 +8,6 @@ public interface SessionDistributor {
     void callService(@NonNull Message message);
 
     void removeSessionsForUser(@NonNull UserEntity user);
+
+    void removeSessionsWithoutConfirmationForUser(@NonNull UserEntity user);
 }

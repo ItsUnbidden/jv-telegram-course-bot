@@ -173,6 +173,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public void end(@NonNull UserEntity user, @NonNull CourseProgress courseProgress) {
+        courseProgress.setNumberOfTimesCompleted(courseProgress.getNumberOfTimesCompleted() + 1);
         if (courseProgress.getNumberOfTimesCompleted() > 0) {
             LOGGER.info("User " + user.getId() + " has completed course "
                     + courseProgress.getCourse().getName() + " for the "
@@ -187,7 +188,6 @@ public class CourseServiceImpl implements CourseService {
                     courseProgress.getCourse().getName()), user) : localizationLoader
                     .getLocalizationForUser(COURSE_END.formatted(courseProgress.getCourse()
                     .getName()), user);
-        courseProgress.setNumberOfTimesCompleted(courseProgress.getNumberOfTimesCompleted() + 1);
         courseProgressRepository.save(courseProgress);
         bot.sendMessage(user, localization);
         if (!reviewService.isBasicReviewForCourseAndUserAvailable(user,

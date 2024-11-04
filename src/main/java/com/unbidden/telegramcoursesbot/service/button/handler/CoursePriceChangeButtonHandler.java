@@ -32,6 +32,8 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
     private static final String SERVICE_COURSE_PRICE_UPDATE_SUCCESS =
             "service_course_price_update_success";
 
+    private static final int MAX_PRICE = 100_000;
+
     private final TelegramBot bot;
 
     private final CourseService courseService;
@@ -60,6 +62,10 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
                     final int newPrice = Integer.parseInt(providedStr);
                     LOGGER.info("New price " + newPrice + " for course " + course.getName()
                             + " parsed successfuly.");
+                    if (newPrice > MAX_PRICE) {
+                        throw new InvalidDataSentException("Price cannot be more then "
+                                + MAX_PRICE);
+                    }
                     course.setPrice(newPrice);
                     courseService.save(course);
                     LOGGER.info("New price saved.");

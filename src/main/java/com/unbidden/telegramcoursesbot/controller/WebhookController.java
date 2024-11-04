@@ -101,10 +101,11 @@ public class WebhookController {
         } catch (Exception e) { 
             if (user != null) {
                 bot.sendMessage(exceptionHandlerManager.handleException(user, e));
+                sessionDistributor.removeSessionsWithoutConfirmationForUser(user);
             } else {
                 LOGGER.error("Strange situation occured - unable to handle "
                         + "exception due to the user being unknown. Theoretically, "
-                        + "this should not be possible. Invesigate immediately.", e);
+                        + "this should not be possible. Investigate immediately.", e);
                 
                 bot.sendMessage(exceptionHandlerManager.handleException(userService.getDiretor(), e));
             }

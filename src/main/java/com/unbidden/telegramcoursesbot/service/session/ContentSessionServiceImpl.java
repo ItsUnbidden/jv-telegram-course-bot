@@ -80,6 +80,11 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     }
 
     @Override
+    public void removeSessionsWithoutConfirmationForUser(@NonNull UserEntity user) {
+        sessionRepository.removeSessionsWithoutConfirmationForUser(user.getId());
+    }
+
+    @Override
     public void processResponse(@NonNull Session session, @NonNull Message message) {
         final ContentSession contentSession = (ContentSession)session;
         

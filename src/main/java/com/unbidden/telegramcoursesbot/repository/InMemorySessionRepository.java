@@ -100,6 +100,21 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     }
 
     @Override
+    public void removeSessionsWithoutConfirmationForUser(@NonNull Long userId) {
+        final List<Session> userSessions = sessionsIndexedByUser.get(userId);
+
+        if (userSessions != null) {
+            final List<Integer> keysToRemove = userSessions.stream()
+                    .filter(s -> s.getClass().equals(ContentSession.class)
+                        && ((ContentSession)s).isSkippingConfirmation())
+                    .map(s -> s.getId()).toList();
+            for (Integer key : keysToRemove) {
+                removeFromIndexedSessions(sessions.remove(key));
+            }
+        }
+    }
+
+    @Override
     public void removeUserOrChatRequestSessionsForUser(@NonNull Long userId) {
         final List<Session> userSessions = sessionsIndexedByUser.get(userId);
 

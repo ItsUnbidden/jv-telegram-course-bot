@@ -9,6 +9,8 @@ public interface SessionRepository extends CustomGeneralRepository<Integer, Sess
 
     void removeContentSessionsForUser(@NonNull Long userId);
 
+    void removeSessionsWithoutConfirmationForUser(@NonNull Long userId);
+
     void removeUserOrChatRequestSessionsForUser(@NonNull Long userId);
     
     @NonNull
