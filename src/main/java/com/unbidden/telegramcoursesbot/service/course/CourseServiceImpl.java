@@ -32,9 +32,11 @@ import org.telegram.telegrambots.meta.api.objects.User;
 @Service
 @RequiredArgsConstructor
 public class CourseServiceImpl implements CourseService {
-    private static final String SERVICE_COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS = "service_course_next_stage_media_group_bypass";
     private static final String NEXT_STAGE_MENU = "m_crsNxtStg";
+    
     private static final String TEST_COURSE_NAME = "test_course";
+
+    private static final String SERVICE_COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS = "service_course_next_stage_media_group_bypass";
 
     private static final String COURSE_END = "course_%s_end";
     private static final String COURSE_END_REPEAT = "course_%s_end_repeat";
@@ -115,7 +117,7 @@ public class CourseServiceImpl implements CourseService {
         courseProgressRepository.save(progress);
         LOGGER.info("Course stage incremented and progress saved.");
 
-        if (progress.getStage() == progress.getCourse().getAmountOfLessons()) {
+        if (progress.getStage().equals(progress.getCourse().getAmountOfLessons())) {
             LOGGER.info("User " + user.getId() + " has completed course " + courseName
                     + ". Commencing ending sequence...");
             end(user, progress);
@@ -148,7 +150,14 @@ public class CourseServiceImpl implements CourseService {
         }
         
         LOGGER.debug("Lesson " + lesson.getId() + " or the course does not have any homework."
-                +" Sending next lesson menu...");
+                + " Checking, if this is the last lesson...");
+        if (courseProgress.getStage().equals(course.getAmountOfLessons() - 1)) {
+            LOGGER.info("User " + user.getId() + " has completed course " + course.getName()
+                    + ". Commencing ending sequence...");
+            end(user, courseProgress);
+            return;
+        }
+        LOGGER.debug("This is not the last lesson. Initiating next stage menu...");
         final Message menuMessage;
         if (lastContent.size() > 1) {
             LOGGER.warn("Last content in lesson " + lesson.getId() + " is a media group. "
@@ -174,7 +183,7 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public void end(@NonNull UserEntity user, @NonNull CourseProgress courseProgress) {
         courseProgress.setNumberOfTimesCompleted(courseProgress.getNumberOfTimesCompleted() + 1);
-        if (courseProgress.getNumberOfTimesCompleted() > 0) {
+        if (courseProgress.getNumberOfTimesCompleted() > 1) {
             LOGGER.info("User " + user.getId() + " has completed course "
                     + courseProgress.getCourse().getName() + " for the "
                     + courseProgress.getNumberOfTimesCompleted() + " time!");
@@ -183,7 +192,7 @@ public class CourseServiceImpl implements CourseService {
                     + courseProgress.getCourse().getName() + " for the first time!");
         }
         courseProgress.setStage(0);
-        final Localization localization = (courseProgress.getNumberOfTimesCompleted() > 0)
+        final Localization localization = (courseProgress.getNumberOfTimesCompleted() > 1)
                 ? localizationLoader.getLocalizationForUser(COURSE_END_REPEAT.formatted(
                     courseProgress.getCourse().getName()), user) : localizationLoader
                     .getLocalizationForUser(COURSE_END.formatted(courseProgress.getCourse()
@@ -251,5 +260,10 @@ public class CourseServiceImpl implements CourseService {
         return courseProgressRepository.findByUserIdAndCourseName(userId, courseName)
                 .orElseThrow(() -> new EntityNotFoundException("Course progress for user "
                 + userId + " and course " + courseName));
+    }
+    
+    @Override
+    public void delete(@NonNull Course course) {
+        courseRepository.delete(course);
     }
 }

@@ -84,12 +84,14 @@ public class CreateCourseButtonHandler implements ButtonHandler {
                 course.setName(courseName);
                 course.setPrice(price);
                 course.setAmountOfLessons(amountOfLessons);
-                course.setLessons(getLessons(course));
+                final List<Lesson> lessons = getLessons(course);
+                course.setLessons(lessons);
                 course.setFeedbackIncluded(true);
                 course.setHomeworkIncluded(true);
                 
                 LOGGER.debug("Persisting the course...");
                 courseService.save(course);
+                lessonService.saveAll(lessons);
                 LOGGER.info("A new course " + courseName + " has been created. "
                         + "Further configuration is required to set up lessons.");
                 LOGGER.debug("Sending confirmation message...");
@@ -115,7 +117,7 @@ public class CreateCourseButtonHandler implements ButtonHandler {
             lesson.setPosition(i);
             lesson.setSequenceOption(SequenceOption.BUTTON);
             lesson.setStructure(List.of());
-            lessons.add(lessonService.save(lesson));
+            lessons.add(lesson);
         }
         return lessons;
     }

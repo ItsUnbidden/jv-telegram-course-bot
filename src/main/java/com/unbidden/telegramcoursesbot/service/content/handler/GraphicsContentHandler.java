@@ -17,7 +17,6 @@ import com.unbidden.telegramcoursesbot.repository.VideoRepository;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -74,18 +73,18 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
     @Override
     @NonNull
     public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user) {
-        return sendContent(content, user, false);
+        return sendContent(content, user, false, false);
     }
 
     @Override
     @NonNull
     public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
-            boolean isProtected) {
+            boolean isProtected, boolean skipText) {
         final List<InputMedia> inputMedias = new ArrayList<>();
         final GraphicsContent graphicsContent = (GraphicsContent)content;
         
         Localization captionsLoc = null;
-        if (graphicsContent.getData() != null) {
+        if (graphicsContent.getData() != null && !skipText) {
             if (graphicsContent.getData().isLocalization()) {
                 captionsLoc = localizationLoader.getLocalizationForUser(
                         graphicsContent.getData().getData(), user);
@@ -110,7 +109,7 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
             LOGGER.warn("Content " + content.getId() + " is of type " + content.getType()
                     + " but does not have any relevant content. Text content handler "
                     + "will be used instead.");
-            return textContentHandler.sendContent(content, user, isProtected);
+            return textContentHandler.sendContent(content, user, isProtected, false);
         }
 
         if (captionsLoc != null) {

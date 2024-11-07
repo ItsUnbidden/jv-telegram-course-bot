@@ -70,17 +70,18 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
     @Override
     @NonNull
     public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user) {
-        return sendContent(content, user, false);
+        return sendContent(content, user, false, false);
     }
 
     @Override
     @NonNull
-    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user, boolean isProtected) {
+    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
+            boolean isProtected, boolean skipText) {
         final List<InputMedia> inputMedias = new ArrayList<>();
         final DocumentContent documentContent = (DocumentContent)content;
 
         Localization captionsLoc = null;
-        if (documentContent.getData() != null) {
+        if (documentContent.getData() != null && !skipText) {
             if (documentContent.getData().isLocalization()) {
                 captionsLoc = localizationLoader.getLocalizationForUser(
                         documentContent.getData().getData(), user);
@@ -102,7 +103,7 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
             LOGGER.warn("Content " + content.getId() + " is of type " + content.getType()
                     + " but does not have any relevant content. Text content handler "
                     + "will be used instead.");
-            return textContentHandler.sendContent(content, user, isProtected);
+            return textContentHandler.sendContent(content, user, isProtected, false);
         }
 
         if (captionsLoc != null) {

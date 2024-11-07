@@ -29,6 +29,8 @@ public class ContentMapping implements Comparable<ContentMapping> {
             inverseJoinColumns = @JoinColumn(name = "content_id"))
     private List<LocalizedContent> content;
 
+    private boolean isTextEnabled;
+
     @Override
     public int compareTo(ContentMapping o) {
         if (this.position > o.getPosition()) {

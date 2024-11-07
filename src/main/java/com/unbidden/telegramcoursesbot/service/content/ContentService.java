@@ -43,6 +43,10 @@ public interface ContentService {
     List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user);
 
     @NonNull
+    List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
+            boolean isProtected, boolean skipText);
+
+    @NonNull
     List<Message> sendLocalizedContent(@NonNull ContentMapping contentMapping,
             @NonNull UserEntity user);
 
@@ -53,11 +57,14 @@ public interface ContentService {
     ContentMapping getMappingById(@NonNull Long id);
 
     @NonNull
+    ContentMapping saveMapping(@NonNull ContentMapping mapping);
+
+    @NonNull
     List<MediaType> parseMediaTypes(@NonNull String mediaTypesStr);
 
     @NonNull
-    ContentMapping addNewLocalization(@NonNull Long mappingId, @NonNull LocalizedContent content);
+    ContentMapping addNewLocalization(@NonNull ContentMapping mapping,
+            @NonNull LocalizedContent content);
 
-    @NonNull
-    ContentMapping removeLocalization(@NonNull Long mappingId, @NonNull Long contentId);
+    boolean removeLocalization(@NonNull ContentMapping mapping, @NonNull String languageCode);
 }

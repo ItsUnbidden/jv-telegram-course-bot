@@ -39,12 +39,18 @@ databaseChangeLog:
               - column:
                   name: position
                   valueNumeric: 0
+              - column:
+                  name: is_text_enabled
+                  valueBoolean: true
         - insert:  
             tableName: content_mappings
             columns:
               - column:
                   name: position
                   valueNumeric: 0
+              - column:
+                  name: is_text_enabled
+                  valueBoolean: true
         - insert:  
             tableName: content_mappings_content
             columns:
@@ -99,12 +105,18 @@ databaseChangeLog:
               - column:
                   name: position
                   valueNumeric: 0
+              - column:
+                  name: is_text_enabled
+                  valueBoolean: true
         - insert:  
             tableName: content_mappings
             columns:
               - column:
                   name: position
                   valueNumeric: 1
+              - column:
+                  name: is_text_enabled
+                  valueBoolean: true
         - insert:  
             tableName: content_mappings_content
             columns:
@@ -159,12 +171,18 @@ databaseChangeLog:
               - column:
                   name: position
                   valueNumeric: 0
+              - column:
+                  name: is_text_enabled
+                  valueBoolean: true
         - insert:  
             tableName: content_mappings
             columns:
               - column:
                   name: position
                   valueNumeric: 1
+              - column:
+                  name: is_text_enabled
+                  valueBoolean: true
         - insert:  
             tableName: content_mappings_content
             columns:
@@ -204,6 +222,9 @@ databaseChangeLog:
               - column:
                   name: position
                   valueNumeric: 0
+              - column:
+                  name: is_text_enabled
+                  valueBoolean: true
         - insert:  
             tableName: content_mappings_content
             columns:

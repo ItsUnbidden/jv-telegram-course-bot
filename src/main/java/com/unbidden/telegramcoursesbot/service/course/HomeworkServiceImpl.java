@@ -7,6 +7,7 @@ import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress.Status;
+import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
@@ -78,6 +79,7 @@ public class HomeworkServiceImpl implements HomeworkService {
             "homework_progress_%s_send_homework_menus";
     private static final String FEEDBACK_MENU_TERMINATION =
             "homework_progress_%s_feedback_menus";
+    private static final String MENTION = "@";
 
     private static final Logger LOGGER = LogManager.getLogger(HomeworkServiceImpl.class);
 
@@ -94,6 +96,8 @@ public class HomeworkServiceImpl implements HomeworkService {
     private final UserService userService;
 
     private final ContentService contentService;
+
+    private final LessonService lessonService;
 
     private final LocalizationLoader localizationLoader;
     
@@ -149,15 +153,19 @@ public class HomeworkServiceImpl implements HomeworkService {
                 }
                 LOGGER.debug("User " + user.getId() + " has already completed homework "
                         + homework.getId() + ". Triggering next stage menu...");
-                
-                errorLocalization = localizationLoader
-                        .getLocalizationForUser(ERROR_HOMEWORK_ALREADY_COMPLETED, user);
-                final Message message = bot.sendMessage(user, errorLocalization);
 
                 final Course course = homework.getLesson().getCourse();
                 final CourseProgress courseProgress = courseService
                         .getCurrentCourseProgressForUser(user.getId(), course.getName());
-
+                if (courseProgress.getStage().equals(course.getAmountOfLessons() - 1)) {
+                    LOGGER.info("User " + user.getId() + " has completed course "
+                            + course.getName() + ". Commencing ending sequence...");
+                    courseService.end(user, courseProgress);
+                    return;
+                }
+                errorLocalization = localizationLoader
+                        .getLocalizationForUser(ERROR_HOMEWORK_ALREADY_COMPLETED, user);
+                final Message message = bot.sendMessage(user, errorLocalization);
                 menuService.initiateMenu(COURSE_NEXT_STAGE_MENU, user, course.getName()
                         + CourseService.COURSE_NAME_LESSON_INDEX_DIVIDER + courseProgress.getStage(),
                         message.getMessageId());
@@ -347,14 +355,17 @@ public class HomeworkServiceImpl implements HomeworkService {
 
     @Override
     @NonNull
-    public Homework updateContent(@NonNull Long homeworkId, @NonNull LocalizedContent content) {
+    public ContentMapping updateContent(@NonNull Long homeworkId,
+            @NonNull LocalizedContent content) {
         final Homework homework = getHomework(homeworkId);
         final ContentMapping contentMapping = new ContentMapping();
 
         contentMapping.setPosition(0);
         contentMapping.setContent(List.of(content));
+        contentMapping.setTextEnabled(true);
         homework.setMapping(contentMappingRepository.save(contentMapping));
-        return homeworkRepository.save(homework);
+        homeworkRepository.save(homework);
+        return contentMapping;
     }
 
     private HomeworkProgress getHomeworkProgress(Long id) {
@@ -393,7 +404,7 @@ public class HomeworkServiceImpl implements HomeworkService {
                 (homeworkProgress.getUser().getLastName() != null) ? homeworkProgress
                 .getUser().getLastName() : "Not available");
         parameterMap.put(PARAM_TARGET_USERNAME,
-                (homeworkProgress.getUser().getUsername() != null) ? homeworkProgress
+                (homeworkProgress.getUser().getUsername() != null) ? MENTION + homeworkProgress
                 .getUser().getUsername() : "Not available");
         parameterMap.put(PARAM_TARGET_LANGUAGE_CODE, homeworkProgress
                 .getUser().getLanguageCode());
@@ -404,5 +415,27 @@ public class HomeworkServiceImpl implements HomeworkService {
         parameterMap.put(PARAM_LESSON_INDEX, homeworkProgress.getHomework()
                 .getLesson().getPosition());
         return parameterMap;
+    }
+
+    @Override
+    @NonNull
+    public Homework createDefault(@NonNull Lesson lesson, @NonNull LocalizedContent content) {
+        LOGGER.debug("Lesson does not have a homework yet. Creating...");
+        final Homework homework = new Homework();
+        final ContentMapping mapping = new ContentMapping();
+        mapping.setContent(List.of(content));
+        mapping.setPosition(0);
+        mapping.setTextEnabled(true);
+
+        homework.setAllowedMediaTypes("");
+        homework.setFeedbackRequired(true);
+        homework.setLesson(lesson);
+        homework.setMapping(contentMappingRepository.save(mapping));
+        homework.setRepeatedCompletionAvailable(false);
+        save(homework);
+        lesson.setHomework(homework);
+        lessonService.save(lesson);
+        LOGGER.debug("New homework " + homework.getId() + " has been created.");
+        return homework;
     }
 }

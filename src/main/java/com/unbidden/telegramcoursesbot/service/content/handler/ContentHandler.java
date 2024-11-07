@@ -17,7 +17,7 @@ public interface ContentHandler<T extends Content> {
 
     @NonNull
     List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
-            boolean isProtected);
+            boolean isProtected, boolean skipText);
 
     @NonNull
     Optional<T> findById(@NonNull Long id);

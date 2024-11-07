@@ -143,9 +143,52 @@ service add_lesson_content_request
 service lesson_content_added ${contentId} ${lessonId}
 menu course_settings_page_2
 menu course_settings_page_3 ${mappingIds} ${sequenceOption} ${homeworkId} ${index} ${lessonId}
-menu course_settings_page_4
+menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes}
 button resend_content
 button confirm_send_content
 button cancel_session
 menu commit_content_page_0
 menu commit_content_terminal_page
+service_add_lesson_content_request ${lessonId}
+service_lesson_content_added ${contentId} ${lessonId}
+service_add_new_localization_request ${contentId}
+service_add_new_localization_success ${contentId} ${mappingId}
+service_status_disabled
+service_status_enabled
+service_mapping_text_status_update_success ${status}
+service_new_course_request
+service_new_course_created ${courseName}
+service_homework_content_request ${lessonId}
+service_new_homework_created ${homeworkId}
+service_homework_feedback_update_success ${status}
+service_homework_media_types_request ${mediaTypes}
+service_homework_media_types_update_success ${mediaTypes}
+service_repeated_completion_update_success ${status}
+service_remove_course_request ${courseName}
+service_delete_course_success ${courseName}
+service_remove_localization_from_mapping_request ${mappingId}
+service_remove_localization_from_mapping_success ${languageCode} ${mappingId}
+service_lesson_mapping_order_change_request ${lessonId}
+service_lesson_mapping_order_change_success ${mappingId} ${index}
+service_homework_content_updated ${homeworkId} ${mappingId}
+button_get_content
+button_upload_content
+button_get_mapping
+service_mapping_id_request
+button_change_mapping_order
+button_remove_course
+button_update_media_types
+button_homework_feedback
+button_homework_repeated_completion
+button_create_homework
+button_course_lessons
+button_add_content_to_lesson
+button_remove_content_from_lesson
+button_update_homework_content
+button_homework_settings
+button_create_new_course
+menu_mapping_settings_page_0 ${mappingId} ${position} ${content}
+button_mapping_text_toggle
+button_add_mapping_localization
+button_remove_mapping_localization
+service_course_next_stage_media_group_bypass

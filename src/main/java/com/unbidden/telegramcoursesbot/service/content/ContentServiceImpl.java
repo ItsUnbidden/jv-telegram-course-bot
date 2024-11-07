@@ -9,9 +9,7 @@ import com.unbidden.telegramcoursesbot.repository.ContentMappingRepository;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.service.content.handler.LocalizedContentHandler;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
-
 import jakarta.persistence.EntityNotFoundException;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -105,6 +103,14 @@ public class ContentServiceImpl implements ContentService {
     public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user) {
         return contentManager.getHandler(content.getType()).sendContent(content, user);
     }
+
+    @Override
+    @NonNull
+    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
+            boolean isProtected, boolean skipText) {
+        return contentManager.getHandler(content.getType())
+                .sendContent(content, user, isProtected, skipText);
+    }
     
     @Override
     @NonNull
@@ -118,7 +124,8 @@ public class ContentServiceImpl implements ContentService {
             LOGGER.debug("Localized content in group " + contentMapping.getId()
                     + " for user " + user.getId() + "'s prefered code " + user.getLanguageCode()
                     + " is available.");
-            return sendContent(getById(contentMap.get(user.getLanguageCode()).getId()), user);
+            return sendContent(getById(contentMap.get(user.getLanguageCode()).getId()),
+                    user, true, !contentMapping.isTextEnabled());
         }
         LOGGER.debug("Localized content in group " + contentMapping.getId() + " for user "
                 + user.getId() + "'s prefered code " + user.getLanguageCode()
@@ -130,7 +137,8 @@ public class ContentServiceImpl implements ContentService {
                 if (contentMap.containsKey(code)) {
                     LOGGER.debug("Localized content in group " + contentMapping.getId()
                             + " has been found for language code " + code + ".");
-                    return sendContent(getById(contentMap.get(code).getId()), user);
+                    return sendContent(getById(contentMap.get(code).getId()), user,
+                            true, !contentMapping.isTextEnabled());
                 }
             }
         }
@@ -138,7 +146,8 @@ public class ContentServiceImpl implements ContentService {
         LOGGER.warn("There is no available content in group " + contentMapping.getId()
                 + " for any of the priority language codes. First content in the list (Id: "
                 + firstAvailableContent.getId() + ") will be used instead.");
-        return sendContent(getById(firstAvailableContent.getId()), user);
+        return sendContent(getById(firstAvailableContent.getId()), user,
+                true, !contentMapping.isTextEnabled());
     }
 
     @Override
@@ -157,6 +166,12 @@ public class ContentServiceImpl implements ContentService {
 
     @Override
     @NonNull
+    public ContentMapping saveMapping(@NonNull ContentMapping mapping) {
+        return contentMappingRepository.save(mapping);
+    }
+
+    @Override
+    @NonNull
     public List<MediaType> parseMediaTypes(@NonNull String mediaTypesStr) {
         final List<MediaType> mediaTypes = new ArrayList<>();
 
@@ -168,6 +183,24 @@ public class ContentServiceImpl implements ContentService {
             }
         }
         return mediaTypes;
+    }
+
+    @Override
+    @NonNull
+    public ContentMapping addNewLocalization(@NonNull ContentMapping mapping,
+            @NonNull LocalizedContent content) {
+        mapping.getContent().add(content);
+        return contentMappingRepository.save(mapping);
+    }
+
+    @Override
+    public boolean removeLocalization(@NonNull ContentMapping mapping,
+            @NonNull String languageCode) {
+        if (mapping.getContent().removeIf(c -> c.getLanguageCode().equals(languageCode))) {
+            contentMappingRepository.save(mapping);
+            return true;
+        }
+        return false;
     }
 
     private MediaType defineContentType(List<Message> messages) {
@@ -268,19 +301,5 @@ public class ContentServiceImpl implements ContentService {
             contentMap.put(localizedContent.getLanguageCode(), localizedContent);
         }
         return contentMap;
-    }
-
-    @Override
-    @NonNull
-    public ContentMapping addNewLocalization(@NonNull Long mappingId, @NonNull LocalizedContent content) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'addNewLocalization'");
-    }
-
-    @Override
-    @NonNull
-    public ContentMapping removeLocalization(@NonNull Long mappingId, @NonNull Long contentId) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'removeLocalization'");
     }
 }
