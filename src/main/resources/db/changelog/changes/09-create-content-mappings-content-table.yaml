@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-content-mappings-content-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: content_mappings_content
+            columns: 
+              - column:
+                  name: mapping_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_mapping_content_mappings_content
+                    references: content_mappings(id)
+                    nullable: false
+              - column:
+                  name: content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_content_content_mappings_content
+                    references: content(id)
+                    nullable: false
+                

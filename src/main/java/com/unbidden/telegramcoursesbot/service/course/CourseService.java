@@ -43,4 +43,6 @@ public interface CourseService {
     @NonNull
     CourseProgress getCurrentCourseProgressForUser(@NonNull Long userId,
             @NonNull String courseName);
+
+    void delete(@NonNull Course course);
 }

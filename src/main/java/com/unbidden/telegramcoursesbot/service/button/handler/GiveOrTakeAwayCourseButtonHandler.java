@@ -20,7 +20,6 @@ import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.UserShared;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
@@ -122,12 +121,7 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
                     PARAM_COURSE_NAME, params[0]);
             }
             
-            bot.sendMessage(SendMessage.builder()
-                    .text(localization.getData())
-                    .chatId(user.getId())
-                    .entities(localization.getEntities())
-                    .replyMarkup(markup)
-                    .build());
+            bot.sendMessage(user, localization, markup);
         }
     }
 
@@ -223,25 +217,11 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
     private void sendMessages(UserEntity sender, UserEntity target, Localization error,
             Localization success, Localization notification) {
         if (error != null) {
-            bot.sendMessage(SendMessage.builder()
-                    .chatId(sender.getId())
-                    .text(error.getData())
-                    .entities(error.getEntities())
-                    .replyMarkup(keyboardRemove)
-                    .build());
+            bot.sendMessage(sender, error, keyboardRemove);
             return;
         }
 
-        bot.sendMessage(SendMessage.builder()
-            .chatId(sender.getId())
-            .text(success.getData())
-            .entities(success.getEntities())
-            .replyMarkup(keyboardRemove)
-            .build());                            
-        bot.sendMessage(SendMessage.builder()
-            .chatId(target.getId())
-            .text(notification.getData())
-            .entities(notification.getEntities())
-            .build());                            
+        bot.sendMessage(sender, success, keyboardRemove);                            
+        bot.sendMessage(target, notification);                            
     }   
 }

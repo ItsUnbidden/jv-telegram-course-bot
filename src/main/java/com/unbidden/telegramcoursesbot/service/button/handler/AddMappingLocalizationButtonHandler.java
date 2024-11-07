@@ -1,0 +1,99 @@
+package com.unbidden.telegramcoursesbot.service.button.handler;
+
+import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
+import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
+import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
+import java.util.HashMap;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.lang.NonNull;
+import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.objects.Message;
+
+@Component
+@RequiredArgsConstructor
+public class AddMappingLocalizationButtonHandler implements ButtonHandler {
+    private static final Logger LOGGER = LogManager.getLogger(
+            AddMappingLocalizationButtonHandler.class);
+    
+    private static final String PARAM_CONTENT_ID = "${contentId}";
+    private static final String PARAM_MAPPING_ID = "${mappingId}";
+
+    private static final String SERVICE_ADD_NEW_LOCALIZATION_REQUEST =
+            "service_add_new_localization_request";
+    private static final String SERVICE_ADD_NEW_LOCALIZATION_SUCCESS =
+            "service_add_new_localization_success";
+
+    private final ContentService contentService;
+
+    private final ContentSessionService sessionService;
+
+    private final UserService userService;
+
+    private final LocalizationLoader localizationLoader;
+
+    private final TelegramBot bot;
+
+    @Override
+    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
+        if (userService.isAdmin(user)) {
+            final ContentMapping mapping = contentService
+                    .getMappingById(Long.parseLong(params[0]));
+
+            LOGGER.info("User " + user.getId() + " is trying to add a new "
+                    + "localization to mapping " + mapping.getId() + ".");
+            sessionService.createSession(user, m -> {
+                final Message lastMessage = m.get(m.size() - 1);
+                final String languageCode;
+
+                if (lastMessage.hasText()) {
+                    if (lastMessage.getText().length() > 3
+                            || lastMessage.getText().length() < 2) {
+                        throw new InvalidDataSentException("Language code must be "
+                                + "between 2 and 3 characters");
+                    }
+                    LOGGER.debug("Language code for new content will be "
+                            + lastMessage.getText() + ".");
+                    languageCode = lastMessage.getText();
+                } else {
+                    languageCode = user.getLanguageCode();
+                    LOGGER.debug("Seems like language code is not specified. "
+                            + "Assuming it to be user's telegram language which is "
+                            + languageCode + ".");
+                }
+                if (mapping.getContent().stream()
+                        .anyMatch(c -> c.getLanguageCode().equals(languageCode))) {
+                    throw new InvalidDataSentException("Localization with language code "
+                            + languageCode + " is already present in mapping " + mapping.getId());
+                }
+                final LocalizedContent newContent = contentService.parseAndPersistContent(m,
+                        mapping.getContent().get(0).getData().getData(), languageCode);
+                contentService.addNewLocalization(mapping, newContent);
+                LOGGER.info("New content " + newContent.getId() + " has been added to mapping "
+                        + mapping.getId() + ".");
+                LOGGER.debug("Sending confirmation message...");
+
+                final Map<String, Object> parameterMap = new HashMap<>();
+                parameterMap.put(PARAM_MAPPING_ID, mapping.getId());
+                parameterMap.put(PARAM_CONTENT_ID, newContent.getId());
+
+                bot.sendMessage(user, localizationLoader.getLocalizationForUser(
+                        SERVICE_ADD_NEW_LOCALIZATION_SUCCESS, user, parameterMap));
+                LOGGER.debug("Message sent.");
+            });
+            LOGGER.debug("Sending new localization request...");
+            bot.sendMessage(user, localizationLoader.getLocalizationForUser(
+                    SERVICE_ADD_NEW_LOCALIZATION_REQUEST, user,
+                    PARAM_MAPPING_ID, mapping.getId()));
+            LOGGER.debug("Message sent.");
+        }
+    }
+}

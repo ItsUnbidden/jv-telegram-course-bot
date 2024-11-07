@@ -29,13 +29,8 @@ import org.telegram.telegrambots.meta.api.objects.User;
 public class LocalizationLoaderImpl implements LocalizationLoader {
     private static final Logger LOGGER = LogManager.getLogger(LocalizationLoaderImpl.class);
 
-    private static final String LANGUAGE_PRIORITY_DIVIDER = ",";
-
     @Value("${telegram.bot.message.text.format}")
     private String fileFormat;
-
-    @Value("${telegram.bot.message.language.priority}")
-    private String languagePriorityStr;
 
     @Value("${telegram.bot.message.text.path}")
     private String pathStr;
@@ -60,7 +55,7 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                 + localizationFolderPath + ".");
 
         languagePriority = new ArrayList<>();
-        String[] languagePriorityArray = languagePriorityStr.split(LANGUAGE_PRIORITY_DIVIDER);
+        String[] languagePriorityArray = textUtil.getLanguagePriority();
         if (languagePriorityArray.length == 0) {
             throw new LocalizationLoadingException("At least one language code should "
                     + "be present in the priority list");
@@ -81,7 +76,7 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
             return localization;
         }
         final String withInjectedUserData = textUtil.injectUserData(localization.getData(), user);
-        LOGGER.debug("User data injected. Setting up entities...");
+        LOGGER.trace("User data injected. Setting up entities...");
         return setUpLocalization(localization, withInjectedUserData);
     }
 
@@ -94,7 +89,7 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
             return localization;
         }
         final String withInjectedUserData = textUtil.injectUserData(localization.getData(), user);
-        LOGGER.debug("User data injected. Setting up entities...");
+        LOGGER.trace("User data injected. Setting up entities...");
         return setUpLocalization(localization, withInjectedUserData);
     }
 
@@ -109,7 +104,7 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
         }
         final String withInjectedParams = textUtil.injectParams(textUtil.injectUserData(
                 localization.getData(), user), parameterMap);
-        LOGGER.debug("User data and custom parameters injected. Setting up entities...");
+        LOGGER.trace("User data and custom parameters injected. Setting up entities...");
         return setUpLocalization(localization, withInjectedParams);
     }
 
@@ -124,7 +119,7 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
         }
         final String withInjectedParams = textUtil.injectParams(textUtil.injectUserData(
                 localization.getData(), user), parameterMap);
-        LOGGER.debug("User data and custom parameters injected. Setting up entities...");
+        LOGGER.trace("User data and custom parameters injected. Setting up entities...");
         return setUpLocalization(localization, withInjectedParams);
     }
 
@@ -157,13 +152,13 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
     @Override
     @NonNull
     public Localization loadLocalization(@NonNull String name, @NonNull String languageCode) {
-        LOGGER.debug("Loading cached localization " + name + "...");
+        LOGGER.trace("Loading cached localization " + name + "...");
         Localization localization = findAvailableLocalization(name, languageCode);
 
         if (!localization.isInjectionRequired()) {
             return localization;
         }
-        LOGGER.debug("Localization requires parameter injection. Creating copy...");
+        LOGGER.trace("Localization requires parameter injection. Creating copy...");
         try {
             localization = (Localization) localization.clone();
         } catch (CloneNotSupportedException e) {
@@ -182,7 +177,7 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
     }
 
     private void cacheLocalizationFiles() {
-        LOGGER.debug("Localization files caching is commencing...");
+        LOGGER.trace("Localization files caching is commencing...");
         final List<Path> locDirs = dao.list(localizationFolderPath).stream()
                 .filter(p -> p.toFile().isDirectory())
                 .toList();
@@ -193,11 +188,11 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                     .filter(p -> p.toFile().isFile())
                     .toList();
 
-            LOGGER.debug("There are " + locFiles.size() + " localization files in "
+            LOGGER.trace("There are " + locFiles.size() + " localization files in "
                     + locDir.getFileName() + ": " + locFiles.stream()
                     .map(p -> p.getFileName().toString()).toList().toString() + ".");
 
-            LOGGER.debug("Checking that all specified priority language codes "
+            LOGGER.trace("Checking that all specified priority language codes "
                     + "have a directory...");
             final List<String> locDirNames = locDirs.stream()
                     .map(ld -> ld.getFileName().toString()).toList();
@@ -208,11 +203,11 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                         + "do not have any directories. Those are: "
                         + priorityCodesWithNoDir.toString());
             }
-            LOGGER.debug("Everything is a go.");
+            LOGGER.trace("Everything is a go.");
             for (Path locFile : locFiles) {
                 final String keyPattern = FilenameUtils.getBaseName(locFile.toString()) + "_%s_"
                         + locDir.getFileName();
-                LOGGER.debug("Working on file " + locFile.getFileName().toString()
+                LOGGER.trace("Working on file " + locFile.getFileName().toString()
                         + ". Key pattern is going to be: " + keyPattern.formatted("<tag>") + ".");
 
                 try {
@@ -224,11 +219,11 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                         final Localization newLocalization;
 
                         if (entry.getKey().isInjectionRequired()) {
-                            LOGGER.debug("Localization " + key + " has custom parameters "
+                            LOGGER.trace("Localization " + key + " has custom parameters "
                                     + "that will need to be injected later.");
                             newLocalization = new Localization(key, content, true);
                         } else {
-                            LOGGER.debug("Localization " + key + " does not have any custom "
+                            LOGGER.trace("Localization " + key + " does not have any custom "
                                     + "parameters. Parsing markers now...");
                             final List<MessageEntity> entities =
                                     textUtil.getEntities(content);
@@ -236,22 +231,22 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                                     textUtil.removeMarkers(content), false);
                             newLocalization.setEntities(entities);
                         }
-                        LOGGER.debug("Saving localization data...");
+                        LOGGER.trace("Saving localization data...");
                         localizationRepository.save(newLocalization);
                     }
-                    LOGGER.debug("Localization data from file " + locFile + " has been cached.");
+                    LOGGER.trace("Localization data from file " + locFile + " has been cached.");
                 } catch (TaggedStringInterpretationException e) {
                     throw new LocalizationLoadingException("Unable to parse file " + locFile, e);
                 }
             }
         }
-        LOGGER.debug("Localization files cached successfuly.");
+        LOGGER.trace("Localization files cached successfuly.");
     }
 
     private Localization setUpLocalization(Localization localization, String injectedData) {
         localization.setEntities(textUtil.getEntities(injectedData));
         localization.setData(textUtil.removeMarkers(injectedData));
-        LOGGER.debug("Entities set up.");
+        LOGGER.trace("Entities set up.");
         return localization;
     }
 
@@ -260,17 +255,17 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                 .find(name + "_" + preferableLanguageCode);
         
         if (potentialLoc.isPresent()) {
-            LOGGER.debug("Localization " + name + " for prefered code " + preferableLanguageCode
+            LOGGER.trace("Localization " + name + " for prefered code " + preferableLanguageCode
                     + " is available.");
             return potentialLoc.get();
         }
-        LOGGER.debug("Localization " + name + " for prefered code " + preferableLanguageCode
+        LOGGER.trace("Localization " + name + " for prefered code " + preferableLanguageCode
                 + " is not available. Looking over the language code priority list...");
         for (String code : languagePriority) {
             if (!code.equals(preferableLanguageCode)) {
                 potentialLoc = localizationRepository.find(name + "_" + code);
                 if (potentialLoc.isPresent()) {
-                    LOGGER.debug("Localization " + name + " found for code " + code + ".");
+                    LOGGER.trace("Localization " + name + " found for code " + code + ".");
                     return potentialLoc.get();
                 }
             }

@@ -14,11 +14,11 @@ databaseChangeLog:
                     nullable: false
                     primaryKey: true
               - column:
-                  name: content_id
+                  name: content_mapping_id
                   type: bigint
                   constraints:
-                    foreignKeyName: fk_content_homework
-                    references: content(id)
+                    foreignKeyName: fk_mapping_homework
+                    references: content_mappings(id)
                     nullable: false
               - column:
                   name: allowed_media_types

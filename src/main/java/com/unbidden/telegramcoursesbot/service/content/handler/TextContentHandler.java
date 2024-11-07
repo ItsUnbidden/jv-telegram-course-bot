@@ -11,9 +11,12 @@ import com.unbidden.telegramcoursesbot.repository.LocalizedContentRepository;
 import com.unbidden.telegramcoursesbot.repository.MarkerAreaRepository;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -22,11 +25,15 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 @Component
 @RequiredArgsConstructor
 public class TextContentHandler implements LocalizedContentHandler<LocalizedContent> {
+    private static final Logger LOGGER = LogManager.getLogger(TextContentHandler.class);
+
     private final LocalizedContentRepository localizedContentRepository;
 
     private final MarkerAreaRepository markerAreaRepository;
 
     private final LocalizationLoader localizationLoader;
+
+    private final UserService userService;
 
     private final TelegramBot bot;
 
@@ -40,20 +47,36 @@ public class TextContentHandler implements LocalizedContentHandler<LocalizedCont
 
         localizedContent.setData(new ContentTextData(message.getText(),
                 markers, isLocalized));
+        localizedContent.setLanguageCode(userService.getUser(message
+                .getFrom().getId()).getLanguageCode());
+        return localizedContent;
+    }
 
+    @Override
+    public LocalizedContent parseLocalized(@NonNull List<Message> messages,
+            @NonNull String localizationName, @NonNull String languageCode) {
+        final LocalizedContent localizedContent = new LocalizedContent();
+        
+        localizedContent.setData(new ContentTextData(localizationName, List.of(), true));
+        localizedContent.setLanguageCode(languageCode);
         return localizedContent;
     }
 
     @Override
     @NonNull
     public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user) {
-        return sendContent(content, user, false);
+        return sendContent(content, user, false, false);
     }
 
     @Override
     @NonNull
     public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
-            boolean isProtected) {
+            boolean isProtected, boolean skipText) {
+        if (skipText) {
+            LOGGER.warn("Content " + content.getId() + " is of type " + content.getType()
+                    + " but parameter to skip text is enabled, meaning no content will be sent.");
+            return List.of();
+        }
         final LocalizedContent localizedContent = (LocalizedContent)content;
         final Localization localization = (localizedContent.getData().isLocalization())
                 ? localizationLoader.getLocalizationForUser(localizedContent

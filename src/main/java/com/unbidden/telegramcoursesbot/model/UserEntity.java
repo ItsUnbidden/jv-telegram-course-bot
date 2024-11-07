@@ -43,10 +43,13 @@ public class UserEntity {
     @NonNull
     public String getFullName() {
         if (lastName != null && username != null) {
-            return firstName + " \"" + username + "\" " + lastName;
+            return firstName + " @" + username + " " + lastName;
         }
         if (lastName != null) {
             return firstName + " " + lastName;
+        }
+        if (username != null) {
+            return firstName + " @" + username;
         }
         return firstName + "(" + id + ")";
     }

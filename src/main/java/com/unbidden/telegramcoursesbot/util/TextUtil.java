@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
@@ -39,6 +40,10 @@ public class TextUtil {
     private static final char TAG_CLOSE = '>';
     private static final String TAG_PARAMS_DIVIDER = " ";
     private static final String END_LINE_OVERRIDE_MARKER = "\\\n";
+    private static final String LANGUAGE_PRIORITY_DIVIDER = ",";
+
+    @Value("${telegram.bot.message.language.priority}")
+    private String languagePriorityStr;
 
     @PostConstruct
     public void init() {
@@ -98,7 +103,7 @@ public class TextUtil {
     @NonNull
     public Map<Tag, String> getMappedTagContent(@NonNull String data)
             throws TaggedStringInterpretationException {
-        LOGGER.debug("Parsing tagged string...");
+        LOGGER.trace("Parsing tagged string...");
         final int[] chars = data.chars().toArray();
         final Map<Tag, String> result = new HashMap<>();
 
@@ -107,7 +112,7 @@ public class TextUtil {
         
         for (int i = 0; i < chars.length; i++) {
             if (isRecording && chars[i] == TAG_CLOSE && (i == 0 || chars[i - 1] != '\\')) {
-                LOGGER.debug("Current char " + (char)chars[i] + " on  position " + i
+                LOGGER.trace("Current char " + (char)chars[i] + " on  position " + i
                         + ". Stopping recording of new tag...");
                 final String[] splitTag = builder.toString().split(TAG_PARAMS_DIVIDER);
                 final Tag tag = new Tag(splitTag[0], (splitTag.length > 1)
@@ -122,20 +127,20 @@ public class TextUtil {
                 }
 
                 final String locData = data.substring(i + 1, indexOfEndTag).trim();
-                LOGGER.debug("Tag is " + tag + ". End tag begins on " + indexOfEndTag
+                LOGGER.trace("Tag is " + tag + ". End tag begins on " + indexOfEndTag
                         + ". Adding " + locData.length() + " chars to the map.");
 
                 result.put(tag, locData);
                 i = indexOfEndTag + tag.getName().length() + 2;
                 builder.delete(0, builder.length());
-                LOGGER.debug("New tag recording might begin anywhere from index "
+                LOGGER.trace("New tag recording might begin anywhere from index "
                         + i + ". Tag builder cleared.");
             }
             if (isRecording) {
                 builder.append((char)chars[i]);
             }
             if (chars[i] == TAG_OPEN && (i == 0 || chars[i - 1] != '\\')) {
-                LOGGER.debug("Current char " + (char)chars[i] + " on  position " + i
+                LOGGER.trace("Current char " + (char)chars[i] + " on  position " + i
                         + ". Activating recording of new tag...");
                 isRecording = true;
             }
@@ -225,6 +230,11 @@ public class TextUtil {
             parameterMap.put(PARAM_ADVANCED_TIMESTAMP, review.getAdvancedSubmittedTimestamp());
         }
         return parameterMap;
+    }
+
+    @NonNull
+    public String[] getLanguagePriority() {
+        return languagePriorityStr.split(LANGUAGE_PRIORITY_DIVIDER);
     }
 
     private int extractEntities(MarkerDataDto markerData, List<MessageEntity> entities) {

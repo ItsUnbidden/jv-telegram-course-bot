@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.model.content;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.DiscriminatorType;
 import jakarta.persistence.DiscriminatorValue;
@@ -18,5 +19,6 @@ import lombok.EqualsAndHashCode;
 @DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.INTEGER)
 @DiscriminatorValue("0")
 public class LocalizedContent extends Content {
+    @Column(nullable = false)
     private String languageCode;
 }

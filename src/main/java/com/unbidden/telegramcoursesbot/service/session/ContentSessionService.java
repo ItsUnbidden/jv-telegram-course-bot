@@ -9,6 +9,8 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 public interface ContentSessionService extends SessionService {
     Integer createSession(@NonNull UserEntity user, @NonNull Consumer<List<Message>> function,
             boolean isSkippingConfirmation);
+    
+    void removeSessionsWithoutConfirmationForUser(@NonNull UserEntity user);
 
     void commit(@NonNull Integer sessionId);
 

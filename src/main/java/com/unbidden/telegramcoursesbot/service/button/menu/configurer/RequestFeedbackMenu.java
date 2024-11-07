@@ -41,7 +41,7 @@ public class RequestFeedbackMenu implements MenuConfigurer {
         final Page page1 = new Page();
         page1.setMenu(menu);
         page1.setPageIndex(0);
-        page1.setButtonsRowSize(2);
+        page1.setButtonsRowSize(1);
         page1.setButtonsFunction((u, p) -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_DECLINE_HOMEWORK, u)
                 .getData(), DECLINE, declineHandler), new TransitoryButton(
@@ -50,7 +50,7 @@ public class RequestFeedbackMenu implements MenuConfigurer {
         final Page page2 = new Page();
         page2.setMenu(menu);
         page2.setPageIndex(1);
-        page2.setButtonsRowSize(2);
+        page2.setButtonsRowSize(1);
         page2.setButtonsFunction((u, p) -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_ACCEPT_HOMEWORK, u)
                 .getData(), ACCEPT, acceptHandler), new TerminalButton(

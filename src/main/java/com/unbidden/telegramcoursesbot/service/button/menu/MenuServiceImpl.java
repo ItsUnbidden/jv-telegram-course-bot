@@ -27,7 +27,6 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup.EditMessageReplyMarkupBuilder;
@@ -96,17 +95,10 @@ public class MenuServiceImpl implements MenuService {
         final Page firstPage = menu.getPages().get(0);
         final Localization localization = firstPage.getLocalizationFunction()
                 .apply(user, List.of(param));
-        
-        LOGGER.debug("Menu " + menuName + "'s message is being compiled for user "
-                + user.getId() + "...");
-        SendMessage sendMessage = SendMessage.builder()
-                .chatId(user.getId())
-                .text(localization.getData())
-                .entities(localization.getEntities())
-                .replyMarkup(getInitialMarkup(firstPage, param, user))
-                .build();
-        LOGGER.debug("Menu " + menuName + "'s message compiled. Sending...");
-        final Message message = bot.sendMessage(sendMessage);
+
+        LOGGER.debug("Sending menu " + menu.getName() + " to user " + user.getId() + "...");
+        final Message message = bot.sendMessage(user, localization,
+                getInitialMarkup(firstPage, param, user));
         LOGGER.debug("Message sent.");
         return message;
     }

@@ -13,4 +13,7 @@ public interface LocalizedContentHandler<T extends Content> extends ContentHandl
     default T parse(@NonNull List<Message> messages) {
         return parseLocalized(messages, false);
     }
+
+    T parseLocalized(@NonNull List<Message> messages, @NonNull String localizationName,
+            @NonNull String languageCode);
 }

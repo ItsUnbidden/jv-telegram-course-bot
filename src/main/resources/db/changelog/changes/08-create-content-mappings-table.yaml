@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-content-mappings-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: content_mappings
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: position
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_text_enabled
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false

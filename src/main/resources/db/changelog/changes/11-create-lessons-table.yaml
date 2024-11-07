@@ -14,7 +14,7 @@ databaseChangeLog:
                     nullable: false
                     primaryKey: true
               - column:
-                  name: index
+                  name: position
                   type: int
                   constraints:
                     nullable: false

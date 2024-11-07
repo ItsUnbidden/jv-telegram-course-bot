@@ -90,4 +90,9 @@ public class SessionDistributorImpl implements SessionDistributor {
     public void removeSessionsForUser(@NonNull UserEntity user) {
         contentSessionService.removeSessionsForUser(user);
     }
+
+    @Override
+    public void removeSessionsWithoutConfirmationForUser(@NonNull UserEntity user) {
+        contentSessionService.removeSessionsWithoutConfirmationForUser(user);
+    }
 }

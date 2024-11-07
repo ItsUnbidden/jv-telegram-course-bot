@@ -17,7 +17,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 @Component
 @RequiredArgsConstructor
@@ -32,6 +31,8 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
             "service_course_price_update_request";
     private static final String SERVICE_COURSE_PRICE_UPDATE_SUCCESS =
             "service_course_price_update_success";
+
+    private static final int MAX_PRICE = 100_000;
 
     private final TelegramBot bot;
 
@@ -61,17 +62,17 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
                     final int newPrice = Integer.parseInt(providedStr);
                     LOGGER.info("New price " + newPrice + " for course " + course.getName()
                             + " parsed successfuly.");
+                    if (newPrice > MAX_PRICE) {
+                        throw new InvalidDataSentException("Price cannot be more then "
+                                + MAX_PRICE);
+                    }
                     course.setPrice(newPrice);
                     courseService.save(course);
                     LOGGER.info("New price saved.");
                     final Localization response = localizationLoader.getLocalizationForUser(
                             SERVICE_COURSE_PRICE_UPDATE_SUCCESS, user, messageParams);
 
-                    bot.sendMessage(SendMessage.builder()
-                                .chatId(user.getId())
-                                .text(response.getData())
-                                .entities(response.getEntities())
-                                .build());
+                    bot.sendMessage(user, response);
                 } catch (NumberFormatException e) {
                     throw new InvalidDataSentException("Unable to parse provided string "
                             + providedStr + " to new price int", e);
@@ -79,11 +80,7 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
             }, true);
             Localization updateRequestLocalization = localizationLoader.getLocalizationForUser(
                     SERVICE_COURSE_PRICE_UPDATE_REQUEST, user, messageParams);
-            bot.sendMessage(SendMessage.builder()
-                    .chatId(user.getId())
-                    .text(updateRequestLocalization.getData())
-                    .entities(updateRequestLocalization.getEntities())
-                    .build());
+            bot.sendMessage(user, updateRequestLocalization);
         }
     }
 }

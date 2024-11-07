@@ -25,8 +25,8 @@ databaseChangeLog:
                   name: is_localization
                   type: boolean
                   defaultValueBoolean: false
-                  constraints:
-                    nullable: false
               - column:
                   name: language_code
                   type: varchar(8)
+                  constraints:
+                    nullable: false

@@ -7,7 +7,7 @@ databaseChangeLog:
             tableName: homework
             columns:
               - column:
-                  name: content_id
+                  name: content_mapping_id
                   valueNumeric: 1
               - column:
                   name: is_feedback_required
@@ -16,7 +16,7 @@ databaseChangeLog:
             tableName: homework
             columns:
               - column:
-                  name: content_id
+                  name: content_mapping_id
                   valueNumeric: 2
               - column:
                   name: is_feedback_required

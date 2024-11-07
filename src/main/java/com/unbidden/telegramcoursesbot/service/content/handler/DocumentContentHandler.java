@@ -16,6 +16,7 @@ import com.unbidden.telegramcoursesbot.repository.MarkerAreaRepository;
 import com.unbidden.telegramcoursesbot.repository.PhotoRepository;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -49,70 +50,38 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
 
     private final TextContentHandler textContentHandler;
 
+    private final UserService userService;
+
     private final TelegramBot bot;
 
     @Override
     public DocumentContent parseLocalized(@NonNull List<Message> messages, boolean isLocalized) {
-        final List<Document> documents = new ArrayList<>();
-        final List<MarkerArea> markers = new ArrayList<>();
-        boolean isTextSetUp = false;
-        String captions = null;
+        return parse0(messages, null, isLocalized);
+    }
 
-        for (Message message : messages) {
-            if (message.hasText()) {
-                isTextSetUp = true;
-                captions = message.getText();
-                if (message.getEntities() != null
-                        && !message.getEntities().isEmpty()) {
-                    markers.addAll(message.getEntities().stream()
-                        .map(e -> markerAreaRepository.save(new MarkerArea(e))).toList());
-                }
-                continue;
-            }
-            final Document document = new Document(message.getDocument());
-            if (message.getDocument().getThumbnail() != null) {
-                final Optional<Photo> potentialThumbnail = photoRepository.findById(
-                        message.getDocument().getThumbnail().getFileUniqueId());
-                if (potentialThumbnail.isPresent()) {
-                    document.setThumbnail(potentialThumbnail.get());
-                } else {
-                    document.setThumbnail(photoRepository.save(
-                            new Photo(message.getDocument().getThumbnail())));
-                }
-            }
-            if (!isTextSetUp && message.getCaption() != null && !message.getCaption().isEmpty()) {
-                captions = message.getCaption();
-                if (message.getCaptionEntities() != null
-                        && !message.getCaptionEntities().isEmpty()) {
-                    markers.addAll(message.getCaptionEntities().stream()
-                        .map(e -> markerAreaRepository.save(new MarkerArea(e))).toList());
-                }
-            }
-            documents.add(document);
-        }
-        documentRepository.saveAll(documents);
-        DocumentContent documentContent = new DocumentContent();
-        if (captions != null) {
-            documentContent.setData(new ContentTextData(captions, markers, isLocalized));
-        }
-        documentContent.setDocuments(documents);
-        return documentContent;
+    @Override
+    public DocumentContent parseLocalized(@NonNull List<Message> messages,
+            @NonNull String localizationName, @NonNull String languageCode) {
+        final DocumentContent content = parse0(messages, localizationName, true);
+        content.setLanguageCode(languageCode);
+        return content;
     }
 
     @Override
     @NonNull
     public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user) {
-        return sendContent(content, user, false);
+        return sendContent(content, user, false, false);
     }
 
     @Override
     @NonNull
-    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user, boolean isProtected) {
+    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
+            boolean isProtected, boolean skipText) {
         final List<InputMedia> inputMedias = new ArrayList<>();
         final DocumentContent documentContent = (DocumentContent)content;
 
         Localization captionsLoc = null;
-        if (documentContent.getData() != null) {
+        if (documentContent.getData() != null && !skipText) {
             if (documentContent.getData().isLocalization()) {
                 captionsLoc = localizationLoader.getLocalizationForUser(
                         documentContent.getData().getData(), user);
@@ -134,7 +103,7 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
             LOGGER.warn("Content " + content.getId() + " is of type " + content.getType()
                     + " but does not have any relevant content. Text content handler "
                     + "will be used instead.");
-            return textContentHandler.sendContent(content, user, isProtected);
+            return textContentHandler.sendContent(content, user, isProtected, false);
         }
 
         if (captionsLoc != null) {
@@ -192,5 +161,57 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
     @NonNull
     public MediaType getContentType() {
         return MediaType.DOCUMENT;
+    }
+
+    private DocumentContent parse0(List<Message> messages, String localizationName,
+            boolean isLocalized) {
+        final List<Document> documents = new ArrayList<>();
+        final List<MarkerArea> markers = new ArrayList<>();
+        boolean isTextSetUp = localizationName != null;
+        String languageCode = null;
+        String captions = localizationName;
+
+        for (Message message : messages) {
+            if (!isTextSetUp && message.hasText()) {
+                isTextSetUp = true;
+                captions = message.getText();
+                if (message.getEntities() != null
+                        && !message.getEntities().isEmpty()) {
+                    markers.addAll(message.getEntities().stream()
+                        .map(e -> markerAreaRepository.save(new MarkerArea(e))).toList());
+                }
+                continue;
+            }
+            final Document document = new Document(message.getDocument());
+            if (message.getDocument().getThumbnail() != null) {
+                final Optional<Photo> potentialThumbnail = photoRepository.findById(
+                        message.getDocument().getThumbnail().getFileUniqueId());
+                if (potentialThumbnail.isPresent()) {
+                    document.setThumbnail(potentialThumbnail.get());
+                } else {
+                    document.setThumbnail(photoRepository.save(
+                            new Photo(message.getDocument().getThumbnail())));
+                }
+            }
+            if (!isTextSetUp && message.getCaption() != null && !message.getCaption().isEmpty()) {
+                captions = message.getCaption();
+                if (message.getCaptionEntities() != null
+                        && !message.getCaptionEntities().isEmpty()) {
+                    markers.addAll(message.getCaptionEntities().stream()
+                        .map(e -> markerAreaRepository.save(new MarkerArea(e))).toList());
+                }
+            }
+            if (languageCode == null) {
+                languageCode = userService.getUser(message.getFrom().getId()).getLanguageCode();
+            }
+            documents.add(document);
+        }
+        documentRepository.saveAll(documents);
+        DocumentContent documentContent = new DocumentContent();
+        documentContent.setData(new ContentTextData(captions, markers, isLocalized));
+        documentContent.setDocuments(documents);
+        documentContent.setLanguageCode(languageCode);
+        
+        return documentContent;
     }
 }
