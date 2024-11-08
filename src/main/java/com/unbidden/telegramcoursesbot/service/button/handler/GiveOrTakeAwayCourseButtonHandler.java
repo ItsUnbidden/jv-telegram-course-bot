@@ -147,7 +147,6 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
                 final PaymentDetails paymentDetails = new PaymentDetails();
                 paymentDetails.setGifted(true);
                 paymentDetails.setCourse(course);
-                paymentDetails.setSuccessful(true);
                 paymentDetails.setTelegramPaymentChargeId("Not inluded");
                 paymentDetails.setTotalAmount(0);
                 paymentDetails.setUser(newOwner);

@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.payment;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.dao.ImageDao;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.Course;
@@ -8,9 +9,10 @@ import com.unbidden.telegramcoursesbot.model.PaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.PaymentDetailsRepository;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
-import com.unbidden.telegramcoursesbot.util.TextUtil;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,7 +24,7 @@ import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery.AnswerPreCheckoutQueryBuilder;
 import org.telegram.telegrambots.meta.api.methods.invoices.SendInvoice;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.invoices.SendInvoice.SendInvoiceBuilder;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.payments.LabeledPrice;
@@ -30,9 +32,30 @@ import org.telegram.telegrambots.meta.api.objects.payments.PreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.objects.payments.SuccessfulPayment;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-// TODO: accomodate for the new isGifted field.
 @Service
 public class PaymentServiceImpl implements PaymentService {
+    private static final String SERVICE_REFUND_SUCCESS = "service_refund_success";
+
+    private static final String ERROR_PAYMENT_DETAILS_NOT_FOUND = "error_payment_details_not_found";
+
+    private static final String SERVICE_SUCCESSFUL_PAYMENT = "service_successful_payment";
+
+    private static final String ERROR_PRECHECKOUT_UNKNOWN_COURSE = "error_precheckout_unknown_course";
+
+    private static final String PARAM_CURRENT_PRICE = "${currentPrice}";
+
+    private static final String ERROR_PRE_CHECKOUT_PRICE_MISMATCH = "error_pre_checkout_price_mismatch";
+
+    private static final String ERROR_PRE_CHECKOUT_CURRENCY_MISMATCH = "error_pre_checkout_currency_mismatch";
+
+    private static final String PARAM_COURSE_NAME = "${courseName}";
+
+    private static final String ERROR_PRE_CHECKOUT_COURSE_ALREADY_OWNED = "error_pre_checkout_course_already_owned";
+
+    private static final String COURSE_INVOICE_DESCRIPTION = "course_%s_invoice_description";
+
+    private static final String COURSE_INVOICE_TITLE = "course_%s_invoice_title";
+
     private static final String ERROR_ANSWER_PRECHECKOUT_FAILURE = "error_answer_precheckout_failure";
 
     private static final String ERROR_SEND_INVOICE_FAILURE = "error_send_invoice_failure";
@@ -41,12 +64,15 @@ public class PaymentServiceImpl implements PaymentService {
 
     private static final String INVOICE_IMAGES_ENDPOINT = "/invoiceimages";
 
-    private static final String DEFAULT_CURRENCY = "XTR";
+    private static final String TELEGRAM_STARS = "XTR";
 
     private static final String PROVIDER_TOKEN = "foo";
 
     @Autowired
     private PaymentDetailsRepository paymentDetailsRepository;
+
+    @Autowired
+    private ImageDao imageDao;
 
     @Autowired
     @Lazy
@@ -61,24 +87,21 @@ public class PaymentServiceImpl implements PaymentService {
     @Autowired
     private LocalizationLoader localizationLoader;
 
-    @Autowired
-    private TextUtil textUtil;
-
     @Value("${telegram.bot.webhook.url}")
     private String serverUrl;
 
     @Override
-    public boolean isAvailable(User user, String courseName) {
+    public boolean isAvailable(@NonNull User user, @NonNull String courseName) {
         return isAvailable0(userService.getUser(user.getId()), courseName);
     }
 
     @Override
-    public boolean isAvailable(UserEntity user, String courseName) {
+    public boolean isAvailable(@NonNull UserEntity user, @NonNull String courseName) {
         return isAvailable0(user, courseName);
     }
 
     @Override
-    public boolean isAvailableAndGifted(UserEntity user, String courseName) {
+    public boolean isAvailableAndGifted(@NonNull UserEntity user, @NonNull String courseName) {
         final Course course = courseService.getCourseByName(courseName, user);
         
         return !paymentDetailsRepository
@@ -102,34 +125,38 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public void sendInvoice(UserEntity user, String courseName) {
+    public void sendInvoice(@NonNull UserEntity user, @NonNull String courseName) {
         final Course course = courseService.getCourseByName(courseName, user);
         final String imageUrl = serverUrl + INVOICE_IMAGES_ENDPOINT + "/" + courseName;
 
-        //TODO: revamp invoice system if possible
-        SendInvoice sendInvoice = SendInvoice.builder()
+        LOGGER.debug("Compiling invoce for course " + courseName + " for user " + user.getId()
+                + "...", imageUrl);
+        SendInvoiceBuilder builder = SendInvoice.builder()
                 .chatId(user.getId())
-                .title(localizationLoader.getLocalizationForUser(course.getName()
-                    + "title", user).getData())
-                .description(localizationLoader.getLocalizationForUser("description", user)
-                    .getData())
+                .title(localizationLoader.getLocalizationForUser(COURSE_INVOICE_TITLE
+                    .formatted(courseName), user).getData())
+                .description(localizationLoader.getLocalizationForUser(COURSE_INVOICE_DESCRIPTION
+                    .formatted(courseName), user).getData())
                 .payload(course.getName())
                 .providerToken(PROVIDER_TOKEN)
-                .currency(DEFAULT_CURRENCY)
+                .currency(TELEGRAM_STARS)
                 .price(LabeledPrice.builder()
                     .amount(course.getPrice())
-                    .label("labeled_price")
+                    .label(courseName)
                     .build())
-                .startParameter(course.getName())
-                .photoUrl(imageUrl)
-                // .photoWidth(1920)
-                // .photoHeight(1080)
-                .build();
+                .startParameter(course.getName());
+
+                if (imageDao.isPresent(courseName)) {
+                    builder.photoUrl(imageUrl);
+                } else {
+                    LOGGER.warn("Image for invoice for course " + courseName
+                            + " is not available.");
+                }
         try {
-            LOGGER.info("Sending invoice for course " + course.getName()
+            LOGGER.debug("Sending invoice for course " + course.getName()
                     + " to user " + user.getId() + "...");
-                    bot.execute(sendInvoice);
-            LOGGER.info("Invoice sent.");
+                    bot.execute(builder.build());
+            LOGGER.debug("Invoice sent.");
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to send invoice for "
                     + course.getName() + " to user " + user.getId(), localizationLoader
@@ -137,9 +164,8 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    // TODO: Localizations are wrong. This needs fixing
     @Override
-    public void resolvePreCheckout(PreCheckoutQuery preCheckoutQuery) {
+    public void resolvePreCheckout(@NonNull PreCheckoutQuery preCheckoutQuery) {
         final AnswerPreCheckoutQueryBuilder answerBuilder =
                 AnswerPreCheckoutQuery.builder()
                     .preCheckoutQueryId(preCheckoutQuery.getId())
@@ -154,35 +180,45 @@ public class PaymentServiceImpl implements PaymentService {
                     + " by user " + user.getId() + ".");
             
             if (isAvailable(user, course.getName())) {
-                answerBuilder.errorMessage(localizationLoader.getLocalizationForUser(
-                        
-                        "pre_checkout_course_already_present", user).getData());
+                final Localization errorLoc = localizationLoader.getLocalizationForUser(
+                        ERROR_PRE_CHECKOUT_COURSE_ALREADY_OWNED, user, PARAM_COURSE_NAME,
+                        course.getName());
+                answerBuilder.errorMessage(errorLoc.getData());
                 LOGGER.warn("Precheckout failed: user " + user.getId()
-                        + " already has this course.");
+                        + " already has course " + course.getName());
+                bot.sendMessage(user, errorLoc);
                 
-            } else if (!preCheckoutQuery.getCurrency().equals(DEFAULT_CURRENCY)) {
-                answerBuilder.errorMessage(localizationLoader.getLocalizationForUser(
-                        
-                        "pre_checkout_currency_mismatch", user).getData());
+            } else if (!preCheckoutQuery.getCurrency().equals(TELEGRAM_STARS)) {
+                final Localization errorLoc = localizationLoader.getLocalizationForUser(
+                        ERROR_PRE_CHECKOUT_CURRENCY_MISMATCH, user);
+                answerBuilder.errorMessage(errorLoc.getData());
                 LOGGER.error("Precheckout failed: currency mismatch. Investigation required. "
                         + "User: " + user.getId() + ", course: " + course.getName());
-            } else if (preCheckoutQuery.getTotalAmount() != course.getPrice()) {
-                answerBuilder.errorMessage(localizationLoader.getLocalizationForUser(
-                        
-                        "pre_checkout_price_mismatch", user).getData());
-                LOGGER.error("Precheckout failed: price mismatch. Investigation required. "
-                        + "User: " + user.getId() + ", course: " + course.getName());
+                bot.sendMessage(user, errorLoc);
+            } else if (!preCheckoutQuery.getTotalAmount().equals(course.getPrice())) {
+                final Localization errorLoc = localizationLoader.getLocalizationForUser(
+                        ERROR_PRE_CHECKOUT_PRICE_MISMATCH, user, PARAM_CURRENT_PRICE,
+                        course.getPrice());
+                answerBuilder.errorMessage(errorLoc.getData());
+                LOGGER.warn("Precheckout failed: User " + user.getId()
+                        + " is using invoice with price " + preCheckoutQuery.getTotalAmount()
+                        + " while course " + course.getName() + "'s current price is "
+                        + course.getPrice());
+                bot.sendMessage(user, errorLoc);
             } else {
                 LOGGER.info("Precheckout completed for course " + course.getName()
                         + " and user " + user.getId() + ".");
                 answerBuilder.ok(true);
             }
         } catch (EntityNotFoundException e) {
-            answerBuilder.errorMessage(localizationLoader.getLocalizationForUser(
-                    "error_precheckout_unknown_course", user).getData());
+            final Localization errorLoc = localizationLoader.getLocalizationForUser(
+                    ERROR_PRECHECKOUT_UNKNOWN_COURSE, user, PARAM_COURSE_NAME,
+                    preCheckoutQuery.getInvoicePayload());
+            answerBuilder.errorMessage(errorLoc.getData());
             LOGGER.error("Precheckout query payload contained unknown course: "
                     + preCheckoutQuery.getInvoicePayload() + ". Investigation required. User "
                     + user.getId());
+            bot.sendMessage(user, errorLoc);
         }
 
         try {
@@ -197,47 +233,51 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public void resolveSuccessfulPayment(Message message) {
+    public void resolveSuccessfulPayment(@NonNull Message message) {
         final UserEntity user = userService.getUser(message.getFrom().getId());
-        final PaymentDetails paymentDetails = new PaymentDetails();
         final SuccessfulPayment payment = message.getSuccessfulPayment();
 
+        final PaymentDetails paymentDetails = new PaymentDetails();
         paymentDetails.setTelegramPaymentChargeId(payment.getTelegramPaymentChargeId());
-        paymentDetails.setUser(userService.getUser(user.getId()));
+        paymentDetails.setUser(user);
         paymentDetails.setTotalAmount(payment.getTotalAmount());
+        paymentDetails.setValid(true);
+        paymentDetails.setGifted(false);
+        paymentDetails.setTimestamp(LocalDateTime.now());
 
         final Course course = courseService.getCourseByName(payment.getInvoicePayload(), user);
 
         LOGGER.info("Successful payment was sent for course " + course.getName()
                 + " by user " + user.getId() + ".");
         paymentDetails.setCourse(course);
-        paymentDetails.setSuccessful(true);
-        paymentDetails.setValid(true);
-        LOGGER.info("Saving payment details...");
+
+        LOGGER.debug("Saving payment details...");
         addPaymentDetails(paymentDetails);
-        LOGGER.info("Payment details saved.");
-        SendMessage sendMessage = SendMessage.builder() // TODO: Use bot.sendMessage()
-                .chatId(user.getId())
-                .text(localizationLoader.getLocalizationForUser("service_successful_payment",
-                    user).getData())
-                .build();
-        bot.sendMessage(sendMessage);
+        LOGGER.debug("Payment details saved. Sending confirmation message...");
+        bot.sendMessage(user, localizationLoader.getLocalizationForUser(
+                SERVICE_SUCCESSFUL_PAYMENT, user, PARAM_COURSE_NAME, course.getName()));
+        LOGGER.debug("Message sent.");
+        LOGGER.info("User " + user.getId() + " has bought course " + course.getName()
+                + "! Do not forget to thank them!");
     }
 
     @Override
-    public void refund(User user, String courseName) {
-        List<PaymentDetails> paymentDetailsList = paymentDetailsRepository
+    public void refund(@NonNull UserEntity user, @NonNull String courseName) {
+        final List<PaymentDetails> paymentDetailsList = paymentDetailsRepository
                 .findByUserIdAndCourseName(user.getId(), courseName);
 
         for (PaymentDetails paymentDetailsEntry : paymentDetailsList) {
-            if (paymentDetailsEntry.isValid() && paymentDetailsEntry.isSuccessful()) {
+            if (!paymentDetailsEntry.isGifted() && paymentDetailsEntry.isValid()) {
                 refund0(paymentDetailsEntry);
+                bot.sendMessage(user, localizationLoader.getLocalizationForUser(
+                        SERVICE_REFUND_SUCCESS, user, PARAM_COURSE_NAME, courseName));
                 return;
             }
         }
-        throw new UnsupportedOperationException("Unable to refund course " + courseName
-                + " for user " + user.getId()
-                + " because there is no valid payment details present.");
+        throw new EntityNotFoundException("Unable to refund course " + courseName
+                + " for user " + user.getId() + " because there is no valid payment "
+                + "details present", localizationLoader.getLocalizationForUser(
+                ERROR_PAYMENT_DETAILS_NOT_FOUND, user));
     }
 
     @Override
@@ -247,11 +287,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private void refund0(PaymentDetails paymentDetails) {
-        SendMessage sendMessage = SendMessage.builder()
-                .chatId(paymentDetails.getUser().getId())
-                .text("Course refund is currently unavailable.")
-                .build();
-        bot.sendMessage(sendMessage);
+        
     }
 
     private boolean isAvailable0(UserEntity user, String courseName) {

@@ -50,7 +50,7 @@ public class UnknownExceptionHandler implements ExceptionHandler {
         final Localization errorLoc = localizationLoader.getLocalizationForUser(
                 ERROR_UNSPECIFIED_EXCEPTION, user, getParameterMap(exc));
 
-        // notifyDirector(exc); TODO: this is currently disabled in order to stop file spamming
+        notifyDirector(exc);
 
         return SendMessage.builder()
                 .chatId(user.getId())

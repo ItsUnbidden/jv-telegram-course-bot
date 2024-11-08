@@ -21,7 +21,7 @@ public interface PaymentService {
 
     void resolveSuccessfulPayment(@NonNull Message message);
 
-    void refund(@NonNull User user, @NonNull String courseName);
+    void refund(@NonNull UserEntity user, @NonNull String courseName);
 
     @NonNull
     PaymentDetails addPaymentDetails(@NonNull PaymentDetails paymentDetails);

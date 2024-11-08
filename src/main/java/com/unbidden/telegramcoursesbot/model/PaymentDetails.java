@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.Data;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
@@ -36,9 +37,12 @@ public class PaymentDetails {
     @Column(nullable = false)
     private String telegramPaymentChargeId;
 
-    private boolean isValid;
+    @Column(nullable = false)
+    private LocalDateTime timestamp;
 
-    private boolean isSuccessful;
+    private LocalDateTime refundedAt;
+
+    private boolean isValid;
 
     private boolean isGifted;
 }
