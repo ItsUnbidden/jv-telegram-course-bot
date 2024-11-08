@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
@@ -21,7 +21,7 @@ public class ReceiveHomeworkToggleButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
@@ -32,7 +32,7 @@ public class ReceiveHomeworkToggleButtonHandler implements ButtonHandler {
                     SERVICE_TOGGLE_RECEIVE_HOMEWORK, user, PARAM_STATUS,
                     (updatedUser.isReceivingHomeworkRequests()) ? "ENABLED" : "DISABLED");
 
-            bot.sendMessage(user, success);
+            client.sendMessage(user, success);
         }
     }
 }

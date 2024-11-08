@@ -4,7 +4,6 @@ import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
-
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;

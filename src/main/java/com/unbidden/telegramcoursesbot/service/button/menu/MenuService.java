@@ -6,7 +6,7 @@ import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.User;
 
 public interface MenuService {

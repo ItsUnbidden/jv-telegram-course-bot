@@ -55,10 +55,7 @@ public class MarkerArea {
 
     @NonNull
     public MessageEntity toMessageEntity() {
-        final MessageEntity entity = new MessageEntity();
-        entity.setType(type);
-        entity.setOffset(offset);
-        entity.setLength(length);
+        final MessageEntity entity = new MessageEntity(type, offset, length);
         entity.setUrl(url);
         entity.setLanguage(language);
         entity.setCustomEmojiId(customEmojiId);

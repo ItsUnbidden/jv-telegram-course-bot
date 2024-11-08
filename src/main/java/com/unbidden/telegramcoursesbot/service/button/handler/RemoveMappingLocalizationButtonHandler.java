@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
@@ -43,7 +43,7 @@ public class RemoveMappingLocalizationButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
@@ -74,7 +74,7 @@ public class RemoveMappingLocalizationButtonHandler implements ButtonHandler {
                     parameterMap.put(PARAM_MAPPING_ID, mapping.getId());
                     parameterMap.put(PARAM_LANGUAGE_CODE, languageCode);
 
-                    bot.sendMessage(user, localizationLoader.getLocalizationForUser(
+                    client.sendMessage(user, localizationLoader.getLocalizationForUser(
                             SERVICE_REMOVE_LOCALIZATION_FROM_MAPPING_SUCCESS, user,
                             parameterMap));
                     LOGGER.debug("Message sent.");
@@ -85,7 +85,7 @@ public class RemoveMappingLocalizationButtonHandler implements ButtonHandler {
                         .getLocalizationForUser(ERROR_NO_LOCALIZATIONS_DELETED, user));
             });
             LOGGER.debug("Sending language code request message...");
-            bot.sendMessage(user, localizationLoader.getLocalizationForUser(
+            client.sendMessage(user, localizationLoader.getLocalizationForUser(
                     SERVICE_REMOVE_LOCALIZATION_FROM_MAPPING_REQUEST, user,
                     PARAM_MAPPING_ID, mapping.getId()));
             LOGGER.debug("Message sent.");

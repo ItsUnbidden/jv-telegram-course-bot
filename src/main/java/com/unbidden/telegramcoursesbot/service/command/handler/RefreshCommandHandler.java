@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 @RequiredArgsConstructor
@@ -24,7 +24,7 @@ public class RefreshCommandHandler implements CommandHandler {
 
     private final LocalizationLoader localizationLoader;
     
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Autowired
     @Lazy
@@ -35,20 +35,20 @@ public class RefreshCommandHandler implements CommandHandler {
         final UserEntity user = userService.getUser(message.getFrom().getId());
 
         if (userService.isAdmin(user)) {
-            bot.setOnMaintenance(true);
+            client.setOnMaintenance(true);
 
             localizationLoader.reloadResourses();
-            bot.setUpMenuButton();
-            localizationLoader.getAvailableLanguageCodes().forEach(c -> bot.setUpUserMenu(c,
+            client.setUpMenuButton();
+            localizationLoader.getAvailableLanguageCodes().forEach(c -> client.setUpUserMenu(c,
                     commandHandlerManager.getUserCommands()));
-            userService.getAdminList().forEach(a -> bot.setUpMenuForAdmin(a,
+            userService.getAdminList().forEach(a -> client.setUpMenuForAdmin(a,
                     commandHandlerManager.getAllCommands()));
             
-            bot.setOnMaintenance(false);
+            client.setOnMaintenance(false);
 
             final Localization localization = localizationLoader.getLocalizationForUser(
                     SERVICE_REFRESH_SUCCESS, message.getFrom());
-            bot.sendMessage(user, localization);
+            client.sendMessage(user, localization);
         }
     }
 

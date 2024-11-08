@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.content.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
@@ -28,9 +28,9 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaDocument;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
@@ -54,7 +54,7 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
 
     private final UserService userService;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public DocumentContent parseLocalized(@NonNull List<Message> messages, boolean isLocalized) {
@@ -119,7 +119,7 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
 
             if (inputMedia.getClass().equals(InputMediaDocument.class)) {
                 try {
-                    return List.of(bot.execute(SendDocument.builder()
+                    return List.of(client.execute(SendDocument.builder()
                             .chatId(user.getId())
                             .protectContent(isProtected)
                             .document(new InputFile(inputMedia.getMedia()))
@@ -136,7 +136,7 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
         }
 
         try {
-            return bot.execute(SendMediaGroup.builder()
+            return client.execute(SendMediaGroup.builder()
                     .chatId(user.getId())
                     .protectContent(isProtected)
                     .medias(inputMedias)

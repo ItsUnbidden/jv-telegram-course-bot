@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.menu.configurer;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.service.button.handler.GetContentButtonHandler;
 import com.unbidden.telegramcoursesbot.service.button.handler.UploadContentButtonHandler;
@@ -52,7 +52,7 @@ public class ContentMenu implements MenuConfigurer {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public void configure() {
@@ -96,7 +96,7 @@ public class ContentMenu implements MenuConfigurer {
                         }
                         menuService.initiateMenu(MAPPING_MENU_NAME, u1, mappingId.toString());
                     }, true);
-                    bot.sendMessage(u1, localizationLoader.getLocalizationForUser(
+                    client.sendMessage(u1, localizationLoader.getLocalizationForUser(
                         SERVICE_MAPPING_ID_REQUEST, u1));
                 })));
         menu.setName(MENU_NAME);

@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.content.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.model.content.ContentTextData;
@@ -20,7 +20,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 @RequiredArgsConstructor
@@ -35,7 +35,7 @@ public class TextContentHandler implements LocalizedContentHandler<LocalizedCont
 
     private final UserService userService;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public LocalizedContent parseLocalized(@NonNull List<Message> messages, boolean isLocalized) {
@@ -85,7 +85,7 @@ public class TextContentHandler implements LocalizedContentHandler<LocalizedCont
         
         localization.setEntities(localizedContent.getData().getEntities().stream()
                 .map(m -> m.toMessageEntity()).toList());
-        return List.of(bot.sendMessage(SendMessage.builder()
+        return List.of(client.sendMessage(SendMessage.builder()
                 .chatId(user.getId())
                 .text(localization.getData())
                 .entities(localization.getEntities())

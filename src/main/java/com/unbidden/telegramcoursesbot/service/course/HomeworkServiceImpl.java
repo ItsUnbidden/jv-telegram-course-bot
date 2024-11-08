@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
@@ -34,7 +34,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Service
 @RequiredArgsConstructor
@@ -104,7 +104,7 @@ public class HomeworkServiceImpl implements HomeworkService {
 
     private final LocalizationLoader localizationLoader;
     
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Lazy
     @Autowired
@@ -144,7 +144,7 @@ public class HomeworkServiceImpl implements HomeworkService {
                 errorLocalization = localizationLoader
                         .getLocalizationForUser(ERROR_HOMEWORK_ALREADY_AWAITS_APPROVAL,
                         user);
-                bot.sendMessage(user, errorLocalization);
+                client.sendMessage(user, errorLocalization);
                 return;
             case COMPLETED:
                 if (homework.isRepeatedCompletionAvailable()) {
@@ -168,7 +168,7 @@ public class HomeworkServiceImpl implements HomeworkService {
                 }
                 errorLocalization = localizationLoader
                         .getLocalizationForUser(ERROR_HOMEWORK_ALREADY_COMPLETED, user);
-                final Message message = bot.sendMessage(user, errorLocalization);
+                final Message message = client.sendMessage(user, errorLocalization);
                 menuService.initiateMenu(COURSE_NEXT_STAGE_MENU, user, course.getName()
                         + CourseService.COURSE_NAME_LESSON_INDEX_DIVIDER + courseProgress.getStage(),
                         message.getMessageId());
@@ -185,7 +185,7 @@ public class HomeworkServiceImpl implements HomeworkService {
                     + "additional message to be sent for menu.");
             final Localization mediaGroupBypassMessageLoc = localizationLoader
                     .getLocalizationForUser(SERVICE_SEND_HOMEWORK_MEDIA_GROUP_BYPASS, user);
-            menuMessage = bot.sendMessage(user, mediaGroupBypassMessageLoc);
+            menuMessage = client.sendMessage(user, mediaGroupBypassMessageLoc);
             LOGGER.debug("Additional message for menu has been sent.");
         } else {
             LOGGER.debug("Content in homework " + homework.getId() + " is not a media group. "
@@ -214,7 +214,7 @@ public class HomeworkServiceImpl implements HomeworkService {
             homeworkProgress.setApproveRequestedAt(LocalDateTime.now());
             localization = localizationLoader.getLocalizationForUser(
                     SERVICE_FEEDBACK_FOR_HOMEWORK_WAITING, homeworkProgress.getUser());
-            bot.sendMessage(homeworkProgress.getUser(), localization);
+            client.sendMessage(homeworkProgress.getUser(), localization);
         } else {
             homeworkProgress.setStatus(Status.COMPLETED);
             localization = localizationLoader.getLocalizationForUser(
@@ -225,10 +225,10 @@ public class HomeworkServiceImpl implements HomeworkService {
                 final Localization adminNotification = localizationLoader.getLocalizationForUser(
                         SERVICE_HOMEWORK_FEEDBACK_NOTIFICATION, a,
                         getParameterMapForUserAndCourseInfo(homeworkProgress));
-                bot.sendMessage(a, adminNotification);
+                client.sendMessage(a, adminNotification);
                 contentService.sendContent(homeworkProgress.getContent(), a);
             });
-            bot.sendMessage(homeworkProgress.getUser(), localization);
+            client.sendMessage(homeworkProgress.getUser(), localization);
             courseService.next(homeworkProgress.getUser(), homeworkProgress.getHomework()
                     .getLesson().getCourse().getName());
             homeworkProgress.setFinishedAt(LocalDateTime.now());
@@ -255,7 +255,7 @@ public class HomeworkServiceImpl implements HomeworkService {
             final Localization localization = localizationLoader.getLocalizationForUser(
                     SERVICE_HOMEWORK_FEEDBACK_REQUEST_NOTIFICATION, admin,
                     getParameterMapForUserAndCourseInfo(homeworkProgress));
-            bot.sendMessage(admin, localization);
+            client.sendMessage(admin, localization);
             LOGGER.debug("Homework feedback info has been sent to user " + admin.getId() + ".");
             final List<Message> sendContent = contentService.sendContent(homeworkProgress
                     .getContent(), admin);
@@ -268,7 +268,7 @@ public class HomeworkServiceImpl implements HomeworkService {
                     + " to attach the feedback menu to.");
             final Localization mediaGroupBypassMessageLoc = localizationLoader
                     .getLocalizationForUser(SERVICE_FEEDBACK_MEDIA_GROUP_BYPASS, admin);
-            menuMessage = bot.sendMessage(admin, mediaGroupBypassMessageLoc);
+            menuMessage = client.sendMessage(admin, mediaGroupBypassMessageLoc);
             LOGGER.debug("Additional message for menu has been sent.");
         } else {
             LOGGER.debug("Homework progress " + homeworkProgress.getId() + "'s content "
@@ -399,7 +399,7 @@ public class HomeworkServiceImpl implements HomeworkService {
         final Localization notification = localizationLoader
                 .getLocalizationForUser(localizationName, progress.getUser(), parameterMap);
         
-        bot.sendMessage(progress.getUser(), notification);
+        client.sendMessage(progress.getUser(), notification);
     }
 
     private Map<String, Object> getParameterMapForUserAndCourseInfo(

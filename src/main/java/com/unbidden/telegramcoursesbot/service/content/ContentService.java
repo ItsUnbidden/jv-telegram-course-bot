@@ -7,7 +7,8 @@ import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 import java.util.List;
 import org.springframework.lang.NonNull;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
+
 
 public interface ContentService {
     @NonNull

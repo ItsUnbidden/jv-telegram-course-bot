@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 public interface SessionService {

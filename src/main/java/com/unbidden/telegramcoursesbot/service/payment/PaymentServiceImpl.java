@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.payment;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.dao.ImageDao;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
@@ -25,7 +25,7 @@ import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery.AnswerPreCheckoutQueryBuilder;
 import org.telegram.telegrambots.meta.api.methods.invoices.SendInvoice;
 import org.telegram.telegrambots.meta.api.methods.invoices.SendInvoice.SendInvoiceBuilder;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.payments.LabeledPrice;
 import org.telegram.telegrambots.meta.api.objects.payments.PreCheckoutQuery;
@@ -82,7 +82,7 @@ public class PaymentServiceImpl implements PaymentService {
     private UserService userService;
 
     @Autowired
-    private TelegramBot bot;
+    private CustomTelegramClient client;
 
     @Autowired
     private LocalizationLoader localizationLoader;
@@ -131,7 +131,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         LOGGER.debug("Compiling invoce for course " + courseName + " for user " + user.getId()
                 + "...", imageUrl);
-        SendInvoiceBuilder builder = SendInvoice.builder()
+        SendInvoiceBuilder<?, ?> builder = SendInvoice.builder()
                 .chatId(user.getId())
                 .title(localizationLoader.getLocalizationForUser(COURSE_INVOICE_TITLE
                     .formatted(courseName), user).getData())
@@ -155,7 +155,7 @@ public class PaymentServiceImpl implements PaymentService {
         try {
             LOGGER.debug("Sending invoice for course " + course.getName()
                     + " to user " + user.getId() + "...");
-                    bot.execute(builder.build());
+                    client.execute(builder.build());
             LOGGER.debug("Invoice sent.");
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to send invoice for "
@@ -166,7 +166,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public void resolvePreCheckout(@NonNull PreCheckoutQuery preCheckoutQuery) {
-        final AnswerPreCheckoutQueryBuilder answerBuilder =
+        final AnswerPreCheckoutQueryBuilder<?, ?> answerBuilder =
                 AnswerPreCheckoutQuery.builder()
                     .preCheckoutQueryId(preCheckoutQuery.getId())
                     .ok(false);
@@ -186,7 +186,7 @@ public class PaymentServiceImpl implements PaymentService {
                 answerBuilder.errorMessage(errorLoc.getData());
                 LOGGER.warn("Precheckout failed: user " + user.getId()
                         + " already has course " + course.getName());
-                bot.sendMessage(user, errorLoc);
+                client.sendMessage(user, errorLoc);
                 
             } else if (!preCheckoutQuery.getCurrency().equals(TELEGRAM_STARS)) {
                 final Localization errorLoc = localizationLoader.getLocalizationForUser(
@@ -194,7 +194,7 @@ public class PaymentServiceImpl implements PaymentService {
                 answerBuilder.errorMessage(errorLoc.getData());
                 LOGGER.error("Precheckout failed: currency mismatch. Investigation required. "
                         + "User: " + user.getId() + ", course: " + course.getName());
-                bot.sendMessage(user, errorLoc);
+                client.sendMessage(user, errorLoc);
             } else if (!preCheckoutQuery.getTotalAmount().equals(course.getPrice())) {
                 final Localization errorLoc = localizationLoader.getLocalizationForUser(
                         ERROR_PRE_CHECKOUT_PRICE_MISMATCH, user, PARAM_CURRENT_PRICE,
@@ -204,7 +204,7 @@ public class PaymentServiceImpl implements PaymentService {
                         + " is using invoice with price " + preCheckoutQuery.getTotalAmount()
                         + " while course " + course.getName() + "'s current price is "
                         + course.getPrice());
-                bot.sendMessage(user, errorLoc);
+                client.sendMessage(user, errorLoc);
             } else {
                 LOGGER.info("Precheckout completed for course " + course.getName()
                         + " and user " + user.getId() + ".");
@@ -218,12 +218,12 @@ public class PaymentServiceImpl implements PaymentService {
             LOGGER.error("Precheckout query payload contained unknown course: "
                     + preCheckoutQuery.getInvoicePayload() + ". Investigation required. User "
                     + user.getId());
-            bot.sendMessage(user, errorLoc);
+            client.sendMessage(user, errorLoc);
         }
 
         try {
             LOGGER.info("Sending precheckout response...");
-            bot.execute(answerBuilder.build());
+            client.execute(answerBuilder.build());
             LOGGER.info("Precheckout response sent.");
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to answer precheckout query",
@@ -254,7 +254,7 @@ public class PaymentServiceImpl implements PaymentService {
         LOGGER.debug("Saving payment details...");
         addPaymentDetails(paymentDetails);
         LOGGER.debug("Payment details saved. Sending confirmation message...");
-        bot.sendMessage(user, localizationLoader.getLocalizationForUser(
+        client.sendMessage(user, localizationLoader.getLocalizationForUser(
                 SERVICE_SUCCESSFUL_PAYMENT, user, PARAM_COURSE_NAME, course.getName()));
         LOGGER.debug("Message sent.");
         LOGGER.info("User " + user.getId() + " has bought course " + course.getName()
@@ -269,7 +269,7 @@ public class PaymentServiceImpl implements PaymentService {
         for (PaymentDetails paymentDetailsEntry : paymentDetailsList) {
             if (!paymentDetailsEntry.isGifted() && paymentDetailsEntry.isValid()) {
                 refund0(paymentDetailsEntry);
-                bot.sendMessage(user, localizationLoader.getLocalizationForUser(
+                client.sendMessage(user, localizationLoader.getLocalizationForUser(
                         SERVICE_REFUND_SUCCESS, user, PARAM_COURSE_NAME, courseName));
                 return;
             }

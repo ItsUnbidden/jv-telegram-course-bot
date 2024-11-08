@@ -1,222 +1,94 @@
 package com.unbidden.telegramcoursesbot.bot;
 
+import com.unbidden.telegramcoursesbot.dao.CertificateDao;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.InputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.bots.DefaultBotOptions;
-import org.telegram.telegrambots.bots.TelegramWebhookBot;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
-import org.telegram.telegrambots.meta.api.methods.commands.DeleteMyCommands;
-import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
-import org.telegram.telegrambots.meta.api.methods.menubutton.SetChatMenuButton;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updates.GetWebhookInfo;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.springframework.util.Assert;
+import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.updates.DeleteWebhook;
+import org.telegram.telegrambots.meta.api.methods.updates.SetWebhook;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.WebhookInfo;
-import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
-import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeChat;
-import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
-import org.telegram.telegrambots.meta.api.objects.menubutton.MenuButtonCommands;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.generics.TelegramClient;
+import org.telegram.telegrambots.webhook.TelegramWebhookBot;
 
 @Component
-public class TelegramBot extends TelegramWebhookBot {
+public class TelegramBot implements TelegramWebhookBot {
     private static final Logger LOGGER = LogManager.getLogger(TelegramBot.class);
-    
+
     private static final String UPDATE_ENDPOINT_PATH = "bot";
-    
-    private static final String ERROR_SEND_MESSAGE_FAILURE = "error_send_message_failure";
-    private static final String MENU_COMMAND_DESCRIPTION = "menu_command_%s_description";
-    
-    private static final List<String> COMMAND_MENU_EXCEPTIONS = new ArrayList<>();
+
+    @Autowired
+    private TelegramClient telegramClient;
+
+    @Autowired
+    private CertificateDao certificateDao;
 
     @Value("${telegram.bot.authorization.username}")
     private String username;
 
-    private volatile boolean isOnMaintenance;
+    @Value("${telegram.bot.webhook.url}")
+    private String baseUrl;
 
-    @Autowired
-    private UserService userService;
+    @Value("${telegram.bot.webhook.secret}")
+    private String secretToken;
 
-    @Autowired
-    private LocalizationLoader localizationLoader;
+    @Value("${telegram.bot.webhook.ip}")
+    private String ip;
 
-    public TelegramBot(@Autowired DefaultBotOptions botOptions,
-            @Value("${telegram.bot.authorization.token}") String token) {
-        super(botOptions, token);
-        COMMAND_MENU_EXCEPTIONS.add("/testcourse");
+    @Value("${telegram.bot.webhook.max-connections}")
+    private Integer maxConnections;
+
+    @Override
+    public void runDeleteWebhook() {
+        try {
+            telegramClient.execute(DeleteWebhook.builder()
+                    .dropPendingUpdates(true)
+                    .build());
+        } catch (TelegramApiException e) {
+            throw new TelegramException("Unable to delete webhook", null, e);
+        }
     }
 
     @Override
-    public BotApiMethod<?> onWebhookUpdateReceived(Update update) {
-        LOGGER.info("On webhook update received method is not supported.");
-        return null;
+    public void runSetWebhook() {
+        Assert.notNull(baseUrl, "Base url cannot be null");
+        Assert.notNull(secretToken, "Due to security reasons secret token cannot be null");
+
+        LOGGER.info("Registering webhook bot...");
+        final InputStream publicKeyStream = certificateDao.readPublicKey();
+        LOGGER.info("Certificate public key file has been initialized into stream.");
+        try {
+            telegramClient.execute(SetWebhook.builder()
+                    .url(baseUrl + "/webhook/callback/" + getBotPath())
+                    .certificate(new InputFile(publicKeyStream,
+                        CertificateDao.PUBLIC_KEY_FILE_NAME))
+                    .ipAddress(ip)
+                    .secretToken(secretToken)
+                    .maxConnections(maxConnections)
+                    .build());
+        } catch (TelegramApiException e) {
+            throw new TelegramException("Unable to set up the webhook bot.", null, e);
+        } finally {
+            certificateDao.closeStream(publicKeyStream);
+            LOGGER.info("Certificate public key stream has been closed.");
+        }
+        LOGGER.info("Bot has been registered.");
+    }
+
+    @Override
+    public BotApiMethod<?> consumeUpdate(Update update) {
+        throw new UnsupportedOperationException("This method is not supported");
     }
 
     @Override
     public String getBotPath() {
         return UPDATE_ENDPOINT_PATH;
-    }
-
-    public WebhookInfo getInfo() {
-        try {
-            return execute(GetWebhookInfo.builder().build());
-        } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to get webhook info.", null, e);
-        }
-    }
-
-    public void setUpMenuButton() {
-        SetChatMenuButton setChatMenuButton = SetChatMenuButton.builder()
-                .menuButton(MenuButtonCommands.builder().build())
-                .build();
-        try {
-            execute(setChatMenuButton);
-        } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to set bot's menu button.", null, e);
-        }
-    }
-
-    public void setUpUserMenu(@NonNull String languageCode,
-            @NonNull List<String> userCommandNames) {
-        final List<BotCommand> userCommands = parseToBotCommands(userCommandNames, languageCode);
-
-        final SetMyCommands setMyUserCommands = SetMyCommands.builder()
-                .commands(userCommands)
-                .scope(BotCommandScopeDefault.builder().build())
-                .languageCode(languageCode)
-                .build();
-        try {
-            execute(setMyUserCommands);
-        } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to set up a menu.", null, e);
-        }
-    }
-
-    @Override
-    public String getBotUsername() {
-        return username;
-    }
-
-    /**
-     * Sends message provided in {@link SendMessage}. Warning! Field chatId in 
-     * {@link SendMessage} must be a user id, if that is not the case, exception will be thrown.
-     * @param sendMessage Telegram message builder
-     * @return sent {@link Message}
-     */
-    public Message sendMessage(SendMessage sendMessage) {
-        final UserEntity user = userService.getUser(Long.parseLong(sendMessage.getChatId()));
-
-        try {
-            return execute(sendMessage);
-        } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to send message.", localizationLoader
-                    .getLocalizationForUser(ERROR_SEND_MESSAGE_FAILURE, user), e);
-        }
-    }
-
-    /**
-     * Sends message to {@link UserEntity} using provided {@link Localization}.
-     * @param user to whom the message will be sent
-     * @param localization
-     * @return sent {@link Message}
-     */
-    @NonNull
-    public Message sendMessage(@NonNull UserEntity user, @NonNull Localization localization) {
-        try {
-            return execute(SendMessage.builder()
-                    .chatId(user.getId())
-                    .text(localization.getData())
-                    .entities(localization.getEntities())
-                    .build());
-        } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to send message.", localizationLoader
-                    .getLocalizationForUser(ERROR_SEND_MESSAGE_FAILURE, user), e);
-        }
-    }
-
-    /**
-     * Sends message to {@link UserEntity} using provided {@link Localization}
-     * with a specified markup.
-     * @param user to whom the message will be sent
-     * @param localization
-     * @param replyMarkup 
-     * @return sent {@link Message}
-     */
-    @NonNull
-    public Message sendMessage(@NonNull UserEntity user, @NonNull Localization localization,
-            @NonNull ReplyKeyboard replyMarkup) {
-        try {
-            return execute(SendMessage.builder()
-                    .chatId(user.getId())
-                    .text(localization.getData())
-                    .entities(localization.getEntities())
-                    .replyMarkup(replyMarkup)
-                    .build());
-        } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to send message.", localizationLoader
-                    .getLocalizationForUser(ERROR_SEND_MESSAGE_FAILURE, user), e);
-        }
-    }
-
-    public boolean isOnMaintenance() {
-        return isOnMaintenance;
-    }
-
-    public void setOnMaintenance(boolean isOnMaintenance) {
-        this.isOnMaintenance = isOnMaintenance;
-    }
-
-    public void deleteAdminMenuForUser(@NonNull UserEntity user) {
-        try {
-            execute(DeleteMyCommands.builder()
-                    .languageCode(user.getLanguageCode())
-                    .scope(BotCommandScopeChat.builder()
-                        .chatId(user.getId()).build())
-                    .build());
-        } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to clear commands for user " + user.getId()
-                    + " and language code " + user.getLanguageCode(), null, e);
-        }
-        LOGGER.info("Admin menu for user " + user.getId() + " has been removed.");
-    }
-
-    public void setUpMenuForAdmin(@NonNull UserEntity user, @NonNull List<String> allCommands) {
-        final List<BotCommand> adminCommands = parseToBotCommands(allCommands,
-                user.getLanguageCode());
-
-        try {
-            execute(SetMyCommands.builder().commands(adminCommands)
-                    .scope(BotCommandScopeChat.builder().chatId(user.getId()).build())
-                    .languageCode(user.getLanguageCode()).build());
-        } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to set admin commands for user " + user.getId()
-                    + " and language code " + user.getLanguageCode(), null, e);
-        }
-        LOGGER.info("Admin menu for user " + user.getId() + " has been added.");
-    }
-
-    private List<BotCommand> parseToBotCommands(List<String> commands, String languageCode) {
-        return commands.stream()
-                .filter(c -> !COMMAND_MENU_EXCEPTIONS.contains(c))
-                .map(c -> BotCommand.builder()
-                    .command(c)
-                    .description(localizationLoader.loadLocalization(
-                        MENU_COMMAND_DESCRIPTION.formatted(c.replace("/", "")),
-                        languageCode).getData())
-                    .build())
-                .toList();
     }
 }

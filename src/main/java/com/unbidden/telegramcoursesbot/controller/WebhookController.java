@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.controller;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.ExceptionHandlerManager;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.CallbackQueryRepository;
@@ -49,7 +49,7 @@ public class WebhookController {
 
     private final UserService userService;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Value("${telegram.bot.webhook.secret}")
     private String secretKey;
@@ -100,14 +100,14 @@ public class WebhookController {
             }
         } catch (Exception e) { 
             if (user != null) {
-                bot.sendMessage(exceptionHandlerManager.handleException(user, e));
+                client.sendMessage(exceptionHandlerManager.handleException(user, e));
                 sessionDistributor.removeSessionsWithoutConfirmationForUser(user);
             } else {
                 LOGGER.error("Strange situation occured - unable to handle "
                         + "exception due to the user being unknown. Theoretically, "
                         + "this should not be possible. Investigate immediately.", e);
                 
-                bot.sendMessage(exceptionHandlerManager.handleException(userService.getDiretor(), e));
+                client.sendMessage(exceptionHandlerManager.handleException(userService.getDiretor(), e));
             }
         }
         answerPotentialCallbackQuery(user);
@@ -115,7 +115,7 @@ public class WebhookController {
 
     @GetMapping("/test")
     public String test() {
-        return bot.getInfo().toString();
+        return client.getInfo().toString();
     }
 
     private void answerPotentialCallbackQuery(UserEntity user) {
@@ -125,7 +125,7 @@ public class WebhookController {
             if (query.isPresent()) {
                 LOGGER.debug("User " + user.getId() + " has an unanswered callback query.");
                 try {
-                    bot.execute(AnswerCallbackQuery.builder()
+                    client.execute(AnswerCallbackQuery.builder()
                             .callbackQueryId(query.get().getId())
                             .build());
                     LOGGER.debug("Callback query resolved.");
@@ -133,7 +133,7 @@ public class WebhookController {
                     LOGGER.error("Unable to answer callback query. This should not break "
                             + "anything but should be invesigated.", e);
                     
-                    bot.sendMessage(exceptionHandlerManager.handleException(
+                    client.sendMessage(exceptionHandlerManager.handleException(
                             userService.getDiretor(), e));
                 }
             }

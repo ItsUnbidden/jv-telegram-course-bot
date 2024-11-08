@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.exception.MoveContentException;
 import com.unbidden.telegramcoursesbot.model.Lesson;
@@ -53,7 +53,7 @@ public class UpdateContentPositionButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
@@ -123,12 +123,12 @@ public class UpdateContentPositionButtonHandler implements ButtonHandler {
                 parameterMap.put(PARAM_MAPPING_ID, mappingId);
                 parameterMap.put(PARAM_INDEX, index);
                 
-                bot.sendMessage(user, localizationLoader.getLocalizationForUser(
+                client.sendMessage(user, localizationLoader.getLocalizationForUser(
                         SERVICE_LESSON_MAPPING_ORDER_CHANGE_SUCCESS, user));
                 LOGGER.debug("Message sent.");
             });
             LOGGER.debug("Sending mapping order change request...");
-            bot.sendMessage(user, localizationLoader.getLocalizationForUser(
+            client.sendMessage(user, localizationLoader.getLocalizationForUser(
                     SERVICE_LESSON_MAPPING_ORDER_CHANGE_REQUEST, user,
                     PARAM_LESSON_ID, lesson.getId()));
             LOGGER.debug("Message sent.");

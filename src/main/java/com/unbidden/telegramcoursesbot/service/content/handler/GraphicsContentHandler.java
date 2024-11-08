@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.content.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
@@ -29,11 +29,11 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaVideo;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
@@ -57,7 +57,7 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
 
     private final UserService userService;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public GraphicsContent parseLocalized(@NonNull List<Message> messages, boolean isLocalized) {
@@ -126,7 +126,7 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
             if (inputMedia.getClass().equals(InputMediaPhoto.class)) {
                 LOGGER.debug("The media is a photo.");
                 try {
-                    return List.of(bot.execute(SendPhoto.builder()
+                    return List.of(client.execute(SendPhoto.builder()
                             .chatId(user.getId())
                             .protectContent(isProtected)
                             .photo(new InputFile(inputMedia.getMedia()))
@@ -142,7 +142,7 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
             }
             LOGGER.debug("The media is a video.");
             try {
-                return List.of(bot.execute(SendVideo.builder()
+                return List.of(client.execute(SendVideo.builder()
                         .chatId(user.getId())
                         .protectContent(isProtected)
                         .video(new InputFile(inputMedia.getMedia()))
@@ -158,7 +158,7 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
         }
 
         try {
-            return bot.execute(SendMediaGroup.builder()
+            return client.execute(SendMediaGroup.builder()
                     .chatId(user.getId())
                     .protectContent(isProtected)
                     .medias(inputMedias)

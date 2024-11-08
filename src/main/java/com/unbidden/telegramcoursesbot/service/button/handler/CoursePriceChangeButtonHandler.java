@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
@@ -38,15 +38,15 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
 
     private static final int MAX_PRICE = 100_000;
 
-    private final TelegramBot bot;
-
     private final CourseService courseService;
-
+    
     private final ContentSessionService sessionService;
     
     private final UserService userService;
-
+    
     private final LocalizationLoader localizationLoader;
+
+    private final CustomTelegramClient client;
 
     @Override
     @Blockable
@@ -78,7 +78,7 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
                     final Localization response = localizationLoader.getLocalizationForUser(
                             SERVICE_COURSE_PRICE_UPDATE_SUCCESS, user, messageParams);
 
-                    bot.sendMessage(user, response);
+                    client.sendMessage(user, response);
                 } catch (NumberFormatException e) {
                     throw new InvalidDataSentException("Unable to parse provided string "
                             + providedStr + " to new price int", localizationLoader
@@ -87,7 +87,7 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
             }, true);
             Localization updateRequestLocalization = localizationLoader.getLocalizationForUser(
                     SERVICE_COURSE_PRICE_UPDATE_REQUEST, user, messageParams);
-            bot.sendMessage(user, updateRequestLocalization);
+            client.sendMessage(user, updateRequestLocalization);
         }
     }
 }

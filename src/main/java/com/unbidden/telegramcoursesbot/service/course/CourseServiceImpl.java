@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
@@ -26,7 +26,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.User;
 
 @Service
@@ -68,7 +68,7 @@ public class CourseServiceImpl implements CourseService {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Value("${telegram.bot.course.show-test-course}")
     private Boolean isTestCourseShown;
@@ -171,7 +171,7 @@ public class CourseServiceImpl implements CourseService {
                     + "additional message to be sent for menu.");
             final Localization mediaGroupBypassMessageLoc = localizationLoader
                     .getLocalizationForUser(SERVICE_COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS, user);
-            menuMessage = bot.sendMessage(user, mediaGroupBypassMessageLoc);
+            menuMessage = client.sendMessage(user, mediaGroupBypassMessageLoc);
             LOGGER.debug("Additional message for menu has been sent.");
         } else {
             LOGGER.debug("Last message in lesson " + lesson.getId() + " is not a media group. "
@@ -204,7 +204,7 @@ public class CourseServiceImpl implements CourseService {
                     .getLocalizationForUser(COURSE_END.formatted(courseProgress.getCourse()
                     .getName()), user);
         courseProgressRepository.save(courseProgress);
-        bot.sendMessage(user, localization);
+        client.sendMessage(user, localization);
         if (!reviewService.isBasicReviewForCourseAndUserAvailable(user,
                 courseProgress.getCourse())) {
             reviewService.initiateBasicReview(user, courseProgress.getCourse());

@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.menu;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.MenuTerminationGroup;
 import com.unbidden.telegramcoursesbot.model.MessageEntity;
@@ -32,7 +32,7 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageTe
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup.EditMessageReplyMarkupBuilder;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText.EditMessageTextBuilder;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -64,7 +64,7 @@ public class MenuServiceImpl implements MenuService {
 
     private final KeyboardUtil keyboardUtil;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     @NonNull
@@ -100,7 +100,7 @@ public class MenuServiceImpl implements MenuService {
                 .apply(user, List.of(param));
 
         LOGGER.debug("Sending menu " + menu.getName() + " to user " + user.getId() + "...");
-        final Message message = bot.sendMessage(user, localization,
+        final Message message = client.sendMessage(user, localization,
                 getInitialMarkup(firstPage, param, user));
         LOGGER.debug("Message sent.");
         return message;
@@ -128,7 +128,7 @@ public class MenuServiceImpl implements MenuService {
                 .build();
         LOGGER.debug("Menu " + menuName + "'s markup compiled. Sending...");
         try {
-            bot.execute(editMessageReplyMarkup);
+            client.execute(editMessageReplyMarkup);
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to update markup for message " + messageId
                     + " for user " + user.getId(), localizationLoader.getLocalizationForUser(
@@ -152,7 +152,7 @@ public class MenuServiceImpl implements MenuService {
         LOGGER.debug("Current page is " + data[PAGE_NUMBER] + ".");
         
         boolean hasMessageChanged = false;
-        final EditMessageTextBuilder editMessageBuilder = EditMessageText.builder()
+        final EditMessageTextBuilder<?, ?> editMessageBuilder = EditMessageText.builder()
                 .chatId(user.getId())
                 .messageId(query.getMessage().getMessageId());
         final EditMessageReplyMarkupBuilder editMessageReplyMarkupBuilder = EditMessageReplyMarkup
@@ -238,11 +238,11 @@ public class MenuServiceImpl implements MenuService {
                     || button.getType().equals(Button.Type.TRANSITORY))) {
                 if (menu.isAttachedToMessage()) {
                     LOGGER.debug("Sending new message markup...");
-                    bot.execute(editMessageReplyMarkupBuilder.build());
+                    client.execute(editMessageReplyMarkupBuilder.build());
                     LOGGER.debug("New markup sent.");
                 } else {
                     LOGGER.debug("Sending new message content...");
-                    bot.execute(editMessageBuilder.build());
+                    client.execute(editMessageBuilder.build());
                     LOGGER.debug("New content sent.");
                 }  
             }
@@ -315,14 +315,14 @@ public class MenuServiceImpl implements MenuService {
                 .build();
         try {
             if (terminalPageLocalization == null) {
-                bot.execute(EditMessageReplyMarkup.builder()
+                client.execute(EditMessageReplyMarkup.builder()
                         .chatId(chatId)
                         .messageId(messageId)
                         .replyMarkup(clearMarkup)
                         .build());
                 return;
             }
-            bot.execute(EditMessageText.builder()
+            client.execute(EditMessageText.builder()
                     .chatId(chatId)
                     .messageId(messageId)
                     .text(terminalPageLocalization.getData())
@@ -344,11 +344,10 @@ public class MenuServiceImpl implements MenuService {
     private InlineKeyboardMarkup getInitialMarkup(Page menuPage, String param, UserEntity user) {
         final String callbackData = menuPage.getMenu().getName() + DIVIDER
                 + menuPage.getPageIndex() + DIVIDER + ((param == "") ? param : param + DIVIDER);
-
         List<InlineKeyboardButton> buttons = menuPage.getButtonsFunction()
                 .apply(user, List.of(param))
                 .stream()
-                .map(b -> InlineKeyboardButton.builder()
+                .map(b -> (InlineKeyboardButton)InlineKeyboardButton.builder()
                     .callbackData(callbackData + b.getData())
                     .text(b.getName())
                     .build())
@@ -370,7 +369,7 @@ public class MenuServiceImpl implements MenuService {
         List<InlineKeyboardButton> buttons = menuPage.getButtonsFunction()
                 .apply(user, Arrays.asList(data))
                 .stream()
-                .map(b -> InlineKeyboardButton.builder()
+                .map(b -> (InlineKeyboardButton)InlineKeyboardButton.builder()
                     .callbackData(callbackData + b.getData())
                     .text(b.getName())
                     .build())

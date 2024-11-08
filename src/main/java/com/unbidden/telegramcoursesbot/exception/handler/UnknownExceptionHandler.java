@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.exception.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.dao.LogDao;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
@@ -40,7 +40,7 @@ public class UnknownExceptionHandler implements ExceptionHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public SendMessage compileSendMessage(@NonNull UserEntity user, @NonNull Exception exc) {
@@ -67,11 +67,11 @@ public class UnknownExceptionHandler implements ExceptionHandler {
                 .getLocalizationForUser(ERROR_CRITICAL_DIRECTOR_NOTIFICATION, diretor,
                 getParameterMap(exc));
 
-        bot.sendMessage(diretor, criticalErrorDirectorNotification);
+        client.sendMessage(diretor, criticalErrorDirectorNotification);
         
         // TODO: make sending log files to director optional and configurable in the bot's interface
         try {
-            bot.execute(SendDocument.builder()
+            client.execute(SendDocument.builder()
                     .chatId(diretor.getId())
                     .document(new InputFile(stream, CURRENT_LOG_FILE_NAME))
                     .build());
