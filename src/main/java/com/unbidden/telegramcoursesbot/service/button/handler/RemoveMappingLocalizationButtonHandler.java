@@ -31,6 +31,10 @@ public class RemoveMappingLocalizationButtonHandler implements ButtonHandler {
     private static final String SERVICE_REMOVE_LOCALIZATION_FROM_MAPPING_SUCCESS =
             "service_remove_localization_from_mapping_success";
 
+    private static final String ERROR_NO_LOCALIZATIONS_DELETED = "error_no_localizations_deleted";
+    private static final String ERROR_LANGUAGE_CODE_LENGTH = "error_language_code_length";
+    private static final String ERROR_TEXT_MESSAGE_EXPECTED = "error_text_message_expected";
+
     private final ContentService contentService;
 
     private final ContentSessionService sessionService;
@@ -45,23 +49,21 @@ public class RemoveMappingLocalizationButtonHandler implements ButtonHandler {
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         if (userService.isAdmin(user)) {
             final ContentMapping mapping = contentService.getMappingById(
-                    Long.parseLong(params[0]));
+                    Long.parseLong(params[0]), user);
             LOGGER.debug("User " + user.getId() + " is trying to remove a "
                     + "localization from mapping " + mapping.getId() + ".");
             sessionService.createSession(user, m -> {
-                if (m.size() != 1) {
-                    throw new InvalidDataSentException("Only one message with language "
-                            + "code was expected");
-                }
                 if (!m.get(0).hasText()) {
                     throw new InvalidDataSentException("Text message with "
                             + "language code was expected, but provided message "
-                            + "does not have any text");
+                            + "does not have any text", localizationLoader
+                            .getLocalizationForUser(ERROR_TEXT_MESSAGE_EXPECTED, user));
                 }
                 final String languageCode = m.get(0).getText().trim();
                 if (languageCode.length() > 3 || languageCode.length() < 2) {
                     throw new InvalidDataSentException("Language code must be "
-                            + "between 2 and 3 characters");
+                            + "between 2 and 3 characters", localizationLoader
+                            .getLocalizationForUser(ERROR_LANGUAGE_CODE_LENGTH, user));
                 }
                 if (contentService.removeLocalization(mapping, languageCode)) {
                     LOGGER.info("Localization with code " + languageCode
@@ -79,7 +81,8 @@ public class RemoveMappingLocalizationButtonHandler implements ButtonHandler {
                     return;
                 }
                 throw new InvalidDataSentException("No elements were deleted since there is no "
-                        + "localization with language code " + languageCode);
+                        + "localization with language code " + languageCode, localizationLoader
+                        .getLocalizationForUser(ERROR_NO_LOCALIZATIONS_DELETED, user));
             });
             LOGGER.debug("Sending language code request message...");
             bot.sendMessage(user, localizationLoader.getLocalizationForUser(

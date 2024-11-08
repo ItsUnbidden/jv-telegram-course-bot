@@ -68,7 +68,7 @@ public class Initializer implements ApplicationRunner {
                     .maxConnections(maxConnections)
                     .build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to set up the webhook bot.", e);
+            throw new TelegramException("Unable to set up the webhook bot.", null, e);
         } finally {
             certificateDao.closeStream(publicKeyStream);
             LOGGER.info("Certificate public key stream has been closed.");

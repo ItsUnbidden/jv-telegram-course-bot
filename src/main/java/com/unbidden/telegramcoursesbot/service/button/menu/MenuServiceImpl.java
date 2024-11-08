@@ -43,6 +43,9 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 public class MenuServiceImpl implements MenuService {
     private static final Logger LOGGER = LogManager.getLogger(MenuServiceImpl.class);
 
+    private static final String ERROR_UPDATE_MESSAGE_FAILURE = "error_update_message_failure";
+    private static final String ERROR_UPDATE_MARKUP_FAILURE = "error_update_markup_failure";
+    
     private static final String DIVIDER = ":";
     private static final int MENU_NAME = 0;
     private static final int PAGE_NUMBER = 1;
@@ -128,7 +131,8 @@ public class MenuServiceImpl implements MenuService {
             bot.execute(editMessageReplyMarkup);
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to update markup for message " + messageId
-                    + " for user " + user.getId(), e);
+                    + " for user " + user.getId(), localizationLoader.getLocalizationForUser(
+                    ERROR_UPDATE_MARKUP_FAILURE, user), e);
         }
         LOGGER.debug("Markup sent.");
     }
@@ -245,7 +249,8 @@ public class MenuServiceImpl implements MenuService {
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to update markup for message "
                     + query.getMessage().getMessageId() + " and user "
-                    + user.getId(), e);
+                    + user.getId(), localizationLoader.getLocalizationForUser(
+                    ERROR_UPDATE_MARKUP_FAILURE, userFromDb), e);
         }
     }
 
@@ -303,6 +308,7 @@ public class MenuServiceImpl implements MenuService {
     @Override
     public void terminateMenu(@NonNull Long chatId, @NonNull Integer messageId,
             @Nullable Localization terminalPageLocalization) {
+        final UserEntity user = userService.getUser(chatId);
         final InlineKeyboardMarkup clearMarkup = InlineKeyboardMarkup.builder()
                 .clearKeyboard()
                 .keyboard(List.of())
@@ -325,7 +331,8 @@ public class MenuServiceImpl implements MenuService {
                     .build());
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to update message "
-                    + messageId + " in chat " + chatId, e);
+                    + messageId + " in chat " + chatId, localizationLoader.getLocalizationForUser(
+                    ERROR_UPDATE_MESSAGE_FAILURE, user), e);
         }
     }
 

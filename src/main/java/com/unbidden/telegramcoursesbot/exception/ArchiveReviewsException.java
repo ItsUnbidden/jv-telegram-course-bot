@@ -1,7 +1,9 @@
 package com.unbidden.telegramcoursesbot.exception;
 
-public class ArchiveReviewsException extends RuntimeException {
-    public ArchiveReviewsException(String message, Throwable cause) {
-        super(message, cause);
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
+
+public class ArchiveReviewsException extends LocalizedException {
+    public ArchiveReviewsException(String message, Localization errorLoc, Throwable cause) {
+        super(message, errorLoc, cause);
     }
 }

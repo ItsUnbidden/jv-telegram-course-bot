@@ -24,10 +24,10 @@ public interface CourseService {
     void end(@NonNull UserEntity user, @NonNull CourseProgress courseProgress);
 
     @NonNull
-    Course getCourseByName(@NonNull String courseName);
+    Course getCourseByName(@NonNull String courseName, @NonNull UserEntity user);
 
     @NonNull
-    Course getCourseById(@NonNull Long id);
+    Course getCourseById(@NonNull Long id, @NonNull UserEntity user);
 
     @NonNull
     List<Course> getAll();

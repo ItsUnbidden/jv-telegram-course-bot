@@ -51,10 +51,10 @@ public interface ContentService {
             @NonNull UserEntity user);
 
     @NonNull
-    LocalizedContent getById(@NonNull Long id);
+    LocalizedContent getById(@NonNull Long id, @NonNull UserEntity user);
 
     @NonNull
-    ContentMapping getMappingById(@NonNull Long id);
+    ContentMapping getMappingById(@NonNull Long id, @NonNull UserEntity user);
 
     @NonNull
     ContentMapping saveMapping(@NonNull ContentMapping mapping);

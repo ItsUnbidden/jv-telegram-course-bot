@@ -26,11 +26,16 @@ public class AddMappingLocalizationButtonHandler implements ButtonHandler {
     
     private static final String PARAM_CONTENT_ID = "${contentId}";
     private static final String PARAM_MAPPING_ID = "${mappingId}";
+    private static final String PARAM_LANGUAGE_CODE = "${languageCode}";
 
     private static final String SERVICE_ADD_NEW_LOCALIZATION_REQUEST =
             "service_add_new_localization_request";
     private static final String SERVICE_ADD_NEW_LOCALIZATION_SUCCESS =
             "service_add_new_localization_success";
+
+    private static final String ERROR_LANGUAGE_CODE_LENGTH = "error_language_code_length";
+    private static final String ERROR_LOCALIZED_CONTENT_IS_ALREADY_PRESENT =
+            "error_localized_content_is_already_present";
 
     private final ContentService contentService;
 
@@ -46,7 +51,7 @@ public class AddMappingLocalizationButtonHandler implements ButtonHandler {
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         if (userService.isAdmin(user)) {
             final ContentMapping mapping = contentService
-                    .getMappingById(Long.parseLong(params[0]));
+                    .getMappingById(Long.parseLong(params[0]), user);
 
             LOGGER.info("User " + user.getId() + " is trying to add a new "
                     + "localization to mapping " + mapping.getId() + ".");
@@ -58,11 +63,12 @@ public class AddMappingLocalizationButtonHandler implements ButtonHandler {
                     if (lastMessage.getText().length() > 3
                             || lastMessage.getText().length() < 2) {
                         throw new InvalidDataSentException("Language code must be "
-                                + "between 2 and 3 characters");
+                                + "between 2 and 3 characters", localizationLoader
+                                .getLocalizationForUser(ERROR_LANGUAGE_CODE_LENGTH, user));
                     }
                     LOGGER.debug("Language code for new content will be "
                             + lastMessage.getText() + ".");
-                    languageCode = lastMessage.getText();
+                    languageCode = lastMessage.getText().trim();
                 } else {
                     languageCode = user.getLanguageCode();
                     LOGGER.debug("Seems like language code is not specified. "
@@ -71,8 +77,14 @@ public class AddMappingLocalizationButtonHandler implements ButtonHandler {
                 }
                 if (mapping.getContent().stream()
                         .anyMatch(c -> c.getLanguageCode().equals(languageCode))) {
+                    final Map<String, Object> parameterMap = new HashMap<>();
+                    parameterMap.put(PARAM_MAPPING_ID, mapping.getId());
+                    parameterMap.put(PARAM_LANGUAGE_CODE, languageCode);
+
                     throw new InvalidDataSentException("Localization with language code "
-                            + languageCode + " is already present in mapping " + mapping.getId());
+                            + languageCode + " is already present in mapping " + mapping.getId(),
+                            localizationLoader.getLocalizationForUser(
+                            ERROR_LOCALIZED_CONTENT_IS_ALREADY_PRESENT, user, parameterMap));
                 }
                 final LocalizedContent newContent = contentService.parseAndPersistContent(m,
                         mapping.getContent().get(0).getData().getData(), languageCode);

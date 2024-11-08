@@ -31,9 +31,9 @@ public class LogDaoImpl implements LogDao {
             if (Files.exists(currentLogsFilePath)) {
                 return Files.newInputStream(currentLogsFilePath, StandardOpenOption.READ);
             }
-            throw new FileDaoOperationException("Current log file does not exist");
+            throw new FileDaoOperationException("Current log file does not exist", null);
         } catch (IOException e) {
-            throw new FileDaoOperationException("Unable to read log file", e);
+            throw new FileDaoOperationException("Unable to read log file", null, e);
         }
     }
 }

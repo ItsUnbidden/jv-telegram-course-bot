@@ -4,6 +4,8 @@ import com.unbidden.telegramcoursesbot.bot.TelegramBot;
 import com.unbidden.telegramcoursesbot.dao.ArchiveReviewsDao;
 import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.ArchiveReviewsException;
+import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
+import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Review;
@@ -14,8 +16,8 @@ import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
-import jakarta.persistence.EntityNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -41,7 +43,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 @Service
 @RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
-    private static final String SERVICE_REVIEW_MEDIA_GROUP_BYPASS = "service_review_media_group_bypass";
     private static final String REVIEW_ACTIONS_MENU = "m_rwA";
     private static final String LEAVE_ADVANCED_REVIEW_MENU = "m_laR";
     private static final String LEAVE_BASIC_REVIEW_MENU = "m_lbR";
@@ -76,6 +77,21 @@ public class ReviewServiceImpl implements ReviewService {
     private static final String SERVICE_ADVANCED_REVIEW_TERMINAL =
             "service_advanced_review_terminal";
     private static final String SERVICE_BASIC_REVIEW_TERMINAL = "service_basic_review_terminal";
+    private static final String SERVICE_REVIEW_MEDIA_GROUP_BYPASS =
+            "service_review_media_group_bypass";
+
+    private static final String ERROR_SEND_FILE_FAILURE = "error_send_file_failure";
+    private static final String ERROR_LEAVE_COMMENT_FAILURE = "error_leave_comment_failure";
+    private static final String ERROR_COMMIT_ADVANCED_REVIEW_FAILURE =
+            "error_commit_advanced_review_failure";
+    private static final String ERROR_COMMIT_BASIC_REVIEW_FAILURE =
+            "error_commit_basic_review_failure";
+    private static final String ERROR_ADVANCED_REVIEW_ALREADY_PRESENT =
+            "error_advanced_review_already_present";
+    private static final String ERROR_REVIEW_ALREADY_PRESENT = "error_review_already_present";
+    private static final String ERROR_UPDATE_CONTENT_NOT_PRESENT =
+            "error_update_content_not_present";
+    private static final String ERROR_REVIEW_NOT_FOUND = "error_review_not_found";
 
     public static final String REVIEW_ACTIONS_MENU_TERMINATION = "review_%s_actions";
     private static final String SEND_BASIC_REVIEW_TERMINATION = "course_%s_send_basic_review";
@@ -91,6 +107,8 @@ public class ReviewServiceImpl implements ReviewService {
     private final MenuService menuService;
 
     private final ContentService contentService;
+
+    private final UserService userService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -110,7 +128,8 @@ public class ReviewServiceImpl implements ReviewService {
         if (reviewOpt.isPresent()) {
             throw new ActionExpiredException("Unable to initiate a new review menu "
                     + "for user " + user.getId() + " since they already have left a review "
-                    + "for course " + course.getName());
+                    + "for course " + course.getName(), localizationLoader.getLocalizationForUser(
+                    ERROR_REVIEW_ALREADY_PRESENT, user));
         }
         LOGGER.info("Sending basic review menu for course " + course.getName() + " to user "
                 + user.getId() + "...");
@@ -129,7 +148,8 @@ public class ReviewServiceImpl implements ReviewService {
         if (review.getContent() != null) {
             throw new ActionExpiredException("Unable to initiate a new advanced review"
                     + " menu " + review.getId() + " because this review already has "
-                    + "some content.");
+                    + "some content.", localizationLoader.getLocalizationForUser(
+                    ERROR_ADVANCED_REVIEW_ALREADY_PRESENT, review.getUser()));
         }
         LOGGER.info("Sending advanced review menu for course " + review.getCourse().getName()
                 + " to user " +  review.getUser().getId() + "...");
@@ -151,7 +171,8 @@ public class ReviewServiceImpl implements ReviewService {
         if (reviewOpt.isPresent()) {
             throw new ActionExpiredException("Unable to create a new review entity "
                     + "for user " + user.getId() + " since they have already left a review "
-                    + "for course " + course.getName());
+                    + "for course " + course.getName(), localizationLoader.getLocalizationForUser(
+                    ERROR_COMMIT_BASIC_REVIEW_FAILURE, user));
         }
 
         LOGGER.info("User " + user.getId() + " wants to submit a basic review for course "
@@ -188,7 +209,9 @@ public class ReviewServiceImpl implements ReviewService {
         final Review review = getReviewById(reviewId);
         if (review.getContent() != null) {
             throw new ActionExpiredException("Unable to submit content for basic review "
-                    + reviewId + " because this review already has some content. ");
+                    + reviewId + " because this review already has some content",
+                    localizationLoader.getLocalizationForUser(
+                    ERROR_COMMIT_ADVANCED_REVIEW_FAILURE, review.getUser()));
         }
         
         LOGGER.info("User " + review.getUser().getId() + " wants to submit an advanced review "
@@ -219,7 +242,8 @@ public class ReviewServiceImpl implements ReviewService {
         if (review.getCommentContent() != null) {
             throw new ActionExpiredException("Unable to submit comment content for review "
                     + review.getId() + " because this review already has a comment from user "
-                    + review.getCommentedBy().getId());
+                    + review.getCommentedBy().getId(), localizationLoader.getLocalizationForUser(
+                    ERROR_LEAVE_COMMENT_FAILURE, user));
         }
         
         LOGGER.info("User " + user.getId() + " wants to comment review " + review.getId() + ".");
@@ -303,8 +327,9 @@ public class ReviewServiceImpl implements ReviewService {
             @NonNull LocalizedContent content) {
         final Review review = getReviewById(reviewId);
         if (review.getContent() == null) {
-            throw new UnsupportedOperationException("Unable to update review " + reviewId
-                    + "'s content because it has never been submitted.");
+            throw new ForbiddenOperationException("Unable to update review " + reviewId
+                    + "'s content because it has never been submitted", localizationLoader
+                    .getLocalizationForUser(ERROR_UPDATE_CONTENT_NOT_PRESENT, review.getUser()));
         }
 
         LOGGER.info("User " + review.getUser().getId()
@@ -383,14 +408,17 @@ public class ReviewServiceImpl implements ReviewService {
     public Review getReviewByCourseAndUser(@NonNull UserEntity user, @NonNull Course course) {
         return reviewRepository.findByCourseNameAndUserId(course.getName(), user.getId())
                 .orElseThrow(() -> new EntityNotFoundException("User " + user.getId()
-                + " has never left a review for course " + course.getName()));
+                + " has never left a review for course " + course.getName(), localizationLoader
+                .getLocalizationForUser(ERROR_REVIEW_NOT_FOUND, user)));
     }
 
     @Override
     @NonNull
     public Review getReviewById(@NonNull Long reviewId) {
         return reviewRepository.findById(reviewId).orElseThrow(() ->
-                new EntityNotFoundException("Review with id " + reviewId + " does not exist."));
+                new EntityNotFoundException("Review with id " + reviewId + " does not exist.",
+                localizationLoader.getLocalizationForUser(ERROR_REVIEW_NOT_FOUND, userService
+                .getDiretor())));
     }
 
     @Override
@@ -508,14 +536,15 @@ public class ReviewServiceImpl implements ReviewService {
                 LOGGER.info("File has been sent.");
             } catch (TelegramApiException e) {
                 throw new TelegramException("Unable to send file " + fileName + " to user "
-                        + user.getId(), e);
+                        + user.getId(), localizationLoader.getLocalizationForUser(
+                        ERROR_SEND_FILE_FAILURE, user), e);
             } finally {
                 inputStream.close();
                 LOGGER.info("Input stream has been closed.");
             }
         } catch (IOException e) {
             throw new ArchiveReviewsException("Unable to close the stream after the temp file "
-                    + tempFile + " has been read for user " + user.getId(), e);
+                    + tempFile + " has been read for user " + user.getId(), null, e);
         }
     }
 

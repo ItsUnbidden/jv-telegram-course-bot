@@ -16,9 +16,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class GetContentButtonHandler implements ButtonHandler {
     private static final String PARAM_CONTENT_ID = "${contentId}";
-
+    
     private static final String SERVICE_GET_CONTENT_REQUEST = "service_get_content_request";
     private static final String SERVICE_GET_CONTENT_SUCCESS = "service_get_content_success";
+
+    private static final String ERROR_PARSE_ID_FAILURE = "error_parse_id_failure";
 
     private final LocalizationLoader localizationLoader;
 
@@ -43,12 +45,13 @@ public class GetContentButtonHandler implements ButtonHandler {
                 contentId = Long.parseLong(m.get(0).getText().trim());
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse provided string "
-                        + providedNumberStr + " content id long", e);
+                        + providedNumberStr + " to content id long", localizationLoader
+                        .getLocalizationForUser(ERROR_PARSE_ID_FAILURE, userFromDb), e);
             }
             final Localization success = localizationLoader.getLocalizationForUser(
                     SERVICE_GET_CONTENT_SUCCESS, user, PARAM_CONTENT_ID,
                     contentId);
-            contentService.sendContent(contentService.getById(contentId), user);
+            contentService.sendContent(contentService.getById(contentId, user), user);
             bot.sendMessage(user, success);
         }, true);
         final Localization request = localizationLoader.getLocalizationForUser(

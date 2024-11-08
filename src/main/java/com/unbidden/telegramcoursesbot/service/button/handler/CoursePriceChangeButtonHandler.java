@@ -26,11 +26,15 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
             
     private static final String PARAM_CURRENT_PRICE = "${currentPrice}";
     private static final String PARAM_COURSE_NAME = "${courseName}";
+    private static final String PARAM_MAX_PRICE = "${maxPrice}";
 
     private static final String SERVICE_COURSE_PRICE_UPDATE_REQUEST =
             "service_course_price_update_request";
     private static final String SERVICE_COURSE_PRICE_UPDATE_SUCCESS =
             "service_course_price_update_success";
+
+    private static final String ERROR_PRICE_LIMIT = "error_price_limit";
+    private static final String ERROR_PARSE_PRICE_FAILURE = "error_parse_price_failure";
 
     private static final int MAX_PRICE = 100_000;
 
@@ -48,7 +52,7 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
     @Blockable
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         if (userService.isAdmin(user)) {
-            final Course course = courseService.getCourseByName(params[0]);
+            final Course course = courseService.getCourseByName(params[0], user);
             final Map<String, Object> messageParams = new HashMap<>();
             
             messageParams.put(PARAM_COURSE_NAME, course.getName());
@@ -62,9 +66,11 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
                     final int newPrice = Integer.parseInt(providedStr);
                     LOGGER.info("New price " + newPrice + " for course " + course.getName()
                             + " parsed successfuly.");
-                    if (newPrice > MAX_PRICE) {
+                    if (newPrice > MAX_PRICE || newPrice <= 0) {
                         throw new InvalidDataSentException("Price cannot be more then "
-                                + MAX_PRICE);
+                                + MAX_PRICE + " or less than 1", localizationLoader
+                                .getLocalizationForUser(ERROR_PRICE_LIMIT, user,
+                                PARAM_MAX_PRICE, MAX_PRICE));
                     }
                     course.setPrice(newPrice);
                     courseService.save(course);
@@ -75,7 +81,8 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
                     bot.sendMessage(user, response);
                 } catch (NumberFormatException e) {
                     throw new InvalidDataSentException("Unable to parse provided string "
-                            + providedStr + " to new price int", e);
+                            + providedStr + " to new price int", localizationLoader
+                            .getLocalizationForUser(ERROR_PARSE_PRICE_FAILURE, user), e);
                 }
             }, true);
             Localization updateRequestLocalization = localizationLoader.getLocalizationForUser(

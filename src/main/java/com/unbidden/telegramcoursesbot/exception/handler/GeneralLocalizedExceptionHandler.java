@@ -1,10 +1,11 @@
 package com.unbidden.telegramcoursesbot.exception.handler;
 
 import com.unbidden.telegramcoursesbot.exception.LocalizedException;
-import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,13 +14,15 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 @Component
-public class TelegramExceptionHandler extends GeneralLocalizedExceptionHandler {
+public class GeneralLocalizedExceptionHandler implements LocalizedExceptionHandler {
     private static final Logger LOGGER =
-            LogManager.getLogger(TelegramExceptionHandler.class);
+            LogManager.getLogger(GeneralLocalizedExceptionHandler.class);
 
     private static final String PARAM_EXC_MESSAGE = "${excMessage}";
+    private static final String PARAM_EXC_CLASS_NAME = "${excClassName}";
 
-    private static final String ERROR_TELEGRAM_INTERNAL = "error_telegram_internal";
+    private static final String ERROR_NO_EXCEPTION_LOCALIZATION_AVAILABLE =
+            "error_no_exception_localization_available";
 
     @Autowired
     protected LocalizationLoader localizationLoader;
@@ -27,13 +30,17 @@ public class TelegramExceptionHandler extends GeneralLocalizedExceptionHandler {
     @Override
     public SendMessage compileSendMessageFromLocalizedExc(@NonNull UserEntity user,
             @NonNull LocalizedException exc) {
-        LOGGER.error("During user " + user.getId()
-                + "'s session a telegram exception occured: ", exc);
+        LOGGER.debug("User " + user.getId() + " has triggered an exception: ", exc);
 
         if (exc.getErrorLocalization() == null) {
+            final Map<String, Object> parameterMap = new HashMap<>();
+
+            parameterMap.put(PARAM_EXC_MESSAGE, exc.getMessage());
+            parameterMap.put(PARAM_EXC_CLASS_NAME, exc.getClass().getSimpleName());
+
             final Localization errorLocalization = localizationLoader.getLocalizationForUser(
-                    ERROR_TELEGRAM_INTERNAL, user, PARAM_EXC_MESSAGE, exc.getMessage());
-            LOGGER.debug("There is no localization available for telegram error message. "
+                    ERROR_NO_EXCEPTION_LOCALIZATION_AVAILABLE, user, parameterMap);
+            LOGGER.debug("There is no localization available for error message. "
                     + "Default one will be used.");
             return SendMessage.builder()
                     .chatId(user.getId())
@@ -51,6 +58,6 @@ public class TelegramExceptionHandler extends GeneralLocalizedExceptionHandler {
 
     @Override
     public Class<? extends Exception> getExceptionClass() {
-        return TelegramException.class;
+        return LocalizedException.class;
     }
 }

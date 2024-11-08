@@ -1,59 +1,19 @@
-error new_price_cannot_parse
-service course_price_update_success ${courseName} ${currentPrice}
-service course_price_update_request ${courseName} ${currentPrice}
-service course_feedback_update_successful ${status} ${courseName}
-service course_homework_update_successful ${status} ${courseName}
-menu course_settings_page_0
-menu course_settings_page_1 ${id} ${name} ${numberOfLessons} ${price} ${isHomeworkIncluded} ${isFeedbackIncluded}
+course <courseName>_end
+course <courseName>_end_repeat
+course <courseName>_name
+course <courseName>_lesson_<lessonIndex>_content_<contentIndex>
+course <courseName>_lesson_<lessonIndex>_homework_content
+
 button course_price_change
 button course_feedback_setting
 button course_homework_setting
-service on_maintenance_status_change
-service refresh_success
-service start
-service terms
-error pre_checkout_unknown_course
-error pre_checkout_course_already_present
-error pre_checkout_currency_mismatch
-error pre_checkout_price_mismatch
-error payment_unknown_course
-service successful_payment
-error new_admin_assign_failure ${userId}
-service new_admin_assign_success ${targetFirstName}
 button add_new_admin
-service admin_choose_action
-service new_admin_notification
-error admin_remove_failure ${userId}
-service admin_remove_success ${targetFirstName}
-service removed_admin_notification
-service get_admin_list ${adminList}
-menu admin_actions_page_0
 button add_or_remove_admin
 button list_admins
-service_about_creator
-error give_take_course_no_longer_available ${courseName}
 button give_course
 button take_course
-service give_take_course_choose_action ${courseName}
-service course_gifted_successfuly ${courseName} ${targetFirstName}
-service course_gifted_notification ${courseName}
-error give_course_user_not_found ${courseName} ${targetId}
-error give_course_already_owned ${courseName} ${targetFirstName}
-service course_taken_successfuly ${courseName} ${targetFirstName}
-service course_taken_notification ${courseName}
-error take_course_user_not_found ${courseName} ${targetId}
-error take_course_bought ${courseName} ${targetFirstName}
 button give_or_take_course
-service toggle_receive_homework ${status}
 button toggle_receive_homework
-service approve_homework_comment_request
-service decline_homework_comment_request
-service get_content_success ${contentId}
-service get_content_request 
-service send_homework_request
-service upload_content_success ${contentId}
-service upload_content_request
-menu content_actions_page_0
 button upload_content
 button get_content
 button course_next_stage
@@ -62,57 +22,100 @@ button general_accept_homework
 button accept_homework
 button accept_homework_with_comment
 button send_homework
-menu test_page_0                    ****
 button test_menu                    ****
-menu test_terminal_page             ****
-course <courseName>_end_repeat
-course <courseName>_end
-error homework_already_awaits_approval
-error homework_already_declined
-error homework_already_completed
-service feedback_for_homework_waiting
-service homework_accepted_auto
-service homework_feedback_request_notification ${targetId} ${targetFirstName} ${targetLastName} ${targetUsername} ${targetLanguageCode} ${courseName} ${lessonIndex}
-service homework_approved_notification_plus_comment ${courseName} ${lessonIndex} ${commenterName}
-service homework_approved_notification ${courseName} ${lessonIndex} ${commenterName}
-service homework_declined_notification_plus_comment ${courseName} ${lessonIndex} ${commenterName}
-menu command_<commandName>_description
 button update_content               **** Deprecated
-service homework_feedback_notification ${targetId} ${targetFirstName} ${targetLastName} ${targetUsername} ${targetLanguageCode}
-menu available_courses_page_0
-menu courses_page_0
 button available_courses
 button my_courses
-menu courses_page_1
-course <courseName>_name
-menu courses_page_2
-menu courses_page_3
 button begin_course
 button leave_review
-menu my_courses_page_0
-menu my_courses_page_1
-course <courseName>_end
-course <courseName>_end_repeat
-service review_comment_request
-service review_content_request
-service get_archive_reviews
-service get_new_reviews
 button all_courses_reviews
-menu get_reviews_page_1
-menu get_reviews_page_0
 button send_advanced_review
 button update_advanced_review
 button update_platform_grade
 button update_course_grade
 button update_basic_review_and_leave_advanced_options
 button update_review_options
+button leave_review_comment
+button get_review_comment
+button mark_review_as_read
+button get_content
+button upload_content
+button get_mapping
+button change_mapping_order
+button remove_course
+button update_media_types
+button homework_feedback
+button homework_repeated_completion
+button create_homework
+button course_lessons
+button add_content_to_lesson
+button remove_content_from_lesson
+button update_homework_content
+button homework_settings
+button create_new_course
+button mapping_text_toggle
+button add_mapping_localization
+button remove_mapping_localization
+button resend_content
+button confirm_send_content
+button cancel_session
+
+
+menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes}
+menu course_settings_page_3 ${mappingIds} ${sequenceOption} ${homeworkId} ${index} ${lessonId}
+menu course_settings_page_2
+menu course_settings_page_1 ${id} ${name} ${numberOfLessons} ${price} ${isHomeworkIncluded} ${isFeedbackIncluded}
+menu course_settings_page_0
+menu commit_content_page_0
+menu commit_content_terminal_page
+menu mapping_settings_page_0 ${mappingId} ${position} ${content}
 menu my_courses_page_5
 menu my_courses_page_4
 menu my_courses_page_3
 menu my_courses_page_2
-button leave_review_comment
-button get_review_comment
-button mark_review_as_read
+menu my_courses_page_1
+menu my_courses_page_0
+menu get_reviews_page_1
+menu get_reviews_page_0
+menu courses_page_3
+menu courses_page_2
+menu courses_page_1
+menu courses_page_0
+menu available_courses_page_0
+menu test_page_0                    ****
+menu test_terminal_page             ****
+menu command_<commandName>_description
+menu content_actions_page_0
+menu admin_actions_page_0
+
+
+service add_lesson_content_request ${lessonId}
+service lesson_content_added ${contentId} ${lessonId}
+service add_new_localization_request ${contentId}
+service add_new_localization_success ${contentId} ${mappingId}
+service status_disabled
+service status_enabled
+service mapping_text_status_update_success ${status}
+service new_course_request
+service new_course_created ${courseName}
+service homework_content_request ${lessonId}
+service new_homework_created ${homeworkId}
+service homework_feedback_update_success ${status}
+service homework_media_types_request ${mediaTypes}
+service homework_media_types_update_success ${mediaTypes}
+service repeated_completion_update_success ${status}
+service remove_course_request ${courseName}
+service delete_course_success ${courseName}
+service remove_localization_from_mapping_request ${mappingId}
+service remove_localization_from_mapping_success ${languageCode} ${mappingId}
+service lesson_mapping_order_change_request ${lessonId}
+service lesson_mapping_order_change_success ${mappingId} ${index}
+service homework_content_updated ${homeworkId} ${mappingId}
+service send_homework_media_group_bypass
+service feedback_media_group_bypass
+service mapping_id_request
+service course_next_stage_media_group_bypass
+service resend_content
 service review_info ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead}
 service review_info_comment ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt}
 service review_info_content ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${contentId} ${originalContentId} ${advancedTimestamp}
@@ -127,11 +130,6 @@ service advanced_review_submitted ${courseName}
 service basic_review_submitted ${courseName}
 service advanced_review_terminal
 service basic_review_terminal
-error entity_not_found_exception
-error unspecified_exception ${excMessage} ${excClassName}
-error critical_director_notification ${excMessage} ${excClassName}
-error unsupported_operation_exception
-error telegram_exception ${excMessage}
 service resend_content
 service new_course_request
 service new_course_created ${courseName}
@@ -141,54 +139,106 @@ service remove_lesson_content_request
 service lesson_content_removed ${contentId} ${lessonId}
 service add_lesson_content_request
 service lesson_content_added ${contentId} ${lessonId}
-menu course_settings_page_2
-menu course_settings_page_3 ${mappingIds} ${sequenceOption} ${homeworkId} ${index} ${lessonId}
-menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes}
-button resend_content
-button confirm_send_content
-button cancel_session
-menu commit_content_page_0
-menu commit_content_terminal_page
-service_add_lesson_content_request ${lessonId}
-service_lesson_content_added ${contentId} ${lessonId}
-service_add_new_localization_request ${contentId}
-service_add_new_localization_success ${contentId} ${mappingId}
-service_status_disabled
-service_status_enabled
-service_mapping_text_status_update_success ${status}
-service_new_course_request
-service_new_course_created ${courseName}
-service_homework_content_request ${lessonId}
-service_new_homework_created ${homeworkId}
-service_homework_feedback_update_success ${status}
-service_homework_media_types_request ${mediaTypes}
-service_homework_media_types_update_success ${mediaTypes}
-service_repeated_completion_update_success ${status}
-service_remove_course_request ${courseName}
-service_delete_course_success ${courseName}
-service_remove_localization_from_mapping_request ${mappingId}
-service_remove_localization_from_mapping_success ${languageCode} ${mappingId}
-service_lesson_mapping_order_change_request ${lessonId}
-service_lesson_mapping_order_change_success ${mappingId} ${index}
-service_homework_content_updated ${homeworkId} ${mappingId}
-button_get_content
-button_upload_content
-button_get_mapping
-service_mapping_id_request
-button_change_mapping_order
-button_remove_course
-button_update_media_types
-button_homework_feedback
-button_homework_repeated_completion
-button_create_homework
-button_course_lessons
-button_add_content_to_lesson
-button_remove_content_from_lesson
-button_update_homework_content
-button_homework_settings
-button_create_new_course
-menu_mapping_settings_page_0 ${mappingId} ${position} ${content}
-button_mapping_text_toggle
-button_add_mapping_localization
-button_remove_mapping_localization
-service_course_next_stage_media_group_bypass
+service review_comment_request
+service review_content_request
+service get_archive_reviews
+service get_new_reviews
+service feedback_for_homework_waiting
+service homework_accepted_auto
+service homework_feedback_request_notification ${targetId} ${targetFirstName} ${targetLastName} ${targetUsername} ${targetLanguageCode} ${courseName} ${lessonIndex}
+service homework_approved_notification_plus_comment ${courseName} ${lessonIndex} ${commenterName}
+service homework_approved_notification ${courseName} ${lessonIndex} ${commenterName}
+service homework_declined_notification_plus_comment ${courseName} ${lessonIndex} ${commenterName}
+service homework_feedback_notification ${targetId} ${targetFirstName} ${targetLastName} ${targetUsername} ${targetLanguageCode}
+service approve_homework_comment_request
+service decline_homework_comment_request
+service get_content_success ${contentId}
+service get_content_request 
+service send_homework_request
+service upload_content_success ${contentId}
+service upload_content_request
+service toggle_receive_homework ${status}
+service give_take_course_choose_action ${courseName}
+service course_gifted_successfuly ${courseName} ${targetFirstName}
+service course_gifted_notification ${courseName}
+service course_taken_successfuly ${courseName} ${targetFirstName}
+service course_taken_notification ${courseName}
+service_about_creator
+service admin_choose_action
+service new_admin_notification
+service admin_remove_success ${targetFirstName}
+service removed_admin_notification
+service get_admin_list ${adminList}
+service on_maintenance_status_change
+service refresh_success
+service start
+service terms
+service successful_payment
+service new_admin_assign_success ${targetFirstName}
+service course_price_update_success ${courseName} ${currentPrice}
+service course_price_update_request ${courseName} ${currentPrice}
+service course_feedback_update_successful ${status} ${courseName}
+service course_homework_update_successful ${status} ${courseName}
+
+
+error no_exception_localization_available ${excMessage} ${excClassName}
+error language_code_length
+error localized_content_is_already_present ${mappingId} ${languageCode}
+error price_limit ${maxPrice}
+error parse_price_failure
+error new_course_wrong_lessons_amount ${amountOfLessons}
+error message_text_missing ${messageIndex}
+error amount_of_messages ${providedMessagesNumber} ${expectedMessagesAmount}
+error parse_id_failure
+error text_message_expected ${messageIndex}
+error parse_enum_failure ${mediaTypes}
+error index_limit ${maxValue}
+error parse_index_failure
+error update_message_failure
+error update_markup_failure
+error content_graphics_group_failure
+error content_document_group_failure
+error content_audio_group_failure
+error content_several_text
+error content_text_and_captions
+error content_media_group_does_not_match ${allowedMediaTypes} ${sentContentMediaType}
+error send_content_failure
+error answer_precheckout_failure
+error send_invoice_failure
+error session_expired
+error more_then_one_session
+error session_no_shared_entity
+error mixed_sessions
+error delete_test_course_failure
+error review_not_found
+error mapping_not_in_lesson
+error lesson_not_found
+error homework_not_found
+error homework_progress_not_found
+error homework_already_awaits_approval
+error homework_already_completed
+error course_progress_not_found
+error course_not_found
+error content_mapping_not_found
+error content_not_found
+error new_price_cannot_parse
+error pre_checkout_unknown_course
+error pre_checkout_course_already_present
+error pre_checkout_currency_mismatch
+error pre_checkout_price_mismatch
+error payment_unknown_course
+error new_admin_assign_failure ${userId}
+error admin_remove_failure ${userId}
+error give_take_course_no_longer_available ${courseName}
+error give_course_user_not_found ${courseName} ${targetId}
+error give_course_already_owned ${courseName} ${targetFirstName}
+error take_course_user_not_found ${courseName} ${targetId}
+error take_course_bought ${courseName} ${targetFirstName}
+error homework_already_awaits_approval
+error homework_already_declined
+error homework_already_completed
+error entity_not_found_exception
+error unspecified_exception ${excMessage} ${excClassName}
+error critical_director_notification ${excMessage} ${excClassName}
+error unsupported_operation_exception
+error telegram_internal ${excMessage}

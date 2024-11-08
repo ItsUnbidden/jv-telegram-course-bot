@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.payment;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
@@ -10,7 +11,6 @@ import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
-import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,6 +33,10 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 // TODO: accomodate for the new isGifted field.
 @Service
 public class PaymentServiceImpl implements PaymentService {
+    private static final String ERROR_ANSWER_PRECHECKOUT_FAILURE = "error_answer_precheckout_failure";
+
+    private static final String ERROR_SEND_INVOICE_FAILURE = "error_send_invoice_failure";
+
     private static final Logger LOGGER = LogManager.getLogger(PaymentServiceImpl.class);
 
     private static final String INVOICE_IMAGES_ENDPOINT = "/invoiceimages";
@@ -65,17 +69,17 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public boolean isAvailable(User user, String courseName) {
-        return isAvailable0(user.getId(), courseName);
+        return isAvailable0(userService.getUser(user.getId()), courseName);
     }
 
     @Override
     public boolean isAvailable(UserEntity user, String courseName) {
-        return isAvailable0(user.getId(), courseName);
+        return isAvailable0(user, courseName);
     }
 
     @Override
     public boolean isAvailableAndGifted(UserEntity user, String courseName) {
-        final Course course = courseService.getCourseByName(courseName);
+        final Course course = courseService.getCourseByName(courseName, user);
         
         return !paymentDetailsRepository
                 .findByUserIdAndCourseName(user.getId(), course.getName()).stream()
@@ -99,7 +103,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public void sendInvoice(UserEntity user, String courseName) {
-        final Course course = courseService.getCourseByName(courseName);
+        final Course course = courseService.getCourseByName(courseName, user);
         final String imageUrl = serverUrl + INVOICE_IMAGES_ENDPOINT + "/" + courseName;
 
         //TODO: revamp invoice system if possible
@@ -128,7 +132,8 @@ public class PaymentServiceImpl implements PaymentService {
             LOGGER.info("Invoice sent.");
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to send invoice for "
-                    + course.getName() + " to user " + user.getId(), e);
+                    + course.getName() + " to user " + user.getId(), localizationLoader
+                    .getLocalizationForUser(ERROR_SEND_INVOICE_FAILURE, user), e);
         }
     }
 
@@ -139,11 +144,11 @@ public class PaymentServiceImpl implements PaymentService {
                 AnswerPreCheckoutQuery.builder()
                     .preCheckoutQueryId(preCheckoutQuery.getId())
                     .ok(false);
-        final User user = preCheckoutQuery.getFrom();
+        final UserEntity user = userService.getUser(preCheckoutQuery.getFrom().getId());
 
         try {
             final Course course = courseService.getCourseByName(
-                    preCheckoutQuery.getInvoicePayload());
+                    preCheckoutQuery.getInvoicePayload(), user);
             
             LOGGER.info("Precheckout query was sent for course " + course.getName()
                     + " by user " + user.getId() + ".");
@@ -185,14 +190,15 @@ public class PaymentServiceImpl implements PaymentService {
             bot.execute(answerBuilder.build());
             LOGGER.info("Precheckout response sent.");
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to answer precheckout query with "
-                    + "unknown course error.", e);
+            throw new TelegramException("Unable to answer precheckout query",
+                    localizationLoader.getLocalizationForUser(ERROR_ANSWER_PRECHECKOUT_FAILURE,
+                    preCheckoutQuery.getFrom()), e);
         }
     }
 
     @Override
     public void resolveSuccessfulPayment(Message message) {
-        final User user = message.getFrom();
+        final UserEntity user = userService.getUser(message.getFrom().getId());
         final PaymentDetails paymentDetails = new PaymentDetails();
         final SuccessfulPayment payment = message.getSuccessfulPayment();
 
@@ -200,7 +206,7 @@ public class PaymentServiceImpl implements PaymentService {
         paymentDetails.setUser(userService.getUser(user.getId()));
         paymentDetails.setTotalAmount(payment.getTotalAmount());
 
-        final Course course = courseService.getCourseByName(payment.getInvoicePayload());
+        final Course course = courseService.getCourseByName(payment.getInvoicePayload(), user);
 
         LOGGER.info("Successful payment was sent for course " + course.getName()
                 + " by user " + user.getId() + ".");
@@ -248,10 +254,10 @@ public class PaymentServiceImpl implements PaymentService {
         bot.sendMessage(sendMessage);
     }
 
-    private boolean isAvailable0(Long userId, String courseName) {
-        final Course course = courseService.getCourseByName(courseName);
+    private boolean isAvailable0(UserEntity user, String courseName) {
+        final Course course = courseService.getCourseByName(courseName, user);
         
-        return !paymentDetailsRepository.findByUserIdAndCourseName(userId, course.getName())
+        return !paymentDetailsRepository.findByUserIdAndCourseName(user.getId(), course.getName())
                 .isEmpty();
     }
 }

@@ -31,6 +31,8 @@ public class ContentSessionServiceImpl implements ContentSessionService {
 
     private static final String SERVICE_RESEND_CONTENT = "service_resend_content";
 
+    private static final String ERROR_SESSION_EXPIRED = "error_session_expired";
+
     private final SessionRepository sessionRepository;
 
     private final MenuService menuService;
@@ -53,7 +55,7 @@ public class ContentSessionServiceImpl implements ContentSessionService {
         final List<Session> sessions = sessionRepository.findForUser(user.getId());
         if (sessions.size() > 1) {
             throw new SessionException("User " + user.getId() + " has more then one "
-                    + "content session");
+                    + "content session", null);
         } else if (sessions.size() == 1) {
             LOGGER.debug("User " + user.getId() + " already has a session "
                     + sessions.get(0).getId() + ".");
@@ -92,7 +94,7 @@ public class ContentSessionServiceImpl implements ContentSessionService {
         LOGGER.debug("Adding new message to the confirmation list...");
         if (contentSession.isSkippingConfirmation()) {
             LOGGER.debug("Only one message is expected, no confirmation message will be sent.");
-            commit(session.getId());
+            commit(session.getId(), session.getUser());
         } else if (!contentSession.isMenuInitialized()) {
             LOGGER.debug("Sending confirmation menu...");
             menuService.initiateMenu(CONFIRMATION_MENU, contentSession.getUser(),
@@ -104,8 +106,8 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     }
 
     @Override
-    public void commit(@NonNull Integer sessionId) {
-        final ContentSession session = (ContentSession)getSession(sessionId);
+    public void commit(@NonNull Integer sessionId, @NonNull UserEntity user) {
+        final ContentSession session = (ContentSession)getSession(sessionId, user);
 
         LOGGER.debug("Executing content session " + sessionId + "'s function' for user "
                 + session.getUser().getId() + "...");
@@ -117,8 +119,8 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     }
 
     @Override
-    public void resend(@NonNull Integer sessionId) {
-        final ContentSession session = (ContentSession)getSession(sessionId);
+    public void resend(@NonNull Integer sessionId, @NonNull UserEntity user) {
+        final ContentSession session = (ContentSession)getSession(sessionId, user);
 
         LOGGER.debug("Removing sessions for user " + session.getUser().getId()
                 + " and recreating session...");
@@ -138,18 +140,19 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     }
 
     @Override
-    public void cancel(@NonNull Integer sessionId) {
-        final ContentSession session = (ContentSession)getSession(sessionId);
+    public void cancel(@NonNull Integer sessionId, @NonNull UserEntity user) {
+        final ContentSession session = (ContentSession)getSession(sessionId, user);
 
         removeSessionsForUser(session.getUser());
     }
 
-    private Session getSession(Integer sessionId) {
+    private Session getSession(Integer sessionId, UserEntity user) {
         final Optional<Session> potentialSession = sessionRepository.find(sessionId);
 
         if (potentialSession.isEmpty()) {
             throw new ActionExpiredException("There is no session with id " + sessionId
-                    + ". It might have expired.");
+                    + ". It might have expired.", localizationLoader.getLocalizationForUser(
+                    ERROR_SESSION_EXPIRED, user));
         }
         return potentialSession.get();
     }

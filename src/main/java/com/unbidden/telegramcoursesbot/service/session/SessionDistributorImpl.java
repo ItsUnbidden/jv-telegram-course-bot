@@ -3,6 +3,7 @@ package com.unbidden.telegramcoursesbot.service.session;
 import com.unbidden.telegramcoursesbot.exception.SessionException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.SessionRepository;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
@@ -10,17 +11,24 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.User;
 
 @Component
 @RequiredArgsConstructor
 public class SessionDistributorImpl implements SessionDistributor {
     private static final Logger LOGGER = LogManager.getLogger(SessionDistributorImpl.class);
 
+    private static final String ERROR_MIXED_SESSIONS = "error_mixed_sessions";
+    private static final String ERROR_SESSION_NO_SHARED_ENTITY = "error_session_no_shared_entity";
+    private static final String ERROR_MORE_THEN_ONE_SESSION = "error_more_then_one_session";
+
     private final SessionRepository sessionRepository;
 
     private final UserOrChatRequestSessionService userOrChatRequestSessionService;
 
     private final ContentSessionService contentSessionService;
+
+    private final LocalizationLoader localizationLoader;
 
     @Override
     public void callService(@NonNull Message message) {
@@ -35,10 +43,13 @@ public class SessionDistributorImpl implements SessionDistributor {
                 .filter(s -> s.getClass().equals(UserOrChatRequestSession.class))
                 .toList()
                 .size();
+        final User user = message.getFrom();
         if (amountOfUserOrChatRequestSessions == 0) {
             LOGGER.debug("There are no user or chat request sessions.");
             if (userSessions.size() != 1) {
-                throw new SessionException("There is supposed to be only one content session");
+                throw new SessionException("There is supposed to be only one content "
+                        + "session", localizationLoader.getLocalizationForUser(
+                        ERROR_MORE_THEN_ONE_SESSION, user));
             }
             LOGGER.debug("Calling " + contentSessionService.getClass().getSimpleName()
                     + " to process message...");
@@ -54,7 +65,9 @@ public class SessionDistributorImpl implements SessionDistributor {
                     if (userSharedSession.size() != 1) {
                         throw new SessionException("There is supposed to be only one users "
                                 + "request session with id " + message.getUsersShared()
-                                .getRequestId() + ". Collision might have occured");
+                                .getRequestId() + ". Collision might have occured",
+                                localizationLoader.getLocalizationForUser(
+                                ERROR_MORE_THEN_ONE_SESSION, user));
                     }
                     LOGGER.debug("Calling " + userOrChatRequestSessionService.getClass()
                             .getSimpleName() + " to process message...");
@@ -69,7 +82,9 @@ public class SessionDistributorImpl implements SessionDistributor {
                     if (chatSharedSession.size() != 1) {
                         throw new SessionException("There is supposed to be only one chat "
                                 + "request session with id " + message.getChatShared()
-                                .getRequestId() + ". Collision might have occured");
+                                .getRequestId() + ". Collision might have occured",
+                                localizationLoader.getLocalizationForUser(
+                                ERROR_MORE_THEN_ONE_SESSION, user));
                     }
                     LOGGER.debug("Calling " + userOrChatRequestSessionService.getClass()
                             .getSimpleName() + " to process message...");
@@ -77,11 +92,14 @@ public class SessionDistributorImpl implements SessionDistributor {
                             message);
                 } else {
                     throw new SessionException("Sessions for user are of user or chat request "
-                            + "type, but message does not contain any shared entity");
+                            + "type, but message does not contain any shared entity",
+                            localizationLoader.getLocalizationForUser(
+                            ERROR_SESSION_NO_SHARED_ENTITY, user));
                 }
             } else {
                 throw new SessionException("User has user or chat request sessions mixed with "
-                        + "content request sessions. This is not allowed");
+                        + "content request sessions. This is not allowed", localizationLoader
+                        .getLocalizationForUser(ERROR_MIXED_SESSIONS, user));
             }
         }
     }

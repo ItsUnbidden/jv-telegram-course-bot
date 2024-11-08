@@ -45,7 +45,8 @@ public class LeaveBasicReviewMenu implements MenuConfigurer {
             COURSE_GRADE_BUTTONS.add(new TransitoryButton(iSrt, iSrt, 1));
             PLATFORM_GRADE_BUTTONS.add(new TerminalButton(iSrt, iSrt, (u, pa) ->
                     reviewService.commitBasicReview(u, courseService.getCourseById(
-                    Long.parseLong(pa[0])), Integer.parseInt(pa[1]), Integer.parseInt(pa[2]))));
+                    Long.parseLong(pa[0]), u), Integer.parseInt(pa[1]),
+                    Integer.parseInt(pa[2]))));
         }
     }
 

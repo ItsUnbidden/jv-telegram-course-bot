@@ -56,7 +56,7 @@ public class MappingSettingsMenu implements MenuConfigurer {
         page.setButtonsRowSize(2);
         page.setLocalizationFunction((u, p) -> {
             final ContentMapping mapping = contentService.getMappingById(
-                Long.parseLong(p.get(0)));
+                Long.parseLong(p.get(0)), u);
             final Map<String, Object> parameterMap = new HashMap<>();
             parameterMap.put(PARAM_MAPPING_ID, mapping.getId());
             parameterMap.put(PARAM_POSITION, mapping.getPosition());

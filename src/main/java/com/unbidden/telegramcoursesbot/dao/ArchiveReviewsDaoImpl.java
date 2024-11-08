@@ -25,7 +25,7 @@ public class ArchiveReviewsDaoImpl implements ArchiveReviewsDao {
             Files.createDirectories(tempPath);
         } catch (IOException e) {
             throw new FileDaoOperationException("Unable to create a new directory in "
-                    + tempPath + " for temp reviews files.", e);
+                    + tempPath + " for temp reviews files.", null, e);
         }
     }
 
@@ -36,7 +36,7 @@ public class ArchiveReviewsDaoImpl implements ArchiveReviewsDao {
             return Files.createTempFile(tempPath, name, null);
         } catch (IOException e) {
             throw new FileDaoOperationException("Unable to create a new temp file in directory "
-                    + tempPath + " for reviews.", e);
+                    + tempPath + " for reviews.", null, e);
         }
     }
 
@@ -47,7 +47,7 @@ public class ArchiveReviewsDaoImpl implements ArchiveReviewsDao {
             return Files.write(path, content.getBytes(), StandardOpenOption.APPEND);
         } catch (IOException e) {
             throw new FileDaoOperationException("Unable to append to the temp file by path "
-                    + path, e);
+                    + path, null, e);
         }
     }
 
@@ -58,7 +58,7 @@ public class ArchiveReviewsDaoImpl implements ArchiveReviewsDao {
             return Files.newInputStream(path, StandardOpenOption.DELETE_ON_CLOSE);
         } catch (IOException e) {
             throw new FileDaoOperationException("Unable to read the temp file by path "
-                    + path, e);
+                    + path, null, e);
         }
     }
 
@@ -68,7 +68,7 @@ public class ArchiveReviewsDaoImpl implements ArchiveReviewsDao {
             Files.delete(path);
         } catch (IOException e) {
             throw new FileDaoOperationException("Unable to delete the temp file by path "
-                    + path, e);
+                    + path, null, e);
         }
     }
 }

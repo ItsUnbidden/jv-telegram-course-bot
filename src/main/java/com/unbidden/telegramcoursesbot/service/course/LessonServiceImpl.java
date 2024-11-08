@@ -1,12 +1,14 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
-import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
+import com.unbidden.telegramcoursesbot.exception.MoveContentException;
 import com.unbidden.telegramcoursesbot.model.Lesson;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.repository.ContentMappingRepository;
 import com.unbidden.telegramcoursesbot.repository.LessonRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
@@ -19,9 +21,14 @@ import org.springframework.stereotype.Service;
 public class LessonServiceImpl implements LessonService {
     private static final Logger LOGGER = LogManager.getLogger(LessonServiceImpl.class);
 
+    private static final String ERROR_MAPPING_NOT_IN_LESSON = "error_mapping_not_in_lesson";
+    private static final String ERROR_LESSON_NOT_FOUND = "error_lesson_not_found";
+
     private final LessonRepository lessonRepository;
 
     private final ContentMappingRepository contentMappingRepository;
+
+    private final LocalizationLoader localizationLoader;
 
     @Override
     @NonNull
@@ -37,8 +44,9 @@ public class LessonServiceImpl implements LessonService {
 
     @Override
     @NonNull
-    public Lesson addContent(@NonNull Long lessonId, @NonNull LocalizedContent content) {
-        final Lesson lesson = getById(lessonId);
+    public Lesson addContent(@NonNull Long lessonId, @NonNull LocalizedContent content,
+            @NonNull UserEntity user) {
+        final Lesson lesson = getById(lessonId, user);
         final ContentMapping contentMapping = new ContentMapping();
 
         contentMapping.setPosition(lesson.getStructure().size());
@@ -50,8 +58,9 @@ public class LessonServiceImpl implements LessonService {
 
     @Override
     @NonNull
-    public Lesson removeContent(@NonNull Long lessonId, @NonNull Long mappingId) {
-        final Lesson lesson = getById(lessonId);
+    public Lesson removeContent(@NonNull Long lessonId, @NonNull Long mappingId,
+            @NonNull UserEntity user) {
+        final Lesson lesson = getById(lessonId, user);
 
         lesson.getStructure().removeIf(m -> m.getId().equals(mappingId));
         return lessonRepository.save(lesson);
@@ -59,24 +68,27 @@ public class LessonServiceImpl implements LessonService {
 
     @Override
     @NonNull
-    public Lesson getById(@NonNull Long lessonId) {
+    public Lesson getById(@NonNull Long lessonId, @NonNull UserEntity user) {
         return lessonRepository.findById(lessonId).orElseThrow(() -> new EntityNotFoundException(
-                "Lesson with id " + lessonId + " does not exist"));
+                "Lesson with id " + lessonId + " does not exist", localizationLoader
+                .getLocalizationForUser(ERROR_LESSON_NOT_FOUND, user)));
     }
 
     @Override
     @NonNull
-    public Lesson moveContentToIndex(@NonNull Long lessonId, @NonNull Long mappingId, int index) {
-        final Lesson lesson = getById(lessonId);
+    public Lesson moveContentToIndex(@NonNull Long lessonId, @NonNull Long mappingId, int index,
+            @NonNull UserEntity user) throws MoveContentException {
+        final Lesson lesson = getById(lessonId, user);
         final List<ContentMapping> potentialMapping = lesson.getStructure().stream()
                 .filter(m -> m.getId().equals(mappingId)).toList();
         if (potentialMapping.size() == 0) {
             throw new EntityNotFoundException("Mapping " + mappingId
-                    + " does not belong to the lesson " + lessonId);
+                    + " does not belong to the lesson " + lessonId, localizationLoader
+                    .getLocalizationForUser(ERROR_MAPPING_NOT_IN_LESSON, user));
         }
         final ContentMapping mapping = potentialMapping.get(0);
         if (mapping.getPosition().equals(index)) {
-            throw new InvalidDataSentException("Mapping " + mappingId
+            throw new MoveContentException("Mapping " + mappingId
                     + "'s position is already set to " + index);
         }
         LOGGER.debug("Current mapping order for lesson " + lessonId + ": "

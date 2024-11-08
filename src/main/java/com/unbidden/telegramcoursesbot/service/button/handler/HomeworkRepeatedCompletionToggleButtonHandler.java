@@ -36,7 +36,8 @@ public class HomeworkRepeatedCompletionToggleButtonHandler implements ButtonHand
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         if (userService.isAdmin(user)) {
-            final Homework homework = homeworkService.getHomework(Long.parseLong(params[3]));
+            final Homework homework = homeworkService.getHomework(
+                    Long.parseLong(params[3]), user);
             LOGGER.info("User " + user.getId() + " is trying to toggle repeated "
                     + "completion for homework " + homework.getId() + ". Current status is "
                     + getRepeatedCompletionStatus(homework) + ".");

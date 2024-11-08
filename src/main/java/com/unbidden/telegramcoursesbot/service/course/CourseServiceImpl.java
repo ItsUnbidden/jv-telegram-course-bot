@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Lesson;
@@ -16,7 +17,6 @@ import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
 import com.unbidden.telegramcoursesbot.service.review.ReviewService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
-import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -32,16 +32,21 @@ import org.telegram.telegrambots.meta.api.objects.User;
 @Service
 @RequiredArgsConstructor
 public class CourseServiceImpl implements CourseService {
+    private static final Logger LOGGER = LogManager.getLogger(CourseServiceImpl.class);
+
     private static final String NEXT_STAGE_MENU = "m_crsNxtStg";
     
     private static final String TEST_COURSE_NAME = "test_course";
 
-    private static final String SERVICE_COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS = "service_course_next_stage_media_group_bypass";
+    private static final String SERVICE_COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS =
+            "service_course_next_stage_media_group_bypass";
 
     private static final String COURSE_END = "course_%s_end";
     private static final String COURSE_END_REPEAT = "course_%s_end_repeat";
 
-    private static final Logger LOGGER = LogManager.getLogger(CourseServiceImpl.class);
+    private static final String ERROR_COURSE_PROGRESS_NOT_FOUND =
+            "error_course_progress_not_found";
+    private static final String ERROR_COURSE_NOT_FOUND = "error_course_not_found";
 
     private final CourseRepository courseRepository;
 
@@ -80,7 +85,7 @@ public class CourseServiceImpl implements CourseService {
             return;
         }
         LOGGER.info("Course " + courseName + " is available for user " + user.getId() + ".");
-        final Course course = getCourseByName(courseName);
+        final Course course = getCourseByName(courseName, user);
         final Optional<CourseProgress> progressOpt = courseProgressRepository
                 .findByUserIdAndCourseName(user.getId(), courseName);
 
@@ -109,7 +114,8 @@ public class CourseServiceImpl implements CourseService {
         final CourseProgress progress = courseProgressRepository.findByUserIdAndCourseName(
                 user.getId(), courseName).orElseThrow(() -> new EntityNotFoundException(
                 "Course progress for course " + courseName + " and user " + user.getId()
-                + " does not exist."));
+                + " does not exist", localizationLoader.getLocalizationForUser(
+                ERROR_COURSE_PROGRESS_NOT_FOUND, user)));
 
         LOGGER.info("Current stage in course " + courseName + " for user " + user.getId() + " is "
                 + progress.getStage() + ". Incrementing by 1...");
@@ -145,7 +151,7 @@ public class CourseServiceImpl implements CourseService {
             LOGGER.debug("Lesson " + lesson.getId() + " includes homework. "
                     + "Commencing homework sequence...");
             homeworkService.sendHomework(user, homeworkService.getHomework(
-                    lesson.getHomework().getId()));
+                    lesson.getHomework().getId(), courseProgress.getUser()));
             return;
         }
         
@@ -207,16 +213,18 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @NonNull
-    public Course getCourseByName(@NonNull String courseName) {
+    public Course getCourseByName(@NonNull String courseName, @NonNull UserEntity user) {
         return courseRepository.findByName(courseName).orElseThrow(() ->
-                new EntityNotFoundException("Course " + courseName + " does not exist."));
+                new EntityNotFoundException("Course " + courseName + " does not exist",
+                localizationLoader.getLocalizationForUser(ERROR_COURSE_NOT_FOUND, user)));
     }
 
     @Override
     @NonNull
-    public Course getCourseById(@NonNull Long id) {
+    public Course getCourseById(@NonNull Long id, @NonNull UserEntity user) {
         return courseRepository.findById(id).orElseThrow(() ->
-                new EntityNotFoundException("Course " + id + " does not exist."));
+                new EntityNotFoundException("Course " + id + " does not exist",
+                localizationLoader.getLocalizationForUser(ERROR_COURSE_NOT_FOUND, user)));
     }
 
     @Override
@@ -257,9 +265,11 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @NonNull
     public CourseProgress getCurrentCourseProgressForUser(@NonNull Long userId, @NonNull String courseName) {
+        final UserEntity user = userService.getUser(userId);
         return courseProgressRepository.findByUserIdAndCourseName(userId, courseName)
                 .orElseThrow(() -> new EntityNotFoundException("Course progress for user "
-                + userId + " and course " + courseName));
+                + userId + " and course " + courseName, localizationLoader.getLocalizationForUser(
+                ERROR_COURSE_PROGRESS_NOT_FOUND, user)));
     }
     
     @Override

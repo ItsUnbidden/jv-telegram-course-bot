@@ -82,7 +82,7 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
             ReplyKeyboard markup = keyboardRemove;
 
             try {
-                final Course course = courseService.getCourseByName(params[0]);
+                final Course course = courseService.getCourseByName(params[0], user);
 
                 KeyboardButtonRequestUser requestUserGiveCourse = KeyboardButtonRequestUser
                         .builder()

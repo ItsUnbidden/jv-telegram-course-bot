@@ -25,10 +25,11 @@ public interface HomeworkService {
             @NonNull List<Message> adminComment);
 
     @NonNull
-    ContentMapping updateContent(@NonNull Long homeworkId, @NonNull LocalizedContent content);
+    ContentMapping updateContent(@NonNull Long homeworkId, @NonNull LocalizedContent content,
+            @NonNull UserEntity user);
 
     @NonNull
-    Homework getHomework(@NonNull Long id);
+    Homework getHomework(@NonNull Long id, @NonNull UserEntity user);
 
     @NonNull
     Homework save(@NonNull Homework homework);

@@ -1,7 +1,9 @@
 package com.unbidden.telegramcoursesbot.exception;
 
-public class ActionExpiredException extends RuntimeException {
-    public ActionExpiredException(String msg) {
-        super(msg);
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
+
+public class ActionExpiredException extends LocalizedException {
+    public ActionExpiredException(String msg, Localization errorLoc) {
+        super(msg, errorLoc);
     }
 }

@@ -32,7 +32,7 @@ public class ImageDaoImpl implements ImageDao {
             return Files.readAllBytes(fileLocation);
         } catch (IOException e) {
             throw new FileDaoOperationException("Unable to read the image by path "
-                    + fileLocation, e);
+                    + fileLocation, null, e);
         }
     }
 }

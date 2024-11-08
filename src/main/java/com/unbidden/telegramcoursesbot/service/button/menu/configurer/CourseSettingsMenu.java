@@ -150,7 +150,7 @@ public class CourseSettingsMenu implements MenuConfigurer {
         secondPage.setPageIndex(1);
         secondPage.setButtonsRowSize(2);
         secondPage.setLocalizationFunction((u, p) -> {
-            final Course course = courseService.getCourseByName(p.get(0));
+            final Course course = courseService.getCourseByName(p.get(0), u);
             final Map<String, Object> parameterMap = new HashMap<>();
             parameterMap.put(PARAM_COURSE_ID, course.getId());
             parameterMap.put(PARAM_COURSE_NAME, course.getName());
@@ -184,7 +184,7 @@ public class CourseSettingsMenu implements MenuConfigurer {
         thirdPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
                 MENU_COURSE_SETTINGS_PAGE_2, u));
         thirdPage.setButtonsFunction((u, p) -> courseService
-                .getCourseByName(p.get(0)).getLessons().stream()
+                .getCourseByName(p.get(0), u).getLessons().stream()
                 .map(l -> (Button)new TransitoryButton(l.getPosition().toString(),
                 l.getId().toString(), 3)).toList());
         
@@ -193,7 +193,7 @@ public class CourseSettingsMenu implements MenuConfigurer {
         fourthPage.setButtonsRowSize(2);
         fourthPage.setMenu(courseSettingsMenu);
         fourthPage.setLocalizationFunction((u, p) -> {
-            final Lesson lesson = lessonService.getById(Long.parseLong(p.get(2)));
+            final Lesson lesson = lessonService.getById(Long.parseLong(p.get(2)), u);
             final Map<String, Object> parameterMap = new HashMap<>();
             parameterMap.put(PARAM_LESSON_ID, lesson.getId());
             parameterMap.put(PARAM_INDEX, lesson.getPosition());
@@ -216,7 +216,7 @@ public class CourseSettingsMenu implements MenuConfigurer {
             buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
                 BUTTON_CHANGE_MAPPING_ORDER, u).getData(), CHANGE_MAPPING_ORDER,
                 updateContentPositionHandler));
-            final Lesson lesson = lessonService.getById(Long.parseLong(p.get(2)));
+            final Lesson lesson = lessonService.getById(Long.parseLong(p.get(2)), u);
             final Button homeworkButton;
             if (lesson.getHomework() == null) {
                 homeworkButton = new TerminalButton(localizationLoader.getLocalizationForUser(
@@ -236,7 +236,7 @@ public class CourseSettingsMenu implements MenuConfigurer {
         fifthPage.setButtonsRowSize(2);
         fifthPage.setMenu(courseSettingsMenu);
         fifthPage.setLocalizationFunction((u, p) -> {
-            final Homework homework = homeworkService.getHomework(Long.parseLong(p.get(3)));
+            final Homework homework = homeworkService.getHomework(Long.parseLong(p.get(3)), u);
             final Map<String, Object> parameterMap = new HashMap<>();
             parameterMap.put(PARAM_LESSON_ID, homework.getLesson().getId());
             parameterMap.put(PARAM_HOMEWORK_ID, homework.getId());
@@ -245,7 +245,7 @@ public class CourseSettingsMenu implements MenuConfigurer {
                 && !homework.getAllowedMediaTypes().isBlank())
                 ? homework.getAllowedMediaTypes() : "Not available");
             parameterMap.put(PARAM_HOMEWORK_MAPPING, homeworkService.getHomework(
-                homework.getId()).getMapping().getId());
+                homework.getId(), u).getMapping().getId());
             parameterMap.put(PARAM_HOMEWORK_FEEDBACK, homework.isFeedbackRequired());
             parameterMap.put(PARAM_HOMEWORK_REPEATED_COMPLETION,
                 homework.isRepeatedCompletionAvailable());

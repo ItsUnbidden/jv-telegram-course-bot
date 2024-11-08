@@ -20,7 +20,7 @@ public class LocalizationDaoImpl implements LocalizationDao {
             return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new FileDaoOperationException("File reading on path " + path
-                    + " is obstructed.", e);
+                    + " is obstructed.", null, e);
         }
     }
 
@@ -35,7 +35,8 @@ public class LocalizationDaoImpl implements LocalizationDao {
         try {
             return Files.list(path).toList();
         } catch (IOException e) {
-            throw new FileDaoOperationException("Unable to list entities on path " + path, e);
+            throw new FileDaoOperationException("Unable to list entities on path " + path,
+                    null, e);
         }
     }
 }

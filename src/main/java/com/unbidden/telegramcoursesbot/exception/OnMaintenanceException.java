@@ -1,7 +1,9 @@
 package com.unbidden.telegramcoursesbot.exception;
 
-public class OnMaintenanceException extends Exception {
-    public OnMaintenanceException(String message) {
-        super(message);
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
+
+public class OnMaintenanceException extends LocalizedException {
+    public OnMaintenanceException(String message, Localization errorLoc) {
+        super(message, errorLoc);
     }
 }

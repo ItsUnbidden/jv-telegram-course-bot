@@ -33,6 +33,10 @@ public class AddContentToLessonButtonHandler implements ButtonHandler {
             "service_add_lesson_content_request";
     private static final String SERVICE_LESSON_CONTENT_ADDED = "service_lesson_content_added";
 
+    private static final String ERROR_LANGUAGE_CODE_LENGTH = "error_language_code_length";
+
+    private static final String COURSE_LESSON_CONTENT = "course_%s_lesson_%s_content_%s";
+
     private final LocalizationLoader localizationLoader;
 
     private final ContentSessionService sessionService;
@@ -54,10 +58,10 @@ public class AddContentToLessonButtonHandler implements ButtonHandler {
             sessionService.createSession(user, m -> {
                 LOGGER.debug("Adding content to lesson " + lessonId + "...");
                 
-                final Lesson lesson = lessonService.getById(lessonId);
-                final String localizationName = "course_" + lesson.getCourse().getName()
-                        + "_lesson_" + lesson.getPosition() + "_content_"
-                        + lesson.getStructure().size();
+                final Lesson lesson = lessonService.getById(lessonId, user);
+                final String localizationName = COURSE_LESSON_CONTENT.formatted(
+                        lesson.getCourse().getName(), lesson.getPosition(),
+                        lesson.getStructure().size());
                 final Message lastMessage = m.get(m.size() - 1);
                 final String languageCode;
 
@@ -65,7 +69,8 @@ public class AddContentToLessonButtonHandler implements ButtonHandler {
                     if (lastMessage.getText().length() > 3
                             || lastMessage.getText().length() < 2) {
                         throw new InvalidDataSentException("Language code must be "
-                                + "between 2 and 3 characters");
+                                + "between 2 and 3 characters", localizationLoader
+                                .getLocalizationForUser(ERROR_LANGUAGE_CODE_LENGTH, user));
                     }
                     LOGGER.debug("Language code for new content will be "
                             + lastMessage.getText() + ".");
@@ -78,7 +83,7 @@ public class AddContentToLessonButtonHandler implements ButtonHandler {
                 }
                 final LocalizedContent content = contentService.parseAndPersistContent(m,
                         localizationName, languageCode);
-                lessonService.addContent(lessonId, content);
+                lessonService.addContent(lessonId, content, user);
                 LOGGER.debug("Content " + content.getId() + " has been added. Sending "
                         + "confirmation message...");
     
