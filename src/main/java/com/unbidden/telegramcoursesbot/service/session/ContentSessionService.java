@@ -12,9 +12,9 @@ public interface ContentSessionService extends SessionService {
     
     void removeSessionsWithoutConfirmationForUser(@NonNull UserEntity user);
 
-    void commit(@NonNull Integer sessionId);
+    void commit(@NonNull Integer sessionId, @NonNull UserEntity user);
 
-    void resend(@NonNull Integer sessionId);
+    void resend(@NonNull Integer sessionId, @NonNull UserEntity user);
 
-    void cancel(@NonNull Integer sessionId);
+    void cancel(@NonNull Integer sessionId, @NonNull UserEntity user);
 }

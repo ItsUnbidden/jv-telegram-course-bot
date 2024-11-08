@@ -1,11 +1,13 @@
 package com.unbidden.telegramcoursesbot.exception;
 
-public class InvalidDataSentException extends RuntimeException {
-    public InvalidDataSentException(String message) {
-        super(message);
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
+
+public class InvalidDataSentException extends LocalizedException {
+    public InvalidDataSentException(String message, Localization errorLoc) {
+        super(message, errorLoc);
     }
 
-    public InvalidDataSentException(String message, Throwable cause) {
-        super(message, cause);
+    public InvalidDataSentException(String message, Localization errorLoc, Throwable cause) {
+        super(message, errorLoc, cause);
     }
 }

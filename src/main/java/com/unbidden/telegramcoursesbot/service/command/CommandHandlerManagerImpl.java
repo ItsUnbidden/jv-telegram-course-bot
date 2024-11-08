@@ -15,7 +15,7 @@ public class CommandHandlerManagerImpl implements CommandHandlerManager {
 
     @Override
     @NonNull
-    public CommandHandler getHandler(@NonNull String command) {
+    public CommandHandler getHandler(@NonNull String command) throws NoImplementationException {
         for (CommandHandler commandHandler : handlers) {
             if (commandHandler.getCommand().equals(command)) {
                 return commandHandler;

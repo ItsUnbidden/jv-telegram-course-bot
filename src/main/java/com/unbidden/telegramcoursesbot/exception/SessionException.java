@@ -1,11 +1,13 @@
 package com.unbidden.telegramcoursesbot.exception;
 
-public class SessionException extends RuntimeException {
-    public SessionException(String msg) {
-        super(msg);
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
+
+public class SessionException extends LocalizedException {
+    public SessionException(String msg, Localization errorLoc) {
+        super(msg, errorLoc);
     }
 
-    public SessionException(String msg, Throwable cause) {
-        super(msg, cause);
+    public SessionException(String msg, Localization errorLoc, Throwable cause) {
+        super(msg, errorLoc, cause);
     }
 }

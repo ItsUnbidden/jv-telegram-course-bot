@@ -39,7 +39,7 @@ public class HomeworkInclusionButtonHandler implements ButtonHandler {
     @Blockable
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         if (userService.isAdmin(user)) {
-            final Course course = courseService.getCourseByName(params[0]);
+            final Course course = courseService.getCourseByName(params[0], user);
             LOGGER.info("Homework inclusion handler was triggered. Current value is: "
                     + course.isHomeworkIncluded() + ".");
     

@@ -33,7 +33,7 @@ public class UpdateAdvancedReviewButtonHandler implements ButtonHandler {
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         sessionService.createSession(user, m -> {
                 reviewService.updateAdvancedReview(reviewService.getReviewByCourseAndUser(user,
-                    courseService.getCourseByName(params[0])).getId(),
+                    courseService.getCourseByName(params[0], user)).getId(),
                     contentService.parseAndPersistContent(m));
         });
         final Localization request = localizationLoader.getLocalizationForUser(

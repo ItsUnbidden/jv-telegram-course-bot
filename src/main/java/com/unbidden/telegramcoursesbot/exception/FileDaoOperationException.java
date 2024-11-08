@@ -1,11 +1,13 @@
 package com.unbidden.telegramcoursesbot.exception;
 
-public class FileDaoOperationException extends RuntimeException {
-    public FileDaoOperationException(String msg) {
-        super(msg);
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
+
+public class FileDaoOperationException extends LocalizedException {
+    public FileDaoOperationException(String msg, Localization errorLoc) {
+        super(msg, errorLoc);
     }
     
-    public FileDaoOperationException(String msg, Throwable cause) {
-        super(msg, cause);
+    public FileDaoOperationException(String msg, Localization errorLoc, Throwable cause) {
+        super(msg, errorLoc, cause);
     }
 }

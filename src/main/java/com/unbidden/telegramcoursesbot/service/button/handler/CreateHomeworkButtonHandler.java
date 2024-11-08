@@ -31,6 +31,10 @@ public class CreateHomeworkButtonHandler implements ButtonHandler {
             "service_homework_content_request";
     private static final String SERVICE_NEW_HOMEWORK_CREATED = "service_new_homework_created";
 
+    private static final String ERROR_LANGUAGE_CODE_LENGTH = "error_language_code_length";
+
+    private static final String COURSE_LESSON_CONTENT = "course_%s_lesson_%s_homework_content";
+
     private final HomeworkService homeworkService;
 
     private final LessonService lessonService;
@@ -48,29 +52,33 @@ public class CreateHomeworkButtonHandler implements ButtonHandler {
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         if (userService.isAdmin(user)) {
-            final Lesson lesson = lessonService.getById(Long.parseLong(params[2]));
+            final Lesson lesson = lessonService.getById(Long.parseLong(params[2]), user);
 
             LOGGER.info("User " + user.getId() + " want to add a new homework to lesson "
                     + lesson.getId() + ".");
             sessionService.createSession(user, m -> {
-                final String localizationName = "course_" + lesson.getCourse().getName()
-                        + "_lesson_" + lesson.getPosition() + "_homework_content";
+                final String localizationName = COURSE_LESSON_CONTENT.formatted(
+                        lesson.getCourse().getName(), lesson.getPosition());
                 LOGGER.debug("Homework localization in lesson " + lesson.getId()
                         + " will be " + localizationName);
                 final Message lastMessage = m.get(m.size() - 1);
                 final String languageCode;
+
                 if (lastMessage.hasText()) {
-                    if (lastMessage.getText().length() > 3) {
-                        throw new InvalidDataSentException("Language code cannot be "
-                                + "longer then 3 characters");
+                    if (lastMessage.getText().length() > 3
+                            || lastMessage.getText().length() < 2) {
+                        throw new InvalidDataSentException("Language code must be "
+                                + "between 2 and 3 characters", localizationLoader
+                                .getLocalizationForUser(ERROR_LANGUAGE_CODE_LENGTH, user));
                     }
                     LOGGER.debug("Language code for new content will be "
                             + lastMessage.getText() + ".");
                     languageCode = lastMessage.getText();
                 } else {
-                    LOGGER.debug("Seems like language code is not specified. "
-                            + "Assuming it to be user's Telegram language.");
                     languageCode = user.getLanguageCode();
+                    LOGGER.debug("Seems like language code is not specified. "
+                            + "Assuming it to be user's telegram language which is "
+                            + languageCode + ".");
                 }
                 final Homework homework = homeworkService.createDefault(lesson, contentService
                         .parseAndPersistContent(m, localizationName, languageCode));

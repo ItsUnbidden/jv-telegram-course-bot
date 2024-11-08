@@ -17,7 +17,7 @@ public class BlockingAspect {
     public void blockingAdvice() throws OnMaintenanceException {
         if (bot.isOnMaintenance()) {
             throw new OnMaintenanceException("Bot is currently severing all "
-                    + "connections and going on maintenance.");
+                    + "connections and going on maintenance", null);
         }
     }
 }

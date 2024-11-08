@@ -38,6 +38,8 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 public class DocumentContentHandler implements LocalizedContentHandler<DocumentContent> {
     private static final Logger LOGGER = LogManager.getLogger(DocumentContentHandler.class);
 
+    private static final String ERROR_SEND_CONTENT_FAILURE = "error_send_content_failure";
+
     private final PhotoRepository photoRepository;
 
     private final DocumentRepository documentRepository;
@@ -127,7 +129,8 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
                             .build()));
                 } catch (TelegramApiException e) {
                     throw new TelegramException("Unable to send document media in content "
-                            + content.getId() + " to user " + user.getId(), e);
+                            + content.getId() + " to user " + user.getId(), localizationLoader
+                            .getLocalizationForUser(ERROR_SEND_CONTENT_FAILURE, user), e);
                 }
             }
         }
@@ -140,7 +143,8 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
                     .build());
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to send documents media group in content "
-                    + content.getId() + " to user " + user.getId(), e);
+                    + content.getId() + " to user " + user.getId(), localizationLoader
+                    .getLocalizationForUser(ERROR_SEND_CONTENT_FAILURE, user), e);
         }
     }
 

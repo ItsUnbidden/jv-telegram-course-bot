@@ -30,10 +30,10 @@ public class CertificateDaoImpl implements CertificateDao {
                 return Files.newInputStream(certificatePath, StandardOpenOption.READ);
             }
             throw new FileDaoOperationException("Public certificate key does not exist by path "
-                    + certificatePath);
+                    + certificatePath, null);
         } catch (IOException e) {
             throw new FileDaoOperationException("Unable to read certificate public key by path "
-                    + certificatePath, e);
+                    + certificatePath, null, e);
         }
     }
 }

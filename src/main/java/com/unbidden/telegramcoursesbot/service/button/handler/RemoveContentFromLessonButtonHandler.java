@@ -29,6 +29,8 @@ public class RemoveContentFromLessonButtonHandler implements ButtonHandler {
             "service_remove_lesson_content_request";
     private static final String SERVICE_LESSON_CONTENT_REMOVED =
             "service_lesson_content_removed";
+    
+    private static final String ERROR_TEXT_MESSAGE_EXPECTED = "error_text_message_expected";
 
     private final LocalizationLoader localizationLoader;
 
@@ -50,11 +52,12 @@ public class RemoveContentFromLessonButtonHandler implements ButtonHandler {
             sessionService.createSession(user, m -> {
                 LOGGER.debug("Removing content from lesson " + lessonId + "...");
                 if (!m.get(0).hasText()) {
-                    throw new InvalidDataSentException("Content id must be provided");
+                    throw new InvalidDataSentException("Content id must be provided",
+                    localizationLoader.getLocalizationForUser(ERROR_TEXT_MESSAGE_EXPECTED, user));
                 }
                 final Long contentId = Long.parseLong(m.get(0).getText());
                 LOGGER.debug("Content id is " + contentId + ".");
-                lessonService.removeContent(lessonId, contentId);
+                lessonService.removeContent(lessonId, contentId, user);
                 LOGGER.info("Content " + contentId + " has been removed from lesson "
                         + lessonId + ".");
 

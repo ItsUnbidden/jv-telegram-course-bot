@@ -22,8 +22,8 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
 @RequiredArgsConstructor
-public class GeneralExceptionHandler implements ExceptionHandler {
-    private static final Logger LOGGER = LogManager.getLogger(GeneralExceptionHandler.class);
+public class UnknownExceptionHandler implements ExceptionHandler {
+    private static final Logger LOGGER = LogManager.getLogger(UnknownExceptionHandler.class);
 
     private static final String CURRENT_LOG_FILE_NAME = "tcb.log";
 
@@ -57,11 +57,6 @@ public class GeneralExceptionHandler implements ExceptionHandler {
                 .text(errorLoc.getData())
                 .entities(errorLoc.getEntities())
                 .build();
-    }
-
-    @Override
-    public Class<? extends Exception> getExceptionClass() {
-        return Exception.class;
     }
 
     private void notifyDirector(@NonNull Exception exc) {

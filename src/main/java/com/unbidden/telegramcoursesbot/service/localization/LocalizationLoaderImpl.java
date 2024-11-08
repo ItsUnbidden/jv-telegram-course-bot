@@ -58,7 +58,7 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
         String[] languagePriorityArray = textUtil.getLanguagePriority();
         if (languagePriorityArray.length == 0) {
             throw new LocalizationLoadingException("At least one language code should "
-                    + "be present in the priority list");
+                    + "be present in the priority list", null);
         }
         for (String code : languagePriorityArray) {
             languagePriority.add(code.trim());
@@ -162,7 +162,8 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
         try {
             localization = (Localization) localization.clone();
         } catch (CloneNotSupportedException e) {
-            throw new LocalizationLoadingException("Cloning of localization is not supported.");
+            throw new LocalizationLoadingException("Cloning of localization is not supported.",
+                    null);
         }
         return localization;
     }
@@ -201,7 +202,7 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
             if (priorityCodesWithNoDir.size() != 0) {
                 throw new LocalizationLoadingException("Some specified priority language codes "
                         + "do not have any directories. Those are: "
-                        + priorityCodesWithNoDir.toString());
+                        + priorityCodesWithNoDir.toString(), null);
             }
             LOGGER.trace("Everything is a go.");
             for (Path locFile : locFiles) {
@@ -236,7 +237,8 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                     }
                     LOGGER.trace("Localization data from file " + locFile + " has been cached.");
                 } catch (TaggedStringInterpretationException e) {
-                    throw new LocalizationLoadingException("Unable to parse file " + locFile, e);
+                    throw new LocalizationLoadingException("Unable to parse file " + locFile,
+                            null, e);
                 }
             }
         }

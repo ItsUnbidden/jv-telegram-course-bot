@@ -75,10 +75,10 @@ public class MyCoursesMenu implements MenuConfigurer {
 
             COURSE_GRADE_BUTTONS.add(new TerminalButton(iSrt, iSrt, (u, pa) ->
                     reviewService.updateCourseGrade(reviewService.getReviewByCourseAndUser(u,
-                    courseService.getCourseByName(pa[0])).getId(), currentGrade)));
+                    courseService.getCourseByName(pa[0], u)).getId(), currentGrade)));
             PLATFORM_GRADE_BUTTONS.add(new TerminalButton(iSrt, iSrt, (u, pa) ->
                     reviewService.updatePlatformGrade(reviewService.getReviewByCourseAndUser(u,
-                    courseService.getCourseByName(pa[0])).getId(), currentGrade)));
+                    courseService.getCourseByName(pa[0], u)).getId(), currentGrade)));
         }
     }
     
@@ -124,7 +124,7 @@ public class MyCoursesMenu implements MenuConfigurer {
                     BUTTON_BEGIN_COURSE, u).getData(), BEGIN_COURSE, (u1, pa) ->
                     courseService.initMessage(u1, pa[0])));
 
-                final Course course = courseService.getCourseByName(p.get(0));
+                final Course course = courseService.getCourseByName(p.get(0), u);
 
                 if (reviewService.isAdvancedReviewForCourseAndUserAvailable(u, course)) {
                     buttons.add(new TransitoryButton(localizationLoader.getLocalizationForUser(

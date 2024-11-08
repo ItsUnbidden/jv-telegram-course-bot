@@ -45,13 +45,13 @@ public class CommitContentMenu implements MenuConfigurer {
         page.setButtonsFunction((u, p) -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_CONFIRM_SEND_CONTENT, u)
                 .getData(), CONFIRM_CONTENT, (u1, pa) -> sessionService.commit(
-                    Integer.parseInt(pa[0]))), new TerminalButton(
+                    Integer.parseInt(pa[0]), u1)), new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_RESEND_CONTENT, u)
                 .getData(), RESEND_CONTENT, (u1, pa) -> sessionService.resend(
-                    Integer.parseInt(pa[0]))), new TerminalButton(
+                    Integer.parseInt(pa[0]), u1)), new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_CANCEL_SESSION, u)
                 .getData(), CANCEL_SESSION, (u1, pa) -> sessionService.cancel(
-                    Integer.parseInt(pa[0])))));
+                    Integer.parseInt(pa[0]), u1))));
 
         final Page terminalPage = new Page();
         terminalPage.setMenu(menu);

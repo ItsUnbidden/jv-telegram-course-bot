@@ -1,8 +1,9 @@
 package com.unbidden.telegramcoursesbot.service.user;
 
+import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +20,13 @@ import org.telegram.telegrambots.meta.api.objects.User;
 public class UserServiceImpl implements UserService {
     private static final Logger LOGGER = LogManager.getLogger(UserServiceImpl.class);
 
+    private static final String ERROR_USER_NOT_FOUND = "error_user_not_found";
+    
     private static final String LANGUAGE_PRIORITY_DIVIDER = ",";
 
     private final UserRepository userRepository;
+
+    private final LocalizationLoader localizationLoader;
 
     @Value("${telegram.bot.authorization.default.admin.id}")
     private Long defaultAdminId;
@@ -116,7 +121,8 @@ public class UserServiceImpl implements UserService {
     @NonNull
     public UserEntity getUser(@NonNull Long id) {
         return userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("User "
-                + id + " is not registred in the database."));
+                + id + " is not registred in the database", localizationLoader
+                .getLocalizationForUser(ERROR_USER_NOT_FOUND, getDiretor())));
     }
 
     /**

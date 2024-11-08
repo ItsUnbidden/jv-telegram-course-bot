@@ -1,7 +1,9 @@
 package com.unbidden.telegramcoursesbot.exception;
 
-public class UnableToReadTextFileException extends RuntimeException {
-    public UnableToReadTextFileException(String msg, Throwable cause) {
-        super(msg, cause);
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
+
+public class UnableToReadTextFileException extends LocalizedException {
+    public UnableToReadTextFileException(String msg, Localization errorLoc, Throwable cause) {
+        super(msg, errorLoc, cause);
     }
 }

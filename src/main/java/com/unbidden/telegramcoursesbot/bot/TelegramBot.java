@@ -4,6 +4,7 @@ import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
@@ -32,18 +33,22 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
 public class TelegramBot extends TelegramWebhookBot {
+    private static final Logger LOGGER = LogManager.getLogger(TelegramBot.class);
+    
     private static final String UPDATE_ENDPOINT_PATH = "bot";
-
+    
+    private static final String ERROR_SEND_MESSAGE_FAILURE = "error_send_message_failure";
     private static final String MENU_COMMAND_DESCRIPTION = "menu_command_%s_description";
     
-    private static final Logger LOGGER = LogManager.getLogger(TelegramBot.class);
-
     private static final List<String> COMMAND_MENU_EXCEPTIONS = new ArrayList<>();
 
     @Value("${telegram.bot.authorization.username}")
     private String username;
 
     private volatile boolean isOnMaintenance;
+
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private LocalizationLoader localizationLoader;
@@ -69,7 +74,7 @@ public class TelegramBot extends TelegramWebhookBot {
         try {
             return execute(GetWebhookInfo.builder().build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to get webhook info.", e);
+            throw new TelegramException("Unable to get webhook info.", null, e);
         }
     }
 
@@ -80,7 +85,7 @@ public class TelegramBot extends TelegramWebhookBot {
         try {
             execute(setChatMenuButton);
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to set bot's menu button.", e);
+            throw new TelegramException("Unable to set bot's menu button.", null, e);
         }
     }
 
@@ -96,7 +101,7 @@ public class TelegramBot extends TelegramWebhookBot {
         try {
             execute(setMyUserCommands);
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to set up a menu.", e);
+            throw new TelegramException("Unable to set up a menu.", null, e);
         }
     }
 
@@ -106,15 +111,19 @@ public class TelegramBot extends TelegramWebhookBot {
     }
 
     /**
-     * Sends message provided in {@link SendMessage}.
+     * Sends message provided in {@link SendMessage}. Warning! Field chatId in 
+     * {@link SendMessage} must be a user id, if that is not the case, exception will be thrown.
      * @param sendMessage Telegram message builder
      * @return sent {@link Message}
      */
     public Message sendMessage(SendMessage sendMessage) {
+        final UserEntity user = userService.getUser(Long.parseLong(sendMessage.getChatId()));
+
         try {
             return execute(sendMessage);
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to send message.", e);
+            throw new TelegramException("Unable to send message.", localizationLoader
+                    .getLocalizationForUser(ERROR_SEND_MESSAGE_FAILURE, user), e);
         }
     }
 
@@ -133,7 +142,8 @@ public class TelegramBot extends TelegramWebhookBot {
                     .entities(localization.getEntities())
                     .build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to send message.", e);
+            throw new TelegramException("Unable to send message.", localizationLoader
+                    .getLocalizationForUser(ERROR_SEND_MESSAGE_FAILURE, user), e);
         }
     }
 
@@ -156,7 +166,8 @@ public class TelegramBot extends TelegramWebhookBot {
                     .replyMarkup(replyMarkup)
                     .build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to send message.", e);
+            throw new TelegramException("Unable to send message.", localizationLoader
+                    .getLocalizationForUser(ERROR_SEND_MESSAGE_FAILURE, user), e);
         }
     }
 
@@ -177,7 +188,7 @@ public class TelegramBot extends TelegramWebhookBot {
                     .build());
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to clear commands for user " + user.getId()
-                    + " and language code " + user.getLanguageCode(), e);
+                    + " and language code " + user.getLanguageCode(), null, e);
         }
         LOGGER.info("Admin menu for user " + user.getId() + " has been removed.");
     }
@@ -192,7 +203,7 @@ public class TelegramBot extends TelegramWebhookBot {
                     .languageCode(user.getLanguageCode()).build());
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to set admin commands for user " + user.getId()
-                    + " and language code " + user.getLanguageCode(), e);
+                    + " and language code " + user.getLanguageCode(), null, e);
         }
         LOGGER.info("Admin menu for user " + user.getId() + " has been added.");
     }

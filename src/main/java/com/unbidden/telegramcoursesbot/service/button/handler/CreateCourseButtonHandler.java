@@ -13,25 +13,39 @@ import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.objects.Message;
 
 @Component
 @RequiredArgsConstructor
 public class CreateCourseButtonHandler implements ButtonHandler {
     private static final Logger LOGGER = LogManager.getLogger(CreateCourseButtonHandler.class);
 
-    private static final int NUMBER_OF_MESSAGES_EXPECTED = 3;
+    private static final String PARAM_MAX_PRICE = "${maxPrice}";
+    private static final String PARAM_COURSE_NAME = "${courseName}";
+    private static final String PARAM_MESSAGE_INDEX = "${messageIndex}";
+    private static final String PARAM_AMOUNT_OF_LESSONS = "${amountOfLessons}";
+    private static final String PARAM_PROVIDED_MESSAGES_AMOUNT = "${providedMessagesNumber}";
+    private static final String PARAM_EXPECTED_MESSAGES_AMOUNT = "${expectedMessagesAmount}";
 
     private static final String SERVICE_NEW_COURSE_REQUEST = "service_new_course_request";
     private static final String SERVICE_NEW_COURSE_CREATED = "service_new_course_created";
+    
+    private static final String ERROR_PRICE_LIMIT = "error_price_limit";
+    private static final String ERROR_NEW_COURSE_WRONG_LESSONS_AMOUNT =
+            "error_new_course_wrong_lessons_amount";
+    private static final String ERROR_MESSAGE_TEXT_MISSING = "error_message_text_missing";
+    private static final String ERROR_AMOUNT_OF_MESSAGES = "error_amount_of_messages";
+    
+    private static final int MAX_PRICE = 100_000;
 
-    private static final String PARAM_COURSE_NAME = "${courseName}";
+    private static final int NUMBER_OF_MESSAGES_EXPECTED = 3;
 
     private final ContentSessionService sessionService;
 
@@ -52,15 +66,22 @@ public class CreateCourseButtonHandler implements ButtonHandler {
                 LOGGER.info("User " + user.getId() + " is trying to create a new course. "
                         + "Running data checks...");  
                 if (m.size() != NUMBER_OF_MESSAGES_EXPECTED) {
+                    final Map<String, Object> parameterMap = new HashMap<>();
+                    parameterMap.put(PARAM_EXPECTED_MESSAGES_AMOUNT, NUMBER_OF_MESSAGES_EXPECTED);
+                    parameterMap.put(PARAM_PROVIDED_MESSAGES_AMOUNT, m.size());
+
                     throw new InvalidDataSentException("There are supposed to be 3 messages in "
                             + "order to set up a new course: Course name, amount of lessons and "
                             + "price. User " + user.getId() + " has sent " + m.size()
-                            + " messages though.");
+                            + " messages though.", localizationLoader.getLocalizationForUser(
+                            ERROR_AMOUNT_OF_MESSAGES, user, parameterMap));
                 }
-                for (Message message : m) {
-                    if (!message.hasText()) {
-                        throw new InvalidDataSentException("Message " + message.getMessageId()
-                                + " sent by user " + user.getId() + " does not have any text.");
+                for (int i = 0; i < m.size(); i++) {
+                    if (!m.get(i).hasText()) {
+                        throw new InvalidDataSentException("Message " + m.get(i).getMessageId()
+                                + " sent by user " + user.getId() + " does not have any text.",
+                                localizationLoader.getLocalizationForUser(
+                                ERROR_MESSAGE_TEXT_MISSING, user, PARAM_MESSAGE_INDEX, i));
                     }
                 }
                 LOGGER.debug("Prelimenary checks have been completed. "
@@ -69,13 +90,19 @@ public class CreateCourseButtonHandler implements ButtonHandler {
 
                 final int amountOfLessons = Integer.parseInt(m.get(1).getText());
                 if (amountOfLessons <= 0) {
-                    throw new InvalidDataSentException("Course must contain at least one lesson");
+                    throw new InvalidDataSentException("Course must contain at least one lesson",
+                            localizationLoader.getLocalizationForUser(
+                            ERROR_NEW_COURSE_WRONG_LESSONS_AMOUNT, user,
+                            PARAM_AMOUNT_OF_LESSONS, amountOfLessons));
                 }
                 LOGGER.debug("Amount of lessons has been parsed.");
 
                 final int price = Integer.parseInt(m.get(2).getText());
-                if (price <= 0) {
-                    throw new InvalidDataSentException("Course price must be at least 1");
+                if (price <= 0 || price > MAX_PRICE) {
+                    throw new InvalidDataSentException("Price cannot be more then "
+                            + MAX_PRICE + " or less than 1", localizationLoader
+                            .getLocalizationForUser(ERROR_PRICE_LIMIT, user,
+                            PARAM_MAX_PRICE, MAX_PRICE));
                 }
                 LOGGER.debug("Price has been parsed.");
 

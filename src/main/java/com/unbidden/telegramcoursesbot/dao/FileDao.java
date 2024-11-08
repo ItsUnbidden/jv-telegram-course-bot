@@ -10,7 +10,7 @@ public interface FileDao {
         try {
             is.close();
         } catch (IOException e) {
-            throw new FileDaoOperationException("Unable to close the stream.", e);
+            throw new FileDaoOperationException("Unable to close the stream.", null, e);
         }
     }
 }

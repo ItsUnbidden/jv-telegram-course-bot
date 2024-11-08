@@ -1,11 +1,13 @@
 package com.unbidden.telegramcoursesbot.exception;
 
-public class LocalizationLoadingException extends RuntimeException {
-    public LocalizationLoadingException(String message) {
-        super(message);
+import com.unbidden.telegramcoursesbot.service.localization.Localization;
+
+public class LocalizationLoadingException extends LocalizedException {
+    public LocalizationLoadingException(String message, Localization errorLoc) {
+        super(message, errorLoc);
     }
 
-    public LocalizationLoadingException(String message, Throwable cause) {
-        super(message, cause);
+    public LocalizationLoadingException(String message, Localization errorLoc, Throwable cause) {
+        super(message, errorLoc, cause);
     }
 }

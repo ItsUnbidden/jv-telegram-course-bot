@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
 import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Homework;
@@ -20,7 +21,6 @@ import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
-import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +39,8 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 @Service
 @RequiredArgsConstructor
 public class HomeworkServiceImpl implements HomeworkService {
+    private static final Logger LOGGER = LogManager.getLogger(HomeworkServiceImpl.class);
+    
     private static final String REQUEST_FEEDBACK_MENU = "m_rqF";
     private static final String SEND_HOMEWORK_MENU = "m_sHw";
     private static final String COURSE_NEXT_STAGE_MENU = "m_crsNxtStg";
@@ -74,14 +76,15 @@ public class HomeworkServiceImpl implements HomeworkService {
             "error_homework_already_completed";
     private static final String ERROR_HOMEWORK_ALREADY_AWAITS_APPROVAL =
             "error_homework_already_awaits_approval";
+    private static final String ERROR_HOMEWORK_PROGRESS_NOT_FOUND =
+            "error_homework_progress_not_found";
+    private static final String ERROR_HOMEWORK_NOT_FOUND = "error_homework_not_found";
 
     private static final String SEND_HOMEWORK_MENU_TERMINATION =
             "homework_progress_%s_send_homework_menus";
     private static final String FEEDBACK_MENU_TERMINATION =
             "homework_progress_%s_feedback_menus";
     private static final String MENTION = "@";
-
-    private static final Logger LOGGER = LogManager.getLogger(HomeworkServiceImpl.class);
 
     private final HomeworkProgressRepository homeworkProgressRepository;
 
@@ -112,7 +115,7 @@ public class HomeworkServiceImpl implements HomeworkService {
         LOGGER.debug("Sending homework " + homework.getId() + " content to user "
                 + user.getId() + "...");
         final List<Message> sendContent = contentService.sendLocalizedContent(contentService
-                .getMappingById(homework.getMapping().getId()), user);
+                .getMappingById(homework.getMapping().getId(), user), user);
         LOGGER.debug("Content has been sent.");
 
         final Optional<HomeworkProgress> potentialProgress = homeworkProgressRepository
@@ -342,9 +345,10 @@ public class HomeworkServiceImpl implements HomeworkService {
 
     @Override
     @NonNull
-    public Homework getHomework(@NonNull Long id) {
+    public Homework getHomework(@NonNull Long id, @NonNull UserEntity user) {
         return homeworkRepository.findById(id).orElseThrow(() -> new EntityNotFoundException(
-                "Homework with id " + id + " does not exist."));
+                "Homework with id " + id + " does not exist", localizationLoader
+                .getLocalizationForUser(ERROR_HOMEWORK_NOT_FOUND, user)));
     }
 
     @Override
@@ -356,8 +360,8 @@ public class HomeworkServiceImpl implements HomeworkService {
     @Override
     @NonNull
     public ContentMapping updateContent(@NonNull Long homeworkId,
-            @NonNull LocalizedContent content) {
-        final Homework homework = getHomework(homeworkId);
+            @NonNull LocalizedContent content, @NonNull UserEntity user) {
+        final Homework homework = getHomework(homeworkId, user);
         final ContentMapping contentMapping = new ContentMapping();
 
         contentMapping.setPosition(0);
@@ -371,7 +375,8 @@ public class HomeworkServiceImpl implements HomeworkService {
     private HomeworkProgress getHomeworkProgress(Long id) {
         return homeworkProgressRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Homework progress " + id
-                + " does not exist."));
+                + " does not exist", localizationLoader.getLocalizationForUser(
+                ERROR_HOMEWORK_PROGRESS_NOT_FOUND, userService.getDiretor())));
     }
 
     private void sendHomeworkNotification(HomeworkProgress progress, String localizationName) {
@@ -384,7 +389,9 @@ public class HomeworkServiceImpl implements HomeworkService {
                 .findByUserIdAndCourseName(progress.getUser().getId(),
                 course.getName()).orElseThrow(() -> new EntityNotFoundException(
                 "Course progress for course " + course.getName() + " and user "
-                + progress.getUser().getId() + " does not exist."));
+                + progress.getUser().getId() + " does not exist", localizationLoader
+                .getLocalizationForUser(ERROR_HOMEWORK_PROGRESS_NOT_FOUND,
+                userService.getDiretor())));
 
         parameterMap.put(PARAM_LESSON_INDEX, courseProgress.getStage());
         parameterMap.put(PARAM_COMMENTER_NAME, progress.getCurator().getFirstName());

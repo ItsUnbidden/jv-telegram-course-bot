@@ -37,7 +37,7 @@ public class ContentMappingTextToggleButtonHandler implements ButtonHandler {
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         if (userService.isAdmin(user)) {
             final ContentMapping mapping = contentService
-                    .getMappingById(Long.parseLong(params[0]));
+                    .getMappingById(Long.parseLong(params[0]), user);
             LOGGER.info("User " + user.getId() + " is trying to toggle text "
                     + "in mapping " + mapping.getId() + ". Current status is "
                     + getTextStatus(mapping) + ".");

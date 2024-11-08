@@ -36,6 +36,8 @@ public class UpdateHomeworkContentButtonHandler implements ButtonHandler {
     private static final String SERVICE_HOMEWORK_CONTENT_UPDATED =
             "service_homework_content_updated";
 
+    private static final String ERROR_LANGUAGE_CODE_LENGTH = "error_language_code_length";
+
     private final ContentSessionService sessionService;
 
     private final HomeworkService homeworkService;
@@ -51,7 +53,8 @@ public class UpdateHomeworkContentButtonHandler implements ButtonHandler {
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
         if (userService.isAdmin(user)) {
-            final Homework homework = homeworkService.getHomework(Long.parseLong(params[3]));
+            final Homework homework = homeworkService.getHomework(
+                    Long.parseLong(params[3]), user);
 
             sessionService.createSession(user, m -> {
                 LOGGER.info("User " + user.getId() + " is trying to update homework "
@@ -60,23 +63,27 @@ public class UpdateHomeworkContentButtonHandler implements ButtonHandler {
                         .getData().getData();
                 final Message lastMessage = m.get(m.size() - 1);
                 final String languageCode;
+
                 if (lastMessage.hasText()) {
-                    if (lastMessage.getText().length() > 3) {
-                        throw new InvalidDataSentException("Language code cannot be "
-                                + "longer then 3 characters");
+                    if (lastMessage.getText().length() > 3
+                            || lastMessage.getText().length() < 2) {
+                        throw new InvalidDataSentException("Language code must be "
+                                + "between 2 and 3 characters", localizationLoader
+                                .getLocalizationForUser(ERROR_LANGUAGE_CODE_LENGTH, user));
                     }
                     LOGGER.debug("Language code for new content will be "
                             + lastMessage.getText() + ".");
                     languageCode = lastMessage.getText();
                 } else {
-                    LOGGER.debug("Seems like language code is not specified. "
-                            + "Assuming it to be user's telegram language.");
                     languageCode = user.getLanguageCode();
+                    LOGGER.debug("Seems like language code is not specified. "
+                            + "Assuming it to be user's telegram language which is "
+                            + languageCode + ".");
                 }
                 final LocalizedContent content = contentService.parseAndPersistContent(
                         m, localizationName, languageCode);
                 final ContentMapping newMapping = homeworkService
-                        .updateContent(homework.getId(), content);
+                        .updateContent(homework.getId(), content, user);
                 LOGGER.info("Homework " + homework.getId() + " content has been updated.");
                 LOGGER.debug("Sending confirmation message...");
 
