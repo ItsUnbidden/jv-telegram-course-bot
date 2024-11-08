@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.Lesson;
@@ -17,7 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 @RequiredArgsConstructor
@@ -47,7 +47,7 @@ public class CreateHomeworkButtonHandler implements ButtonHandler {
 
     private final ContentService contentService;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
@@ -87,13 +87,13 @@ public class CreateHomeworkButtonHandler implements ButtonHandler {
                 LOGGER.debug("Sending confirmation message...");
                 final Localization success = localizationLoader.getLocalizationForUser(
                         SERVICE_NEW_HOMEWORK_CREATED, user, PARAM_HOMEWORK_ID, homework.getId());
-                bot.sendMessage(user, success);
+                client.sendMessage(user, success);
                 LOGGER.debug("Message sent.");
             });
             LOGGER.debug("Sending request message...");
             final Localization request = localizationLoader.getLocalizationForUser(
                     SERVICE_HOMEWORK_CONTENT_REQUEST, user, PARAM_LESSON_ID, lesson.getId());
-            bot.sendMessage(user, request);
+            client.sendMessage(user, request);
             LOGGER.debug("Message sent.");
         }
     }

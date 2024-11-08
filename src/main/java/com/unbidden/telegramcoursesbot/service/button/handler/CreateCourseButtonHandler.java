@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Lesson;
@@ -57,7 +57,7 @@ public class CreateCourseButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
@@ -124,13 +124,13 @@ public class CreateCourseButtonHandler implements ButtonHandler {
                 LOGGER.debug("Sending confirmation message...");
                 final Localization success = localizationLoader.getLocalizationForUser(
                         SERVICE_NEW_COURSE_CREATED, user, PARAM_COURSE_NAME, courseName);
-                bot.sendMessage(user, success);
+                client.sendMessage(user, success);
                 LOGGER.debug("Message sent.");
             });
             LOGGER.debug("Sending content request message...");
             final Localization request = localizationLoader.getLocalizationForUser(
                     SERVICE_NEW_COURSE_REQUEST, user);
-            bot.sendMessage(user, request);
+            client.sendMessage(user, request);
             LOGGER.debug("Message sent.");
         }
     }

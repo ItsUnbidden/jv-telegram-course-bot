@@ -5,4 +5,6 @@ import org.springframework.lang.NonNull;
 public interface ImageDao extends FileDao {
     @NonNull
     byte[] read(@NonNull String courseName);
+
+    boolean isPresent(@NonNull String courseName);
 }

@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
@@ -30,7 +30,7 @@ public class GetContentButtonHandler implements ButtonHandler {
 
     private final ContentService contentService;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
     
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
@@ -52,11 +52,11 @@ public class GetContentButtonHandler implements ButtonHandler {
                     SERVICE_GET_CONTENT_SUCCESS, user, PARAM_CONTENT_ID,
                     contentId);
             contentService.sendContent(contentService.getById(contentId, user), user);
-            bot.sendMessage(user, success);
+            client.sendMessage(user, success);
         }, true);
         final Localization request = localizationLoader.getLocalizationForUser(
                 SERVICE_GET_CONTENT_REQUEST, user);
 
-        bot.sendMessage(user, request);
+        client.sendMessage(user, request);
     }
 }

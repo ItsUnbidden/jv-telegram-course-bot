@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.CourseBoughtException;
 import com.unbidden.telegramcoursesbot.exception.CourseIsAlreadyOwnedException;
 import com.unbidden.telegramcoursesbot.model.Course;
@@ -20,8 +20,8 @@ import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.UserShared;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
@@ -61,19 +61,19 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
     private static final String BUTTON_TAKE_COURSE = "button_take_course";
     private static final String BUTTON_GIVE_COURSE = "button_give_course";
 
-    private final TelegramBot bot;
+    private final ReplyKeyboardRemove keyboardRemove;
+    
+    private final UserService userService;
+    
+    private final UserOrChatRequestSessionService sessionService;
+    
+    private final PaymentService paymentService;
+    
+    private final CourseService courseService;
 
     private final LocalizationLoader localizationLoader;
 
-    private final UserService userService;
-
-    private final UserOrChatRequestSessionService sessionService;
-
-    private final PaymentService paymentService;
-
-    private final ReplyKeyboardRemove keyboardRemove;
-
-    private final CourseService courseService;
+    private final CustomTelegramClient client;
 
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
@@ -121,7 +121,7 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
                     PARAM_COURSE_NAME, params[0]);
             }
             
-            bot.sendMessage(user, localization, markup);
+            client.sendMessage(user, localization, markup);
         }
     }
 
@@ -147,7 +147,6 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
                 final PaymentDetails paymentDetails = new PaymentDetails();
                 paymentDetails.setGifted(true);
                 paymentDetails.setCourse(course);
-                paymentDetails.setSuccessful(true);
                 paymentDetails.setTelegramPaymentChargeId("Not inluded");
                 paymentDetails.setTotalAmount(0);
                 paymentDetails.setUser(newOwner);
@@ -217,11 +216,11 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
     private void sendMessages(UserEntity sender, UserEntity target, Localization error,
             Localization success, Localization notification) {
         if (error != null) {
-            bot.sendMessage(sender, error, keyboardRemove);
+            client.sendMessage(sender, error, keyboardRemove);
             return;
         }
 
-        bot.sendMessage(sender, success, keyboardRemove);                            
-        bot.sendMessage(target, notification);                            
+        client.sendMessage(sender, success, keyboardRemove);                            
+        client.sendMessage(target, notification);                            
     }   
 }

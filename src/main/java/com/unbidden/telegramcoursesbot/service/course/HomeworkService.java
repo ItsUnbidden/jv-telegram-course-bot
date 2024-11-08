@@ -9,7 +9,7 @@ import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import java.util.List;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 public interface HomeworkService {
     void sendHomework(@NonNull UserEntity user, @NonNull Homework homework);

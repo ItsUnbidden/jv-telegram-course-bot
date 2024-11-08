@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
@@ -27,7 +27,7 @@ public class UpdateAdvancedReviewButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
@@ -38,6 +38,6 @@ public class UpdateAdvancedReviewButtonHandler implements ButtonHandler {
         });
         final Localization request = localizationLoader.getLocalizationForUser(
                 SERVICE_REVIEW_CONTENT_REQUEST, user);
-        bot.sendMessage(user, request);
+        client.sendMessage(user, request);
     }
 }

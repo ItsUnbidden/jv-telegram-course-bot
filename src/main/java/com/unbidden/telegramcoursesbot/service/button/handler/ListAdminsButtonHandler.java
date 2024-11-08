@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
@@ -17,11 +17,11 @@ public class ListAdminsButtonHandler implements ButtonHandler {
 
     private static final String SERVICE_GET_ADMIN_LIST = "service_get_admin_list";
 
-    private final TelegramBot bot;
-
     private final LocalizationLoader localizationLoader;
-
+    
     private final UserService userService;
+
+    private final CustomTelegramClient client;
 
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
@@ -40,7 +40,7 @@ public class ListAdminsButtonHandler implements ButtonHandler {
             final Localization localization = localizationLoader.getLocalizationForUser(
                     SERVICE_GET_ADMIN_LIST, user, PARAM_ADMIN_LIST, builder.toString());
     
-            bot.sendMessage(user, localization);
+            client.sendMessage(user, localization);
         }
     }
 }

@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
@@ -16,7 +16,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 @RequiredArgsConstructor
@@ -45,7 +45,7 @@ public class AddMappingLocalizationButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
@@ -97,12 +97,12 @@ public class AddMappingLocalizationButtonHandler implements ButtonHandler {
                 parameterMap.put(PARAM_MAPPING_ID, mapping.getId());
                 parameterMap.put(PARAM_CONTENT_ID, newContent.getId());
 
-                bot.sendMessage(user, localizationLoader.getLocalizationForUser(
+                client.sendMessage(user, localizationLoader.getLocalizationForUser(
                         SERVICE_ADD_NEW_LOCALIZATION_SUCCESS, user, parameterMap));
                 LOGGER.debug("Message sent.");
             });
             LOGGER.debug("Sending new localization request...");
-            bot.sendMessage(user, localizationLoader.getLocalizationForUser(
+            client.sendMessage(user, localizationLoader.getLocalizationForUser(
                     SERVICE_ADD_NEW_LOCALIZATION_REQUEST, user,
                     PARAM_MAPPING_ID, mapping.getId()));
             LOGGER.debug("Message sent.");

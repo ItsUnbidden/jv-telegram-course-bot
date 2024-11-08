@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
@@ -10,7 +10,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 @RequiredArgsConstructor
@@ -26,20 +26,20 @@ public class MaintenanceCommandHandler implements CommandHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public void handle(@NonNull Message message, @NonNull String[] commandParts) {
         final UserEntity user = userService.getUser(message.getFrom().getId());
 
         if (userService.isAdmin(user)) {
-            bot.setOnMaintenance(!bot.isOnMaintenance());
+            client.setOnMaintenance(!client.isOnMaintenance());
             Map<String, Object> paramsMap = new HashMap<>();
-            paramsMap.put(PARAM_STATUS, !bot.isOnMaintenance());
+            paramsMap.put(PARAM_STATUS, !client.isOnMaintenance());
             
             final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_ON_MAINTENANCE_STATUS_CHANGE, message.getFrom(), paramsMap);
-            bot.sendMessage(user, localization);
+            client.sendMessage(user, localization);
         }
     }
 

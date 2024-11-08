@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.unbidden</groupId>
 	<artifactId>telegram-courses-bot</artifactId>
-	<version>0.3.3</version>
+	<version>0.4.0</version>
 	<name>telegram-courses-bot</name>
 	<description>Telegram bot for providing courses</description>
 	<url/>
@@ -28,7 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
-        <telegram.bot.version>6.9.7.1</telegram.bot.version>
+        <telegram.bot.version>7.10.0</telegram.bot.version>
 	</properties>
 	<dependencies>
         <dependency>
@@ -66,7 +66,17 @@
 		</dependency>
         <dependency>
             <groupId>org.telegram</groupId>
-            <artifactId>telegrambots</artifactId>
+            <artifactId>telegrambots-webhook</artifactId>
+            <version>${telegram.bot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.telegram</groupId>
+            <artifactId>telegrambots-client</artifactId>
+            <version>${telegram.bot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.telegram</groupId>
+            <artifactId>telegrambots-meta</artifactId>
             <version>${telegram.bot.version}</version>
         </dependency>
         <dependency>

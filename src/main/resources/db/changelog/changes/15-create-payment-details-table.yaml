@@ -37,13 +37,15 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: is_valid
-                  type: boolean
-                  defaultValueBoolean: true
+                  name: timestamp
+                  type: datetime
                   constraints:
                     nullable: false
               - column:
-                  name: is_successful
+                  name: refunded_at
+                  type: datetime                 
+              - column:
+                  name: is_valid
                   type: boolean
                   defaultValueBoolean: true
                   constraints:

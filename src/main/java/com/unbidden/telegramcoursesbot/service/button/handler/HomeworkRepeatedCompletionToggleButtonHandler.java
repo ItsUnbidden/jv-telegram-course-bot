@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
@@ -31,7 +31,7 @@ public class HomeworkRepeatedCompletionToggleButtonHandler implements ButtonHand
 
     private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
@@ -48,7 +48,7 @@ public class HomeworkRepeatedCompletionToggleButtonHandler implements ButtonHand
             LOGGER.info("Repeated completion for homework " + homework.getId() + " is now "
                     + getRepeatedCompletionStatus(homework) + ".");
             LOGGER.debug("Sending confirmation message...");
-            bot.sendMessage(user, localizationLoader.getLocalizationForUser(
+            client.sendMessage(user, localizationLoader.getLocalizationForUser(
                     SERVICE_REPEATED_COMPLETION_UPDATE_SUCCESS, user, PARAM_STATUS,
                     getRepeatedCompletionStatus(user, homework)));
             LOGGER.debug("Message sent.");

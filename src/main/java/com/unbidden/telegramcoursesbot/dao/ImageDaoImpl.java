@@ -35,4 +35,11 @@ public class ImageDaoImpl implements ImageDao {
                     + fileLocation, null, e);
         }
     }
+
+    @Override
+    public boolean isPresent(@NonNull String courseName) {
+        final Path fileLocation = imagePath.resolve(courseName + IMAGE_FORMAT);
+
+        return Files.exists(fileLocation);
+    }
 }

@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
@@ -12,8 +12,8 @@ import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.UserShared;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
@@ -40,17 +40,17 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
     private static final String BUTTON_REMOVE_ADMIN = "button_remove_admin";
     private static final String BUTTON_ADD_NEW_ADMIN = "button_add_new_admin";
 
-    private final TelegramBot bot;
-
     private final LocalizationLoader localizationLoader;
 
     private final UserOrChatRequestSessionService sessionService;
-
+    
     private final UserService userService;
-
+    
     private final ReplyKeyboardRemove keyboardRemove;
-
+    
     private final CommandHandlerManager commandHandlerManager;
+
+    private final CustomTelegramClient client;
 
     @Override
     public void handle(@NonNull UserEntity user, @NonNull String[] params) {
@@ -83,7 +83,7 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
                     .build();
             final Localization localization = localizationLoader.getLocalizationForUser(
                     SERVICE_ADMIN_CHOOSE_ACTION, user);
-            bot.sendMessage(user, localization, markup);
+            client.sendMessage(user, localization, markup);
         }
     }
 
@@ -98,7 +98,7 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
             Localization success = null;
             Localization notification = null;
             if (newAdmin != null) {
-                bot.setUpMenuForAdmin(newAdmin, commandHandlerManager.getAllCommands());
+                client.setUpMenuForAdmin(newAdmin, commandHandlerManager.getAllCommands());
                 success = localizationLoader.getLocalizationForUser(
                         SERVICE_NEW_ADMIN_ASSIGN_SUCCESS, sender, PARAM_TARGET_FIRST_NAME,
                         newAdmin.getFirstName());
@@ -120,7 +120,7 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
             Localization success = null;
             Localization notification = null;
             if (removedAdmin != null) {
-                bot.deleteAdminMenuForUser(removedAdmin);
+                client.deleteAdminMenuForUser(removedAdmin);
                 success = localizationLoader.getLocalizationForUser(
                         SERVICE_ADMIN_REMOVE_SUCCESS, sender, PARAM_TARGET_FIRST_NAME,
                         removedAdmin.getFirstName());
@@ -134,11 +134,11 @@ public class AddOrRemoveAdminButtonHandler implements ButtonHandler {
     private void sendMessages(UserEntity sender, UserEntity target, Localization error,
             Localization success, Localization notification) {
         if (target == null) {
-            bot.sendMessage(sender, error, keyboardRemove);
+            client.sendMessage(sender, error, keyboardRemove);
             return;
         }
 
-        bot.sendMessage(sender, success, keyboardRemove);                            
-        bot.sendMessage(target, notification);                            
+        client.sendMessage(sender, success, keyboardRemove);                            
+        client.sendMessage(target, notification);                            
     }
 }

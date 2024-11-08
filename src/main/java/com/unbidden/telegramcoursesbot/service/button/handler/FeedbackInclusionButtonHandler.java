@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.handler;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
@@ -34,7 +34,7 @@ public class FeedbackInclusionButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     @Blockable
@@ -54,7 +54,7 @@ public class FeedbackInclusionButtonHandler implements ButtonHandler {
             LOGGER.info("Value has been changed to: " + course.isFeedbackIncluded() + ".");
             Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_COURSE_FEEDBACK_UPDATE_SUCCESSFUL, user, messageParams);
-            bot.sendMessage(user, localization);
+            client.sendMessage(user, localization);
         }
     }
 }

@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.button.menu.configurer;
 
-import com.unbidden.telegramcoursesbot.bot.TelegramBot;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.button.menu.Menu.Page.TerminalButton;
@@ -25,7 +25,7 @@ public class TestMenu implements MenuConfigurer {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TelegramBot bot;
+    private final CustomTelegramClient client;
 
     @Override
     public void configure() {
@@ -37,7 +37,7 @@ public class TestMenu implements MenuConfigurer {
         page.setButtonsFunction((u, p) -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_TEST_MENU, u)
                 .getData(), TEST, (u1, pa) -> {
-                    bot.sendMessage(SendMessage.builder()
+                    client.sendMessage(SendMessage.builder()
                         .chatId(u1.getId())
                         .text("Test button triggered.")
                         .build());
