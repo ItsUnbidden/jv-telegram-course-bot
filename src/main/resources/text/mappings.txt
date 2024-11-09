@@ -63,6 +63,7 @@ button resend_content
 button confirm_send_content
 button cancel_session
 button_refund
+button_update_comment
 
 
 menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes}
@@ -91,6 +92,8 @@ menu test_terminal_page             ****
 menu command_<commandName>_description
 menu content_actions_page_0
 menu admin_actions_page_0
+menu leave_basic_review_page_0
+menu leave_basic_review_page_1
 
 
 service add_lesson_content_request ${lessonId}
@@ -187,6 +190,7 @@ service refund_success ${courseName}
 service refund_confirmation_request ${confirmationPhrase}
 service_new_refund_stage_request ${courseName}
 service_new_refund_stage_success ${courseName} ${newRefundStage}
+service_update_review_comment_request
 
 
 error no_exception_localization_available ${excMessage} ${excClassName}
@@ -256,3 +260,7 @@ error refund_failure
 error refund_course_unavailable ${courseName}
 error refund_stage_bigger_then_amount_of_lessons ${amountOfLessons}
 error parse_refund_stage_failure
+error_same_new_course_grade ${courseGrade}
+error_same_new_platform_grade ${platformGrade}
+error_update_comment_failure
+error_update_comment_forbidden

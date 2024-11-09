@@ -6,6 +6,7 @@ import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.ArchiveReviewsException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
+import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Review;
@@ -54,6 +55,8 @@ public class ReviewServiceImpl implements ReviewService {
     private static final String PARAM_COURSE_NAME = "${courseName}";
     private static final String PARAM_COMMENTER_FULL_NAME = "${commenterFullName}";
     private static final String PARAM_REVIEW_ID = "${reviewId}";
+    private static final String PARAM_PLATFORM_GRADE = "${platformGrade}";
+    private static final String PARAM_COURSE_GRADE = "${courseGrade}";
 
     private static final String SERVICE_REVIEW_INFO = "service_review_info";
     private static final String SERVICE_REVIEW_INFO_COMMENT = "service_review_info_comment";
@@ -92,6 +95,9 @@ public class ReviewServiceImpl implements ReviewService {
     private static final String ERROR_UPDATE_CONTENT_NOT_PRESENT =
             "error_update_content_not_present";
     private static final String ERROR_REVIEW_NOT_FOUND = "error_review_not_found";
+    private static final String ERROR_SAME_NEW_PLATFORM_GRADE = "error_same_new_platform_grade";
+    private static final String ERROR_SAME_NEW_COURSE_GRADE = "error_same_new_course_grade";
+    private static final String ERROR_UPDATE_COMMENT_FAILURE = "error_update_comment_failure";
 
     public static final String REVIEW_ACTIONS_MENU_TERMINATION = "review_%s_actions";
     private static final String SEND_BASIC_REVIEW_TERMINATION = "course_%s_send_basic_review";
@@ -135,12 +141,12 @@ public class ReviewServiceImpl implements ReviewService {
                 + user.getId() + "...");
         final Message menuMessage = menuService.initiateMenu(LEAVE_BASIC_REVIEW_MENU, user,
                 course.getId().toString());
-        LOGGER.info("Menu sent. Adding menu message " + menuMessage.getMessageId()
+        LOGGER.debug("Menu sent. Adding menu message " + menuMessage.getMessageId()
                 + " to an MTG...");
         menuService.addToMenuTerminationGroup(user, user, menuMessage.getMessageId(),
                 SEND_BASIC_REVIEW_TERMINATION.formatted(course.getId()),
                 SERVICE_BASIC_REVIEW_TERMINAL);
-        LOGGER.info("Message added to the MTG.");
+        LOGGER.debug("Message added to the MTG.");
     }
 
     @Override
@@ -155,11 +161,11 @@ public class ReviewServiceImpl implements ReviewService {
                 + " to user " +  review.getUser().getId() + "...");
         menuService.initiateMenu(LEAVE_ADVANCED_REVIEW_MENU, review.getUser(),
                 review.getCourse().getName(), messageId);
-        LOGGER.info("Menu sent. Adding message " + messageId + " to an MTG...");
+        LOGGER.debug("Menu sent. Adding message " + messageId + " to an MTG...");
         menuService.addToMenuTerminationGroup(review.getUser(), review.getUser(), messageId,
                 SEND_ADVANCED_REVIEW_TERMINATION.formatted(review.getId()), 
                 SERVICE_ADVANCED_REVIEW_TERMINAL);
-        LOGGER.info("Message added to the MTG.");
+        LOGGER.debug("Message added to the MTG.");
     }
 
     @Override
@@ -188,11 +194,11 @@ public class ReviewServiceImpl implements ReviewService {
         review.setPlatformGrade(platformGrade);
         review.setMarkedAsReadBy(new ArrayList<>());
 
-        LOGGER.info("Review object compiled. Sending confirmation message...");
+        LOGGER.debug("Review object compiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_BASIC_REVIEW_SUBMITTED, user);
         final Message confirmationMessage = client.sendMessage(user, localization);
-        LOGGER.info("Message sent. Persisting review to the db...");
+        LOGGER.debug("Message sent. Persisting review to the db...");
         reviewRepository.save(review);
         LOGGER.info("Persisted successfuly. An offer to provide an advanced review "
                 + "will be sent. Also all 'leave basic review' menus will be terminated.");
@@ -221,12 +227,12 @@ public class ReviewServiceImpl implements ReviewService {
         review.setOriginalContent(content);
         review.setContent(content);
 
-        LOGGER.info("Review object recompiled. Sending confirmation message...");
+        LOGGER.debug("Review object recompiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_ADVANCED_REVIEW_SUBMITTED, review.getUser(), PARAM_COURSE_NAME,
                 review.getCourse().getName());
         client.sendMessage(review.getUser(), localization);
-        LOGGER.info("Message sent. Updating review in the db..."); 
+        LOGGER.debug("Message sent. Updating review in the db..."); 
         reviewRepository.save(review);
         LOGGER.info("Review " + reviewId + " has been updated to include advanced feedback. "
                 + "All advanced review menus will be terminated.");
@@ -251,27 +257,67 @@ public class ReviewServiceImpl implements ReviewService {
         review.setCommentedBy(user);
         review.setCommentedAt(LocalDateTime.now());
 
-        LOGGER.info("Review object recompiled. Sending confirmation message...");
+        LOGGER.debug("Review object recompiled. Sending confirmation message...");
         final Localization success = localizationLoader.getLocalizationForUser(
                 SERVICE_COMMENT_SUBMITTED, user, PARAM_REVIEW_ID, review.getId());
         client.sendMessage(user, success);
-        LOGGER.info("Message sent. Updating review in the db..."); 
+        LOGGER.debug("Message sent. Updating review in the db..."); 
         reviewRepository.save(review);
-        LOGGER.info("Review " + review.getId() + " has been updated to include comment.");
+        LOGGER.debug("Review " + review.getId() + " has been updated to include comment.");
 
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_COURSE_NAME, review.getCourse().getName());
         parameterMap.put(PARAM_COMMENTER_FULL_NAME, user.getFullName());
 
-        LOGGER.info("Sending notification to the review's owner...");
+        LOGGER.debug("Sending notification to the review's owner...");
         final Localization notification = localizationLoader.getLocalizationForUser(
                 SERVICE_COMMENT_SUBMITTED_NOTIFICATION, user, parameterMap);
         client.sendMessage(review.getUser(), notification);
-        LOGGER.info("Notificaton sent. Sending comment content...");
+        LOGGER.debug("Notificaton sent. Sending comment content...");
         contentService.sendContent(content, review.getUser());
         LOGGER.debug("Content sent. Marking review as read...");
         markReviewAsRead(review, user);
-        LOGGER.info("Review marked as archived.");
+        LOGGER.info("Review " + review.getId() + " marked as archived.");
+        return review;
+    }
+
+    @Override
+    @NonNull
+    public Review updateComment(@NonNull UserEntity user, @NonNull Review review,
+            @NonNull LocalizedContent content) {
+        if (review.getCommentContent() == null) {
+            throw new ForbiddenOperationException("Review " + review.getId() + "'s comment "
+                    + "cannot be updated because it has never been submitted", localizationLoader
+                    .getLocalizationForUser(ERROR_UPDATE_COMMENT_FAILURE, user));
+        }
+        
+        LOGGER.info("User " + user.getId() + " wants to update comment in review "
+                + review.getId() + ".");
+    
+        review.setCommentContent(content);
+        review.setCommentedAt(LocalDateTime.now());
+
+        LOGGER.debug("Review object recompiled. Sending confirmation message...");
+        final Localization success = localizationLoader.getLocalizationForUser(
+                SERVICE_COMMENT_SUBMITTED, user, PARAM_REVIEW_ID, review.getId());
+        client.sendMessage(user, success);
+        LOGGER.debug("Message sent. Updating review in the db..."); 
+        reviewRepository.save(review);
+        LOGGER.info("Review " + review.getId() + "'s comment content has been updated.");
+
+        final Map<String, Object> parameterMap = new HashMap<>();
+        parameterMap.put(PARAM_COURSE_NAME, review.getCourse().getName());
+        parameterMap.put(PARAM_COMMENTER_FULL_NAME, user.getFullName());
+
+        LOGGER.debug("Sending notification to the review's owner...");
+        final Localization notification = localizationLoader.getLocalizationForUser(
+                SERVICE_COMMENT_SUBMITTED_NOTIFICATION, user, parameterMap);
+        client.sendMessage(review.getUser(), notification);
+        LOGGER.debug("Notificaton sent. Sending comment content...");
+        contentService.sendContent(content, review.getUser());
+        LOGGER.debug("Content sent. Marking review as read...");
+        markReviewAsRead(review, user);
+        LOGGER.debug("Review marked as archived.");
         return review;
     }
 
@@ -284,15 +330,21 @@ public class ReviewServiceImpl implements ReviewService {
                 + " wants to update their grade for course " + review.getCourse().getName()
                 + ". Current grade is " + review.getCourseGrade() + " and new grade is "
                 + newGrade + ".");
+        if (review.getCourseGrade().equals(newGrade)) {
+            throw new InvalidDataSentException("New course grade is the same as before",
+                    localizationLoader.getLocalizationForUser(ERROR_SAME_NEW_COURSE_GRADE,
+                    review.getUser(), PARAM_COURSE_GRADE, newGrade));
+        }
         review.setCourseGrade(newGrade);
         review.setLastUpdateTimestamp(LocalDateTime.now());
+        review.setMarkedAsReadBy(new ArrayList<>());
 
-        LOGGER.info("Review object recompiled. Sending confirmation message...");
+        LOGGER.debug("Review object recompiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_REVIEW_COURSE_GRADE_UPDATED, review.getUser(), PARAM_COURSE_NAME,
                 review.getCourse().getName());
         client.sendMessage(review.getUser(), localization);
-        LOGGER.info("Message sent. Updating review in the db..."); 
+        LOGGER.debug("Message sent. Updating review in the db..."); 
         reviewRepository.save(review);
         LOGGER.info("Review " + reviewId + " has been updated.");
         return review;
@@ -307,15 +359,21 @@ public class ReviewServiceImpl implements ReviewService {
                 + " wants to update their grade for platform in review " + review.getId()
                 + ". Current grade is " + review.getPlatformGrade() + " and new grade is "
                 + newGrade + ".");
+        if (review.getPlatformGrade().equals(newGrade)) {
+            throw new InvalidDataSentException("New platform grade is the same as before",
+                    localizationLoader.getLocalizationForUser(ERROR_SAME_NEW_PLATFORM_GRADE,
+                    review.getUser(), PARAM_PLATFORM_GRADE, newGrade));
+        }
         review.setPlatformGrade(newGrade);
         review.setLastUpdateTimestamp(LocalDateTime.now());
+        review.setMarkedAsReadBy(new ArrayList<>());
 
-        LOGGER.info("Review object recompiled. Sending confirmation message...");
+        LOGGER.debug("Review object recompiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_REVIEW_PLATFORM_GRADE_UPDATED, review.getUser(), PARAM_COURSE_NAME,
                 review.getCourse().getName());
         client.sendMessage(review.getUser(), localization);
-        LOGGER.info("Message sent. Updating review in the db..."); 
+        LOGGER.debug("Message sent. Updating review in the db..."); 
         reviewRepository.save(review);
         LOGGER.info("Review " + reviewId + " has been updated.");
         return review;
@@ -337,13 +395,14 @@ public class ReviewServiceImpl implements ReviewService {
                 .getName() + ". Current content id is " + review.getContent().getId() + ".");
         review.setContent(content);
         review.setLastUpdateTimestamp(LocalDateTime.now());
+        review.setMarkedAsReadBy(new ArrayList<>());
 
-        LOGGER.info("Review object recompiled. Sending confirmation message...");
+        LOGGER.debug("Review object recompiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_REVIEW_COURSE_CONTENT_UPDATED, review.getUser(), PARAM_COURSE_NAME,
                 review.getCourse().getName());
         client.sendMessage(review.getUser(), localization);
-        LOGGER.info("Message sent. Updating review in the db..."); 
+        LOGGER.debug("Message sent. Updating review in the db..."); 
         reviewRepository.save(review);
         LOGGER.info("Review " + reviewId + " has been updated.");
         return review;
@@ -362,10 +421,10 @@ public class ReviewServiceImpl implements ReviewService {
 
         LOGGER.info("Sending " + reviews.size() + " new review(s) to user " + user.getId());
         sendReviews(reviews, user);
-        LOGGER.info("Reviews sent. Updating review session...");
+        LOGGER.debug("Reviews sent. Updating review session...");
 
         updateReviewSession(user, reviews, false);
-        LOGGER.info("Review session updated.");
+        LOGGER.debug("Review session updated.");
     }
 
     @Override
@@ -376,10 +435,10 @@ public class ReviewServiceImpl implements ReviewService {
         LOGGER.info("Sending " + reviews.size() + " new review(s) for course " + courseId
                 + " to user " + user.getId());
         sendReviews(reviews, user);
-        LOGGER.info("Reviews sent. Updating review session...");
+        LOGGER.debug("Reviews sent. Updating review session...");
 
         updateReviewSession(user, reviews, true);
-        LOGGER.info("Review session updated.");
+        LOGGER.debug("Review session updated.");
     }
 
     @Override
@@ -464,7 +523,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     private void sendReviews(List<Review> reviews, UserEntity user) {
         if (reviews.isEmpty()) {
-            LOGGER.info("No further reviews are availbable.");
+            LOGGER.info("No further reviews are availbable for user " + user.getId() + ".");
             sendMessage(user, localizationLoader.getLocalizationForUser(
                     SERVICE_NO_NEW_REVIEWS_FOR_USER, user));
             return;
@@ -475,7 +534,7 @@ public class ReviewServiceImpl implements ReviewService {
             
             final Message message;
             if (review.getContent() != null && review.getCommentContent() != null) {
-                LOGGER.info("Review is advanced and has a comment.");
+                LOGGER.debug("Review is advanced and has a comment.");
                 reviewInfo = localizationLoader.getLocalizationForUser(
                     SERVICE_REVIEW_INFO_CONTENT_COMMENT, user, textUtil
                     .getParamsMapForNewReview(review));
@@ -484,7 +543,7 @@ public class ReviewServiceImpl implements ReviewService {
                         .sendContent(review.getContent(), user);
                 message = getMenuMessage(sentMessages, user);
             } else if (review.getContent() != null) {
-                LOGGER.info("Review is advanced.");
+                LOGGER.debug("Review is advanced.");
                 reviewInfo = localizationLoader.getLocalizationForUser(
                     SERVICE_REVIEW_INFO_CONTENT, user, textUtil.getParamsMapForNewReview(review));
                 sendMessage(user, reviewInfo);
@@ -492,12 +551,12 @@ public class ReviewServiceImpl implements ReviewService {
                         .sendContent(review.getContent(), user);
                 message = getMenuMessage(sentMessages, user);
             } else if (review.getCommentContent() != null) {
-                LOGGER.info("Review has a comment.");
+                LOGGER.debug("Review has a comment.");
                 reviewInfo = localizationLoader.getLocalizationForUser(
                     SERVICE_REVIEW_INFO_COMMENT, user, textUtil.getParamsMapForNewReview(review));
                 message = sendMessage(user, reviewInfo);
             } else {
-                LOGGER.info("Review is basic with no comment.");
+                LOGGER.debug("Review is basic with no comment.");
                 reviewInfo = localizationLoader.getLocalizationForUser(
                     SERVICE_REVIEW_INFO, user, textUtil.getParamsMapForNewReview(review));
                 message = sendMessage(user, reviewInfo);
@@ -516,16 +575,16 @@ public class ReviewServiceImpl implements ReviewService {
 
         for (Review review : reviews) {
             final String reviewInfo = textUtil.getArchiveReviewInfo(review, builder);
-            LOGGER.info("Writing review " + review.getId() + " to a temp file "
+            LOGGER.debug("Writing review " + review.getId() + " to a temp file "
                     + tempFile + "...");
             archiveReviewsDao.write(tempFile, reviewInfo);
-            LOGGER.info("Review has been saved to the temp file.");
+            LOGGER.debug("Review has been saved to the temp file.");
             builder.delete(0, builder.length());
         }
         final String fileName = ARCHIVE_REVIEWS_FILE_NAME.formatted(user.getId(),
                 (user.getId() == null) ? "all" : courseId) + ARCHIVE_REVIEWS_FILE_FORMAT;
         try {
-            LOGGER.info("Reading temp file " + tempFile + " and sending reviews file to user "
+            LOGGER.debug("Reading temp file " + tempFile + " and sending reviews file to user "
                     + user.getId() + "...");
             final InputStream inputStream = archiveReviewsDao.read(tempFile);
             try {
@@ -533,14 +592,14 @@ public class ReviewServiceImpl implements ReviewService {
                         .chatId(user.getId())
                         .document(new InputFile(inputStream, fileName))
                         .build());
-                LOGGER.info("File has been sent.");
+                LOGGER.info("Archive reviews file has been sent to user " + user.getId() + ".");
             } catch (TelegramApiException e) {
                 throw new TelegramException("Unable to send file " + fileName + " to user "
                         + user.getId(), localizationLoader.getLocalizationForUser(
                         ERROR_SEND_FILE_FAILURE, user), e);
             } finally {
                 inputStream.close();
-                LOGGER.info("Input stream has been closed.");
+                LOGGER.debug("Input stream has been closed.");
             }
         } catch (IOException e) {
             throw new ArchiveReviewsException("Unable to close the stream after the temp file "

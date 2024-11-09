@@ -10,9 +10,9 @@ import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.handler.LeaveReviewCommentButtonHandler;
+import com.unbidden.telegramcoursesbot.service.menu.handler.UpdateReviewCommentButtonHandler;
 import com.unbidden.telegramcoursesbot.service.review.ReviewService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
-
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ReviewActionsMenu implements MenuConfigurer {
     private static final String MENU_NAME = "m_rwA";
-
+    
+    private static final String UPDATE_REVIEW_COMMENT = "urc";
     private static final String LEAVE_COMMENT = "lrc";
     private static final String GET_REVIEW_COMMENT = "grc";
     private static final String MARK_REVIEW_AS_READ = "mrr";
@@ -30,8 +31,10 @@ public class ReviewActionsMenu implements MenuConfigurer {
     private static final String BUTTON_LEAVE_REVIEW_COMMENT = "button_leave_review_comment";
     private static final String BUTTON_GET_REVIEW_COMMENT = "button_get_review_comment";
     private static final String BUTTON_MARK_REVIEW_AS_READ = "button_mark_review_as_read";
+    private static final String BUTTON_UPDATE_COMMENT = "button_update_comment";
 
     private final LeaveReviewCommentButtonHandler leaveReviewCommentHandler;
+    private final UpdateReviewCommentButtonHandler updateReviewCommentHandler;
 
     private final MenuService menuService;
 
@@ -55,23 +58,28 @@ public class ReviewActionsMenu implements MenuConfigurer {
             final List<Button> buttons = new ArrayList<>();
 
             buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
-                    BUTTON_MARK_REVIEW_AS_READ, u).getData(), MARK_REVIEW_AS_READ, (u1, pa) -> {
-                        if (userService.isAdmin(u1)) {
-                            reviewService.markReviewAsRead(review, u1);
-                        }
-                    }));
+                BUTTON_MARK_REVIEW_AS_READ, u).getData(), MARK_REVIEW_AS_READ, (u1, pa) -> {
+                    if (userService.isAdmin(u1)) {
+                        reviewService.markReviewAsRead(review, u1);
+                    }
+                }));
             
             if (review.getCommentContent() != null) {
                 buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
-                        BUTTON_GET_REVIEW_COMMENT, u).getData(), GET_REVIEW_COMMENT, (u1, pa) -> {
-                            if (userService.isAdmin(u1)) {
-                                contentService.sendContent(review.getCommentContent(), u1);
-                            }
-                        }));
+                    BUTTON_GET_REVIEW_COMMENT, u).getData(), GET_REVIEW_COMMENT, (u1, pa) -> {
+                        if (userService.isAdmin(u1)) {
+                            contentService.sendContent(review.getCommentContent(), u1);
+                        }
+                    }));
+                if (review.getCommentedBy().getId().equals(u.getId())) {
+                    buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+                        BUTTON_UPDATE_COMMENT, u).getData(), UPDATE_REVIEW_COMMENT,
+                        updateReviewCommentHandler));
+                }
             } else {
                 buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
-                        BUTTON_LEAVE_REVIEW_COMMENT, u).getData(), LEAVE_COMMENT,
-                        leaveReviewCommentHandler));
+                    BUTTON_LEAVE_REVIEW_COMMENT, u).getData(), LEAVE_COMMENT,
+                    leaveReviewCommentHandler));
             }
             return buttons;
         });

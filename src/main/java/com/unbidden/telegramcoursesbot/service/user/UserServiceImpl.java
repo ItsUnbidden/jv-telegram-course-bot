@@ -131,7 +131,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @NonNull
     public UserEntity updateUser(@NonNull User user) {
-        LOGGER.info("Checking if user " + user.getId() + "' data is up to date...");
+        LOGGER.trace("Checking if user " + user.getId() + "' data is up to date...");
         final UserEntity userFromDb = userRepository.findById(user.getId())
                 .orElse(new UserEntity(user.getId()));
 
@@ -140,50 +140,50 @@ public class UserServiceImpl implements UserService {
             userFromDb.setAdmin(true);
             hasChanged = true;
             userFromDb.setReceivingHomeworkRequests(true);
-            LOGGER.info("User " + user.getId() + " is the default admin. Setting...");
+            LOGGER.trace("User " + user.getId() + " is the default admin. Setting...");
         }
         if (user.getIsBot() != userFromDb.isBot()) {
             userFromDb.setBot(user.getIsBot());
             hasChanged = true;
-            LOGGER.info("User is bot. Setting...");
+            LOGGER.trace("User is bot. Setting...");
         }
         if (!user.getFirstName().equals(userFromDb.getFirstName())) {
             userFromDb.setFirstName(user.getFirstName());
             hasChanged = true;
-            LOGGER.info("First name is " + user.getFirstName() + ". Setting...");
+            LOGGER.trace("First name is " + user.getFirstName() + ". Setting...");
         }
         if (user.getLanguageCode() != null) {
             if (!user.getLanguageCode().equals(userFromDb.getLanguageCode())) {
                 userFromDb.setLanguageCode(user.getLanguageCode());
                 hasChanged = true;
-                LOGGER.info("Language code is " + user.getLanguageCode() + ". Setting...");
+                LOGGER.trace("Language code is " + user.getLanguageCode() + ". Setting...");
             }
         } else {
             final String theMostPreferedLanguage = languagePriorityStr
                     .split(LANGUAGE_PRIORITY_DIVIDER)[0].trim();
             userFromDb.setLanguageCode(theMostPreferedLanguage);
             hasChanged = true;
-            LOGGER.info("Language code is unavailable. Setting to "
+            LOGGER.trace("Language code is unavailable. Setting to "
                     + theMostPreferedLanguage + "...");
         }
         if (user.getLastName() != null && !user.getLastName()
                 .equals(userFromDb.getLastName())) {
             userFromDb.setLastName(user.getLastName());
             hasChanged = true;
-            LOGGER.info("Last name is " + user.getLastName() + ". Setting...");
+            LOGGER.trace("Last name is " + user.getLastName() + ". Setting...");
         }
         if (user.getUserName() != null && !user.getUserName()
                 .equals(userFromDb.getUsername())) {
             userFromDb.setUsername(user.getUserName());
             hasChanged = true;
-            LOGGER.info("Username is " + user.getUserName() + ". Setting...");
+            LOGGER.trace("Username is " + user.getUserName() + ". Setting...");
         }
         if (hasChanged) {
-            LOGGER.info("Stuff has changed for user " + user.getId() + ". Persisting...");
+            LOGGER.trace("Stuff has changed for user " + user.getId() + ". Persisting...");
             userRepository.save(userFromDb);
-            LOGGER.info("Persist is successful.");
+            LOGGER.trace("Persist is successful.");
         } else {
-            LOGGER.info("User data is up to date with telegram servers.");
+            LOGGER.trace("User data is up to date with telegram servers.");
         }
         return userFromDb;
     }

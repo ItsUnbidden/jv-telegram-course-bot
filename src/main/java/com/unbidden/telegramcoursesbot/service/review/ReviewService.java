@@ -25,6 +25,10 @@ public interface ReviewService {
             @NonNull LocalizedContent content);
 
     @NonNull
+    Review updateComment(@NonNull UserEntity user, @NonNull Review review,
+            @NonNull LocalizedContent content);
+
+    @NonNull
     Review updateCourseGrade(@NonNull Long reviewId, int newGrade);
 
     @NonNull
