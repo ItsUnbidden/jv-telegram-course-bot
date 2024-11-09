@@ -30,6 +30,9 @@ public class Course {
     @Column(nullable = false)
     private Integer amountOfLessons;
 
+    @Column(nullable = false)
+    private Integer refundStage;
+
     private boolean isHomeworkIncluded;
 
     private boolean isFeedbackIncluded;

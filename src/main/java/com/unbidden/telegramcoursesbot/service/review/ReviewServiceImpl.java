@@ -12,10 +12,10 @@ import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.repository.ReviewRepository;
-import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
 import java.io.IOException;
@@ -190,7 +190,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         LOGGER.info("Review object compiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
-                SERVICE_BASIC_REVIEW_SUBMITTED, user, PARAM_COURSE_NAME, course.getName());
+                SERVICE_BASIC_REVIEW_SUBMITTED, user);
         final Message confirmationMessage = client.sendMessage(user, localization);
         LOGGER.info("Message sent. Persisting review to the db...");
         reviewRepository.save(review);

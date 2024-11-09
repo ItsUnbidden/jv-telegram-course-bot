@@ -3,6 +3,9 @@ course <courseName>_end_repeat
 course <courseName>_name
 course <courseName>_lesson_<lessonIndex>_content_<contentIndex>
 course <courseName>_lesson_<lessonIndex>_homework_content
+course <courseName>_invoice_description
+course <courseName>_invoice_title
+
 
 button course_price_change
 button course_feedback_setting
@@ -59,12 +62,13 @@ button remove_mapping_localization
 button resend_content
 button confirm_send_content
 button cancel_session
+button_refund
 
 
 menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes}
 menu course_settings_page_3 ${mappingIds} ${sequenceOption} ${homeworkId} ${index} ${lessonId}
 menu course_settings_page_2
-menu course_settings_page_1 ${id} ${name} ${numberOfLessons} ${price} ${isHomeworkIncluded} ${isFeedbackIncluded}
+menu course_settings_page_1 ${id} ${name} ${numberOfLessons} ${price} ${refundStage} ${isHomeworkIncluded} ${isFeedbackIncluded}
 menu course_settings_page_0
 menu commit_content_page_0
 menu commit_content_terminal_page
@@ -116,20 +120,20 @@ service feedback_media_group_bypass
 service mapping_id_request
 service course_next_stage_media_group_bypass
 service resend_content
-service review_info ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead}
-service review_info_comment ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt}
-service review_info_content ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${contentId} ${originalContentId} ${advancedTimestamp}
-service review_info_content_comment ${basicTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt} ${contentId} ${originalContentId} ${advancedTimestamp}
+service review_info ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead}
+service review_info_comment ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt}
+service review_info_content ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${contentId} ${originalContentId} ${advancedTimestamp}
+service review_info_content_comment ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt} ${contentId} ${originalContentId} ${advancedTimestamp}
 service no_new_reviews_for_user
 service review_course_content_updated ${courseName}
 service review_platform_grade_updated ${courseName}
 service review_course_grade_updated ${courseName}
 service comment_submitted_notification ${courseName} ${commenterFullName}
 service comment_submitted ${reviewId}
-service advanced_review_submitted ${courseName}
-service basic_review_submitted ${courseName}
-service advanced_review_terminal
-service basic_review_terminal
+service advanced_review_submitted
+service basic_review_submitted
+service advanced_review_terminal ${courseName}
+service basic_review_terminal ${courseName}
 service resend_content
 service new_course_request
 service new_course_created ${courseName}
@@ -173,12 +177,16 @@ service on_maintenance_status_change
 service refresh_success
 service start
 service terms
-service successful_payment
+service successful_payment ${courseName}
 service new_admin_assign_success ${targetFirstName}
 service course_price_update_success ${courseName} ${currentPrice}
 service course_price_update_request ${courseName} ${currentPrice}
 service course_feedback_update_successful ${status} ${courseName}
 service course_homework_update_successful ${status} ${courseName}
+service refund_success ${courseName}
+service refund_confirmation_request ${confirmationPhrase}
+service_new_refund_stage_request ${courseName}
+service_new_refund_stage_success ${courseName} ${newRefundStage}
 
 
 error no_exception_localization_available ${excMessage} ${excClassName}
@@ -223,10 +231,9 @@ error content_mapping_not_found
 error content_not_found
 error new_price_cannot_parse
 error pre_checkout_unknown_course
-error pre_checkout_course_already_present
 error pre_checkout_currency_mismatch
-error pre_checkout_price_mismatch
-error payment_unknown_course
+error pre_checkout_price_mismatch ${currentPrice}
+error payment_unknown_course ${courseName}
 error new_admin_assign_failure ${userId}
 error admin_remove_failure ${userId}
 error give_take_course_no_longer_available ${courseName}
@@ -242,3 +249,10 @@ error unspecified_exception ${excMessage} ${excClassName}
 error critical_director_notification ${excMessage} ${excClassName}
 error unsupported_operation_exception
 error telegram_internal ${excMessage}
+error precheckout_unknown_course
+error pre_checkout_course_already_owned ${courseName}
+error payment_details_not_found
+error refund_failure
+error refund_course_unavailable ${courseName}
+error refund_stage_bigger_then_amount_of_lessons ${amountOfLessons}
+error parse_refund_stage_failure

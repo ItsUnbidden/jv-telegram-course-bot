@@ -1,8 +1,8 @@
 package com.unbidden.telegramcoursesbot.bot;
 
-import com.unbidden.telegramcoursesbot.service.button.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

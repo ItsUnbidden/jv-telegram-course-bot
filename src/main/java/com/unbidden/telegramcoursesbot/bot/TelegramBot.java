@@ -30,9 +30,6 @@ public class TelegramBot implements TelegramWebhookBot {
     @Autowired
     private CertificateDao certificateDao;
 
-    @Value("${telegram.bot.authorization.username}")
-    private String username;
-
     @Value("${telegram.bot.webhook.url}")
     private String baseUrl;
 
@@ -63,7 +60,7 @@ public class TelegramBot implements TelegramWebhookBot {
 
         LOGGER.info("Registering webhook bot...");
         final InputStream publicKeyStream = certificateDao.readPublicKey();
-        LOGGER.info("Certificate public key file has been initialized into stream.");
+        LOGGER.debug("Certificate public key file has been initialized into stream.");
         try {
             telegramClient.execute(SetWebhook.builder()
                     .url(baseUrl + "/webhook/callback/" + getBotPath())
@@ -77,7 +74,7 @@ public class TelegramBot implements TelegramWebhookBot {
             throw new TelegramException("Unable to set up the webhook bot.", null, e);
         } finally {
             certificateDao.closeStream(publicKeyStream);
-            LOGGER.info("Certificate public key stream has been closed.");
+            LOGGER.debug("Certificate public key stream has been closed.");
         }
         LOGGER.info("Bot has been registered.");
     }

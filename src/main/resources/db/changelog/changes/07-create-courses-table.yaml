@@ -24,6 +24,11 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
+                  name: refund_stage
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
                   name: amount_of_lessons
                   type: int
                   constraints:

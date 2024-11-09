@@ -21,6 +21,8 @@ public interface PaymentService {
 
     void resolveSuccessfulPayment(@NonNull Message message);
 
+    boolean isRefundPossible(@NonNull UserEntity user, @NonNull String courseName);
+
     void refund(@NonNull UserEntity user, @NonNull String courseName);
 
     @NonNull

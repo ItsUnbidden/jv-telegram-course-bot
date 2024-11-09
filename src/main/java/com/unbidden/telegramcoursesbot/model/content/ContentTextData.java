@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.model.content;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
@@ -13,7 +14,7 @@ import org.springframework.lang.NonNull;
 public class ContentTextData {
     private String data;
 
-    // TODO: make non-null in database
+    @Column(nullable = false)
     private boolean isLocalization;
 
     @OneToMany

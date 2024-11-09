@@ -3,8 +3,10 @@ package com.unbidden.telegramcoursesbot.service.payment;
 import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.dao.ImageDao;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
+import com.unbidden.telegramcoursesbot.exception.RefundImpossibleException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.Course;
+import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.PaymentDetailsRepository;
@@ -13,7 +15,9 @@ import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +29,7 @@ import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery.AnswerPreCheckoutQueryBuilder;
 import org.telegram.telegrambots.meta.api.methods.invoices.SendInvoice;
 import org.telegram.telegrambots.meta.api.methods.invoices.SendInvoice.SendInvoiceBuilder;
+import org.telegram.telegrambots.meta.api.methods.payments.RefundStarPayment;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.payments.LabeledPrice;
@@ -34,33 +39,40 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Service
 public class PaymentServiceImpl implements PaymentService {
-    private static final String SERVICE_REFUND_SUCCESS = "service_refund_success";
-
-    private static final String ERROR_PAYMENT_DETAILS_NOT_FOUND = "error_payment_details_not_found";
-
-    private static final String SERVICE_SUCCESSFUL_PAYMENT = "service_successful_payment";
-
-    private static final String ERROR_PRECHECKOUT_UNKNOWN_COURSE = "error_precheckout_unknown_course";
+    private static final Logger LOGGER = LogManager.getLogger(PaymentServiceImpl.class);
 
     private static final String PARAM_CURRENT_PRICE = "${currentPrice}";
-
-    private static final String ERROR_PRE_CHECKOUT_PRICE_MISMATCH = "error_pre_checkout_price_mismatch";
-
-    private static final String ERROR_PRE_CHECKOUT_CURRENCY_MISMATCH = "error_pre_checkout_currency_mismatch";
-
     private static final String PARAM_COURSE_NAME = "${courseName}";
+    private static final String PARAM_MAX_STAGE_FOR_REFUND = "${maxStageForRefund}";
+    private static final String PARAM_CURRENT_STAGE = "${currentStage}";
 
-    private static final String ERROR_PRE_CHECKOUT_COURSE_ALREADY_OWNED = "error_pre_checkout_course_already_owned";
+    private static final String SERVICE_REFUND_SUCCESS = "service_refund_success";
+    private static final String SERVICE_SUCCESSFUL_PAYMENT = "service_successful_payment";
+
+    private static final String ERROR_PRE_CHECKOUT_PRICE_MISMATCH =
+            "error_pre_checkout_price_mismatch";
+    private static final String ERROR_PRE_CHECKOUT_CURRENCY_MISMATCH =
+            "error_pre_checkout_currency_mismatch";
+    private static final String ERROR_PAYMENT_DETAILS_NOT_FOUND =
+            "error_payment_details_not_found";
+    private static final String ERROR_PRECHECKOUT_UNKNOWN_COURSE =
+            "error_precheckout_unknown_course";
+    private static final String ERROR_PRE_CHECKOUT_COURSE_ALREADY_OWNED =
+            "error_pre_checkout_course_already_owned";
+    private static final String ERROR_ANSWER_PRECHECKOUT_FAILURE =
+            "error_answer_precheckout_failure";
+    private static final String ERROR_SEND_INVOICE_FAILURE = "error_send_invoice_failure";
+    private static final String ERROR_REFUND_FAILURE = "error_refund_failure";
+    private static final String ERROR_REFUND_USER_ADVANCED_TOO_FAR =
+            "error_refund_user_advanced_too_far";
+    private static final String ERROR_REFUND_COURSE_NOT_OWNED = "error_refund_course_not_owned";
+    private static final String ERROR_REFUND_COURSE_WAS_GIFTED = "error_refund_course_was_gifted";
+    private static final String ERROR_REFUND_COURSE_COMPLETED = "error_refund_course_completed";
+    private static final String ERROR_REFUND_COURSE_UNAVAILABLE =
+            "error_refund_course_unavailable";
 
     private static final String COURSE_INVOICE_DESCRIPTION = "course_%s_invoice_description";
-
     private static final String COURSE_INVOICE_TITLE = "course_%s_invoice_title";
-
-    private static final String ERROR_ANSWER_PRECHECKOUT_FAILURE = "error_answer_precheckout_failure";
-
-    private static final String ERROR_SEND_INVOICE_FAILURE = "error_send_invoice_failure";
-
-    private static final Logger LOGGER = LogManager.getLogger(PaymentServiceImpl.class);
 
     private static final String INVOICE_IMAGES_ENDPOINT = "/invoiceimages";
 
@@ -259,6 +271,10 @@ public class PaymentServiceImpl implements PaymentService {
         LOGGER.debug("Message sent.");
         LOGGER.info("User " + user.getId() + " has bought course " + course.getName()
                 + "! Do not forget to thank them!");
+        LOGGER.debug("Initiating course " + course.getName() + " for user "
+                + user.getId() + "...");
+        courseService.initMessage(user, course.getName());
+        LOGGER.debug("Course initiated.");
     }
 
     @Override
@@ -268,9 +284,26 @@ public class PaymentServiceImpl implements PaymentService {
 
         for (PaymentDetails paymentDetailsEntry : paymentDetailsList) {
             if (!paymentDetailsEntry.isGifted() && paymentDetailsEntry.isValid()) {
-                refund0(paymentDetailsEntry);
+                final RefundStarPayment refundStarPayment = RefundStarPayment.builder()
+                        .telegramPaymentChargeId(paymentDetailsEntry.getTelegramPaymentChargeId())
+                        .userId(user.getId())
+                        .build();
+                try {
+                    client.execute(refundStarPayment);
+                } catch (TelegramApiException e) {
+                    throw new TelegramException(courseName, localizationLoader.getLocalizationForUser(ERROR_REFUND_FAILURE, user), e);
+                }
+                paymentDetailsEntry.setRefundedAt(LocalDateTime.now());
+                paymentDetailsEntry.setValid(false);
+                LOGGER.debug("Invalidating payment details for course " + courseName
+                        + " and user " + user.getId() + "..."); 
+                paymentDetailsRepository.save(paymentDetailsEntry);
+                LOGGER.info("Payment details " + paymentDetailsEntry.getId()
+                        + " has been invalidated.");
+                LOGGER.debug("Sending confirmation message...");
                 client.sendMessage(user, localizationLoader.getLocalizationForUser(
                         SERVICE_REFUND_SUCCESS, user, PARAM_COURSE_NAME, courseName));
+                LOGGER.debug("Message sent.");
                 return;
             }
         }
@@ -286,8 +319,50 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentDetailsRepository.findByUser(user.getId());
     }
 
-    private void refund0(PaymentDetails paymentDetails) {
-        
+    @Override
+    public boolean isRefundPossible(@NonNull UserEntity user, @NonNull String courseName) {
+        final Course course = courseService.getCourseByName(courseName, user);
+        LOGGER.debug("Performing checks...");
+        if (!isAvailable(user, course.getName())) {
+            throw new RefundImpossibleException("Course " + course.getName()
+                    + " is not owned by user " + user.getId(), localizationLoader
+                    .getLocalizationForUser(ERROR_REFUND_COURSE_NOT_OWNED, user));
+        }
+        if (isAvailableAndGifted(user, course.getName())) {
+            throw new RefundImpossibleException("Course " + course.getName()
+                    + " was gifted to user " + user.getId()
+                    + " and therefore it cannot be refunded", localizationLoader
+                    .getLocalizationForUser(ERROR_REFUND_COURSE_WAS_GIFTED, user));
+        }
+        if (course.getRefundStage() < 0) {
+            throw new RefundImpossibleException("Refund of course " + courseName 
+                    + " is not possible", localizationLoader.getLocalizationForUser(
+                    ERROR_REFUND_COURSE_UNAVAILABLE, user, PARAM_COURSE_NAME, courseName));
+        }
+        final CourseProgress courseProgress = courseService
+                .getCurrentCourseProgressForUser(user.getId(), courseName);
+        if (courseProgress.getNumberOfTimesCompleted() > 0) {
+            throw new RefundImpossibleException("User " + user.getId() + " cannot refund course "
+                    + course.getName() + " because they have already completed it",
+                    localizationLoader.getLocalizationForUser(ERROR_REFUND_COURSE_COMPLETED,
+                    user, PARAM_COURSE_NAME, course.getName()));
+        }
+        if (courseProgress.getStage() > course.getRefundStage()) {
+            final Map<String, Object> parameterMap = new HashMap<>();
+            parameterMap.put(PARAM_COURSE_NAME, course.getName());
+            parameterMap.put(PARAM_CURRENT_STAGE, courseProgress.getStage());
+            parameterMap.put(PARAM_MAX_STAGE_FOR_REFUND, course.getRefundStage());
+
+            throw new RefundImpossibleException("User " + user.getId()
+                    + " has advanced in course " + course.getName() + " to "
+                    + courseProgress.getStage() + " lesson which is past lesson "
+                    + course.getRefundStage() + " and therefore refund is now impossible",
+                    localizationLoader.getLocalizationForUser(ERROR_REFUND_USER_ADVANCED_TOO_FAR,
+                    user, parameterMap));
+        }
+        LOGGER.debug("User " + user.getId() + " is eligible for course "
+                + course.getName() + "'s refund.");
+        return true;
     }
 
     private boolean isAvailable0(UserEntity user, String courseName) {

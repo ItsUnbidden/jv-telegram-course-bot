@@ -13,6 +13,9 @@ databaseChangeLog:
                   name: price
                   valueNumeric: 1
               - column:
+                  name: refund_stage
+                  valueNumeric: -1
+              - column:
                   name: amount_of_lessons
                   valueNumeric: 3
               - column:

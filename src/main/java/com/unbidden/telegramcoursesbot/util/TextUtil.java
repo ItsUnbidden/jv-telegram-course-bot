@@ -20,8 +20,11 @@ import org.telegram.telegrambots.meta.api.objects.User;
 @Component
 public class TextUtil {
     private static final Logger LOGGER = LogManager.getLogger(TextUtil.class);
+    
     private static final Map<String, String> MARKERS = new HashMap<>();
-
+    
+    private static final String PARAM_LAST_UPDATE_TIMESTAMP = "${lastUpdateTimestamp}";
+    private static final String PARAM_USER_FULL_NAME = "${userFullName}";
     private static final String PARAM_ADVANCED_TIMESTAMP = "${advancedTimestamp}";
     private static final String PARAM_ORIGINAL_CONTENT_ID = "${originalContentId}";
     private static final String PARAM_CONTENT_ID = "${contentId}";
@@ -211,12 +214,15 @@ public class TextUtil {
     public Map<String, Object> getParamsMapForNewReview(@NonNull Review review) {
         final Map<String, Object> parameterMap = new HashMap<>();
 
+        parameterMap.put(PARAM_USER_FULL_NAME, review.getUser().getFullName());
         parameterMap.put(PARAM_BASIC_TIMESTAMP, review.getBasicSubmittedTimestamp());
         parameterMap.put(PARAM_COURSE_GRADE, review.getCourseGrade());
         parameterMap.put(PARAM_PLATFORM_GRADE, review.getPlatformGrade());
         parameterMap.put(PARAM_ORIGINAL_COURSE_GRADE, review.getOriginalCourseGrade());
         parameterMap.put(PARAM_ORIGINAL_PLATFORM_GRADE, review.getOriginalPlatformGrade());
         parameterMap.put(PARAM_USERS_WHO_READ, review.getUsersWhoReadAsString());
+        parameterMap.put(PARAM_LAST_UPDATE_TIMESTAMP, (review.getLastUpdateTimestamp() != null)
+                ? review.getLastUpdateTimestamp() : "Not available");
 
         if (review.getCommentContent() != null) {
             parameterMap.put(PARAM_USER_WHO_COMMENTED, review.getCommentedBy()

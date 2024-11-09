@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.repository;
 
-import com.unbidden.telegramcoursesbot.service.button.menu.Menu;
+import com.unbidden.telegramcoursesbot.service.menu.Menu;
+
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
