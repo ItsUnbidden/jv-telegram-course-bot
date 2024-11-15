@@ -33,7 +33,7 @@ public class RefundButtonHandler implements ButtonHandler {
 
     private static final String CONFIRMATION_PHRASE = "I confirm that I want to refund course \""
             + "%s\" and I understand that I will receive spent amount of Telegram Stars "
-            + "as compensation.";
+            + "as a compensation";
 
     private final PaymentService paymentService;
 

@@ -322,31 +322,42 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public boolean isRefundPossible(@NonNull UserEntity user, @NonNull String courseName) {
         final Course course = courseService.getCourseByName(courseName, user);
-        LOGGER.debug("Performing checks...");
+        LOGGER.info("Performing checks for refund of course " + courseName
+                + " for user " + user.getId() + "...");
+        LOGGER.debug("Checking whether course " + courseName + " supports refund...");
+        if (course.getRefundStage() < 0) {
+            throw new RefundImpossibleException("Refund of course " + courseName 
+                    + " is not possible", localizationLoader.getLocalizationForUser(
+                    ERROR_REFUND_COURSE_UNAVAILABLE, user, PARAM_COURSE_NAME, courseName));
+        }
+        LOGGER.debug("Checking whether course " + courseName + " is owned by user "
+                + user.getId() + "...");
         if (!isAvailable(user, course.getName())) {
             throw new RefundImpossibleException("Course " + course.getName()
                     + " is not owned by user " + user.getId(), localizationLoader
                     .getLocalizationForUser(ERROR_REFUND_COURSE_NOT_OWNED, user));
         }
+        LOGGER.debug("Checking whether course " + courseName + " was gifted to user "
+                + user.getId() + "...");
         if (isAvailableAndGifted(user, course.getName())) {
             throw new RefundImpossibleException("Course " + course.getName()
                     + " was gifted to user " + user.getId()
                     + " and therefore it cannot be refunded", localizationLoader
                     .getLocalizationForUser(ERROR_REFUND_COURSE_WAS_GIFTED, user));
         }
-        if (course.getRefundStage() < 0) {
-            throw new RefundImpossibleException("Refund of course " + courseName 
-                    + " is not possible", localizationLoader.getLocalizationForUser(
-                    ERROR_REFUND_COURSE_UNAVAILABLE, user, PARAM_COURSE_NAME, courseName));
-        }
         final CourseProgress courseProgress = courseService
                 .getCurrentCourseProgressForUser(user.getId(), courseName);
+        LOGGER.debug("Checking whether course " + courseName + " has been completed by user "
+                + user.getId() + "..."); 
         if (courseProgress.getNumberOfTimesCompleted() > 0) {
             throw new RefundImpossibleException("User " + user.getId() + " cannot refund course "
                     + course.getName() + " because they have already completed it",
                     localizationLoader.getLocalizationForUser(ERROR_REFUND_COURSE_COMPLETED,
                     user, PARAM_COURSE_NAME, course.getName()));
         }
+        LOGGER.debug("Checking whether user " + user.getId() + " has advanced past stage "
+                + course.getRefundStage() + " in course " + courseName + " (current stage is "
+                + courseProgress.getStage() + ")...");
         if (courseProgress.getStage() > course.getRefundStage()) {
             final Map<String, Object> parameterMap = new HashMap<>();
             parameterMap.put(PARAM_COURSE_NAME, course.getName());
@@ -360,7 +371,7 @@ public class PaymentServiceImpl implements PaymentService {
                     localizationLoader.getLocalizationForUser(ERROR_REFUND_USER_ADVANCED_TOO_FAR,
                     user, parameterMap));
         }
-        LOGGER.debug("User " + user.getId() + " is eligible for course "
+        LOGGER.info("User " + user.getId() + " is eligible for course "
                 + course.getName() + "'s refund.");
         return true;
     }

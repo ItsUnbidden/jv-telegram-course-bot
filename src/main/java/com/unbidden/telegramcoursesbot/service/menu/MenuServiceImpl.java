@@ -1,6 +1,9 @@
 package com.unbidden.telegramcoursesbot.service.menu;
 
 import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
+import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
+import com.unbidden.telegramcoursesbot.exception.MenuExpiredException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.MenuTerminationGroup;
 import com.unbidden.telegramcoursesbot.model.MessageEntity;
@@ -17,7 +20,6 @@ import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TransitoryButton;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.KeyboardUtil;
-import jakarta.persistence.EntityNotFoundException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -45,6 +47,9 @@ public class MenuServiceImpl implements MenuService {
 
     private static final String ERROR_UPDATE_MESSAGE_FAILURE = "error_update_message_failure";
     private static final String ERROR_UPDATE_MARKUP_FAILURE = "error_update_markup_failure";
+    private static final String ERROR_MTG_NOT_FOUND = "error_mtg_not_found";
+    private static final String ERROR_MENU_NOT_FOUND = "error_menu_not_found";
+    private static final String ERROR_MENU_BUTTON_ISSUE = "error_menu_button_issue";
     
     private static final String DIVIDER = ":";
     private static final int MENU_NAME = 0;
@@ -90,7 +95,8 @@ public class MenuServiceImpl implements MenuService {
     public Message initiateMenu(@NonNull String menuName, @NonNull UserEntity user,
             @NonNull String param) {
         final Menu menu = menuRepository.find(menuName).orElseThrow(() ->
-                new EntityNotFoundException("Menu " + menuName + " was not found"));
+                new EntityNotFoundException("Menu " + menuName + " was not found",
+                localizationLoader.getLocalizationForUser(ERROR_MENU_NOT_FOUND, user)));
         if (menu.isAttachedToMessage()) {
             throw new UnsupportedOperationException("Menu " + menuName + " is supposed to be "
                     + "attached to a message, but the wrong initialization method was called.");
@@ -116,7 +122,8 @@ public class MenuServiceImpl implements MenuService {
     public void initiateMenu(@NonNull String menuName, @NonNull UserEntity user,
             @NonNull String param, @NonNull Integer messageId) {
         final Menu menu = menuRepository.find(menuName).orElseThrow(() ->
-                new EntityNotFoundException("Menu " + menuName + " was not found"));
+                new EntityNotFoundException("Menu " + menuName + " was not found",
+                localizationLoader.getLocalizationForUser(ERROR_MENU_NOT_FOUND, user)));
         final Page firstPage = menu.getPages().get(0);
         
         LOGGER.trace("Menu " + menuName + "'s markup is being compiled for message " + messageId
@@ -143,8 +150,9 @@ public class MenuServiceImpl implements MenuService {
         final UserEntity userFromDb = userService.getUser(user.getId());
         final String[] data = query.getData().split(DIVIDER);
         final Menu menu = menuRepository.find(data[MENU_NAME]).orElseThrow(() ->
-                new EntityNotFoundException("Menu " + data[MENU_NAME] + " was not found"));
-        
+                new EntityNotFoundException("Menu " + data[MENU_NAME] + " was not found",
+                localizationLoader.getLocalizationForUser(ERROR_MENU_NOT_FOUND, user)));
+                
         LOGGER.trace("Saving callback querry...");
         callbackQueryRepository.save(query);
         LOGGER.trace("Callback query saved.");
@@ -162,7 +170,14 @@ public class MenuServiceImpl implements MenuService {
             
         final Localization localization;
         final String[] paramsOnly = Arrays.copyOfRange(data, 2, data.length);
-        final Button button = page.getButtonByData(userFromDb, data[data.length - 1], paramsOnly);
+        final Button button;
+        try {
+            button = page.getButtonByData(userFromDb, data[data.length - 1], paramsOnly);
+        } catch (MenuExpiredException e) {
+            throw new ActionExpiredException("Menu has changed and user " + user.getId()
+                    + "'s request is unprocessable", localizationLoader.getLocalizationForUser(
+                    ERROR_MENU_BUTTON_ISSUE, userFromDb));
+        }
         switch (button.getType()) {
             case Button.Type.TRANSITORY:
                 LOGGER.trace("Button " + button.getData() + " is transitory.");
@@ -292,9 +307,10 @@ public class MenuServiceImpl implements MenuService {
     @Override
     public void terminateMenuGroup(@NonNull UserEntity user, @NonNull String key) {
         final MenuTerminationGroup group = menuTerminationGroupRepository.findByUserIdAndName(
-                user.getId(), key).orElseThrow(() -> new EntityNotFoundException
-                ("Menu termination group for user " + user.getId() + " and key " + key
-                + " does not exist."));
+                user.getId(), key).orElseThrow(() -> new EntityNotFoundException(
+                "Menu termination group for user " + user.getId() + " and key " + key
+                + " does not exist", localizationLoader.getLocalizationForUser(
+                ERROR_MTG_NOT_FOUND, user)));
         
         for (MessageEntity message : group.getMessages()) {
             terminateMenu(message.getUser().getId(), message.getMessageId(),

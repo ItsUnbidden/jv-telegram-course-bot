@@ -1,9 +1,9 @@
 package com.unbidden.telegramcoursesbot.service.menu;
 
+import com.unbidden.telegramcoursesbot.exception.MenuExpiredException;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.menu.handler.ButtonHandler;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -37,17 +37,17 @@ public class Menu {
         private BiFunction<UserEntity, List<String>, List<Button>> buttonsFunction;
 
         public Button getButtonByData(UserEntity user, String currentButtonData,
-                String[] params) {
+                String[] params) throws MenuExpiredException {
             List<Button> potentialButton = buttonsFunction.apply(user, Arrays.asList(params))
                     .stream()
                     .filter(b -> b.getData().equals(currentButtonData))
                     .toList();
             if (potentialButton.isEmpty()) {
-                throw new IllegalArgumentException("There is no button with data "
+                throw new MenuExpiredException("There is no button with data "
                         + currentButtonData);
             }
             if (potentialButton.size() > 1) {
-                throw new IllegalArgumentException("There seem to be several buttons with data "
+                throw new MenuExpiredException("There seem to be several buttons with data "
                         + currentButtonData);
             }
             return potentialButton.get(0);

@@ -31,6 +31,9 @@ public class UserServiceImpl implements UserService {
     @Value("${telegram.bot.authorization.default.admin.id}")
     private Long defaultAdminId;
 
+    @Value("${telegram.bot.authorization.default.creator.id}")
+    private Long creatorId;
+
     @Value("${telegram.bot.message.language.priority}")
     private String languagePriorityStr;
 
@@ -136,11 +139,12 @@ public class UserServiceImpl implements UserService {
                 .orElse(new UserEntity(user.getId()));
 
         boolean hasChanged = false;
-        if (!userFromDb.isAdmin() && user.getId().longValue() == defaultAdminId) {
+        if (!userFromDb.isAdmin() && (user.getId().equals(defaultAdminId)
+                || user.getId().equals(creatorId))) {
             userFromDb.setAdmin(true);
             hasChanged = true;
             userFromDb.setReceivingHomeworkRequests(true);
-            LOGGER.trace("User " + user.getId() + " is the default admin. Setting...");
+            LOGGER.trace("User " + user.getId() + " is the default admin or creator. Setting...");
         }
         if (user.getIsBot() != userFromDb.isBot()) {
             userFromDb.setBot(user.getIsBot());
@@ -205,15 +209,15 @@ public class UserServiceImpl implements UserService {
     @Override
     @NonNull
     public UserEntity getCreator() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getCreator'");
+        // TODO: this is a temporary solution.
+        return getUser(creatorId);
     }
 
     @Override
     @NonNull
     public List<UserEntity> getSupport() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getSupport'");
+        // TODO: this is a dummy
+        return List.of();
     }
 
     @Override

@@ -105,8 +105,14 @@ public class MyCoursesMenu implements MenuConfigurer {
 
             for (Course course : allOwnedByUser) {
                 final String buttonLocName = COURSE_NAME.formatted(course.getName());
-
-                if (courseService.hasCourseBeenCompleted(u, course)) {
+                boolean isRefundPossible;
+                try {
+                    isRefundPossible = paymentService.isRefundPossible(u, course.getName());
+                } catch (RefundImpossibleException e) {
+                    isRefundPossible = false;
+                }
+                
+                if (courseService.hasCourseBeenCompleted(u, course) || isRefundPossible) {
                     buttons.add(new TransitoryButton(localizationLoader
                             .getLocalizationForUser(buttonLocName, u)
                             .getData(),course.getName(), 1));
@@ -134,17 +140,21 @@ public class MyCoursesMenu implements MenuConfigurer {
 
                 final Course course = courseService.getCourseByName(p.get(0), u);
 
-                if (reviewService.isAdvancedReviewForCourseAndUserAvailable(u, course)) {
-                    buttons.add(new TransitoryButton(localizationLoader.getLocalizationForUser(
-                        BUTTON_UPDATE_REVIEW_OPTIONS, u).getData(), REVIEW_UPDATE_OPTIONS, 2));
-                } else if (reviewService.isBasicReviewForCourseAndUserAvailable(u, course)) {
-                    buttons.add(new TransitoryButton(localizationLoader.getLocalizationForUser(
-                        BUTTON_UPDATE_BASIC_REVIEW_LEAVE_ADVANCED_OPTIONS, u).getData(),
-                        REVIEW_BASIC_UPDATE_ADVANCED_LEAVE_OPTIONS, 3));
-                } else {
-                    buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
-                        BUTTON_LEAVE_REVIEW, u).getData(), LEAVE_REVIEW, (p1, u1) ->
-                        reviewService.initiateBasicReview(u, course)));
+                if (courseService.hasCourseBeenCompleted(u, course)) {
+                    if (reviewService.isAdvancedReviewForCourseAndUserAvailable(u, course)) {
+                        buttons.add(new TransitoryButton(localizationLoader
+                            .getLocalizationForUser(BUTTON_UPDATE_REVIEW_OPTIONS, u).getData(),
+                            REVIEW_UPDATE_OPTIONS, 2));
+                    } else if (reviewService.isBasicReviewForCourseAndUserAvailable(u, course)) {
+                        buttons.add(new TransitoryButton(localizationLoader
+                            .getLocalizationForUser(
+                            BUTTON_UPDATE_BASIC_REVIEW_LEAVE_ADVANCED_OPTIONS, u).getData(),
+                            REVIEW_BASIC_UPDATE_ADVANCED_LEAVE_OPTIONS, 3));
+                    } else {
+                        buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+                            BUTTON_LEAVE_REVIEW, u).getData(), LEAVE_REVIEW, (p1, u1) ->
+                            reviewService.initiateBasicReview(u, course)));
+                    }
                 }
                 try {
                     paymentService.isRefundPossible(u, course.getName());

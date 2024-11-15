@@ -62,8 +62,13 @@ button remove_mapping_localization
 button resend_content
 button confirm_send_content
 button cancel_session
-button_refund
-button_update_comment
+button refund
+button update_comment
+button reply_to_support_request
+button reply_to_support_reply
+button resolve_support_request
+button support_request_platform
+button support_request_course
 
 
 menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes}
@@ -94,6 +99,9 @@ menu content_actions_page_0
 menu admin_actions_page_0
 menu leave_basic_review_page_0
 menu leave_basic_review_page_1
+menu support_request_page_0_no_courses
+menu support_request_page_0
+menu support_request_page_1
 
 
 service add_lesson_content_request ${lessonId}
@@ -170,7 +178,7 @@ service course_gifted_successfuly ${courseName} ${targetFirstName}
 service course_gifted_notification ${courseName}
 service course_taken_successfuly ${courseName} ${targetFirstName}
 service course_taken_notification ${courseName}
-service_about_creator
+service about_creator
 service admin_choose_action
 service new_admin_notification
 service admin_remove_success ${targetFirstName}
@@ -188,9 +196,20 @@ service course_feedback_update_successful ${status} ${courseName}
 service course_homework_update_successful ${status} ${courseName}
 service refund_success ${courseName}
 service refund_confirmation_request ${confirmationPhrase}
-service_new_refund_stage_request ${courseName}
-service_new_refund_stage_success ${courseName} ${newRefundStage}
-service_update_review_comment_request
+service new_refund_stage_request ${courseName}
+service new_refund_stage_success ${courseName} ${newRefundStage}
+service update_review_comment_request
+service support_info ${userFullName} ${timestamp} ${supportType} ${tag}
+service support_request_media_group_bypass
+service support_reply_media_group_bypass
+service support_reply_info ${userFullName}
+service support_request_sent
+service support_request_content_request
+service support_request_resolved ${userFullName}
+service support_request_reply_request
+service support_reply_reply_request
+service support_reply_reply_sent
+service support_request_reply_sent
 
 
 error no_exception_localization_available ${excMessage} ${excClassName}
@@ -248,7 +267,6 @@ error take_course_bought ${courseName} ${targetFirstName}
 error homework_already_awaits_approval
 error homework_already_declined
 error homework_already_completed
-error entity_not_found_exception
 error unspecified_exception ${excMessage} ${excClassName}
 error critical_director_notification ${excMessage} ${excClassName}
 error unsupported_operation_exception
@@ -260,7 +278,17 @@ error refund_failure
 error refund_course_unavailable ${courseName}
 error refund_stage_bigger_then_amount_of_lessons ${amountOfLessons}
 error parse_refund_stage_failure
-error_same_new_course_grade ${courseGrade}
-error_same_new_platform_grade ${platformGrade}
-error_update_comment_failure
-error_update_comment_forbidden
+error same_new_course_grade ${courseGrade}
+error same_new_platform_grade ${platformGrade}
+error update_comment_failure
+error update_comment_forbidden
+error support_request_already_answered ${userFullName}
+error support_reply_not_found
+error support_request_not_found
+error support_request_already_resolved
+error reply_already_answered
+error user_not_eligible_for_support
+error support_staff_request
+error mtg_not_found
+error menu_not_found
+error menu_button_issue

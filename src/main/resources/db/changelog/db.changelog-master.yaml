@@ -57,3 +57,7 @@ databaseChangeLog:
       file: /db/changelog/changes/28-create-markers-table.yaml
   - include:
       file: /db/changelog/changes/29-create-content-markers-table.yaml
+  - include:
+      file: /db/changelog/changes/30-create-support-requests-table.yaml
+  - include:
+      file: /db/changelog/changes/31-create-support-replies-table.yaml
