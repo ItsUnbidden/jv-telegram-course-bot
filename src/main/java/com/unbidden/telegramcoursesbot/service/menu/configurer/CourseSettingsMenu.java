@@ -66,7 +66,6 @@ public class CourseSettingsMenu implements MenuConfigurer {
     private static final String PARAM_COURSE_NAME = "${name}";
     private static final String PARAM_COURSE_ID = "${id}";
     private static final String PARAM_MAPPING_IDS = "${mappingIds}";
-    private static final String PARAM_SEQUENCE_OPTION = "${sequenceOption}";
     private static final String PARAM_HOMEWORK_ID = "${homeworkId}";
     private static final String PARAM_INDEX = "${index}";
     private static final String PARAM_LESSON_ID = "${lessonId}";
@@ -209,7 +208,6 @@ public class CourseSettingsMenu implements MenuConfigurer {
             parameterMap.put(PARAM_INDEX, lesson.getPosition());
             parameterMap.put(PARAM_HOMEWORK_ID, (lesson.getHomework() != null)
                     ? lesson.getHomework().getId() : "Not available");
-            parameterMap.put(PARAM_SEQUENCE_OPTION, lesson.getSequenceOption());
             parameterMap.put(PARAM_MAPPING_IDS, lesson.getStructure().stream()
                     .map(c -> c.getId()).toList().toString());
             return localizationLoader.getLocalizationForUser(MENU_COURSE_SETTINGS_PAGE_3,

@@ -66,6 +66,8 @@ public class CourseServiceImpl implements CourseService {
 
     private final ContentService contentService;
 
+    private final TimingService timingService;
+
     private final LocalizationLoader localizationLoader;
 
     private final CustomTelegramClient client;
@@ -106,7 +108,7 @@ public class CourseServiceImpl implements CourseService {
             courseProgressRepository.save(progress);
             LOGGER.info("Course progress saved.");
         }
-        current(course, progress);
+        current(progress);
     }
 
     @Override
@@ -121,7 +123,7 @@ public class CourseServiceImpl implements CourseService {
                 + progress.getStage() + ". Incrementing by 1...");
         progress.setStage(progress.getStage() + 1);
         courseProgressRepository.save(progress);
-        LOGGER.info("Course stage incremented and progress saved.");
+        LOGGER.debug("Course stage incremented and progress saved.");
 
         if (progress.getStage().equals(progress.getCourse().getAmountOfLessons())) {
             LOGGER.info("User " + user.getId() + " has completed course " + courseName
@@ -129,11 +131,15 @@ public class CourseServiceImpl implements CourseService {
             end(user, progress);
             return;
         }
-        current(progress.getCourse(), progress);
+        if (progress.getCourse() == null) { // TODO: finish this
+
+        }
+        current(progress);
     }
 
     @Override
-    public void current(@NonNull Course course, @NonNull CourseProgress courseProgress) {
+    public void current(@NonNull CourseProgress courseProgress) {
+        final Course course = courseProgress.getCourse();
         final Lesson lesson = lessonRepository.findByPositionAndCourseName(
                 courseProgress.getStage(), course.getName()).get();
         final UserEntity user = courseProgress.getUser();

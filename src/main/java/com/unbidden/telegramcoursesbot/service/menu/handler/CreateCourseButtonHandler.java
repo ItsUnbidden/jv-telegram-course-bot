@@ -5,7 +5,6 @@ import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.model.Lesson.SequenceOption;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.course.LessonService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
@@ -143,7 +142,6 @@ public class CreateCourseButtonHandler implements ButtonHandler {
             final Lesson lesson = new Lesson();
             lesson.setCourse(course);
             lesson.setPosition(i);
-            lesson.setSequenceOption(SequenceOption.BUTTON);
             lesson.setStructure(List.of());
             lessons.add(lesson);
         }

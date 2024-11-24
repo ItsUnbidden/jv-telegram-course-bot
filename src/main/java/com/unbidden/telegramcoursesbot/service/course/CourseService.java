@@ -19,7 +19,7 @@ public interface CourseService {
 
     void next(@NonNull UserEntity user, @NonNull String courseName);
 
-    void current(@NonNull Course course, @NonNull CourseProgress courseProgress);
+    void current(@NonNull CourseProgress courseProgress);
 
     void end(@NonNull UserEntity user, @NonNull CourseProgress courseProgress);
 

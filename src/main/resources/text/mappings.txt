@@ -72,7 +72,7 @@ button support_request_course
 
 
 menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes}
-menu course_settings_page_3 ${mappingIds} ${sequenceOption} ${homeworkId} ${index} ${lessonId}
+menu course_settings_page_3 ${mappingIds} ${homeworkId} ${index} ${lessonId}
 menu course_settings_page_2
 menu course_settings_page_1 ${id} ${name} ${numberOfLessons} ${price} ${refundStage} ${isHomeworkIncluded} ${isFeedbackIncluded}
 menu course_settings_page_0

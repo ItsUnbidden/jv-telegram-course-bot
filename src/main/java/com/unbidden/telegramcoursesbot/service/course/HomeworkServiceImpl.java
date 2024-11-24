@@ -315,7 +315,6 @@ public class HomeworkServiceImpl implements HomeworkService {
 
             courseService.next(homeworkProgress.getUser(), homeworkProgress.getHomework()
                     .getLesson().getCourse().getName());
-            // TODO: look into timed responses
         }
     }
 
