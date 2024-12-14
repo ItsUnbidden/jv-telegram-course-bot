@@ -7,7 +7,6 @@ import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.handler.SendAdvancedReviewButtonHandler;
-
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -34,7 +33,7 @@ public class LeaveAdvancedReviewMenu implements MenuConfigurer {
         page.setMenu(menu);
         page.setPageIndex(0);
         page.setButtonsRowSize(1);
-        page.setButtonsFunction((u, p) -> List.of(new TerminalButton(
+        page.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_SEND_ADVANCED_REVIEW, u)
                 .getData(), SEND_ADVANCED_REVIEW, sendAdvancedReviewHandler)));
         menu.setName(MENU_NAME);

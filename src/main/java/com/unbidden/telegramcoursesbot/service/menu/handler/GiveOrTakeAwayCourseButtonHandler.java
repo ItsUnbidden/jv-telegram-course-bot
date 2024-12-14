@@ -1,11 +1,14 @@
 package com.unbidden.telegramcoursesbot.service.menu.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.CourseBoughtException;
 import com.unbidden.telegramcoursesbot.exception.CourseIsAlreadyOwnedException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
@@ -74,60 +77,59 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
-        if (userService.isAdmin(user)) {
-            Localization localization = null;
-            ReplyKeyboard markup = keyboardRemove;
+    @Security(authorities = AuthorityType.GIVE_COURSE)
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
+        Localization localization = null;
+        ReplyKeyboard markup = keyboardRemove;
 
-            try {
-                final Course course = courseService.getCourseByName(params[0], user);
+        try {
+            final Course course = courseService.getCourseByName(params[0], user, bot);
 
-                KeyboardButtonRequestUser requestUserGiveCourse = KeyboardButtonRequestUser
-                        .builder()
-                        .userIsBot(false)
-                        .requestId(String.valueOf(sessionService.createSession(user,
-                            getGiveCourseFunction(user, course)))).build();
-                KeyboardButtonRequestUser requestUserTakeCourse = KeyboardButtonRequestUser
-                        .builder()
-                        .userIsBot(false)
-                        .requestId(String.valueOf(sessionService.createSession(user,
-                            getTakeCourseFunction(user, course)))).build();
+            KeyboardButtonRequestUser requestUserGiveCourse = KeyboardButtonRequestUser
+                    .builder()
+                    .userIsBot(false)
+                    .requestId(String.valueOf(sessionService.createSession(user, bot,
+                        getGiveCourseFunction(user, course, bot)))).build();
+            KeyboardButtonRequestUser requestUserTakeCourse = KeyboardButtonRequestUser
+                    .builder()
+                    .userIsBot(false)
+                    .requestId(String.valueOf(sessionService.createSession(user, bot,
+                        getTakeCourseFunction(user, course, bot)))).build();
 
-                KeyboardButton giveButton = KeyboardButton.builder()
-                        .requestUser(requestUserGiveCourse)
-                        .text(localizationLoader.getLocalizationForUser(BUTTON_GIVE_COURSE,
-                            user).getData())
-                        .build();
-                KeyboardButton takeButton = KeyboardButton.builder()
-                        .requestUser(requestUserTakeCourse)
-                        .text(localizationLoader.getLocalizationForUser(BUTTON_TAKE_COURSE,
-                            user).getData())
-                        .build();
-                KeyboardRow row = new KeyboardRow();
-                row.add(giveButton);
-                row.add(takeButton);
-                markup = ReplyKeyboardMarkup.builder()
-                        .keyboardRow(row)
-                        .resizeKeyboard(true)
-                        .build();
-                localization = localizationLoader.getLocalizationForUser(
-                        SERVICE_GIVE_TAKE_COURSE_CHOOSE_ACTION, user,
-                        PARAM_COURSE_NAME, params[0]);
-            } catch (EntityNotFoundException e) {
-                localization = localizationLoader.getLocalizationForUser(
-                    ERROR_GIVE_TAKE_COURSE_NO_LONGER_AVAILABLE, user,
+            KeyboardButton giveButton = KeyboardButton.builder()
+                    .requestUser(requestUserGiveCourse)
+                    .text(localizationLoader.getLocalizationForUser(BUTTON_GIVE_COURSE,
+                        user).getData())
+                    .build();
+            KeyboardButton takeButton = KeyboardButton.builder()
+                    .requestUser(requestUserTakeCourse)
+                    .text(localizationLoader.getLocalizationForUser(BUTTON_TAKE_COURSE,
+                        user).getData())
+                    .build();
+            KeyboardRow row = new KeyboardRow();
+            row.add(giveButton);
+            row.add(takeButton);
+            markup = ReplyKeyboardMarkup.builder()
+                    .keyboardRow(row)
+                    .resizeKeyboard(true)
+                    .build();
+            localization = localizationLoader.getLocalizationForUser(
+                    SERVICE_GIVE_TAKE_COURSE_CHOOSE_ACTION, user,
                     PARAM_COURSE_NAME, params[0]);
-            }
-            
-            client.sendMessage(user, localization, markup);
+        } catch (EntityNotFoundException e) {
+            localization = localizationLoader.getLocalizationForUser(
+                ERROR_GIVE_TAKE_COURSE_NO_LONGER_AVAILABLE, user,
+                PARAM_COURSE_NAME, params[0]);
         }
+        
+        clientManager.getClient(bot).sendMessage(user, localization, markup);
     }
 
-    private Consumer<List<Message>> getGiveCourseFunction(final UserEntity sender,
-            final Course course) {
+    private Consumer<List<Message>> getGiveCourseFunction(UserEntity sender,
+            Course course, Bot bot) {
         return m -> {
             final UserShared sharedUser = m.get(0).getUserShared();
             final Map<String, Object> parametersMap = new HashMap<>();
@@ -140,14 +142,15 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
             Localization error = null;
 
             try {
-                newOwner = userService.getUser(sharedUser.getUserId());
-                if (paymentService.isAvailable(newOwner, course.getName())) {
+                newOwner = userService.getUser(sharedUser.getUserId(), sender);
+                if (paymentService.isAvailable(newOwner, bot, course.getName())) {
                     throw new CourseIsAlreadyOwnedException("Course " + course
                             + " is alredy owned by user " + newOwner.getId());
                 }
                 final PaymentDetails paymentDetails = new PaymentDetails();
                 paymentDetails.setGifted(true);
                 paymentDetails.setCourse(course);
+                paymentDetails.setBot(bot);
                 paymentDetails.setTelegramPaymentChargeId("Not inluded");
                 paymentDetails.setTotalAmount(0);
                 paymentDetails.setTimestamp(LocalDateTime.now());
@@ -164,18 +167,19 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
                 error = localizationLoader.getLocalizationForUser(
                         ERROR_GIVE_COURSE_USER_NOT_FOUND, sender, parametersMap);
             } catch (CourseIsAlreadyOwnedException e2) {
-                final UserEntity supposedUser = userService.getUser(sharedUser.getUserId());
+                final UserEntity supposedUser = userService.getUser(sharedUser.getUserId(),
+                        sender);
 
                 parametersMap.put(PARAM_TARGET_FIRST_NAME, supposedUser.getFirstName());
                 error = localizationLoader.getLocalizationForUser(ERROR_GIVE_COURSE_ALREADY_OWNED,
                         sender, parametersMap);
             }
-            sendMessages(sender, newOwner, error, success, notification);
+            sendMessages(sender, newOwner, error, success, notification, bot);
         };
     }
 
-    private Consumer<List<Message>> getTakeCourseFunction(final UserEntity sender,
-            final Course course) {
+    private Consumer<List<Message>> getTakeCourseFunction(UserEntity sender,
+            Course course, Bot bot) {
         return m -> {
             final UserShared sharedUser = m.get(0).getUserShared();
             final Map<String, Object> parametersMap = new HashMap<>();
@@ -188,8 +192,8 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
             Localization error = null;
 
             try {
-                pastOwner = userService.getUser(sharedUser.getUserId());
-                if (!paymentService.isAvailableAndGifted(pastOwner, course.getName())) {
+                pastOwner = userService.getUser(sharedUser.getUserId(), sender);
+                if (!paymentService.isAvailableAndGifted(pastOwner, bot, course.getName())) {
                     throw new CourseBoughtException("Course " + course
                             + " either is not owned by user " + pastOwner.getId() + " at all or "
                             + "has been bought by them. Only gifted courses can be taken away.");
@@ -205,24 +209,25 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
                 error = localizationLoader.getLocalizationForUser(
                         ERROR_TAKE_COURSE_USER_NOT_FOUND, sender, parametersMap);
             } catch (CourseBoughtException e2) {
-                final UserEntity supposedUser = userService.getUser(sharedUser.getUserId());
+                final UserEntity supposedUser = userService.getUser(sharedUser.getUserId(),
+                        sender);
                 
                 parametersMap.put(PARAM_TARGET_FIRST_NAME, supposedUser.getFirstName());
                 error = localizationLoader.getLocalizationForUser(
                         ERROR_TAKE_COURSE_BOUGHT_OR_MISSING, sender, parametersMap);
             }
-            sendMessages(sender, pastOwner, error, success, notification);
+            sendMessages(sender, pastOwner, error, success, notification, bot);
         };
     }
 
     private void sendMessages(UserEntity sender, UserEntity target, Localization error,
-            Localization success, Localization notification) {
+            Localization success, Localization notification, Bot bot) {
         if (error != null) {
-            client.sendMessage(sender, error, keyboardRemove);
+            clientManager.getClient(bot).sendMessage(sender, error, keyboardRemove);
             return;
         }
 
-        client.sendMessage(sender, success, keyboardRemove);                            
-        client.sendMessage(target, notification);                            
+        clientManager.getClient(bot).sendMessage(sender, success, keyboardRemove);                            
+        clientManager.getClient(bot).sendMessage(target, notification);                            
     }   
 }

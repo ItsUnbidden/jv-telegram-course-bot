@@ -10,8 +10,6 @@ course <courseName>_invoice_title
 button course_price_change
 button course_feedback_setting
 button course_homework_setting
-button add_new_admin
-button add_or_remove_admin
 button list_admins
 button give_course
 button take_course
@@ -19,14 +17,12 @@ button give_or_take_course
 button toggle_receive_homework
 button upload_content
 button get_content
-button course_next_stage
+button course_<courseName>_lesson_<stageIndex>_next_stage
 button decline_homework
 button general_accept_homework
 button accept_homework
 button accept_homework_with_comment
 button send_homework
-button test_menu                    ****
-button update_content               **** Deprecated
 button available_courses
 button my_courses
 button begin_course
@@ -69,10 +65,27 @@ button reply_to_support_reply
 button resolve_support_request
 button support_request_platform
 button support_request_course
+button back
+button set_role
+button set_role_choose_user
+button ban_options
+button lift_ban
+button give_ban
+button by_id
+button choose_user
+button create_bot_choose_user
+button create_lesson
+button remove_lesson
+button set_homework_delay
+button set_lesson_delay
+button toggle_course_maintenance
+button menus_refresh
+button desc_name_refresh
+button localizations_refresh
 
 
-menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes}
-menu course_settings_page_3 ${mappingIds} ${homeworkId} ${index} ${lessonId}
+menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes} ${delay}
+menu course_settings_page_3 ${mappingIds} ${homeworkId} ${index} ${lessonId} ${delay}
 menu course_settings_page_2
 menu course_settings_page_1 ${id} ${name} ${numberOfLessons} ${price} ${refundStage} ${isHomeworkIncluded} ${isFeedbackIncluded}
 menu course_settings_page_0
@@ -87,22 +100,23 @@ menu my_courses_page_1
 menu my_courses_page_0
 menu get_reviews_page_1
 menu get_reviews_page_0
-menu courses_page_3
-menu courses_page_2
 menu courses_page_1
 menu courses_page_0
 menu available_courses_page_0
-menu test_page_0                    ****
-menu test_terminal_page             ****
 menu command_<commandName>_description
 menu content_actions_page_0
 menu admin_actions_page_0
+menu admin_actions_page_1
+menu admin_actions_page_2
+menu admin_actions_page_3
 menu leave_basic_review_page_0
 menu leave_basic_review_page_1
 menu support_request_page_0_no_courses
 menu support_request_page_0
 menu support_request_page_1
-
+menu bot_page_0
+menu bot_page_1
+menu refresh_page_0
 
 service add_lesson_content_request ${lessonId}
 service lesson_content_added ${contentId} ${lessonId}
@@ -139,7 +153,7 @@ service no_new_reviews_for_user
 service review_course_content_updated ${courseName}
 service review_platform_grade_updated ${courseName}
 service review_course_grade_updated ${courseName}
-service comment_submitted_notification ${courseName} ${commenterFullName}
+service comment_submitted_notification ${courseName} ${commenterFullName} ${title}
 service comment_submitted ${reviewId}
 service advanced_review_submitted
 service basic_review_submitted
@@ -161,9 +175,9 @@ service get_new_reviews
 service feedback_for_homework_waiting
 service homework_accepted_auto
 service homework_feedback_request_notification ${targetId} ${targetFirstName} ${targetLastName} ${targetUsername} ${targetLanguageCode} ${courseName} ${lessonIndex}
-service homework_approved_notification_plus_comment ${courseName} ${lessonIndex} ${commenterName}
-service homework_approved_notification ${courseName} ${lessonIndex} ${commenterName}
-service homework_declined_notification_plus_comment ${courseName} ${lessonIndex} ${commenterName}
+service homework_approved_notification_plus_comment ${courseName} ${lessonIndex} ${commenterName} ${title}
+service homework_approved_notification ${courseName} ${lessonIndex} ${commenterName} ${title}
+service homework_declined_notification_plus_comment ${courseName} ${lessonIndex} ${commenterName} ${title}
 service homework_feedback_notification ${targetId} ${targetFirstName} ${targetLastName} ${targetUsername} ${targetLanguageCode}
 service approve_homework_comment_request
 service decline_homework_comment_request
@@ -178,22 +192,16 @@ service course_gifted_successfuly ${courseName} ${targetFirstName}
 service course_gifted_notification ${courseName}
 service course_taken_successfuly ${courseName} ${targetFirstName}
 service course_taken_notification ${courseName}
-service about_creator
-service admin_choose_action
-service new_admin_notification
-service admin_remove_success ${targetFirstName}
-service removed_admin_notification
-service get_admin_list ${adminList}
-service on_maintenance_status_change
-service refresh_success
-service start
-service terms
+service about_<botName>_creator
+service get_admin_list ${mentorsInfo} ${supportInfo} ${creatorInfo}
+service on_maintenance_status_change ${status}
+service <botName>_start
+service <botName>_terms
 service successful_payment ${courseName}
-service new_admin_assign_success ${targetFirstName}
 service course_price_update_success ${courseName} ${currentPrice}
 service course_price_update_request ${courseName} ${currentPrice}
-service course_feedback_update_successful ${status} ${courseName}
-service course_homework_update_successful ${status} ${courseName}
+service course_feedback_update_success ${status} ${courseName}
+service course_homework_update_success ${status} ${courseName}
 service refund_success ${courseName}
 service refund_confirmation_request ${confirmationPhrase}
 service new_refund_stage_request ${courseName}
@@ -202,14 +210,54 @@ service update_review_comment_request
 service support_info ${userFullName} ${timestamp} ${supportType} ${tag}
 service support_request_media_group_bypass
 service support_reply_media_group_bypass
-service support_reply_info ${userFullName}
+service support_reply_info ${userFullName} ${title}
 service support_request_sent
 service support_request_content_request
-service support_request_resolved ${userFullName}
+service support_request_resolved ${userFullName} ${title}
 service support_request_reply_request
 service support_reply_reply_request
 service support_reply_reply_sent
 service support_request_reply_sent
+service banned ${whoBanned} ${title}
+service temporary_banned ${whoBanned} ${title} ${hoursUntilLift}
+service role_changed ${whoChanged} ${newRoleType}
+service ban_lifted ${whoLifted} ${title}
+service ban_lifted_auto
+service general_ban ${whoLifted} ${title}
+service temporary_general_ban ${whoBanned} ${title} ${hoursUntilLift}
+service general_ban_lifted ${whoLifted} ${title}
+service general_ban_lifted_auto
+service bot_%s_name
+service bot_%s_short_description
+service bot_%s_full_description
+service set_role_user_request
+service set_role_notification ${giverFullName} ${newRoleType}
+service set_role_success ${targetFullName} ${newRoleType}
+service role_%s_title
+service ban_choose_user_hours_request
+service lift_ban_user_id_request
+service ban_user_id_request
+service ban_choose_user_request
+service ban_lifted_success
+service ban_success
+service general_ban_lifted_success
+service general_ban_success
+service create_bot_name_token_request
+service bot_created_creator_notification
+service new_bot_created
+service create_bot_creator_by_id_request
+service create_bot_choose_creator_request
+service list_bots ${bots}
+service create_lesson_request
+service new_lesson_created
+service delete_lesson_request
+service lesson_deleted
+service new_homework_delay_request
+service new_delay_set_success
+service course_maintenance_toggle_success ${status}
+service names_descriptions_refresh_success
+service localizations_refresh_success
+service menu_refresh_success
 
 
 error no_exception_localization_available ${excMessage} ${excClassName}
@@ -257,8 +305,6 @@ error pre_checkout_unknown_course
 error pre_checkout_currency_mismatch
 error pre_checkout_price_mismatch ${currentPrice}
 error payment_unknown_course ${courseName}
-error new_admin_assign_failure ${userId}
-error admin_remove_failure ${userId}
 error give_take_course_no_longer_available ${courseName}
 error give_course_user_not_found ${courseName} ${targetId}
 error give_course_already_owned ${courseName} ${targetFirstName}
@@ -268,7 +314,7 @@ error homework_already_awaits_approval
 error homework_already_declined
 error homework_already_completed
 error unspecified_exception ${excMessage} ${excClassName}
-error critical_director_notification ${excMessage} ${excClassName}
+error critical_director_notification ${excMessage} ${excClassName} ${userFullName} ${botName}
 error unsupported_operation_exception
 error telegram_internal ${excMessage}
 error precheckout_unknown_course
@@ -288,7 +334,48 @@ error support_request_not_found
 error support_request_already_resolved
 error reply_already_answered
 error user_not_eligible_for_support
-error support_staff_request
 error mtg_not_found
 error menu_not_found
 error menu_button_issue
+error bot_visibility_mismatch
+error no_archive_reviews_available
+error user_not_registred
+error access_denied {missingAuthorities}
+error user_is_banned_in_bot
+error bot_role_not_found
+error creator_ban
+error self_ban
+error same_role
+error predefined_change_roles
+error self_change_role
+error creator_change_role
+error director_change_role
+error director_ban
+error localization_params_invalid
+error no_support_staff
+error no_mentors
+error cannot_set_banned_role
+error user_already_banned
+error user_is_not_banned
+error user_not_found
+error parse_hours 
+error wrong_ban_hours ${hours}
+error user_id_less_than_zero ${userId}
+error parse_user_id
+error payment_success_server_on_maintenance
+error unavailable_in_regular_bot
+error maintenance_in_not_enabled
+error parse_content_id_failure
+error bot_name_pattern_mismatch
+error bot_token_pattern_mismatch
+error bot_name_length
+error bot_already_exists
+error course_already_exists
+error course_name_pattern_mismatch
+error course_name_length
+error lesson_position_invalid
+error parse_index_failure
+error lesson_delete_confirmation_failure
+error parse_delay_failure
+error homework_delay_invalid
+error awaiting_lesson ${timeLeft}

@@ -1,7 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.content.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.model.content.ContentTextData;
@@ -57,31 +58,33 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
 
     private final UserService userService;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public GraphicsContent parseLocalized(@NonNull List<Message> messages, boolean isLocalized) {
-        return parse0(messages, null, isLocalized);
+    public GraphicsContent parseLocalized(@NonNull List<Message> messages, @NonNull Bot bot,
+            boolean isLocalized) {
+        return parse0(messages, bot, null, isLocalized);
     }
 
     @Override
-    public GraphicsContent parseLocalized(@NonNull List<Message> messages,
+    public GraphicsContent parseLocalized(@NonNull List<Message> messages, @NonNull Bot bot,
             @NonNull String localizationName, @NonNull String languageCode) {
-        final GraphicsContent content = parse0(messages, localizationName, true);
+        final GraphicsContent content = parse0(messages, bot, localizationName, true);
         content.setLanguageCode(languageCode);
         return content;
     }
 
     @Override
     @NonNull
-    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user) {
-        return sendContent(content, user, false, false);
+    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
+            @NonNull Bot bot) {
+        return sendContent(content, user, bot, false, false);
     }
 
     @Override
     @NonNull
     public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
-            boolean isProtected, boolean skipText) {
+            @NonNull Bot bot, boolean isProtected, boolean skipText) {
         final List<InputMedia> inputMedias = new ArrayList<>();
         final GraphicsContent graphicsContent = (GraphicsContent)content;
         
@@ -111,7 +114,7 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
             LOGGER.warn("Content " + content.getId() + " is of type " + content.getType()
                     + " but does not have any relevant content. Text content handler "
                     + "will be used instead.");
-            return textContentHandler.sendContent(content, user, isProtected, false);
+            return textContentHandler.sendContent(content, user, bot, isProtected, false);
         }
 
         if (captionsLoc != null) {
@@ -126,7 +129,7 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
             if (inputMedia.getClass().equals(InputMediaPhoto.class)) {
                 LOGGER.debug("The media is a photo.");
                 try {
-                    return List.of(client.execute(SendPhoto.builder()
+                    return List.of(clientManager.getClient(bot).execute(SendPhoto.builder()
                             .chatId(user.getId())
                             .protectContent(isProtected)
                             .photo(new InputFile(inputMedia.getMedia()))
@@ -142,7 +145,7 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
             }
             LOGGER.debug("The media is a video.");
             try {
-                return List.of(client.execute(SendVideo.builder()
+                return List.of(clientManager.getClient(bot).execute(SendVideo.builder()
                         .chatId(user.getId())
                         .protectContent(isProtected)
                         .video(new InputFile(inputMedia.getMedia()))
@@ -158,7 +161,7 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
         }
 
         try {
-            return client.execute(SendMediaGroup.builder()
+            return clientManager.getClient(bot).execute(SendMediaGroup.builder()
                     .chatId(user.getId())
                     .protectContent(isProtected)
                     .medias(inputMedias)
@@ -189,7 +192,7 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
         return MediaType.GRAPHICS;
     }
 
-    private GraphicsContent parse0(List<Message> messages, String localizationName,
+    private GraphicsContent parse0(List<Message> messages, Bot bot, String localizationName,
             boolean isLocalized) {
         final List<Video> videos = new ArrayList<>();
         final List<Photo> photos = new ArrayList<>();
@@ -228,12 +231,14 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
                 }
             }
             if (languageCode == null) {
-                languageCode = userService.getUser(message.getFrom().getId()).getLanguageCode();
+                languageCode = userService.getUser(message.getFrom().getId(),
+                        userService.getDiretor()).getLanguageCode();
             }
         }
         videoRepository.saveAll(videos);
         photoRepository.saveAll(photos);
         GraphicsContent graphicsContent = new GraphicsContent();
+        graphicsContent.setBot(bot);
         graphicsContent.setData(new ContentTextData(captions, markers, isLocalized));
         graphicsContent.setPhotos(photos);
         graphicsContent.setVideos(videos);

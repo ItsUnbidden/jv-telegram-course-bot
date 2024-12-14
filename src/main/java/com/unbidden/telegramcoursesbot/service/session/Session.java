@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,6 +13,8 @@ public abstract class Session {
     private Integer id;
 
     private UserEntity user;
+
+    private Bot bot;
 
     private LocalDateTime timestamp;
 

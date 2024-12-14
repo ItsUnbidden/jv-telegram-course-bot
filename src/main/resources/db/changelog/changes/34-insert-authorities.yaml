@@ -1,0 +1,119 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-authorities
+      author: Unbidden
+      changes:
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 0
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 1
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 2
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 3
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 4
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 5
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 6
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 7
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 8
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 9
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 10
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 11
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 12
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 13
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 14
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 15
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 16
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 17
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 18

@@ -1,14 +1,14 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.SessionException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.SessionRepository;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,26 +34,31 @@ public class ContentSessionServiceImpl implements ContentSessionService {
 
     private static final String ERROR_SESSION_EXPIRED = "error_session_expired";
 
+    private static final String MENU_COMMIT_CONTENT_TERMINAL_PAGE =
+            "menu_commit_content_terminal_page";
+
+    private static final String CONFIRM_MENU_TERMINATOR = "session_%s_terminator";
+
     private final SessionRepository sessionRepository;
 
     private final MenuService menuService;
 
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
     @NonNull
-    public Integer createSession(@NonNull UserEntity user,
+    public Integer createSession(@NonNull UserEntity user, @NonNull Bot bot,
             @NonNull Consumer<List<Message>> function) {
-        return createSession(user, function, false);
+        return createSession(user, bot, function, false);
     }
 
     @Override
-    public Integer createSession(@NonNull UserEntity user, @NonNull Consumer<List<Message>> function,
-            boolean isSkippingConfirmation) {
-        sessionRepository.removeUserOrChatRequestSessionsForUser(user.getId());
-        final List<Session> sessions = sessionRepository.findForUser(user.getId());
+    public Integer createSession(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull Consumer<List<Message>> function, boolean isSkippingConfirmation) {
+        sessionRepository.removeUserOrChatRequestSessionsForUserInBot(user.getId(), bot);
+        final List<Session> sessions = sessionRepository.findForUserInBot(user.getId(), bot);
         if (sessions.size() > 1) {
             throw new SessionException("User " + user.getId() + " has more then one "
                     + "content session", null);
@@ -67,6 +72,7 @@ public class ContentSessionServiceImpl implements ContentSessionService {
         final ContentSession session = new ContentSession();
         session.setId(ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE));
         session.setUser(user);
+        session.setBot(bot);
         session.setTimestamp(LocalDateTime.now());
         session.setFunction(function);
         session.setMessages(new ArrayList<>());
@@ -78,13 +84,14 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     }
 
     @Override
-    public void removeSessionsForUser(@NonNull UserEntity user) {
-        sessionRepository.removeForUser(user.getId());
+    public void removeSessionsForUserInBot(@NonNull UserEntity user, @NonNull Bot bot) {
+        sessionRepository.removeForUserInBot(user.getId(), bot);
     }
 
     @Override
-    public void removeSessionsWithoutConfirmationForUser(@NonNull UserEntity user) {
-        sessionRepository.removeSessionsWithoutConfirmationForUser(user.getId());
+    public void removeSessionsWithoutConfirmationForUser(@NonNull UserEntity user,
+            @NonNull Bot bot) {
+        sessionRepository.removeSessionsWithoutConfirmationForUserInBot(user.getId(), bot);
     }
 
     @Override
@@ -98,8 +105,12 @@ public class ContentSessionServiceImpl implements ContentSessionService {
             commit(session.getId(), session.getUser());
         } else if (!contentSession.isMenuInitialized()) {
             LOGGER.debug("Sending confirmation menu...");
-            menuService.initiateMenu(CONFIRMATION_MENU, contentSession.getUser(),
-                    contentSession.getId().toString());
+            final Message menuMessage = menuService.initiateMenu(CONFIRMATION_MENU,
+                    contentSession.getUser(), contentSession.getId().toString(),
+                    session.getBot());
+            menuService.addToMenuTerminationGroup(session.getUser(), session.getUser(),
+                    session.getBot(), menuMessage.getMessageId(), CONFIRM_MENU_TERMINATOR
+                    .formatted(session.getId()), MENU_COMMIT_CONTENT_TERMINAL_PAGE);
             contentSession.setMenuInitialized(true);
         }
         LOGGER.debug("Session response of user " + contentSession.getUser().getId()
@@ -110,13 +121,16 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     public void commit(@NonNull Integer sessionId, @NonNull UserEntity user) {
         final ContentSession session = (ContentSession)getSession(sessionId, user);
 
-        LOGGER.debug("Executing content session " + sessionId + "'s function' for user "
-                + session.getUser().getId() + "...");
+        LOGGER.debug("Removing sessions for user " + session.getUser().getId() + "...");
+        if (!session.isSkippingConfirmation()) {
+            menuService.terminateMenuGroup(user, session.getBot(), CONFIRM_MENU_TERMINATOR
+                    .formatted(session.getId()));
+        }
+        removeSessionsForUserInBot(session.getUser(), session.getBot());
+        LOGGER.debug("All sessions have been removed for user. Executing content session "
+                + sessionId + "'s function for user " + session.getUser().getId() + "...");
         session.execute();
-        LOGGER.debug("Session " + sessionId + "'s function has been executed. "
-                + "Removing sessions for user " + session.getUser().getId() + "...");
-        removeSessionsForUser(session.getUser());
-        LOGGER.debug("All sessions have been removed for user.");
+        LOGGER.debug("Content session " + sessionId + "'s function has been executed.");
     }
 
     @Override
@@ -125,14 +139,18 @@ public class ContentSessionServiceImpl implements ContentSessionService {
 
         LOGGER.debug("Removing sessions for user " + session.getUser().getId()
                 + " and recreating session...");
-        removeSessionsForUser(session.getUser());
-        createSession(session.getUser(), session.getFunction());
+        if (!session.isSkippingConfirmation()) {
+            menuService.terminateMenuGroup(user, session.getBot(), CONFIRM_MENU_TERMINATOR
+                    .formatted(session.getId()));
+        }
+        removeSessionsForUserInBot(session.getUser(), session.getBot());
+        createSession(session.getUser(), session.getBot(), session.getFunction());
         LOGGER.debug("All sessions have been removed for user and new session has been created. "
                 + "Sending resend message...");
 
         final Localization resendLoc = localizationLoader.getLocalizationForUser(
                 SERVICE_RESEND_CONTENT, session.getUser());
-        client.sendMessage(SendMessage.builder()
+        clientManager.getClient(session.getBot()).sendMessage(SendMessage.builder()
                 .chatId(session.getUser().getId())
                 .text(resendLoc.getData())
                 .entities(resendLoc.getEntities())
@@ -144,7 +162,11 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     public void cancel(@NonNull Integer sessionId, @NonNull UserEntity user) {
         final ContentSession session = (ContentSession)getSession(sessionId, user);
 
-        removeSessionsForUser(session.getUser());
+        if (!session.isSkippingConfirmation()) {
+            menuService.terminateMenuGroup(user, session.getBot(), CONFIRM_MENU_TERMINATOR
+                    .formatted(session.getId()));
+        }
+        removeSessionsForUserInBot(session.getUser(), session.getBot());
     }
 
     private Session getSession(Integer sessionId, UserEntity user) {

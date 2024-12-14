@@ -10,6 +10,7 @@ import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TransitoryButton;
+import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.BackwardButton;
 import com.unbidden.telegramcoursesbot.service.review.ReviewService;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
@@ -29,6 +30,8 @@ public class LeaveBasicReviewMenu implements MenuConfigurer {
     private static final String MENU_LEAVE_BASIC_REVIEW_PAGE_1 = "menu_leave_basic_review_page_1";
     private static final String MENU_LEAVE_BASIC_REVIEW_PAGE_0 = "menu_leave_basic_review_page_0";
 
+    private static final String BUTTON_BACK = "button_back";
+
     private static final List<Button> COURSE_GRADE_BUTTONS = new ArrayList<>();
     private static final List<Button> PLATFORM_GRADE_BUTTONS = new ArrayList<>();
     private static final int GRADE_OPTIONS = 10;
@@ -46,9 +49,9 @@ public class LeaveBasicReviewMenu implements MenuConfigurer {
         for (int i = 1; i <= GRADE_OPTIONS; i++) {
             final String iSrt = String.valueOf(i);
             COURSE_GRADE_BUTTONS.add(new TransitoryButton(iSrt, iSrt, 1));
-            PLATFORM_GRADE_BUTTONS.add(new TerminalButton(iSrt, iSrt, (u, pa) ->
+            PLATFORM_GRADE_BUTTONS.add(new TerminalButton(iSrt, iSrt, (b, u, pa) ->
                     reviewService.commitBasicReview(u, courseService.getCourseById(
-                    Long.parseLong(pa[0]), u), Integer.parseInt(pa[1]),
+                    Long.parseLong(pa[0]), u, b), Integer.parseInt(pa[1]),
                     Integer.parseInt(pa[2]))));
         }
     }
@@ -59,23 +62,29 @@ public class LeaveBasicReviewMenu implements MenuConfigurer {
         final Page firstPage = new Page();
         firstPage.setPageIndex(0);
         firstPage.setButtonsRowSize(5);
-        firstPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        firstPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
             MENU_LEAVE_BASIC_REVIEW_PAGE_0, u));
         firstPage.setMenu(menu);
-        firstPage.setButtonsFunction((u, p) -> COURSE_GRADE_BUTTONS);
+        firstPage.setButtonsFunction((u, p, b) -> COURSE_GRADE_BUTTONS);
 
         final Page secondPage = new Page();
         secondPage.setPageIndex(1);
         secondPage.setButtonsRowSize(5);
-        secondPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        secondPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
             MENU_LEAVE_BASIC_REVIEW_PAGE_1, u));
         secondPage.setMenu(menu);
-        secondPage.setButtonsFunction((u, p) -> PLATFORM_GRADE_BUTTONS);
+        secondPage.setButtonsFunction((u, p, b) -> {
+            final List<Button> buttons = new ArrayList<>();
+            buttons.addAll(PLATFORM_GRADE_BUTTONS);
+            buttons.add(new BackwardButton(localizationLoader.getLocalizationForUser(
+                    BUTTON_BACK, u).getData()));
+            return buttons;
+        });
 
         final Page terminalPage = new Page();
         terminalPage.setPageIndex(2);
-        terminalPage.setLocalizationFunction((u, p) -> {
-            final Course course = courseService.getCourseById(Long.parseLong(p.get(0)), u);
+        terminalPage.setLocalizationFunction((u, p, b) -> {
+            final Course course = courseService.getCourseById(Long.parseLong(p.get(0)), u, b);
 
             return localizationLoader.getLocalizationForUser(
                     MENU_LEAVE_BASIC_REVIEW_TERMINAL_PAGE, u,

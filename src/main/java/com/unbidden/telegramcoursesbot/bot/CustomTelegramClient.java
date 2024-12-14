@@ -1,53 +1,80 @@
 package com.unbidden.telegramcoursesbot.bot;
 
+import com.unbidden.telegramcoursesbot.dao.CertificateDao;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.InputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
-import org.springframework.stereotype.Component;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
-import org.telegram.telegrambots.meta.api.methods.commands.DeleteMyCommands;
-import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.menubutton.SetChatMenuButton;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updates.DeleteWebhook;
 import org.telegram.telegrambots.meta.api.methods.updates.GetWebhookInfo;
+import org.telegram.telegrambots.meta.api.methods.updates.SetWebhook;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.WebhookInfo;
-import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
-import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeChat;
-import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.api.objects.menubutton.MenuButtonCommands;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-@Component
-public class CustomTelegramClient extends OkHttpTelegramClient {
-    private static final Logger LOGGER = LogManager.getLogger(CustomTelegramClient.class);
-    
+public abstract class CustomTelegramClient extends OkHttpTelegramClient {
     private static final String ERROR_SEND_MESSAGE_FAILURE = "error_send_message_failure";
-    private static final String MENU_COMMAND_DESCRIPTION = "menu_command_%s_description";
-    
-    private static final List<String> COMMAND_MENU_EXCEPTIONS = new ArrayList<>();
 
-    private volatile boolean isOnMaintenance;
+    protected final Logger logger;
 
-    @Autowired
-    private UserService userService;
+    protected final Bot bot;
 
-    @Autowired
-    private LocalizationLoader localizationLoader;
+    protected final UserService userService;
 
-    public CustomTelegramClient(@Value("${telegram.bot.authorization.token}") String botToken) {
-        super(botToken);
-        COMMAND_MENU_EXCEPTIONS.add("/testcourse");
+    protected final LocalizationLoader localizationLoader;
+
+    private final CertificateDao certificateDao;
+
+    private final String baseUrl;
+
+    private final String secretToken;
+
+    private final String ip;
+
+    private final boolean isCustomCertificateIncluded;
+
+    /**
+     * Creates a new instance of {@link CustomTelegramClient}.
+     * @param bot this client is supposed to service
+     * @param userService
+     * @param loader
+     * @param dao to load a custom certificate
+     * @param baseUrl of this server
+     * @param secretToken to check whether an update comes from an actual telegram server
+     * @param ip if no DNS is used
+     * @param isCustomCertificateIncluded whether custom sertificate is included
+     * (dao is still required)
+     * @author Unbidden
+     */
+    public CustomTelegramClient(@NonNull Bot bot, @NonNull UserService userService,
+            @NonNull LocalizationLoader loader, @NonNull CertificateDao dao,
+            @NonNull String baseUrl, @NonNull String secretToken,
+            @Nullable String ip, boolean isCustomCertificateIncluded) {
+        super(bot.getToken());
+
+        this.bot = bot;
+        this.userService = userService;
+        this.localizationLoader = loader;
+        this.logger = LogManager.getLogger("Bot " + bot.getName() + "'s Client");
+        this.certificateDao = dao;
+        this.baseUrl = baseUrl;
+        this.secretToken = secretToken;
+        this.ip = ip;
+        this.isCustomCertificateIncluded = isCustomCertificateIncluded;
     }
 
     public WebhookInfo getInfo() {
@@ -59,29 +86,13 @@ public class CustomTelegramClient extends OkHttpTelegramClient {
     }
 
     public void setUpMenuButton() {
-        SetChatMenuButton setChatMenuButton = SetChatMenuButton.builder()
+        final SetChatMenuButton setChatMenuButton = SetChatMenuButton.builder()
                 .menuButton(MenuButtonCommands.builder().build())
                 .build();
         try {
             execute(setChatMenuButton);
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to set bot's menu button.", null, e);
-        }
-    }
-
-    public void setUpUserMenu(@NonNull String languageCode,
-            @NonNull List<String> userCommandNames) {
-        final List<BotCommand> userCommands = parseToBotCommands(userCommandNames, languageCode);
-
-        final SetMyCommands setMyUserCommands = SetMyCommands.builder()
-                .commands(userCommands)
-                .scope(BotCommandScopeDefault.builder().build())
-                .languageCode(languageCode)
-                .build();
-        try {
-            execute(setMyUserCommands);
-        } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to set up a menu.", null, e);
         }
     }
 
@@ -92,7 +103,8 @@ public class CustomTelegramClient extends OkHttpTelegramClient {
      * @return sent {@link Message}
      */
     public Message sendMessage(@NonNull SendMessage sendMessage) {
-        final UserEntity user = userService.getUser(Long.parseLong(sendMessage.getChatId()));
+        final UserEntity user = userService.getUser(Long.parseLong(sendMessage.getChatId()),
+                userService.getDiretor());
 
         try {
             return execute(sendMessage);
@@ -146,52 +158,66 @@ public class CustomTelegramClient extends OkHttpTelegramClient {
         }
     }
 
-    public boolean isOnMaintenance() {
-        return isOnMaintenance;
-    }
-
-    public void setOnMaintenance(boolean isOnMaintenance) {
-        this.isOnMaintenance = isOnMaintenance;
-    }
-
-    public void deleteAdminMenuForUser(@NonNull UserEntity user) {
+    public void runDeleteWebhook() {
         try {
-            execute(DeleteMyCommands.builder()
-                    .languageCode(user.getLanguageCode())
-                    .scope(BotCommandScopeChat.builder()
-                        .chatId(user.getId()).build())
+            execute(DeleteWebhook.builder()
+                    .dropPendingUpdates(true)
                     .build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to clear commands for user " + user.getId()
-                    + " and language code " + user.getLanguageCode(), null, e);
+            throw new TelegramException("Unable to delete webhook", null, e);
         }
-        LOGGER.info("Admin menu for user " + user.getId() + " has been removed.");
     }
 
-    public void setUpMenuForAdmin(@NonNull UserEntity user, @NonNull List<String> allCommands) {
-        final List<BotCommand> adminCommands = parseToBotCommands(allCommands,
-                user.getLanguageCode());
+    /**
+     * Sets a webhook for this client's bot
+     * @param endpoint must begin with a '/'
+     * @param maxConnections
+     */
+    public void runSetWebhook(@NonNull String endpoint, @NonNull Integer maxConnections) {
+        Assert.notNull(baseUrl, "Base url cannot be null");
+        Assert.notNull(secretToken, "Due to security reasons secret token cannot be null");
 
+        logger.info("Registering webhook bot...");
+        InputStream publicKeyStream = null;
+        if (isCustomCertificateIncluded) {
+            logger.info("Using a custom certificate...");
+            publicKeyStream = certificateDao.readPublicKey();
+            logger.debug("Certificate public key file has been initialized into stream.");
+        }
         try {
-            execute(SetMyCommands.builder().commands(adminCommands)
-                    .scope(BotCommandScopeChat.builder().chatId(user.getId()).build())
-                    .languageCode(user.getLanguageCode()).build());
+            execute(SetWebhook.builder()
+                    .url(baseUrl + endpoint)
+                    .certificate((isCustomCertificateIncluded) ? new InputFile(publicKeyStream,
+                        CertificateDao.PUBLIC_KEY_FILE_NAME) : null)
+                    .ipAddress(ip)
+                    .secretToken(secretToken)
+                    .maxConnections(maxConnections)
+                    .build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to set admin commands for user " + user.getId()
-                    + " and language code " + user.getLanguageCode(), null, e);
+            throw new TelegramException("Unable to set up bot " + bot.getName()
+                    + "'s webhook.", null, e);
+        } finally {
+            if (publicKeyStream != null) {
+                certificateDao.closeStream(publicKeyStream);
+                logger.debug("Certificate public key stream has been closed.");
+            }
         }
-        LOGGER.info("Admin menu for user " + user.getId() + " has been added.");
+        logger.info("Bot " + bot.getName() + " has been registered.");
     }
 
-    private List<BotCommand> parseToBotCommands(List<String> commands, String languageCode) {
-        return commands.stream()
-                .filter(c -> !COMMAND_MENU_EXCEPTIONS.contains(c))
-                .map(c -> (BotCommand)BotCommand.builder()
-                    .command(c)
-                    .description(localizationLoader.loadLocalization(
-                        MENU_COMMAND_DESCRIPTION.formatted(c.replace("/", "")),
-                        languageCode).getData())
-                    .build())
-                .toList();
+    public String getBotName() {
+        return bot.getName();
+    }
+
+    protected void initialize(@NonNull String endpoint, @NonNull Integer maxConnections) {
+        runDeleteWebhook();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Unable to sleep");
+        }
+        runSetWebhook(endpoint, maxConnections);
+
+        setUpMenuButton();
     }
 }

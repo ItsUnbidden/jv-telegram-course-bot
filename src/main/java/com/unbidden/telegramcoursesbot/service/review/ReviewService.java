@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.review;
 
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
@@ -18,7 +19,8 @@ public interface ReviewService {
             int courseGrade, int platformGrade);
 
     @NonNull
-    Review commitAdvancedReview(@NonNull Long reviewId, @NonNull LocalizedContent content);
+    Review commitAdvancedReview(@NonNull Long reviewId, @NonNull UserEntity user,
+            @NonNull LocalizedContent content);
 
     @NonNull
     Review leaveComment(@NonNull UserEntity user, @NonNull Review review,
@@ -29,30 +31,35 @@ public interface ReviewService {
             @NonNull LocalizedContent content);
 
     @NonNull
-    Review updateCourseGrade(@NonNull Long reviewId, int newGrade);
+    Review updateCourseGrade(@NonNull Long reviewId, @NonNull UserEntity user,
+            @NonNull Bot bot, int newGrade);
 
     @NonNull
-    Review updatePlatformGrade(@NonNull Long reviewId, int newGrade);
+    Review updatePlatformGrade(@NonNull Long reviewId, @NonNull UserEntity user,
+            @NonNull Bot bot, int newGrade);
 
     @NonNull
-    Review updateAdvancedReview(@NonNull Long reviewId, @NonNull LocalizedContent content);
+    Review updateAdvancedReview(@NonNull Long reviewId, @NonNull UserEntity user,
+            @NonNull LocalizedContent content);
 
     @NonNull
     List<Review> getReviewsForCourse(@NonNull Course course, Pageable pageable);
 
-    void sendNewReviewsForUser(@NonNull UserEntity user);
+    void sendNewReviewsForUser(@NonNull UserEntity user, @NonNull Bot bot);
 
-    void sendNewReviewsForUserAndCourse(@NonNull UserEntity user, @NonNull Long courseId);
+    void sendNewReviewsForUserAndCourse(@NonNull UserEntity user,
+            @NonNull Long courseId, @NonNull Bot bot);
 
-    void sendArchiveReviewsForUser(@NonNull UserEntity user);
+    void sendArchiveReviewsForUser(@NonNull UserEntity user, @NonNull Bot bot);
 
-    void sendArchiveReviewsForUserAndCourse(@NonNull UserEntity user, @NonNull Long courseId);
+    void sendArchiveReviewsForUserAndCourse(@NonNull UserEntity user,
+            @NonNull Long courseId, @NonNull Bot bot);
 
     @NonNull
     Review getReviewByCourseAndUser(@NonNull UserEntity user, @NonNull Course course);
 
     @NonNull
-    Review getReviewById(@NonNull Long reviewId);
+    Review getReviewById(@NonNull Long reviewId, @NonNull UserEntity user, @NonNull Bot bot);
 
     boolean isBasicReviewForCourseAndUserAvailable(@NonNull UserEntity user,
             @NonNull Course course);

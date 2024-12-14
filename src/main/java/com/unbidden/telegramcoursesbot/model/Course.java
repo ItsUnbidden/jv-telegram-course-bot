@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.util.List;
@@ -18,8 +20,12 @@ public class Course {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String name;
+
+    @ManyToOne
+    @JoinColumn(name = "bot_id", nullable = false)
+    private Bot bot;
 
     @OneToMany(mappedBy = "course")
     private List<Lesson> lessons;
@@ -32,6 +38,8 @@ public class Course {
 
     @Column(nullable = false)
     private Integer refundStage;
+
+    private boolean isUnderMaintenance;
 
     private boolean isHomeworkIncluded;
 

@@ -1,7 +1,7 @@
 package com.unbidden.telegramcoursesbot.bot;
 
-import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.List;
@@ -19,34 +19,29 @@ public class Initializer implements ApplicationRunner {
 
     private final List<MenuConfigurer> menuConfigurers;
 
-    private final CommandHandlerManager commandHandlerManager;
-
-    private final LocalizationLoader localizationLoader;
+    private final BotService botService;
 
     private final UserService userService;
 
-    private final CustomTelegramClient telegramClient;
-
-    private final TelegramBot bot;
+    private final CourseService courseService;
 
     @Override
     public void run(ApplicationArguments args) {
-        bot.runSetWebhook();
-        
-        LOGGER.info("Initializing command menus...");
-        telegramClient.setUpMenuButton();
-        localizationLoader.getAvailableLanguageCodes().forEach(c ->
-                telegramClient.setUpUserMenu(c, commandHandlerManager.getUserCommands()));
-        userService.getAdminList().forEach(a -> telegramClient.setUpMenuForAdmin(a,
-                commandHandlerManager.getAllCommands()));
-        LOGGER.info("Command menus have been initialized.");
+        // Initializing director
+        final UserEntity director = userService.createDummyDirector();
 
+        // Initializing botfather and its client
+        botService.initializeBotFather(botService.createBotFather(director));
+    
+        // Initializing initial bot and course enities
+        courseService.createInitialCourse(botService.createInitialBot(director));
+
+        // Initializing clients
+        botService.initializeBots();
+
+        // Initilizing interface menu schemes
         LOGGER.info("Initializing menus...");
-        initializeMenus();
-        LOGGER.info("Menus have been initialized.");
-    }
-
-    private void initializeMenus() {
         menuConfigurers.forEach(c -> c.configure());
+        LOGGER.info("Menus have been initialized.");
     }
 }

@@ -27,8 +27,8 @@
 	</Appenders>
 	<Loggers>
 		<Root level="info">
-            <appender-ref ref="stdout" level="DEBUG"/>
-			<appender-ref ref="fileLogger" level="DEBUG"/>
+            <appender-ref ref="stdout" level="TRACE"/>
+			<appender-ref ref="fileLogger" level="TRACE"/>
 		</Root>
 	</Loggers>
 </Configuration>

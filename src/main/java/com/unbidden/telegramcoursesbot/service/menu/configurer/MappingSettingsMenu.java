@@ -12,7 +12,6 @@ import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.handler.AddMappingLocalizationButtonHandler;
 import com.unbidden.telegramcoursesbot.service.menu.handler.ContentMappingTextToggleButtonHandler;
 import com.unbidden.telegramcoursesbot.service.menu.handler.RemoveMappingLocalizationButtonHandler;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +54,7 @@ public class MappingSettingsMenu implements MenuConfigurer {
         page.setMenu(menu);
         page.setPageIndex(0);
         page.setButtonsRowSize(2);
-        page.setLocalizationFunction((u, p) -> {
+        page.setLocalizationFunction((u, p, b) -> {
             final ContentMapping mapping = contentService.getMappingById(
                 Long.parseLong(p.get(0)), u);
             final Map<String, Object> parameterMap = new HashMap<>();
@@ -65,7 +64,7 @@ public class MappingSettingsMenu implements MenuConfigurer {
             return localizationLoader.getLocalizationForUser(
                 MENU_MAPPING_SETTINGS_PAGE_0, u, parameterMap);
         });
-        page.setButtonsFunction((u, p) -> List.of(new TerminalButton(localizationLoader
+        page.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(localizationLoader
                 .getLocalizationForUser(BUTTON_ADD_MAPPING_LOCALIZATION, u).getData(),
                     ADD_MAPPING_LOCALIZATION, addMappingLocalizationHandler), new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_REMOVE_MAPPING_LOCALIZATION, u)

@@ -29,4 +29,8 @@ public abstract class SupportMessage {
 
     @Column(nullable = false)
     private LocalDateTime timestamp;
+
+    @ManyToOne
+    @JoinColumn(name = "bot_id", nullable = false)
+    private Bot bot;
 }

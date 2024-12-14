@@ -1,7 +1,11 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.Security;
+import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -15,13 +19,11 @@ public class ContentCommandHandler implements CommandHandler {
 
     private final MenuService menuService;
 
-    private final UserService userService;
-    
     @Override
-    public void handle(@NonNull Message message, @NonNull String[] commandParts) {
-        if (userService.isAdmin(message.getFrom())) {
-            menuService.initiateMenu(CONTENT_MENU, message.getFrom());
-        }
+    @Security(authorities = {AuthorityType.CONTENT_SETTINGS})
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
+            @NonNull String[] commandParts) {
+        menuService.initiateMenu(CONTENT_MENU, user, bot);
     }
 
     @Override
@@ -31,7 +33,8 @@ public class ContentCommandHandler implements CommandHandler {
     }
 
     @Override
-    public boolean isAdminCommand() {
-        return true;
+    @NonNull
+    public List<AuthorityType> getAuthorities() {
+        return List.of(AuthorityType.CONTENT_SETTINGS);
     }
 }

@@ -1,11 +1,13 @@
 package com.unbidden.telegramcoursesbot.service.menu.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,32 +29,29 @@ public class HomeworkFeedbackToggleButtonHandler implements ButtonHandler {
 
     private final HomeworkService homeworkService;
 
-    private final UserService userService;
-
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
-        if (userService.isAdmin(user)) {
-            final Homework homework = homeworkService.getHomework(
-                    Long.parseLong(params[3]), user);
-            LOGGER.info("User " + user.getId() + " is trying to toggle feedback "
-                    + "for homework " + homework.getId() + ". Current status is "
-                    + getFeedbackStatus(homework) + ".");
-            
-            homework.setFeedbackRequired(!homework.isFeedbackRequired());
-            homeworkService.save(homework);
+    @Security(authorities = AuthorityType.COURSE_SETTINGS)
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
+        final Homework homework = homeworkService.getHomework(
+                Long.parseLong(params[3]), user, bot);
+        LOGGER.info("User " + user.getId() + " is trying to toggle feedback "
+                + "for homework " + homework.getId() + ". Current status is "
+                + getFeedbackStatus(homework) + ".");
+        
+        homework.setFeedbackRequired(!homework.isFeedbackRequired());
+        homeworkService.save(homework);
 
-            LOGGER.info("Feedback for homework " + homework.getId() + " is now "
-                    + getFeedbackStatus(homework) + ".");
-            LOGGER.debug("Sending confirmation message...");
-            client.sendMessage(user, localizationLoader.getLocalizationForUser(
-                    SERVICE_HOMEWORK_FEEDBACK_UPDATE_SUCCESS, user, PARAM_STATUS,
-                    getFeedbackStatus(user, homework)));
-            LOGGER.debug("Message sent.");
-        }
+        LOGGER.info("Feedback for homework " + homework.getId() + " is now "
+                + getFeedbackStatus(homework) + ".");
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader
+                .getLocalizationForUser(SERVICE_HOMEWORK_FEEDBACK_UPDATE_SUCCESS,
+                user, PARAM_STATUS, getFeedbackStatus(user, homework)));
+        LOGGER.debug("Message sent.");
     }
 
     private String getFeedbackStatus(UserEntity user, Homework homework) {

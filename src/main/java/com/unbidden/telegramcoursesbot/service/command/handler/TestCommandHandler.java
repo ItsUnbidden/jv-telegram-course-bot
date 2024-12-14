@@ -1,8 +1,11 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.Security;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -14,20 +17,16 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 public class TestCommandHandler implements CommandHandler {
     private static final String COMMAND = "/test";
 
-    private final UserService userService;
-
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public void handle(@NonNull Message message, @NonNull String[] commandParts) {
-        final UserEntity userFromDb = userService.getUser(message.getFrom().getId());
-
-        if (userService.isAdmin(userFromDb)) {
-            client.sendMessage(SendMessage.builder()
-                    .chatId(userFromDb.getId())
-                    .text("This is a test command. It currently does nothing🙃.")
-                    .build());
-        }
+    @Security(authorities = AuthorityType.MAINTENANCE)
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
+            @NonNull String[] commandParts) {
+        clientManager.getClient(bot).sendMessage(SendMessage.builder()
+                .chatId(user.getId())
+                .text("This is a test command. It currently does nothing🙃.")
+                .build());
     }
 
     @Override
@@ -37,7 +36,8 @@ public class TestCommandHandler implements CommandHandler {
     }
 
     @Override
-    public boolean isAdminCommand() {
-        return true;
+    @NonNull
+    public List<AuthorityType> getAuthorities() {
+        return List.of(AuthorityType.MAINTENANCE);
     }
 }

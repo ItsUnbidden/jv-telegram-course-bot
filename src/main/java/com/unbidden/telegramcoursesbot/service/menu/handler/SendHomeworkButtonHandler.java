@@ -1,7 +1,12 @@
 package com.unbidden.telegramcoursesbot.service.menu.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.HomeworkProgress;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.Security;
+import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
@@ -17,22 +22,28 @@ public class SendHomeworkButtonHandler implements ButtonHandler {
 
     private final HomeworkService homeworkService;
 
+    private final CourseService courseService;
+
     private final ContentSessionService sessionService;
 
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
-        final Long homeworkProgressId = Long.parseLong(params[0]);
+    @Security(authorities = AuthorityType.LAUNCH_COURSE)
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
+        final HomeworkProgress progress = homeworkService.getProgress(Long.parseLong(params[0]),
+                user);
+        courseService.checkCourseIsNotUnderMaintenance(progress.getHomework().getLesson()
+                .getCourse(), user);
 
-        sessionService.createSession(user, m ->
-                homeworkService.commit(homeworkProgressId, m));
+        sessionService.createSession(user, bot, m ->
+                homeworkService.commit(progress, m));
 
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_SEND_HOMEWORK_REQUEST, user);
         
-        client.sendMessage(user, localization);
+        clientManager.getClient(bot).sendMessage(user, localization);
     }
 }

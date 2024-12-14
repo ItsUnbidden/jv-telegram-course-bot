@@ -21,6 +21,10 @@ public abstract class TimedTrigger {
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
+    @ManyToOne
+    @JoinColumn(name = "bot_id", nullable = false)
+    private Bot bot;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
     

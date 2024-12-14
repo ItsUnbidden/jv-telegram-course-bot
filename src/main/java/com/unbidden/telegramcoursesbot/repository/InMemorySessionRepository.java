@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.repository;
 
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.session.ContentSession;
 import com.unbidden.telegramcoursesbot.service.session.Session;
@@ -50,7 +51,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     @Scheduled(initialDelay = INITIAL_EXPIRY_CHECK_DELAY,
             fixedDelayString = "${telegram.bot.message.session.schedule.delay}")
     public void removeExpired() {
-        LOGGER.debug("Checking for expired sessions...");
+        LOGGER.trace("Checking for expired sessions...");
         List<Integer> keysToRemove = new ArrayList<>();
 
         for (Entry<Integer, Session> entry : sessions.entrySet()) {
@@ -61,10 +62,10 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
         }
 
         if (keysToRemove.isEmpty()) {
-            LOGGER.debug("All sessions are valid.");
+            LOGGER.trace("All sessions are valid.");
             return;
         }
-        LOGGER.debug("Some expired sessions have been found.");
+        LOGGER.trace("Some expired sessions have been found.");
         for (Integer key : keysToRemove) {
             removeFromIndexedSessions(sessions.get(key));
             sessions.remove(key);
@@ -72,11 +73,25 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     }
 
     @Override
-    public void removeForUser(@NonNull Long userId) {
+    public void removeForUserInBot(@NonNull Long userId, @NonNull Bot bot) {
+        final List<Session> userSessions = sessionsIndexedByUser.get(userId);
+        if (userSessions != null) {
+            final List<Integer> keysToRemove = userSessions.stream()
+                    .filter(s -> s.getBot().equals(bot)).map(s -> s.getId()).toList();
+            for (Integer key : keysToRemove) {
+                removeFromIndexedSessions(sessions.remove(key));
+            }
+        }
+    }
+
+    @Override
+    public void removeContentSessionsForUserInBot(@NonNull Long userId, @NonNull Bot bot) {
         final List<Session> userSessions = sessionsIndexedByUser.get(userId);
 
         if (userSessions != null) {
             final List<Integer> keysToRemove = userSessions.stream()
+                    .filter(s -> s.getBot().equals(bot)
+                        && s.getClass().equals(ContentSession.class))
                     .map(s -> s.getId()).toList();
             for (Integer key : keysToRemove) {
                 removeFromIndexedSessions(sessions.remove(key));
@@ -85,26 +100,14 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     }
 
     @Override
-    public void removeContentSessionsForUser(@NonNull Long userId) {
+    public void removeSessionsWithoutConfirmationForUserInBot(@NonNull Long userId,
+            @NonNull Bot bot) {
         final List<Session> userSessions = sessionsIndexedByUser.get(userId);
 
         if (userSessions != null) {
             final List<Integer> keysToRemove = userSessions.stream()
-                    .filter(s -> s.getClass().equals(ContentSession.class))
-                    .map(s -> s.getId()).toList();
-            for (Integer key : keysToRemove) {
-                removeFromIndexedSessions(sessions.remove(key));
-            }
-        }
-    }
-
-    @Override
-    public void removeSessionsWithoutConfirmationForUser(@NonNull Long userId) {
-        final List<Session> userSessions = sessionsIndexedByUser.get(userId);
-
-        if (userSessions != null) {
-            final List<Integer> keysToRemove = userSessions.stream()
-                    .filter(s -> s.getClass().equals(ContentSession.class)
+                    .filter(s -> s.getBot().equals(bot)
+                        && s.getClass().equals(ContentSession.class)
                         && ((ContentSession)s).isSkippingConfirmation())
                     .map(s -> s.getId()).toList();
             for (Integer key : keysToRemove) {
@@ -114,12 +117,14 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     }
 
     @Override
-    public void removeUserOrChatRequestSessionsForUser(@NonNull Long userId) {
+    public void removeUserOrChatRequestSessionsForUserInBot(@NonNull Long userId,
+            @NonNull Bot bot) {
         final List<Session> userSessions = sessionsIndexedByUser.get(userId);
 
         if (userSessions != null) {
             final List<Integer> keysToRemove = userSessions.stream()
-                    .filter(s -> s.getClass().equals(UserOrChatRequestSession.class))
+                    .filter(s -> s.getBot().equals(bot)
+                        && s.getClass().equals(UserOrChatRequestSession.class))
                     .map(s -> s.getId()).toList();
             for (Integer key : keysToRemove) {
                 removeFromIndexedSessions(sessions.remove(key));
@@ -129,9 +134,10 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
 
     @Override
     @NonNull
-    public List<Session> findForUser(@NonNull Long userId) {
+    public List<Session> findForUserInBot(@NonNull Long userId, @NonNull Bot bot) {
         final List<Session> sessions = sessionsIndexedByUser.get(userId);
-        return (sessions != null) ? sessions : new ArrayList<>();
+        return (sessions != null) ? sessions.stream()
+                .filter(s -> s.getBot().equals(bot)).toList() : new ArrayList<>();
     }
 
     private void indexByUser(UserEntity user, Session session) {

@@ -25,7 +25,6 @@ public class CommitContentMenu implements MenuConfigurer {
     private static final String BUTTON_CANCEL_SESSION = "button_cancel_session";
     
     private static final String MENU_COMMIT_CONTENT_PAGE_0 = "menu_commit_content_page_0";
-    private static final String MENU_COMMIT_CONTENT_TERMINAL_PAGE = "menu_commit_content_terminal_page";
 
     private final LocalizationLoader localizationLoader;
 
@@ -40,29 +39,21 @@ public class CommitContentMenu implements MenuConfigurer {
         page.setMenu(menu);
         page.setPageIndex(0);
         page.setButtonsRowSize(2);
-        page.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        page.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
                 MENU_COMMIT_CONTENT_PAGE_0, u));
-        page.setButtonsFunction((u, p) -> List.of(new TerminalButton(
+        page.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_CONFIRM_SEND_CONTENT, u)
-                .getData(), CONFIRM_CONTENT, (u1, pa) -> sessionService.commit(
+                .getData(), CONFIRM_CONTENT, (b1, u1, pa) -> sessionService.commit(
                     Integer.parseInt(pa[0]), u1)), new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_RESEND_CONTENT, u)
-                .getData(), RESEND_CONTENT, (u1, pa) -> sessionService.resend(
+                .getData(), RESEND_CONTENT, (b1, u1, pa) -> sessionService.resend(
                     Integer.parseInt(pa[0]), u1)), new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_CANCEL_SESSION, u)
-                .getData(), CANCEL_SESSION, (u1, pa) -> sessionService.cancel(
+                .getData(), CANCEL_SESSION, (b1, u1, pa) -> sessionService.cancel(
                     Integer.parseInt(pa[0]), u1))));
-
-        final Page terminalPage = new Page();
-        terminalPage.setMenu(menu);
-        terminalPage.setPageIndex(1);
-        terminalPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
-                MENU_COMMIT_CONTENT_TERMINAL_PAGE, u));
         menu.setName(MENU_NAME);
-        menu.setPages(List.of(page, terminalPage));
+        menu.setPages(List.of(page));
         menu.setInitialParameterPresent(true);
-        menu.setOneTimeMenu(true);
-        menu.setUpdateAfterTerminalButtonRequired(true);
         menuService.save(menu);
     }
 }

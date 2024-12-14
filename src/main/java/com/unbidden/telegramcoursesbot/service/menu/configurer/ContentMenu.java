@@ -1,7 +1,9 @@
 package com.unbidden.telegramcoursesbot.service.menu.configurer;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.SecurityService;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
@@ -11,7 +13,6 @@ import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.handler.GetContentButtonHandler;
 import com.unbidden.telegramcoursesbot.service.menu.handler.UploadContentButtonHandler;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,9 +52,11 @@ public class ContentMenu implements MenuConfigurer {
 
     private final ContentSessionService sessionService;
 
+    private final SecurityService securityService;
+
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
     public void configure() {
@@ -62,16 +65,19 @@ public class ContentMenu implements MenuConfigurer {
         page.setMenu(menu);
         page.setPageIndex(0);
         page.setButtonsRowSize(2);
-        page.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        page.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
                 MENU_CONTENT_ACTIONS_PAGE_0, u));
-        page.setButtonsFunction((u, p) -> List.of(new TerminalButton(
+        page.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_UPLOAD_CONTENT, u)
                     .getData(), UPLOAD_CONTENT, uploadContentHandler), new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_GET_CONTENT, u)
                     .getData(), GET_CONTENT, getContentHandler), new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_GET_MAPPING, u)
-                    .getData(), GET_MAPPING, (u1, pa) -> {
-                    sessionService.createSession(u1, m -> {
+                    .getData(), GET_MAPPING, (b1, u1, pa) -> {
+                    if (!securityService.grantAccess(b, u, AuthorityType.CONTENT_SETTINGS)) {
+                        return;
+                    }
+                    sessionService.createSession(u1, b1, m -> {
                         if (m.size() != 1) {
                             final Map<String, Object> parameterMap = new HashMap<>();
                             parameterMap.put(PARAM_EXPECTED_MESSAGES_AMOUNT, 1);
@@ -95,10 +101,10 @@ public class ContentMenu implements MenuConfigurer {
                                 + m.get(0).getText() + " to the mapping id", localizationLoader
                                 .getLocalizationForUser(ERROR_PARSE_ID_FAILURE, u));
                         }
-                        menuService.initiateMenu(MAPPING_MENU_NAME, u1, mappingId.toString());
+                        menuService.initiateMenu(MAPPING_MENU_NAME, u1, mappingId.toString(), b1);
                     }, true);
-                    client.sendMessage(u1, localizationLoader.getLocalizationForUser(
-                        SERVICE_MAPPING_ID_REQUEST, u1));
+                    clientManager.getClient(b).sendMessage(u1, localizationLoader
+                        .getLocalizationForUser(SERVICE_MAPPING_ID_REQUEST, u1));
                 })));
         menu.setName(MENU_NAME);
         menu.setPages(List.of(page));

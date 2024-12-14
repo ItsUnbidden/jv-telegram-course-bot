@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.content.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.model.content.ContentTextData;
@@ -35,28 +36,31 @@ public class TextContentHandler implements LocalizedContentHandler<LocalizedCont
 
     private final UserService userService;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public LocalizedContent parseLocalized(@NonNull List<Message> messages, boolean isLocalized) {
+    public LocalizedContent parseLocalized(@NonNull List<Message> messages, @NonNull Bot bot,
+            boolean isLocalized) {
         final LocalizedContent localizedContent = new LocalizedContent();
         final Message message = messages.get(0);
         final List<MarkerArea> markers = (message.getEntities() != null) ? message.getEntities()
                 .stream().map(e -> markerAreaRepository.save(new MarkerArea(e)))
                 .toList() : List.of();
 
+        localizedContent.setBot(bot);
         localizedContent.setData(new ContentTextData(message.getText(),
                 markers, isLocalized));
         localizedContent.setLanguageCode(userService.getUser(message
-                .getFrom().getId()).getLanguageCode());
+                .getFrom().getId(), userService.getDiretor()).getLanguageCode());
         return localizedContent;
     }
 
     @Override
-    public LocalizedContent parseLocalized(@NonNull List<Message> messages,
+    public LocalizedContent parseLocalized(@NonNull List<Message> messages, @NonNull Bot bot,
             @NonNull String localizationName, @NonNull String languageCode) {
         final LocalizedContent localizedContent = new LocalizedContent();
         
+        localizedContent.setBot(bot);
         localizedContent.setData(new ContentTextData(localizationName, List.of(), true));
         localizedContent.setLanguageCode(languageCode);
         return localizedContent;
@@ -64,14 +68,15 @@ public class TextContentHandler implements LocalizedContentHandler<LocalizedCont
 
     @Override
     @NonNull
-    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user) {
-        return sendContent(content, user, false, false);
+    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
+            @NonNull Bot bot) {
+        return sendContent(content, user, bot, false, false);
     }
 
     @Override
     @NonNull
     public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
-            boolean isProtected, boolean skipText) {
+            @NonNull Bot bot, boolean isProtected, boolean skipText) {
         if (skipText) {
             LOGGER.warn("Content " + content.getId() + " is of type " + content.getType()
                     + " but parameter to skip text is enabled, meaning no content will be sent.");
@@ -85,7 +90,7 @@ public class TextContentHandler implements LocalizedContentHandler<LocalizedCont
         
         localization.setEntities(localizedContent.getData().getEntities().stream()
                 .map(m -> m.toMessageEntity()).toList());
-        return List.of(client.sendMessage(SendMessage.builder()
+        return List.of(clientManager.getClient(bot).sendMessage(SendMessage.builder()
                 .chatId(user.getId())
                 .text(localization.getData())
                 .entities(localization.getEntities())

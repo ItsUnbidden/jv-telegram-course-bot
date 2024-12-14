@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
 import com.unbidden.telegramcoursesbot.exception.SessionException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.SessionRepository;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
@@ -11,7 +12,6 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 @Component
 @RequiredArgsConstructor
@@ -31,10 +31,11 @@ public class SessionDistributorImpl implements SessionDistributor {
     private final LocalizationLoader localizationLoader;
 
     @Override
-    public void callService(@NonNull Message message) {
+    public void callService(@NonNull Message message, @NonNull UserEntity user,
+            @NonNull Bot bot) {
         LOGGER.debug("Looking for sessions...");
         final List<Session> userSessions = sessionRepository
-                .findForUser(message.getFrom().getId());
+                .findForUserInBot(message.getFrom().getId(), bot);
         if (userSessions.size() == 0) {
             return;
         }
@@ -43,7 +44,7 @@ public class SessionDistributorImpl implements SessionDistributor {
                 .filter(s -> s.getClass().equals(UserOrChatRequestSession.class))
                 .toList()
                 .size();
-        final User user = message.getFrom();
+
         if (amountOfUserOrChatRequestSessions == 0) {
             LOGGER.debug("There are no user or chat request sessions.");
             if (userSessions.size() != 1) {
@@ -105,12 +106,13 @@ public class SessionDistributorImpl implements SessionDistributor {
     }
 
     @Override
-    public void removeSessionsForUser(@NonNull UserEntity user) {
-        contentSessionService.removeSessionsForUser(user);
+    public void removeSessionsForUser(@NonNull UserEntity user, @NonNull Bot bot) {
+        contentSessionService.removeSessionsForUserInBot(user, bot);
     }
 
     @Override
-    public void removeSessionsWithoutConfirmationForUser(@NonNull UserEntity user) {
-        contentSessionService.removeSessionsWithoutConfirmationForUser(user);
+    public void removeSessionsWithoutConfirmationForUser(@NonNull UserEntity user,
+            @NonNull Bot bot) {
+        contentSessionService.removeSessionsWithoutConfirmationForUser(user, bot);
     }
 }

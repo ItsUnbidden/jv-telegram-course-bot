@@ -29,25 +29,14 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: is_bot
+                  name: is_language_manually_set
                   type: boolean
+                  defaultValueBoolean: false
                   constraints:
                     nullable: false
               - column:
                   name: is_banned
                   type: boolean
                   defaultValueBoolean: false
-                  constraints:
-                    nullable: false
-              - column:
-                  name: is_admin
-                  type: boolean
-                  defaultValueBoolean: false
-                  constraints:
-                    nullable: false
-              - column:
-                  name: is_receiving_homework_requests
-                  type: boolean
-                  defaultValueBoolean: true
                   constraints:
                     nullable: false

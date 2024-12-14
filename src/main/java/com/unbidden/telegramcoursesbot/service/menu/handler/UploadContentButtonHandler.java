@@ -1,13 +1,15 @@
 package com.unbidden.telegramcoursesbot.service.menu.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.content.Content;
+import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -26,25 +28,21 @@ public class UploadContentButtonHandler implements ButtonHandler {
 
     private final ContentService contentService;
 
-    private final UserService userService;
-
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
     
     @Override
-    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
-        if (!userService.isAdmin(user)) {
-            return;
-        }
-        sessionService.createSession(user, m -> {
-            final Content content = contentService.parseAndPersistContent(m);
+    @Security(authorities = AuthorityType.MAINTENANCE)
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
+        sessionService.createSession(user, bot, m -> {
+            final Content content = contentService.parseAndPersistContent(bot, m);
             final Localization success = localizationLoader.getLocalizationForUser(
                     SERVICE_UPLOAD_CONTENT_SUCCESS, user, PARAM_CONTENT_ID,
                     content.getId());
-            client.sendMessage(user, success);
+            clientManager.getClient(bot).sendMessage(user, success);
         });
         final Localization request = localizationLoader.getLocalizationForUser(
                 SERVICE_UPLOAD_CONTENT_REQUEST, user);
 
-        client.sendMessage(user, request);
+        clientManager.getClient(bot).sendMessage(user, request);
     }
 }

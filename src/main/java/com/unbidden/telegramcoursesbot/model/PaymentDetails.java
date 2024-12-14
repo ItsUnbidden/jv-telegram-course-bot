@@ -28,7 +28,11 @@ public class PaymentDetails {
     private UserEntity user;
 
     @ManyToOne
-    @JoinColumn(name = "course_id")
+    @JoinColumn(name = "bot_id", nullable = false)
+    private Bot bot;
+
+    @ManyToOne
+    @JoinColumn(name = "course_id", nullable = false)
     private Course course;
     
     @Column(nullable = false)

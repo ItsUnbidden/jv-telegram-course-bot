@@ -1,7 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.content.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
@@ -54,31 +55,33 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
 
     private final UserService userService;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public DocumentContent parseLocalized(@NonNull List<Message> messages, boolean isLocalized) {
-        return parse0(messages, null, isLocalized);
+    public DocumentContent parseLocalized(@NonNull List<Message> messages, @NonNull Bot bot,
+            boolean isLocalized) {
+        return parse0(messages, bot, null, isLocalized);
     }
 
     @Override
-    public DocumentContent parseLocalized(@NonNull List<Message> messages,
+    public DocumentContent parseLocalized(@NonNull List<Message> messages, @NonNull Bot bot,
             @NonNull String localizationName, @NonNull String languageCode) {
-        final DocumentContent content = parse0(messages, localizationName, true);
+        final DocumentContent content = parse0(messages, bot, localizationName, true);
         content.setLanguageCode(languageCode);
         return content;
     }
 
     @Override
     @NonNull
-    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user) {
-        return sendContent(content, user, false, false);
+    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
+            @NonNull Bot bot) {
+        return sendContent(content, user, bot, false, false);
     }
 
     @Override
     @NonNull
     public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
-            boolean isProtected, boolean skipText) {
+            @NonNull Bot bot, boolean isProtected, boolean skipText) {
         final List<InputMedia> inputMedias = new ArrayList<>();
         final DocumentContent documentContent = (DocumentContent)content;
 
@@ -105,7 +108,7 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
             LOGGER.warn("Content " + content.getId() + " is of type " + content.getType()
                     + " but does not have any relevant content. Text content handler "
                     + "will be used instead.");
-            return textContentHandler.sendContent(content, user, isProtected, false);
+            return textContentHandler.sendContent(content, user, bot, isProtected, false);
         }
 
         if (captionsLoc != null) {
@@ -119,7 +122,7 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
 
             if (inputMedia.getClass().equals(InputMediaDocument.class)) {
                 try {
-                    return List.of(client.execute(SendDocument.builder()
+                    return List.of(clientManager.getClient(bot).execute(SendDocument.builder()
                             .chatId(user.getId())
                             .protectContent(isProtected)
                             .document(new InputFile(inputMedia.getMedia()))
@@ -136,7 +139,7 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
         }
 
         try {
-            return client.execute(SendMediaGroup.builder()
+            return clientManager.getClient(bot).execute(SendMediaGroup.builder()
                     .chatId(user.getId())
                     .protectContent(isProtected)
                     .medias(inputMedias)
@@ -167,7 +170,7 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
         return MediaType.DOCUMENT;
     }
 
-    private DocumentContent parse0(List<Message> messages, String localizationName,
+    private DocumentContent parse0(List<Message> messages, Bot bot, String localizationName,
             boolean isLocalized) {
         final List<Document> documents = new ArrayList<>();
         final List<MarkerArea> markers = new ArrayList<>();
@@ -206,12 +209,14 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
                 }
             }
             if (languageCode == null) {
-                languageCode = userService.getUser(message.getFrom().getId()).getLanguageCode();
+                languageCode = userService.getUser(message.getFrom().getId(),
+                        userService.getDiretor()).getLanguageCode();
             }
             documents.add(document);
         }
         documentRepository.saveAll(documents);
         DocumentContent documentContent = new DocumentContent();
+        documentContent.setBot(bot);
         documentContent.setData(new ContentTextData(captions, markers, isLocalized));
         documentContent.setDocuments(documents);
         documentContent.setLanguageCode(languageCode);

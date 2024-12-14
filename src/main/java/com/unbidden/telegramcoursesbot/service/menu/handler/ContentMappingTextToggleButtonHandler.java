@@ -1,11 +1,13 @@
 package com.unbidden.telegramcoursesbot.service.menu.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
+import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,32 +29,29 @@ public class ContentMappingTextToggleButtonHandler implements ButtonHandler {
 
     private final ContentService contentService;
 
-    private final UserService userService;
-
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
-        if (userService.isAdmin(user)) {
-            final ContentMapping mapping = contentService
-                    .getMappingById(Long.parseLong(params[0]), user);
-            LOGGER.info("User " + user.getId() + " is trying to toggle text "
-                    + "in mapping " + mapping.getId() + ". Current status is "
-                    + getTextStatus(mapping) + ".");
-            
-            mapping.setTextEnabled(!mapping.isTextEnabled());
-            contentService.saveMapping(mapping);
+    @Security(authorities = AuthorityType.CONTENT_SETTINGS)
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
+        final ContentMapping mapping = contentService
+                .getMappingById(Long.parseLong(params[0]), user);
+        LOGGER.info("User " + user.getId() + " is trying to toggle text "
+                + "in mapping " + mapping.getId() + ". Current status is "
+                + getTextStatus(mapping) + ".");
+        
+        mapping.setTextEnabled(!mapping.isTextEnabled());
+        contentService.saveMapping(mapping);
 
-            LOGGER.info("Text in mapping " + mapping.getId() + " is now "
-                    + getTextStatus(mapping) + ".");
-            LOGGER.debug("Sending confirmation message...");
-            client.sendMessage(user, localizationLoader.getLocalizationForUser(
-                    SERVICE_MAPPING_TEXT_STATUS_UPDATE_SUCCESS, user, PARAM_STATUS,
-                    getTextStatus(user, mapping)));
-            LOGGER.debug("Message sent.");
-        }
+        LOGGER.info("Text in mapping " + mapping.getId() + " is now "
+                + getTextStatus(mapping) + ".");
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader
+                .getLocalizationForUser(SERVICE_MAPPING_TEXT_STATUS_UPDATE_SUCCESS,
+                user, PARAM_STATUS, getTextStatus(user, mapping)));
+        LOGGER.debug("Message sent.");
     }
 
     private String getTextStatus(UserEntity user, ContentMapping mapping) {

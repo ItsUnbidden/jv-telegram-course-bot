@@ -1,17 +1,20 @@
 package com.unbidden.telegramcoursesbot.service.menu;
 
 import com.unbidden.telegramcoursesbot.exception.MenuExpiredException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.menu.handler.ButtonHandler;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.BiFunction;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.apache.commons.lang3.function.TriFunction;
 
 @Data
 public class Menu {
+    private static final String BACK_DATA = "back";
+
     private String name;
 
     private List<Page> pages;
@@ -28,17 +31,19 @@ public class Menu {
     public static class Page {
         private int pageIndex;
 
+        private int previousPage;
+
         private Menu menu;
 
         private int buttonsRowSize;
 
-        private BiFunction<UserEntity, List<String>, Localization> localizationFunction;
+        private TriFunction<UserEntity, List<String>, Bot, Localization> localizationFunction;
 
-        private BiFunction<UserEntity, List<String>, List<Button>> buttonsFunction;
+        private TriFunction<UserEntity, List<String>, Bot, List<Button>> buttonsFunction;
 
-        public Button getButtonByData(UserEntity user, String currentButtonData,
+        public Button getButtonByData(UserEntity user, Bot bot, String currentButtonData,
                 String[] params) throws MenuExpiredException {
-            List<Button> potentialButton = buttonsFunction.apply(user, Arrays.asList(params))
+            List<Button> potentialButton = buttonsFunction.apply(user, Arrays.asList(params), bot)
                     .stream()
                     .filter(b -> b.getData().equals(currentButtonData))
                     .toList();
@@ -76,6 +81,14 @@ public class Menu {
         }
 
         @Data
+        @EqualsAndHashCode(callSuper = true)
+        public static class BackwardButton extends Button {
+            public BackwardButton(String name) {
+                super(name, BACK_DATA, Type.BACKWARD);
+            }
+        }
+
+        @Data
         public abstract static class Button {
             private String name;
 
@@ -91,7 +104,8 @@ public class Menu {
 
             public enum Type {
                 TERMINAL,
-                TRANSITORY
+                TRANSITORY,
+                BACKWARD
             }
         }
     }

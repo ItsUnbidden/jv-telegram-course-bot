@@ -6,6 +6,7 @@ import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
+import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.BackwardButton;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TransitoryButton;
@@ -28,6 +29,7 @@ public class SupportRequestMenu implements MenuConfigurer{
             "button_support_request_platform";
     private static final String BUTTON_RESOLVE_LAST_SUPPORT_REQUEST =
             "button_resolve_last_support_request";
+    private static final String BUTTON_BACK = "button_back";
     
     private static final String REQUEST_SUPPORT_PLATFORM = "rsp";
     private static final String REQUEST_SUPPORT_COURSE = "rsc";
@@ -59,27 +61,27 @@ public class SupportRequestMenu implements MenuConfigurer{
         page1.setMenu(menu);
         page1.setPageIndex(0);
         page1.setButtonsRowSize(2);
-        page1.setLocalizationFunction((u, p) -> {
-            return (courseService.getAllOwnedByUser(u).isEmpty())
+        page1.setLocalizationFunction((u, p, b) -> {
+            return (courseService.getAllOwnedByUser(u, b).isEmpty())
                 ? localizationLoader.getLocalizationForUser(
                     MENU_SUPPORT_REQUEST_PAGE_0_NO_COURSES, u)
                 : localizationLoader.getLocalizationForUser(MENU_SUPPORT_REQUEST_PAGE_0, u);
         });
-        page1.setButtonsFunction((u, p) -> {
+        page1.setButtonsFunction((u, p, b) -> {
             final List<Button> buttons = new ArrayList<>();
-            if (!courseService.getAllOwnedByUser(u).isEmpty()) {
+            if (!courseService.getAllOwnedByUser(u, b).isEmpty()) {
                 buttons.add(new TransitoryButton(localizationLoader.getLocalizationForUser(
                     BUTTON_SUPPORT_REQUEST_COURSE, u).getData(), REQUEST_SUPPORT_COURSE, 1));
             }
             buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
                 BUTTON_SUPPORT_REQUEST_PLATFORM, u).getData(), REQUEST_SUPPORT_PLATFORM,
                 sendSupportRequestHandler));
-            if (!supportService.isUserEligibleForSupport(u)) {
+            if (!supportService.isUserEligibleForSupport(u, b)) {
                 final SupportRequest lastUserRequest = supportService.getRequestById(
-                        supportService.getUnresolvedRequestsForUser(u).get(0).getId(), u);
+                        supportService.getUnresolvedRequestsForUser(u, b).get(0).getId(), u, b);
                 buttons.add(new TerminalButton(BUTTON_RESOLVE_LAST_SUPPORT_REQUEST,
-                        RESOLVE_LAST_SUPPORT_REQUEST, (u1, pa) -> supportService
-                        .markAsResolved(u, lastUserRequest)));
+                        RESOLVE_LAST_SUPPORT_REQUEST, (b1, u1, pa) -> supportService
+                        .markAsResolved(u1, b1, lastUserRequest)));
             }
             return buttons;
         });
@@ -87,10 +89,10 @@ public class SupportRequestMenu implements MenuConfigurer{
         page2.setMenu(menu);
         page2.setPageIndex(1);
         page2.setButtonsRowSize(2);
-        page2.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        page2.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
                 MENU_SUPPORT_REQUEST_PAGE_1, u));
-        page2.setButtonsFunction((u, p) -> {
-            final List<Course> allOwnedByUser = courseService.getAllOwnedByUser(u);
+        page2.setButtonsFunction((u, p, b) -> {
+            final List<Course> allOwnedByUser = courseService.getAllOwnedByUser(u, b);
             final List<Button> buttons = new ArrayList<>();
 
             for (Course course : allOwnedByUser) {
@@ -98,14 +100,16 @@ public class SupportRequestMenu implements MenuConfigurer{
                     COURSE_NAME.formatted(course.getName()), u).getData(),
                     course.getId().toString(), sendSupportRequestHandler));
             }
+            buttons.add(new BackwardButton(localizationLoader.getLocalizationForUser(
+                    BUTTON_BACK, u).getData()));
             return buttons;
         });
 
         final Page terminalPage = new Page();
         terminalPage.setMenu(menu);
         terminalPage.setPageIndex(2);
-        terminalPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
-                MENU_SUPPORT_REQUEST_TERMINAL_PAGE, u));
+        terminalPage.setLocalizationFunction((u, p, b) -> localizationLoader
+                .getLocalizationForUser(MENU_SUPPORT_REQUEST_TERMINAL_PAGE, u));
 
         menu.setName(MENU_NAME);
         menu.setPages(List.of(page1, page2, terminalPage));

@@ -1,11 +1,12 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.Security;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
-import com.unbidden.telegramcoursesbot.util.Blockable;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
@@ -25,28 +26,27 @@ public class CourseCommandHandler implements CommandHandler {
 
     private final CourseService courseService;
 
-    private final UserService userService;
-
     @Override
-    @Blockable
-    public void handle(@NonNull Message message, @NonNull String[] commandParts) {
-        final UserEntity user = userService.getUser(message.getFrom().getId());
-        final List<String> allCoursesNamesOwnedByUser = courseService.getAllOwnedByUser(user)
+    @Security(authorities = {AuthorityType.BUY, AuthorityType.LAUNCH_COURSE,
+            AuthorityType.LEAVE_REVIEW, AuthorityType.REFUND})
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
+            @NonNull String[] commandParts) {
+        final List<String> allCoursesNamesOwnedByUser = courseService.getAllOwnedByUser(user, bot)
                 .stream().map(c -> c.getName()).toList();
 
         if (allCoursesNamesOwnedByUser.isEmpty()) {
-            menuService.initiateMenu(AVAILABLE_COURSES_MENU, user);
+            menuService.initiateMenu(AVAILABLE_COURSES_MENU, user, bot);
             return;
         }
 
-        final List<Course> availableCourses = courseService.getAll().stream()
+        final List<Course> availableCourses = courseService.getByBot(bot).stream()
                 .filter(c -> !allCoursesNamesOwnedByUser.contains(c.getName())).toList();
 
         if (availableCourses.isEmpty()) {
-            menuService.initiateMenu(MY_COURSES_MENU, user);
+            menuService.initiateMenu(MY_COURSES_MENU, user, bot);
             return;
         }
-        menuService.initiateMenu(COURSES_MENU, user);
+        menuService.initiateMenu(COURSES_MENU, user, bot);
     }
 
     @Override
@@ -56,7 +56,9 @@ public class CourseCommandHandler implements CommandHandler {
     }
 
     @Override
-    public boolean isAdminCommand() {
-        return false;
+    @NonNull
+    public List<AuthorityType> getAuthorities() {
+        return List.of(AuthorityType.BUY, AuthorityType.LAUNCH_COURSE,
+                AuthorityType.LEAVE_REVIEW, AuthorityType.REFUND);
     }
 }

@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-roles-authorities-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: roles_authorities
+            columns: 
+              - column:
+                  name: role_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_roles_roles_authorities
+                    references: roles(id)
+                    nullable: false
+              - column:
+                  name: authority_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_authorities_roles_authorities
+                    references: authorities(id)
+                    nullable: false

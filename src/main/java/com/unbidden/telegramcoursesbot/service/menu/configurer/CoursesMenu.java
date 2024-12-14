@@ -6,10 +6,11 @@ import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
+import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.BackwardButton;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TransitoryButton;
-
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,7 @@ public class CoursesMenu implements MenuConfigurer {
 
     private static final String BUTTON_MY_COURSES = "button_my_courses";
     private static final String BUTTON_AVAILABLE_COURSES = "button_available_courses";
+    private static final String BUTTON_BACK = "button_back";
 
     private static final String COURSE_NAME = "course_%s_name";
 
@@ -43,29 +45,34 @@ public class CoursesMenu implements MenuConfigurer {
         final Page firstPage = new Page();
         firstPage.setPageIndex(0);
         firstPage.setButtonsRowSize(2);
-        firstPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        firstPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
             MENU_COURSES_PAGE_0, u));
         firstPage.setMenu(menu);
-        firstPage.setButtonsFunction((u, p) -> List.of(new TransitoryButton(localizationLoader
+        firstPage.setButtonsFunction((u, p, b) -> List.of(new TransitoryButton(localizationLoader
                 .getLocalizationForUser(BUTTON_AVAILABLE_COURSES, u).getData(),
                 AVAILABLE_COURSES, 1), new TerminalButton(localizationLoader
-                .getLocalizationForUser(BUTTON_MY_COURSES, u).getData(), MY_COURSES, (u1, pa) ->
-                menuService.initiateMenu(MY_COURSES_MENU_NAME, u1))));
+                .getLocalizationForUser(BUTTON_MY_COURSES, u).getData(), MY_COURSES,
+                (b1, u1, pa) -> menuService.initiateMenu(MY_COURSES_MENU_NAME, u1, b1))));
         final Page secondPage = new Page();
         secondPage.setPageIndex(1);
+        secondPage.setPreviousPage(0);
         secondPage.setButtonsRowSize(2);
-        secondPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        secondPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
             MENU_COURSES_PAGE_1, u));
         secondPage.setMenu(menu);
-        secondPage.setButtonsFunction((u, p) -> {
-            final List<String> ownedCoursesNames = courseService.getAllOwnedByUser(u).stream()
+        secondPage.setButtonsFunction((u, p, b) -> {
+            final List<String> ownedCoursesNames = courseService.getAllOwnedByUser(u, b).stream()
                     .map(c -> c.getName()).toList();
-            final List<String> allCoursesNames = courseService.getAll().stream()
-                    .map(c -> c.getName()).toList();
-            return allCoursesNames.stream().filter(cn -> !ownedCoursesNames.contains(cn))
+            final List<String> allCoursesNames = courseService.getByBot(b).stream()
+                    .filter(c -> !c.isUnderMaintenance()).map(c -> c.getName()).toList();
+            final List<Button> buttons = new ArrayList<>();
+            buttons.addAll(allCoursesNames.stream().filter(cn -> !ownedCoursesNames.contains(cn))
                     .map(cn -> (Button)new TerminalButton(localizationLoader
                     .getLocalizationForUser(COURSE_NAME.formatted(cn), u).getData(), cn,
-                    (p1, u1) -> courseService.initMessage(u, cn))).toList();
+                    (b1, p1, u1) -> courseService.initMessage(u, b1, cn))).toList());
+            buttons.add(new BackwardButton(localizationLoader.getLocalizationForUser(
+                    BUTTON_BACK, u).getData()));
+            return buttons;
         });
         
         menu.setName(MENU_NAME);

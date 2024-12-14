@@ -1,0 +1,41 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-roles
+      author: Unbidden
+      changes:
+        - insert:  
+            tableName: roles
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 0
+        - insert:  
+            tableName: roles
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 1
+        - insert:  
+            tableName: roles
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 2
+        - insert:  
+            tableName: roles
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 3
+        - insert:  
+            tableName: roles
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 4
+        - insert:  
+            tableName: roles
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 5

@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.content;
 
 import com.unbidden.telegramcoursesbot.exception.NoImplementationException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
@@ -14,5 +15,5 @@ public interface ContentManager {
             @NonNull MediaType contentType) throws NoImplementationException;
 
     @NonNull
-    LocalizedContent getById(@NonNull Long id, @NonNull UserEntity user);
+    LocalizedContent getById(@NonNull Long id, @NonNull UserEntity user, @NonNull Bot bot);
 }

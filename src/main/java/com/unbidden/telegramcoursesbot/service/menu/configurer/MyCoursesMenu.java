@@ -8,6 +8,7 @@ import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
+import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.BackwardButton;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TransitoryButton;
@@ -47,6 +48,7 @@ public class MyCoursesMenu implements MenuConfigurer {
     private static final String BUTTON_UPDATE_REVIEW_OPTIONS = "button_update_review_options";
     private static final String BUTTON_BEGIN_COURSE = "button_begin_course";
     private static final String BUTTON_REFUND = "button_refund";
+    private static final String BUTTON_BACK = "button_back";
 
     private static final String COURSE_NAME = "course_%s_name";
 
@@ -81,12 +83,12 @@ public class MyCoursesMenu implements MenuConfigurer {
             final String iSrt = String.valueOf(i);
             final int currentGrade = i;
 
-            COURSE_GRADE_BUTTONS.add(new TerminalButton(iSrt, iSrt, (u, pa) ->
+            COURSE_GRADE_BUTTONS.add(new TerminalButton(iSrt, iSrt, (b, u, pa) ->
                     reviewService.updateCourseGrade(reviewService.getReviewByCourseAndUser(u,
-                    courseService.getCourseByName(pa[0], u)).getId(), currentGrade)));
-            PLATFORM_GRADE_BUTTONS.add(new TerminalButton(iSrt, iSrt, (u, pa) ->
+                    courseService.getCourseByName(pa[0], u, b)).getId(), u, b, currentGrade)));
+            PLATFORM_GRADE_BUTTONS.add(new TerminalButton(iSrt, iSrt, (b, u, pa) ->
                     reviewService.updatePlatformGrade(reviewService.getReviewByCourseAndUser(u,
-                    courseService.getCourseByName(pa[0], u)).getId(), currentGrade)));
+                    courseService.getCourseByName(pa[0], u, b)).getId(), u, b, currentGrade)));
         }
     }
     
@@ -96,18 +98,19 @@ public class MyCoursesMenu implements MenuConfigurer {
         final Page firstPage = new Page();
         firstPage.setPageIndex(0);
         firstPage.setButtonsRowSize(2);
-        firstPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        firstPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
             MENU_MY_COURSES_PAGE_0, u));
         firstPage.setMenu(menu);
-        firstPage.setButtonsFunction((u, p) -> {
-            final List<Course> allOwnedByUser = courseService.getAllOwnedByUser(u);
+        firstPage.setButtonsFunction((u, p, b) -> {
+            final List<Course> allOwnedByUser = courseService.getAllOwnedByUser(u, b).stream()
+                    .filter(c -> !c.isUnderMaintenance()).toList();
             final List<Button> buttons = new ArrayList<>();
 
             for (Course course : allOwnedByUser) {
                 final String buttonLocName = COURSE_NAME.formatted(course.getName());
                 boolean isRefundPossible;
                 try {
-                    isRefundPossible = paymentService.isRefundPossible(u, course.getName());
+                    isRefundPossible = paymentService.isRefundPossible(u, b, course.getName());
                 } catch (RefundImpossibleException e) {
                     isRefundPossible = false;
                 }
@@ -115,12 +118,12 @@ public class MyCoursesMenu implements MenuConfigurer {
                 if (courseService.hasCourseBeenCompleted(u, course) || isRefundPossible) {
                     buttons.add(new TransitoryButton(localizationLoader
                             .getLocalizationForUser(buttonLocName, u)
-                            .getData(),course.getName(), 1));
+                            .getData(), course.getName(), 1));
                 } else {
                     buttons.add(new TerminalButton(localizationLoader
                             .getLocalizationForUser(buttonLocName, u)
-                            .getData(),course.getName(), (u1, pa) -> courseService.initMessage(u,
-                            course.getName())));
+                            .getData(), course.getName(), (b1, u1, pa) -> courseService
+                            .initMessage(u, b1, course.getName())));
                 }
             }
             return buttons;
@@ -128,17 +131,18 @@ public class MyCoursesMenu implements MenuConfigurer {
         final Page secondPage = new Page();
 
         secondPage.setPageIndex(1);
+        secondPage.setPreviousPage(0);
         secondPage.setButtonsRowSize(1);
-        secondPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        secondPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
             MENU_MY_COURSES_PAGE_1, u));
         secondPage.setMenu(menu);
-        secondPage.setButtonsFunction((u, p) -> {
+        secondPage.setButtonsFunction((u, p, b) -> {
                 final List<Button> buttons = new ArrayList<>();
                 buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
-                    BUTTON_BEGIN_COURSE, u).getData(), BEGIN_COURSE, (u1, pa) ->
-                    courseService.initMessage(u1, pa[0])));
+                    BUTTON_BEGIN_COURSE, u).getData(), BEGIN_COURSE, (b1, u1, pa) ->
+                    courseService.initMessage(u1, b1, pa[0])));
 
-                final Course course = courseService.getCourseByName(p.get(0), u);
+                final Course course = courseService.getCourseByName(p.get(0), u, b);
 
                 if (courseService.hasCourseBeenCompleted(u, course)) {
                     if (reviewService.isAdvancedReviewForCourseAndUserAvailable(u, course)) {
@@ -152,60 +156,68 @@ public class MyCoursesMenu implements MenuConfigurer {
                             REVIEW_BASIC_UPDATE_ADVANCED_LEAVE_OPTIONS, 3));
                     } else {
                         buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
-                            BUTTON_LEAVE_REVIEW, u).getData(), LEAVE_REVIEW, (p1, u1) ->
+                            BUTTON_LEAVE_REVIEW, u).getData(), LEAVE_REVIEW, (b1, p1, u1) ->
                             reviewService.initiateBasicReview(u, course)));
                     }
                 }
                 try {
-                    paymentService.isRefundPossible(u, course.getName());
+                    paymentService.isRefundPossible(u, b, course.getName());
                     buttons.add(new TerminalButton(BUTTON_REFUND, REFUND, refundHandler));
                 } catch (RefundImpossibleException e) {
                 }
+                buttons.add(new BackwardButton(localizationLoader.getLocalizationForUser(
+                        BUTTON_BACK, u).getData()));
                 return buttons;
             });
         final Page thirdPage = new Page();
 
         thirdPage.setPageIndex(2);
+        thirdPage.setPreviousPage(1);
         thirdPage.setButtonsRowSize(2);
-        thirdPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        thirdPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
             MENU_MY_COURSES_PAGE_2, u));
         thirdPage.setMenu(menu);
-        thirdPage.setButtonsFunction((u, p) -> List.of(new TransitoryButton(localizationLoader
-                .getLocalizationForUser(BUTTON_UPDATE_COURSE_GRADE, u).getData(), UPDATE_COURSE_GRADE, 4),
+        thirdPage.setButtonsFunction((u, p, b) -> List.of(new TransitoryButton(localizationLoader
+                .getLocalizationForUser(BUTTON_UPDATE_COURSE_GRADE, u).getData(),
+                UPDATE_COURSE_GRADE, 4),
                 new TransitoryButton(localizationLoader.getLocalizationForUser(
                 BUTTON_UPDATE_PLATFORM_GRADE, u).getData(), UPDATE_PLATFORM_GRADE, 5),
                 new TerminalButton(localizationLoader.getLocalizationForUser(
                 BUTTON_UPDATE_ADVANCED_REVIEW, u).getData(), UPDATE_ADVANCED_REVIEW,
-                updateAdvancedReviewHandler)));
+                updateAdvancedReviewHandler), new BackwardButton(localizationLoader
+                .getLocalizationForUser(BUTTON_BACK, u).getData())));
         final Page fourthPage = new Page();
 
         fourthPage.setPageIndex(3);
+        fourthPage.setPreviousPage(1);
         fourthPage.setButtonsRowSize(2);
-        fourthPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        fourthPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
             MENU_MY_COURSES_PAGE_3, u));
         fourthPage.setMenu(menu);
-        fourthPage.setButtonsFunction((u, p) -> List.of(new TransitoryButton(localizationLoader
+        fourthPage.setButtonsFunction((u, p, b) -> List.of(new TransitoryButton(localizationLoader
                 .getLocalizationForUser(BUTTON_UPDATE_COURSE_GRADE, u).getData(), UPDATE_COURSE_GRADE, 4),
                 new TransitoryButton(localizationLoader.getLocalizationForUser(
                 BUTTON_UPDATE_PLATFORM_GRADE, u).getData(), UPDATE_PLATFORM_GRADE, 5),
                 new TerminalButton(localizationLoader.getLocalizationForUser(
-                BUTTON_SEND_ADVANCED_REVIEW, u).getData(), SEND_ADVANCED_REVIEW, sendAdvancedReviewHandler)));
+                BUTTON_SEND_ADVANCED_REVIEW, u).getData(), SEND_ADVANCED_REVIEW,
+                sendAdvancedReviewHandler), new BackwardButton(localizationLoader
+                .getLocalizationForUser(BUTTON_BACK, u).getData())));
         final Page fifthPage = new Page();
 
         fifthPage.setPageIndex(4);
         fifthPage.setButtonsRowSize(5);
-        fifthPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        fifthPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
             MENU_MY_COURSES_PAGE_4, u));
         fifthPage.setMenu(menu);
-        fifthPage.setButtonsFunction((u, pa) -> COURSE_GRADE_BUTTONS);
+        fifthPage.setButtonsFunction((u, p, b) -> COURSE_GRADE_BUTTONS);
         final Page sixthPage = new Page();
 
         sixthPage.setPageIndex(5);
         sixthPage.setButtonsRowSize(5);
-        sixthPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        sixthPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
             MENU_MY_COURSES_PAGE_5, u));
         sixthPage.setMenu(menu);
-        sixthPage.setButtonsFunction((u, pa) -> PLATFORM_GRADE_BUTTONS);
+        sixthPage.setButtonsFunction((u, p, b) -> PLATFORM_GRADE_BUTTONS);
 
         menu.setName(MENU_NAME);
         menu.setPages(List.of(firstPage, secondPage, thirdPage, fourthPage,

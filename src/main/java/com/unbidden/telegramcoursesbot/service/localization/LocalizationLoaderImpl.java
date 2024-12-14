@@ -23,7 +23,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 @Service
 public class LocalizationLoaderImpl implements LocalizationLoader {
@@ -69,19 +68,6 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
 
     @Override
     @NonNull
-    public Localization getLocalizationForUser(@NonNull String name, @NonNull User user) {
-        final Localization localization = loadLocalization(name, user.getLanguageCode());
-        
-        if (!localization.isInjectionRequired()) {
-            return localization;
-        }
-        final String withInjectedUserData = textUtil.injectUserData(localization.getData(), user);
-        LOGGER.trace("User data injected. Setting up entities...");
-        return setUpLocalization(localization, withInjectedUserData);
-    }
-
-    @Override
-    @NonNull
     public Localization getLocalizationForUser(@NonNull String name, @NonNull UserEntity user) {
         final Localization localization = loadLocalization(name, user.getLanguageCode());
         
@@ -91,21 +77,6 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
         final String withInjectedUserData = textUtil.injectUserData(localization.getData(), user);
         LOGGER.trace("User data injected. Setting up entities...");
         return setUpLocalization(localization, withInjectedUserData);
-    }
-
-    @Override
-    @NonNull
-    public Localization getLocalizationForUser(@NonNull String name, @NonNull User user,
-            @NonNull Map<String, Object> parameterMap) {
-        final Localization localization = loadLocalization(name, user.getLanguageCode());
-
-        if (!localization.isInjectionRequired()) {
-            return localization;
-        }
-        final String withInjectedParams = textUtil.injectParams(textUtil.injectUserData(
-                localization.getData(), user), parameterMap);
-        LOGGER.trace("User data and custom parameters injected. Setting up entities...");
-        return setUpLocalization(localization, withInjectedParams);
     }
 
     @Override
@@ -121,16 +92,6 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                 localization.getData(), user), parameterMap);
         LOGGER.trace("User data and custom parameters injected. Setting up entities...");
         return setUpLocalization(localization, withInjectedParams);
-    }
-
-    @Override
-    @NonNull
-    public Localization getLocalizationForUser(@NonNull String name, @NonNull User user,
-            @NonNull String paramKey, @NonNull Object param) {
-        final Map<String, Object> parameterMap = new HashMap<>();
-
-        parameterMap.put(paramKey, param);
-        return getLocalizationForUser(name, user, parameterMap);
     }
 
     @Override

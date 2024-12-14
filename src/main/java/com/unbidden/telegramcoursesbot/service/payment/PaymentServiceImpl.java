@@ -1,10 +1,12 @@
 package com.unbidden.telegramcoursesbot.service.payment;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dao.ImageDao;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
+import com.unbidden.telegramcoursesbot.exception.OnMaintenanceException;
 import com.unbidden.telegramcoursesbot.exception.RefundImpossibleException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
@@ -23,6 +25,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
@@ -31,7 +34,6 @@ import org.telegram.telegrambots.meta.api.methods.invoices.SendInvoice;
 import org.telegram.telegrambots.meta.api.methods.invoices.SendInvoice.SendInvoiceBuilder;
 import org.telegram.telegrambots.meta.api.methods.payments.RefundStarPayment;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
-import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.payments.LabeledPrice;
 import org.telegram.telegrambots.meta.api.objects.payments.PreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.objects.payments.SuccessfulPayment;
@@ -70,6 +72,8 @@ public class PaymentServiceImpl implements PaymentService {
     private static final String ERROR_REFUND_COURSE_COMPLETED = "error_refund_course_completed";
     private static final String ERROR_REFUND_COURSE_UNAVAILABLE =
             "error_refund_course_unavailable";
+    private static final String ERROR_PAYMENT_SUCCESS_SERVER_ON_MAINTENANCE =
+            "error_payment_success_server_on_maintenance";
 
     private static final String COURSE_INVOICE_DESCRIPTION = "course_%s_invoice_description";
     private static final String COURSE_INVOICE_TITLE = "course_%s_invoice_title";
@@ -94,7 +98,7 @@ public class PaymentServiceImpl implements PaymentService {
     private UserService userService;
 
     @Autowired
-    private CustomTelegramClient client;
+    private ClientManager clientManager;
 
     @Autowired
     private LocalizationLoader localizationLoader;
@@ -103,18 +107,15 @@ public class PaymentServiceImpl implements PaymentService {
     private String serverUrl;
 
     @Override
-    public boolean isAvailable(@NonNull User user, @NonNull String courseName) {
-        return isAvailable0(userService.getUser(user.getId()), courseName);
+    public boolean isAvailable(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull String courseName) {
+        return isAvailable0(user, bot, courseName);
     }
 
     @Override
-    public boolean isAvailable(@NonNull UserEntity user, @NonNull String courseName) {
-        return isAvailable0(user, courseName);
-    }
-
-    @Override
-    public boolean isAvailableAndGifted(@NonNull UserEntity user, @NonNull String courseName) {
-        final Course course = courseService.getCourseByName(courseName, user);
+    public boolean isAvailableAndGifted(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull String courseName) {
+        final Course course = courseService.getCourseByName(courseName, user, bot);
         
         return !paymentDetailsRepository
                 .findByUserIdAndCourseName(user.getId(), course.getName()).stream()
@@ -137,8 +138,9 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public void sendInvoice(@NonNull UserEntity user, @NonNull String courseName) {
-        final Course course = courseService.getCourseByName(courseName, user);
+    public void sendInvoice(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull String courseName) {
+        final Course course = courseService.getCourseByName(courseName, user, bot);
         final String imageUrl = serverUrl + INVOICE_IMAGES_ENDPOINT + "/" + courseName;
 
         LOGGER.debug("Compiling invoce for course " + courseName + " for user " + user.getId()
@@ -167,7 +169,7 @@ public class PaymentServiceImpl implements PaymentService {
         try {
             LOGGER.debug("Sending invoice for course " + course.getName()
                     + " to user " + user.getId() + "...");
-                    client.execute(builder.build());
+                    clientManager.getClient(bot).execute(builder.build());
             LOGGER.debug("Invoice sent.");
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to send invoice for "
@@ -177,28 +179,29 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public void resolvePreCheckout(@NonNull PreCheckoutQuery preCheckoutQuery) {
+    public void resolvePreCheckout(@NonNull PreCheckoutQuery preCheckoutQuery, @NonNull Bot bot) {
         final AnswerPreCheckoutQueryBuilder<?, ?> answerBuilder =
                 AnswerPreCheckoutQuery.builder()
                     .preCheckoutQueryId(preCheckoutQuery.getId())
                     .ok(false);
-        final UserEntity user = userService.getUser(preCheckoutQuery.getFrom().getId());
+        final UserEntity user = userService.getUser(preCheckoutQuery.getFrom().getId(),
+                userService.getDiretor());
 
         try {
             final Course course = courseService.getCourseByName(
-                    preCheckoutQuery.getInvoicePayload(), user);
+                    preCheckoutQuery.getInvoicePayload(), user, bot);
             
             LOGGER.info("Precheckout query was sent for course " + course.getName()
                     + " by user " + user.getId() + ".");
             
-            if (isAvailable(user, course.getName())) {
+            if (isAvailable(user, bot, course.getName())) {
                 final Localization errorLoc = localizationLoader.getLocalizationForUser(
                         ERROR_PRE_CHECKOUT_COURSE_ALREADY_OWNED, user, PARAM_COURSE_NAME,
                         course.getName());
                 answerBuilder.errorMessage(errorLoc.getData());
                 LOGGER.warn("Precheckout failed: user " + user.getId()
                         + " already has course " + course.getName());
-                client.sendMessage(user, errorLoc);
+                clientManager.getClient(bot).sendMessage(user, errorLoc);
                 
             } else if (!preCheckoutQuery.getCurrency().equals(TELEGRAM_STARS)) {
                 final Localization errorLoc = localizationLoader.getLocalizationForUser(
@@ -206,7 +209,7 @@ public class PaymentServiceImpl implements PaymentService {
                 answerBuilder.errorMessage(errorLoc.getData());
                 LOGGER.error("Precheckout failed: currency mismatch. Investigation required. "
                         + "User: " + user.getId() + ", course: " + course.getName());
-                client.sendMessage(user, errorLoc);
+                clientManager.getClient(bot).sendMessage(user, errorLoc);
             } else if (!preCheckoutQuery.getTotalAmount().equals(course.getPrice())) {
                 final Localization errorLoc = localizationLoader.getLocalizationForUser(
                         ERROR_PRE_CHECKOUT_PRICE_MISMATCH, user, PARAM_CURRENT_PRICE,
@@ -216,7 +219,7 @@ public class PaymentServiceImpl implements PaymentService {
                         + " is using invoice with price " + preCheckoutQuery.getTotalAmount()
                         + " while course " + course.getName() + "'s current price is "
                         + course.getPrice());
-                client.sendMessage(user, errorLoc);
+                clientManager.getClient(bot).sendMessage(user, errorLoc);
             } else {
                 LOGGER.info("Precheckout completed for course " + course.getName()
                         + " and user " + user.getId() + ".");
@@ -230,23 +233,24 @@ public class PaymentServiceImpl implements PaymentService {
             LOGGER.error("Precheckout query payload contained unknown course: "
                     + preCheckoutQuery.getInvoicePayload() + ". Investigation required. User "
                     + user.getId());
-            client.sendMessage(user, errorLoc);
+            clientManager.getClient(bot).sendMessage(user, errorLoc);
         }
 
         try {
             LOGGER.info("Sending precheckout response...");
-            client.execute(answerBuilder.build());
+            clientManager.getClient(bot).execute(answerBuilder.build());
             LOGGER.info("Precheckout response sent.");
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to answer precheckout query",
                     localizationLoader.getLocalizationForUser(ERROR_ANSWER_PRECHECKOUT_FAILURE,
-                    preCheckoutQuery.getFrom()), e);
+                    user), e);
         }
     }
 
     @Override
-    public void resolveSuccessfulPayment(@NonNull Message message) {
-        final UserEntity user = userService.getUser(message.getFrom().getId());
+    public void resolveSuccessfulPayment(@NonNull Message message, @NonNull Bot bot) {
+        final UserEntity user = userService.getUser(message.getFrom().getId(),
+                userService.getDiretor());
         final SuccessfulPayment payment = message.getSuccessfulPayment();
 
         final PaymentDetails paymentDetails = new PaymentDetails();
@@ -257,7 +261,8 @@ public class PaymentServiceImpl implements PaymentService {
         paymentDetails.setGifted(false);
         paymentDetails.setTimestamp(LocalDateTime.now());
 
-        final Course course = courseService.getCourseByName(payment.getInvoicePayload(), user);
+        final Course course = courseService.getCourseByName(payment.getInvoicePayload(),
+                user, bot);
 
         LOGGER.info("Successful payment was sent for course " + course.getName()
                 + " by user " + user.getId() + ".");
@@ -266,19 +271,24 @@ public class PaymentServiceImpl implements PaymentService {
         LOGGER.debug("Saving payment details...");
         addPaymentDetails(paymentDetails);
         LOGGER.debug("Payment details saved. Sending confirmation message...");
-        client.sendMessage(user, localizationLoader.getLocalizationForUser(
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
                 SERVICE_SUCCESSFUL_PAYMENT, user, PARAM_COURSE_NAME, course.getName()));
         LOGGER.debug("Message sent.");
         LOGGER.info("User " + user.getId() + " has bought course " + course.getName()
                 + "! Do not forget to thank them!");
+        if (clientManager.isOnMaintenance()) {
+            throw new OnMaintenanceException("Unable to send course because server is on "
+                    + "maintenance", localizationLoader.getLocalizationForUser(
+                    ERROR_PAYMENT_SUCCESS_SERVER_ON_MAINTENANCE, user));
+        }
         LOGGER.debug("Initiating course " + course.getName() + " for user "
                 + user.getId() + "...");
-        courseService.initMessage(user, course.getName());
+        courseService.initMessage(user, bot, course.getName());
         LOGGER.debug("Course initiated.");
     }
 
     @Override
-    public void refund(@NonNull UserEntity user, @NonNull String courseName) {
+    public void refund(@NonNull UserEntity user, @NonNull Bot bot, @NonNull String courseName) {
         final List<PaymentDetails> paymentDetailsList = paymentDetailsRepository
                 .findByUserIdAndCourseName(user.getId(), courseName);
 
@@ -289,7 +299,7 @@ public class PaymentServiceImpl implements PaymentService {
                         .userId(user.getId())
                         .build();
                 try {
-                    client.execute(refundStarPayment);
+                    clientManager.getClient(bot).execute(refundStarPayment);
                 } catch (TelegramApiException e) {
                     throw new TelegramException(courseName, localizationLoader.getLocalizationForUser(ERROR_REFUND_FAILURE, user), e);
                 }
@@ -301,8 +311,9 @@ public class PaymentServiceImpl implements PaymentService {
                 LOGGER.info("Payment details " + paymentDetailsEntry.getId()
                         + " has been invalidated.");
                 LOGGER.debug("Sending confirmation message...");
-                client.sendMessage(user, localizationLoader.getLocalizationForUser(
-                        SERVICE_REFUND_SUCCESS, user, PARAM_COURSE_NAME, courseName));
+                clientManager.getClient(bot).sendMessage(user, localizationLoader
+                        .getLocalizationForUser(SERVICE_REFUND_SUCCESS, user,
+                        PARAM_COURSE_NAME, courseName));
                 LOGGER.debug("Message sent.");
                 return;
             }
@@ -315,13 +326,14 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @NonNull
-    public List<PaymentDetails> getAllForUser(@NonNull UserEntity user) {
-        return paymentDetailsRepository.findByUser(user.getId());
+    public List<PaymentDetails> getAllForUserAndBot(@NonNull UserEntity user, @NonNull Bot bot) {
+        return paymentDetailsRepository.findByUserAndBot(user, bot);
     }
 
     @Override
-    public boolean isRefundPossible(@NonNull UserEntity user, @NonNull String courseName) {
-        final Course course = courseService.getCourseByName(courseName, user);
+    public boolean isRefundPossible(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull String courseName) {
+        final Course course = courseService.getCourseByName(courseName, user, bot);
         LOGGER.info("Performing checks for refund of course " + courseName
                 + " for user " + user.getId() + "...");
         LOGGER.debug("Checking whether course " + courseName + " supports refund...");
@@ -332,14 +344,14 @@ public class PaymentServiceImpl implements PaymentService {
         }
         LOGGER.debug("Checking whether course " + courseName + " is owned by user "
                 + user.getId() + "...");
-        if (!isAvailable(user, course.getName())) {
+        if (!isAvailable(user, bot, course.getName())) {
             throw new RefundImpossibleException("Course " + course.getName()
                     + " is not owned by user " + user.getId(), localizationLoader
                     .getLocalizationForUser(ERROR_REFUND_COURSE_NOT_OWNED, user));
         }
         LOGGER.debug("Checking whether course " + courseName + " was gifted to user "
                 + user.getId() + "...");
-        if (isAvailableAndGifted(user, course.getName())) {
+        if (isAvailableAndGifted(user, bot, course.getName())) {
             throw new RefundImpossibleException("Course " + course.getName()
                     + " was gifted to user " + user.getId()
                     + " and therefore it cannot be refunded", localizationLoader
@@ -376,8 +388,15 @@ public class PaymentServiceImpl implements PaymentService {
         return true;
     }
 
-    private boolean isAvailable0(UserEntity user, String courseName) {
-        final Course course = courseService.getCourseByName(courseName, user);
+    @Override
+    @NonNull
+    public List<PaymentDetails> getAllForCourse(@NonNull Course course,
+            @NonNull Pageable pageable) {
+        return paymentDetailsRepository.findByCourse(course, pageable);
+    }
+
+    private boolean isAvailable0(UserEntity user, Bot bot, String courseName) {
+        final Course course = courseService.getCourseByName(courseName, user, bot);
         
         return !paymentDetailsRepository.findByUserIdAndCourseName(user.getId(), course.getName())
                 .isEmpty();

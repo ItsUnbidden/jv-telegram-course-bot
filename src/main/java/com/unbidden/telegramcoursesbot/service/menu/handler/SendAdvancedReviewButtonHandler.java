@@ -1,7 +1,10 @@
 package com.unbidden.telegramcoursesbot.service.menu.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
@@ -27,17 +30,18 @@ public class SendAdvancedReviewButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
-        sessionService.createSession(user, m -> {
+    @Security(authorities = AuthorityType.LEAVE_REVIEW)
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
+        sessionService.createSession(user, bot, m -> {
                 reviewService.commitAdvancedReview(reviewService.getReviewByCourseAndUser(user,
-                    courseService.getCourseByName(params[0], user)).getId(),
-                    contentService.parseAndPersistContent(m));
+                    courseService.getCourseByName(params[0], user, bot)).getId(), user,
+                    contentService.parseAndPersistContent(bot, m));
         });
         final Localization request = localizationLoader.getLocalizationForUser(
                 SERVICE_REVIEW_CONTENT_REQUEST, user);
-        client.sendMessage(user, request);
+        clientManager.getClient(bot).sendMessage(user, request);
     }
 }

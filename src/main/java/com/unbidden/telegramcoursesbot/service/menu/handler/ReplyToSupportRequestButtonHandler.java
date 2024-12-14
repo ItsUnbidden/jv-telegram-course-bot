@@ -1,9 +1,12 @@
 package com.unbidden.telegramcoursesbot.service.menu.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.SupportRequest;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
+import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
@@ -33,29 +36,30 @@ public class ReplyToSupportRequestButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
+    @Security(authorities = AuthorityType.ANSWER_SUPPORT)
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
         final SupportRequest request = supportService.getRequestById(
-                Long.parseLong(params[0]), user);
+                Long.parseLong(params[0]), user, bot);
         LOGGER.info("User " + user.getId() + " is trying to reply to support request "
                 + request.getId() + "...");
 
-        supportService.checkRequestResolved(request, user);
-        supportService.checkSupportMessageAnswered(request, user);
+        supportService.checkRequestResolved(request, user, bot);
+        supportService.checkSupportMessageAnswered(request, user, bot);
 
-        sessionService.createSession(user, m -> {
-            final LocalizedContent content = contentService.parseAndPersistContent(m);
+        sessionService.createSession(user, bot, m -> {
+            final LocalizedContent content = contentService.parseAndPersistContent(bot, m);
 
-            supportService.replyToSupportRequest(user, request, content);
+            supportService.replyToSupportRequest(user, bot, request, content);
             LOGGER.debug("Sending confirmation message...");
-            client.sendMessage(user, localizationLoader.getLocalizationForUser(
-                    SERVICE_SUPPORT_REQUEST_REPLY_SENT, user));
+            clientManager.getClient(bot).sendMessage(user, localizationLoader
+                    .getLocalizationForUser(SERVICE_SUPPORT_REQUEST_REPLY_SENT, user));
             LOGGER.debug("Message sent.");
         });
         LOGGER.debug("Sending support content request message...");
-        client.sendMessage(user, localizationLoader.getLocalizationForUser(
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
                 SERVICE_SUPPORT_REQUEST_REPLY_REQUEST, user));
         LOGGER.debug("Message sent.");
     }

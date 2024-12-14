@@ -1,13 +1,15 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.Security;
+import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
-import com.unbidden.telegramcoursesbot.util.Blockable;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 @Component
 @RequiredArgsConstructor
@@ -18,16 +20,11 @@ public class CourseSettingsCommandHandler implements CommandHandler {
 
     private final MenuService menuService;
 
-    private final UserService userService;
-
     @Override
-    @Blockable
-    public void handle(@NonNull Message message, @NonNull String[] commandParts) {
-        final User user = message.getFrom();
-
-        if (userService.isAdmin(user)) {
-            menuService.initiateMenu(COURSE_SETTINGS_MENU, user);
-        }
+    @Security(authorities = {AuthorityType.COURSE_SETTINGS, AuthorityType.GIVE_COURSE})
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
+            @NonNull String[] commandParts) {
+        menuService.initiateMenu(COURSE_SETTINGS_MENU, user, bot);
     }
 
     @Override
@@ -37,7 +34,8 @@ public class CourseSettingsCommandHandler implements CommandHandler {
     }
 
     @Override
-    public boolean isAdminCommand() {
-        return true;
+    @NonNull
+    public List<AuthorityType> getAuthorities() {
+        return List.of(AuthorityType.COURSE_SETTINGS, AuthorityType.GIVE_COURSE);
     }
 }

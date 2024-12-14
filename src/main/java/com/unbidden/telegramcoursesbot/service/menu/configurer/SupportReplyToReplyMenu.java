@@ -38,13 +38,13 @@ public class SupportReplyToReplyMenu implements MenuConfigurer {
         page.setMenu(menu);
         page.setPageIndex(0);
         page.setButtonsRowSize(1);
-        page.setButtonsFunction((u, p) -> List.of(new TerminalButton(
+        page.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_REPLY_TO_SUPPORT_REPLY, u)
                 .getData(), REPLY_TO_SUPPORT_REPLY, replyToSupportReplyHandler),
                 new TerminalButton(localizationLoader.getLocalizationForUser(
                 BUTTON_RESOLVE_SUPPORT_REQUEST, u).getData(), MARK_AS_RESOLVED,
-                (u1, pa) -> supportService.markAsResolved(u, supportService.getReplyById(
-                    Long.parseLong(pa[0]), u).getRequest()))));
+                (b1, u1, pa) -> supportService.markAsResolved(u1, b1, supportService.getReplyById(
+                    Long.parseLong(pa[0]), u1, b1).getRequest()))));
         menu.setName(MENU_NAME);
         menu.setPages(List.of(page));
         menu.setOneTimeMenu(true);

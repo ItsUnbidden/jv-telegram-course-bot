@@ -1,13 +1,12 @@
 package com.unbidden.telegramcoursesbot.service.menu.configurer;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
-
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -26,7 +25,7 @@ public class TestMenu implements MenuConfigurer {
 
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
     public void configure() {
@@ -35,10 +34,10 @@ public class TestMenu implements MenuConfigurer {
         page.setMenu(menu);
         page.setPageIndex(0);
         page.setButtonsRowSize(1);
-        page.setButtonsFunction((u, p) -> List.of(new TerminalButton(
+        page.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_TEST_MENU, u)
-                .getData(), TEST, (u1, pa) -> {
-                    client.sendMessage(SendMessage.builder()
+                .getData(), TEST, (b1, u1, pa) -> {
+                    clientManager.getClient(b).sendMessage(SendMessage.builder()
                         .chatId(u1.getId())
                         .text("Test button triggered.")
                         .build());

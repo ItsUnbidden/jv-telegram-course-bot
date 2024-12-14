@@ -1,11 +1,17 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.exception.AccessDeniedException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
+import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
+import com.unbidden.telegramcoursesbot.exception.OnMaintenanceException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Lesson;
+import com.unbidden.telegramcoursesbot.model.LessonTrigger;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
+import com.unbidden.telegramcoursesbot.model.TimedTrigger;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
@@ -16,27 +22,33 @@ import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
 import com.unbidden.telegramcoursesbot.service.review.ReviewService;
+import com.unbidden.telegramcoursesbot.service.timing.TimingService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
+import com.unbidden.telegramcoursesbot.util.TextUtil;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 @Service
 @RequiredArgsConstructor
 public class CourseServiceImpl implements CourseService {
     private static final Logger LOGGER = LogManager.getLogger(CourseServiceImpl.class);
-
+    
     private static final String NEXT_STAGE_MENU = "m_crsNxtStg";
     
+    private static final int TEST_COURSE_AMOUNT_OF_LESSONS = 2;
+    private static final int TEST_COURSE_PRICE = 1;
     private static final String TEST_COURSE_NAME = "test_course";
+
+    private static final String PARAM_TIME_LEFT = "${timeLeft}";
 
     private static final String SERVICE_COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS =
             "service_course_next_stage_media_group_bypass";
@@ -47,6 +59,11 @@ public class CourseServiceImpl implements CourseService {
     private static final String ERROR_COURSE_PROGRESS_NOT_FOUND =
             "error_course_progress_not_found";
     private static final String ERROR_COURSE_NOT_FOUND = "error_course_not_found";
+    private static final String ERROR_AWAITING_LESSON = "error_awaiting_lesson";
+    private static final String ERROR_BOT_VISIBILITY_MISMATCH = "error_bot_visibility_mismatch";
+    private static final String ERROR_CANNOT_DELETE_BOUGHT_COURSE =
+            "error_cannot_delete_bought_course";
+    private static final String ERROR_COURSE_UNDER_MAINTENANCE = "error_course_under_maintenance";
 
     private final CourseRepository courseRepository;
 
@@ -70,24 +87,21 @@ public class CourseServiceImpl implements CourseService {
 
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final TextUtil textUtil;
 
-    @Value("${telegram.bot.course.show-test-course}")
-    private Boolean isTestCourseShown;
-
-    @Override
-    public void initMessage(@NonNull User user, @NonNull String courseName) {
-        initMessage(userService.getUser(user.getId()), courseName);
-    }
+    private final ClientManager clientManager;
 
     @Override
-    public void initMessage(@NonNull UserEntity user, @NonNull String courseName) {
-        if (!paymentService.isAvailable(user, courseName)) {
-            paymentService.sendInvoice(user, courseName);
+    public void initMessage(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull String courseName) {
+        final Course course = getCourseByName(courseName, user, bot);
+        checkCourseIsNotUnderMaintenance(course, user);
+
+        if (!paymentService.isAvailable(user, bot, courseName)) {
+            paymentService.sendInvoice(user, bot, courseName);
             return;
         }
         LOGGER.info("Course " + courseName + " is available for user " + user.getId() + ".");
-        final Course course = getCourseByName(courseName, user);
         final Optional<CourseProgress> progressOpt = courseProgressRepository
                 .findByUserIdAndCourseName(user.getId(), courseName);
 
@@ -98,7 +112,7 @@ public class CourseServiceImpl implements CourseService {
                     + courseName + ".");
         } else {
             progress = new CourseProgress();
-            progress.setUser(userService.getUser(user.getId()));
+            progress.setUser(user);
             progress.setCourse(course);
             progress.setStage(0);
             progress.setFirstTimeStartedAt(LocalDateTime.now());
@@ -118,7 +132,7 @@ public class CourseServiceImpl implements CourseService {
                 "Course progress for course " + courseName + " and user " + user.getId()
                 + " does not exist", localizationLoader.getLocalizationForUser(
                 ERROR_COURSE_PROGRESS_NOT_FOUND, user)));
-
+        checkCourseIsNotUnderMaintenance(progress.getCourse(), user);
         LOGGER.info("Current stage in course " + courseName + " for user " + user.getId() + " is "
                 + progress.getStage() + ". Incrementing by 1...");
         progress.setStage(progress.getStage() + 1);
@@ -131,8 +145,16 @@ public class CourseServiceImpl implements CourseService {
             end(user, progress);
             return;
         }
-        if (progress.getCourse() == null) { // TODO: finish this
+        final Lesson lesson = lessonRepository.findByPositionAndCourseName(
+                progress.getStage(), progress.getCourse().getName()).get();
 
+        if (lesson.getDelay() > 0) {
+            LOGGER.debug("Lesson " + lesson.getId() + " has a delay of " + lesson.getDelay()
+                    + " minutes. Creating a new lesson timed trigger...");
+            final TimedTrigger trigger = timingService.createTrigger(progress);
+            LOGGER.debug("New trigger " + trigger.getId() + " for user " + user.getId()
+                    + " and lesson " + lesson.getId() + " has been created. It will activate at "
+                    + trigger.getTarget() + ".");
         }
         current(progress);
     }
@@ -140,24 +162,41 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public void current(@NonNull CourseProgress courseProgress) {
         final Course course = courseProgress.getCourse();
+        final UserEntity user = courseProgress.getUser();
+        checkCourseIsNotUnderMaintenance(course, user);
         final Lesson lesson = lessonRepository.findByPositionAndCourseName(
                 courseProgress.getStage(), course.getName()).get();
-        final UserEntity user = courseProgress.getUser();
+        final Optional<LessonTrigger> potentialTrigger = timingService
+                .findLessonTrigger(user, courseProgress);
 
+        if (potentialTrigger.isPresent()) {
+            LOGGER.debug("User " + user.getId() + " is currently awaiting lesson "
+                    + lesson.getId() + " in course " + course.getName()
+                    + ". Sending error message...");
+            clientManager.getClient(course.getBot()).sendMessage(user,
+                    localizationLoader.getLocalizationForUser(ERROR_AWAITING_LESSON, user,
+                    PARAM_TIME_LEFT, textUtil.formatTimeLeft(user, localizationLoader,
+                    timingService.getTimeLeft(potentialTrigger.get()))));
+            LOGGER.debug("Message sent.");
+            return;
+        }
+        
         LOGGER.debug("Sending content for lesson " + lesson.getId() + " to user "
                 + user.getId() + "...");
         for (int i = 0; i < lesson.getStructure().size() - 1; i++) {
-            contentService.sendLocalizedContent(lesson.getStructure().get(i), user);
+            contentService.sendLocalizedContent(contentService.getMappingById(
+                    lesson.getStructure().get(i).getId(), user), user, course.getBot());
         }
         LOGGER.debug("All except last content has been sent.");
         final List<Message> lastContent = contentService.sendLocalizedContent(
-                lesson.getStructure().get(lesson.getStructure().size() - 1), user);
+                contentService.getMappingById(lesson.getStructure().get(lesson.getStructure()
+                .size() - 1).getId(), user), user, course.getBot());
         LOGGER.debug("Last content has been sent.");
         if (course.isHomeworkIncluded() && lesson.isHomeworkIncluded()) {
             LOGGER.debug("Lesson " + lesson.getId() + " includes homework. "
                     + "Commencing homework sequence...");
-            homeworkService.sendHomework(user, homeworkService.getHomework(
-                    lesson.getHomework().getId(), courseProgress.getUser()));
+            homeworkService.initiateHomework(user, homeworkService.getHomework(
+                    lesson.getHomework().getId(), courseProgress.getUser(), course.getBot()));
             return;
         }
         
@@ -169,7 +208,18 @@ public class CourseServiceImpl implements CourseService {
             end(user, courseProgress);
             return;
         }
-        LOGGER.debug("This is not the last lesson. Initiating next stage menu...");
+        LOGGER.debug("This is not the last lesson. Checking if the next lesson has a delay...");
+        final Lesson nextLesson = lessonRepository.findByPositionAndCourseName(
+                courseProgress.getStage() + 1, course.getName()).get();
+        if (nextLesson.getDelay() > 0) {
+            LOGGER.debug("Lesson " + nextLesson.getId() + " has a delay. "
+                    + "No next lesson button will be created.");
+            next(user, course.getName());
+            return;
+        }
+
+        LOGGER.debug("Next lesson does not have a delay. "
+                + "Initializing next lesson menu button...");
         final Message menuMessage;
         if (lastContent.size() > 1) {
             LOGGER.warn("Last content in lesson " + lesson.getId() + " is a media group. "
@@ -177,7 +227,8 @@ public class CourseServiceImpl implements CourseService {
                     + "additional message to be sent for menu.");
             final Localization mediaGroupBypassMessageLoc = localizationLoader
                     .getLocalizationForUser(SERVICE_COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS, user);
-            menuMessage = client.sendMessage(user, mediaGroupBypassMessageLoc);
+            menuMessage = clientManager.getClient(course.getBot())
+                    .sendMessage(user, mediaGroupBypassMessageLoc);
             LOGGER.debug("Additional message for menu has been sent.");
         } else {
             LOGGER.debug("Last message in lesson " + lesson.getId() + " is not a media group. "
@@ -186,8 +237,9 @@ public class CourseServiceImpl implements CourseService {
         }
         menuService.initiateMenu(NEXT_STAGE_MENU, user, course.getName()
                 + COURSE_NAME_LESSON_INDEX_DIVIDER + courseProgress.getStage(),
-                menuMessage.getMessageId());
-        menuService.addToMenuTerminationGroup(user, user, menuMessage.getMessageId(),
+                menuMessage.getMessageId(), course.getBot());
+        menuService.addToMenuTerminationGroup(user, user, course.getBot(),
+                menuMessage.getMessageId(),
                 COURSE_NEXT_STAGE_MENU_TERMINATION.formatted(courseProgress.getId()), null);
         LOGGER.debug("Next lesson menu sent.");
     }
@@ -210,7 +262,8 @@ public class CourseServiceImpl implements CourseService {
                     .getLocalizationForUser(COURSE_END.formatted(courseProgress.getCourse()
                     .getName()), user);
         courseProgressRepository.save(courseProgress);
-        client.sendMessage(user, localization);
+        clientManager.getClient(courseProgress.getCourse().getBot())
+                .sendMessage(user, localization);
         if (!reviewService.isBasicReviewForCourseAndUserAvailable(user,
                 courseProgress.getCourse())) {
             reviewService.initiateBasicReview(user, courseProgress.getCourse());
@@ -219,36 +272,45 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @NonNull
-    public Course getCourseByName(@NonNull String courseName, @NonNull UserEntity user) {
-        return courseRepository.findByName(courseName).orElseThrow(() ->
+    public Course getCourseByName(@NonNull String courseName, @NonNull UserEntity user,
+            @NonNull Bot bot) {
+        final Course course = courseRepository.findByName(courseName).orElseThrow(() ->
                 new EntityNotFoundException("Course " + courseName + " does not exist",
                 localizationLoader.getLocalizationForUser(ERROR_COURSE_NOT_FOUND, user)));
+        if (!course.getBot().equals(bot)) {
+            throw new AccessDeniedException("Course " + courseName + " is not available for bot "
+                    + bot.getName(), localizationLoader.getLocalizationForUser(
+                    ERROR_BOT_VISIBILITY_MISMATCH, user));
+        }
+        return course;
     }
 
     @Override
     @NonNull
-    public Course getCourseById(@NonNull Long id, @NonNull UserEntity user) {
-        return courseRepository.findById(id).orElseThrow(() ->
+    public Course getCourseById(@NonNull Long id, @NonNull UserEntity user, @NonNull Bot bot) {
+        final Course course = courseRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Course " + id + " does not exist",
                 localizationLoader.getLocalizationForUser(ERROR_COURSE_NOT_FOUND, user)));
+        if (!course.getBot().equals(bot)) {
+            throw new AccessDeniedException("Course " + id + " is not available for bot "
+                    + bot.getName(), localizationLoader.getLocalizationForUser(
+                    ERROR_BOT_VISIBILITY_MISMATCH, user));
+        }
+        return course;
     }
 
     @Override
     @NonNull
-    public List<Course> getAll() {
-        return (isTestCourseShown) ? courseRepository.findAll() : courseRepository.findAll()
-                .stream().filter(c -> !c.getName().equals(TEST_COURSE_NAME)).toList();
+    public List<Course> getByBot(@NonNull Bot bot) {
+        return courseRepository.findByBot(bot);
     }
 
     @Override
     @NonNull
-    public List<Course> getAllOwnedByUser(@NonNull UserEntity user) {
-        final List<PaymentDetails> paymentDetails = paymentService.getAllForUser(user);
+    public List<Course> getAllOwnedByUser(@NonNull UserEntity user, @NonNull Bot bot) {
+        final List<PaymentDetails> paymentDetails = paymentService.getAllForUserAndBot(user, bot);
 
-        return (isTestCourseShown) ? paymentDetails.stream()         
-                .map(pd -> pd.getCourse()).toList() : paymentDetails.stream()
-                .filter(pd -> !pd.getCourse().getName().equals(TEST_COURSE_NAME))
-                .map(pd -> pd.getCourse()).toList();
+        return paymentDetails.stream().map(pd -> pd.getCourse()).toList();
     }
 
     @Override
@@ -271,15 +333,92 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @NonNull
     public CourseProgress getCurrentCourseProgressForUser(@NonNull Long userId, @NonNull String courseName) {
-        final UserEntity user = userService.getUser(userId);
+        final UserEntity user = userService.getUser(userId, userService.getDiretor());
         return courseProgressRepository.findByUserIdAndCourseName(userId, courseName)
                 .orElseThrow(() -> new EntityNotFoundException("Course progress for user "
                 + userId + " and course " + courseName, localizationLoader.getLocalizationForUser(
                 ERROR_COURSE_PROGRESS_NOT_FOUND, user)));
     }
+
+    @Override
+    @NonNull
+    public CourseProgress getProgress(@NonNull Long id, @NonNull UserEntity user) {
+        return courseProgressRepository.findById(id).orElseThrow(() ->
+                new EntityNotFoundException("Course progress with id " + id, localizationLoader
+                .getLocalizationForUser(ERROR_COURSE_PROGRESS_NOT_FOUND, user)));
+    }
     
     @Override
-    public void delete(@NonNull Course course) {
+    public void delete(@NonNull Course course, @NonNull UserEntity user) {
+        if (!isDeletable(course)) {
+            throw new ForbiddenOperationException("Cannot delete a course which has been "
+                    + "bought by users before", localizationLoader.getLocalizationForUser(
+                    ERROR_CANNOT_DELETE_BOUGHT_COURSE, user));
+        }
         courseRepository.delete(course);
+    }
+
+    @Override
+    @NonNull
+    public Course createInitialCourse(@NonNull Bot bot) {
+        try {
+            return getCourseByName(TEST_COURSE_NAME, userService.getDiretor(), bot);
+        } catch (EntityNotFoundException e) {
+            LOGGER.info("Test course does not exist. Creating...");
+            return createCourse(bot, TEST_COURSE_NAME, TEST_COURSE_PRICE,
+                    TEST_COURSE_AMOUNT_OF_LESSONS);
+        }
+    }
+
+    @Override
+    @NonNull
+    public Course createCourse(@NonNull Bot bot, @NonNull String courseName,
+            @NonNull Integer price, @NonNull Integer amountOfLessons) {
+        final Course course = new Course();
+    
+        course.setName(courseName);
+        course.setPrice(price);
+        course.setAmountOfLessons(amountOfLessons);
+        course.setRefundStage(-1);
+        course.setBot(bot);
+        course.setUnderMaintenance(true);
+        final List<Lesson> lessons = getLessons(course);
+        course.setLessons(lessons);
+        course.setFeedbackIncluded(true);
+        course.setHomeworkIncluded(true);
+        
+        LOGGER.debug("Persisting the course...");
+        save(course);
+        lessonRepository.saveAll(lessons);
+        return course;
+    }
+
+    @Override
+    public boolean isDeletable(@NonNull Course course) {
+        return paymentService.getAllForCourse(course, PageRequest.of(0, 1)).isEmpty();
+    }
+
+    @Override
+    public void checkCourseIsNotUnderMaintenance(@NonNull Course course,
+            @NonNull UserEntity user) {
+        if (course.isUnderMaintenance()) {
+            throw new OnMaintenanceException("Course " + course.getName() + " is currently "
+                    + "marked as under maintenance", localizationLoader.getLocalizationForUser(
+                    ERROR_COURSE_UNDER_MAINTENANCE, user));
+        }
+    }
+
+    private List<Lesson> getLessons(Course course) {
+        final List<Lesson> lessons = new ArrayList<>();
+
+        for (int i = 0; i < course.getAmountOfLessons(); i++) {
+            final Lesson lesson = new Lesson();
+            lesson.setCourse(course);
+            lesson.setPosition(i);
+            lesson.setDelay(0);
+            lesson.setStructure(List.of());
+            lessons.add(lesson);
+        }
+        return lessons;
     }
 }

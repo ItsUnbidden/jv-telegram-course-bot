@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.support;
 
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.SupportMessage;
 import com.unbidden.telegramcoursesbot.model.SupportReply;
 import com.unbidden.telegramcoursesbot.model.SupportRequest;
@@ -12,43 +13,45 @@ import org.springframework.lang.NonNull;
 
 public interface SupportService {
     @NonNull
-    SupportRequest createNewSupportRequest(@NonNull UserEntity user, @NonNull SupportType reason,
-            @NonNull LocalizedContent content, String tag);
+    SupportRequest createNewSupportRequest(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull SupportType reason, @NonNull LocalizedContent content, String tag);
 
     @NonNull
-    SupportReply replyToSupportRequest(@NonNull UserEntity user, @NonNull SupportRequest request,
-            @NonNull LocalizedContent content);
+    SupportReply replyToSupportRequest(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull SupportRequest request, @NonNull LocalizedContent content);
 
     @NonNull
-    SupportReply replyToReply(@NonNull UserEntity user, @NonNull SupportReply reply,
-            @NonNull LocalizedContent content);
+    SupportReply replyToReply(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull SupportReply reply, @NonNull LocalizedContent content);
 
     @NonNull
-    List<SupportRequest> getUnresolvedRequests(@NonNull UserEntity user,
+    List<SupportRequest> getUnresolvedRequests(@NonNull UserEntity user, @NonNull Bot bot,
             @NonNull Pageable pageable);
 
     @NonNull
-    List<SupportRequest> getUnresolvedRequestsForUser(@NonNull UserEntity user);
+    List<SupportRequest> getUnresolvedRequestsForUser(@NonNull UserEntity user, @NonNull Bot bot);
 
     @NonNull
-    SupportRequest markAsResolved(@NonNull UserEntity user, @NonNull SupportRequest request);
+    SupportRequest markAsResolved(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull SupportRequest request);
 
     @NonNull
-    SupportRequest getRequestById(@NonNull Long id, @NonNull UserEntity user);
+    SupportRequest getRequestById(@NonNull Long id, @NonNull UserEntity user, @NonNull Bot bot);
 
     @NonNull
-    SupportReply getReplyById(@NonNull Long id, @NonNull UserEntity user);
+    SupportReply getReplyById(@NonNull Long id, @NonNull UserEntity user, @NonNull Bot bot);
 
-    boolean isUserEligibleForSupport(@NonNull UserEntity user);
-
-    @NonNull
-    SupportMessage getLastReplyForUser(@NonNull UserEntity user);
+    boolean isUserEligibleForSupport(@NonNull UserEntity user, @NonNull Bot bot);
 
     @NonNull
-    SupportMessage getLastMessageForStaffMember(@NonNull UserEntity user);
+    SupportMessage getLastReplyForUser(@NonNull UserEntity user, @NonNull Bot bot);
 
-    boolean checkRequestResolved(@NonNull SupportMessage message, @NonNull UserEntity user);
+    @NonNull
+    SupportMessage getLastMessageForStaffMember(@NonNull UserEntity user, @NonNull Bot bot);
+
+    boolean checkRequestResolved(@NonNull SupportMessage message, @NonNull UserEntity user,
+            @NonNull Bot bot);
 
     boolean checkSupportMessageAnswered(@NonNull SupportMessage message,
-            @NonNull UserEntity user);
+            @NonNull UserEntity user, @NonNull Bot bot);
 }

@@ -1,6 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.menu.configurer;
 
 import com.unbidden.telegramcoursesbot.model.Review;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.SecurityService;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
@@ -12,7 +14,6 @@ import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.handler.LeaveReviewCommentButtonHandler;
 import com.unbidden.telegramcoursesbot.service.menu.handler.UpdateReviewCommentButtonHandler;
 import com.unbidden.telegramcoursesbot.service.review.ReviewService;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -40,9 +41,9 @@ public class ReviewActionsMenu implements MenuConfigurer {
 
     private final ReviewService reviewService;
 
-    private final UserService userService;
-
     private final ContentService contentService;
+
+    private final SecurityService securityService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -53,22 +54,22 @@ public class ReviewActionsMenu implements MenuConfigurer {
         page.setMenu(menu);
         page.setPageIndex(0);
         page.setButtonsRowSize(1);
-        page.setButtonsFunction((u, p) -> {
-            final Review review = reviewService.getReviewById(Long.parseLong(p.get(0)));
+        page.setButtonsFunction((u, p, b) -> {
+            final Review review = reviewService.getReviewById(Long.parseLong(p.get(0)), u, b);
             final List<Button> buttons = new ArrayList<>();
 
             buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
-                BUTTON_MARK_REVIEW_AS_READ, u).getData(), MARK_REVIEW_AS_READ, (u1, pa) -> {
-                    if (userService.isAdmin(u1)) {
+                BUTTON_MARK_REVIEW_AS_READ, u).getData(), MARK_REVIEW_AS_READ, (b1, u1, pa) -> {
+                    if (securityService.grantAccess(b, u, AuthorityType.SEE_REVIEWS)) {
                         reviewService.markReviewAsRead(review, u1);
                     }
                 }));
             
             if (review.getCommentContent() != null) {
                 buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
-                    BUTTON_GET_REVIEW_COMMENT, u).getData(), GET_REVIEW_COMMENT, (u1, pa) -> {
-                        if (userService.isAdmin(u1)) {
-                            contentService.sendContent(review.getCommentContent(), u1);
+                    BUTTON_GET_REVIEW_COMMENT, u).getData(), GET_REVIEW_COMMENT, (b1, u1, pa) -> {
+                        if (securityService.grantAccess(b, u, AuthorityType.SEE_REVIEWS)) {
+                            contentService.sendContent(review.getCommentContent(), u1, b1);
                         }
                     }));
                 if (review.getCommentedBy().getId().equals(u.getId())) {

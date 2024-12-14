@@ -9,10 +9,10 @@ import org.springframework.lang.NonNull;
 
 public interface SupportReplyRepository extends JpaRepository<SupportReply, Long> {
     @NonNull
-    @EntityGraph(attributePaths = {"reply", "request", "user", "content"})
+    @EntityGraph(attributePaths = {"reply", "request", "user", "content", "bot"})
     Optional<SupportReply> findById(@NonNull Long id);
 
     @NonNull
-    @EntityGraph(attributePaths = {"user", "content"})
+    @EntityGraph(attributePaths = {"user", "content", "bot"})
     List<SupportReply> findByRequestId(@NonNull Long requestId);
 }

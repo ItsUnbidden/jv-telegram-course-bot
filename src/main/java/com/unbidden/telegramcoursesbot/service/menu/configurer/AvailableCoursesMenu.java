@@ -8,7 +8,6 @@ import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
-
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -33,19 +32,19 @@ public class AvailableCoursesMenu implements MenuConfigurer {
         final Menu menu = new Menu();
         final Page firstPage = new Page();
         firstPage.setPageIndex(0);
-        firstPage.setLocalizationFunction((u, p) -> localizationLoader.getLocalizationForUser(
+        firstPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
             MENU_AVAILABLE_COURSES_PAGE_0, u));
         firstPage.setButtonsRowSize(2);
         firstPage.setMenu(menu);
-        firstPage.setButtonsFunction((u, p) -> {
-            final List<String> ownedCoursesNames = courseService.getAllOwnedByUser(u).stream()
+        firstPage.setButtonsFunction((u, p, b) -> {
+            final List<String> ownedCoursesNames = courseService.getAllOwnedByUser(u, b).stream()
                     .map(c -> c.getName()).toList();
-            final List<String> allCoursesNames = courseService.getAll().stream()
-                    .map(c -> c.getName()).toList();
+            final List<String> allCoursesNames = courseService.getByBot(b).stream()
+                    .filter(c -> !c.isUnderMaintenance()).map(c -> c.getName()).toList();
             return allCoursesNames.stream().filter(cn -> !ownedCoursesNames.contains(cn))
                     .map(cn -> (Button)new TerminalButton(localizationLoader
                     .getLocalizationForUser(COURSE_NAME.formatted(cn), u).getData(), cn,
-                    (u1, pa) -> courseService.initMessage(u, cn))).toList();
+                    (b1, u1, pa) -> courseService.initMessage(u, b1, cn))).toList();
         });
         menu.setName(MENU_NAME);
         menu.setPages(List.of(firstPage));

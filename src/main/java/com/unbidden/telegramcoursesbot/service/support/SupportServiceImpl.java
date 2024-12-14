@@ -1,9 +1,10 @@
 package com.unbidden.telegramcoursesbot.service.support;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.SupportMessage;
 import com.unbidden.telegramcoursesbot.model.SupportReply;
 import com.unbidden.telegramcoursesbot.model.SupportRequest;
@@ -20,10 +21,8 @@ import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -36,15 +35,16 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 @RequiredArgsConstructor
 public class SupportServiceImpl implements SupportService {
     private static final Logger LOGGER = LogManager.getLogger(SupportServiceImpl.class);
-
+    
     private static final String REPLY_MENU = "m_rpl";
     private static final String REPLY_TO_REPLY_MENU = "m_rplToRpl";
-
+    
     private static final String PARAM_SUPPORT_TYPE = "${supportType}";
     private static final String PARAM_TIMESTAMP = "${timestamp}";
     private static final String PARAM_USER_FULL_NAME = "${userFullName}";
     private static final String PARAM_TAG = "${tag}";
-
+    private static final String PARAM_TITLE = "${title}";
+    
     private static final String SERVICE_SUPPORT_REQUEST_MEDIA_GROUP_BYPASS =
             "service_support_request_media_group_bypass";
     private static final String SERVICE_SUPPORT_REPLY_MEDIA_GROUP_BYPASS =
@@ -64,7 +64,6 @@ public class SupportServiceImpl implements SupportService {
     private static final String ERROR_REPLY_ALREADY_ANSWERED = "error_reply_already_answered";
     private static final String ERROR_USER_NOT_ELIGIBLE_FOR_SUPPORT =
             "error_user_not_eligible_for_support";
-    private static final String ERROR_SUPPORT_STAFF_REQUEST = "error_support_staff_request";
     private static final String ERROR_NO_SUPPORT_REQUESTS_AVAILABLE_FOR_USER =
             "error_no_support_requests_available_for_user";
 
@@ -82,29 +81,22 @@ public class SupportServiceImpl implements SupportService {
 
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
     @NonNull
-    public SupportRequest createNewSupportRequest(@NonNull UserEntity user,
+    public SupportRequest createNewSupportRequest(@NonNull UserEntity user, @NonNull Bot bot,
             @NonNull SupportType reason, @NonNull LocalizedContent content, String tag) {
         LOGGER.info("User " + user.getId() + " is requesting support...");
-        final Set<UserEntity> uneligibleUsers = new HashSet<>();
-        uneligibleUsers.addAll(userService.getSupport());
-        uneligibleUsers.add(userService.getDiretor());
-        uneligibleUsers.add(userService.getCreator());
-        if (uneligibleUsers.contains(user)) {
-            throw new ForbiddenOperationException("User " + user.getId() + " is a part of the "
-                    + "staff, they are uneligible for support", localizationLoader
-                    .getLocalizationForUser(ERROR_SUPPORT_STAFF_REQUEST, user));
-        }
-        if (!isUserEligibleForSupport(user)) {
+        
+        if (!isUserEligibleForSupport(user, bot)) {
             throw new ForbiddenOperationException("User " + user.getId() + " cannot send another "
                     + "support request without resolving previous one.", localizationLoader
                     .getLocalizationForUser(ERROR_USER_NOT_ELIGIBLE_FOR_SUPPORT, user));
         }
         final SupportRequest supportRequest = new SupportRequest();
         supportRequest.setUser(user);
+        supportRequest.setBot(bot);
         supportRequest.setContent(content);
         supportRequest.setTimestamp(LocalDateTime.now());
         supportRequest.setSupportType(reason);
@@ -121,19 +113,20 @@ public class SupportServiceImpl implements SupportService {
                 : "Not available");
 
         LOGGER.debug("Sending support request infos to the staff...");
-        final List<UserEntity> supportStaff = userService.getSupport();
+        final List<UserEntity> supportStaff = userService.getSupport(bot);
         for (UserEntity staff : supportStaff) {
-            sendSupportRequest(staff, parameterMap, supportRequest);
+            sendSupportRequest(staff, bot, parameterMap, supportRequest);
         }
         LOGGER.debug("Requests have been sent.");
         switch (reason) {
             case SupportType.COURSE:
             LOGGER.debug("Support request is for course. Sending request to creator...");
-                sendSupportRequest(userService.getCreator(), parameterMap, supportRequest);
+                sendSupportRequest(userService.getCreator(bot), bot,
+                        parameterMap, supportRequest);
                 break;
             default:
             LOGGER.debug("Support request is for platform. Sending request to director...");
-                sendSupportRequest(userService.getDiretor(), parameterMap, supportRequest);
+                sendSupportRequest(userService.getDiretor(), bot, parameterMap, supportRequest);
                 break;
         }
         LOGGER.info("Support request for user " + user.getId() +  " has been created.");
@@ -142,14 +135,15 @@ public class SupportServiceImpl implements SupportService {
 
     @Override
     @NonNull
-    public SupportReply replyToSupportRequest(@NonNull UserEntity user,
+    public SupportReply replyToSupportRequest(@NonNull UserEntity user, @NonNull Bot bot,
             @NonNull SupportRequest request, @NonNull LocalizedContent content) {
         LOGGER.info("User " + user.getId() + " is responding to support request "
                 + request.getId() + "...");
-        checkSupportMessageAnswered(request, user);
-        checkRequestResolved(request, user);
+        checkSupportMessageAnswered(request, user, bot);
+        checkRequestResolved(request, user, bot);
 
         final SupportReply reply = new SupportReply();
+        reply.setBot(bot);
         reply.setReplySide(ReplySide.SUPPORT);
         reply.setRequest(request);
         reply.setTimestamp(LocalDateTime.now());
@@ -164,29 +158,31 @@ public class SupportServiceImpl implements SupportService {
         LOGGER.debug("Request " + request.getId() + " has been updated to include reply "
                 + reply.getId() + " from user " + user.getId()
                 + ". Terminating outdated menus...");
-        menuService.terminateMenuGroup(request.getUser(), SEND_REPLY_MENU_TERMINATION
+        menuService.terminateMenuGroup(request.getUser(), bot, SEND_REPLY_MENU_TERMINATION
                 .formatted(request.getId()));
         LOGGER.debug("Reply menus removed. Sending content...");
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_USER_FULL_NAME, user.getFullName());
+        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, bot));
 
-        sendSupportReply(request.getUser(), parameterMap, reply);
+        sendSupportReply(request.getUser(), bot, parameterMap, reply);
         LOGGER.debug("Content sent.");
         return reply;
     }
 
     @Override
     @NonNull
-    public SupportReply replyToReply(@NonNull UserEntity user, @NonNull SupportReply reply,
-            @NonNull LocalizedContent content) {
+    public SupportReply replyToReply(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull SupportReply reply, @NonNull LocalizedContent content) {
         LOGGER.info("User " + user.getId() + " is responding to reply " + reply.getId() + "...");
-        checkSupportMessageAnswered(reply, user);
-        checkRequestResolved(reply, user);
+        checkSupportMessageAnswered(reply, user, bot);
+        checkRequestResolved(reply, user, bot);
 
         final SupportReply newReply = new SupportReply();
         newReply.setReplySide((reply.getReplySide().equals(ReplySide.CUSTOMER)
                 ? ReplySide.SUPPORT : ReplySide.CUSTOMER));
         newReply.setRequest(reply.getRequest());
+        newReply.setBot(bot);
         newReply.setTimestamp(LocalDateTime.now());
         newReply.setUser(user);
         newReply.setContent(content);
@@ -196,52 +192,57 @@ public class SupportServiceImpl implements SupportService {
         
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_USER_FULL_NAME, user.getFullName());
+        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, bot));
 
-        sendSupportReply(reply.getUser(), parameterMap, newReply);
+        sendSupportReply(reply.getUser(), bot, parameterMap, newReply);
         LOGGER.debug("Content sent.");
         return newReply;
     }
 
     @Override
     @NonNull
-    public List<SupportRequest> getUnresolvedRequests(@NonNull UserEntity user,
+    public List<SupportRequest> getUnresolvedRequests(@NonNull UserEntity user, @NonNull Bot bot,
             @NonNull Pageable pageable) {
-        return supportRequestRepository.findUnresolved(pageable);
+        return supportRequestRepository.findUnresolved(bot.getId(), pageable);
     }
 
     @Override
     @NonNull
-    public List<SupportRequest> getUnresolvedRequestsForUser(@NonNull UserEntity user) {
-        return supportRequestRepository.findUnresolvedByUser(user.getId());
+    public List<SupportRequest> getUnresolvedRequestsForUser(@NonNull UserEntity user,
+            @NonNull Bot bot) {
+        return supportRequestRepository.findUnresolvedByUserInBot(user.getId(), bot.getId());
     }
 
     @Override
     @NonNull
-    public SupportRequest markAsResolved(@NonNull UserEntity user,
+    public SupportRequest markAsResolved(@NonNull UserEntity user, @NonNull Bot bot,
             @NonNull SupportRequest request) {
         LOGGER.info("User " + user.getId() + " wants to mark request "
                 + request.getId() + " as resolved.");
                 
-        checkRequestResolved(request, user);
+        checkRequestResolved(request, user, bot);
 
         request.setResolved(true);
         supportRequestRepository.save(request);
         LOGGER.info("Request " + request.getId() + " is now resolved.");
         LOGGER.debug("Sending notification messages to both parties...");
+        final Map<String, Object> parameterMap = new HashMap<>();
+        parameterMap.put(PARAM_USER_FULL_NAME, user.getFullName());
+        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, bot));
+
         final Localization notification = localizationLoader.getLocalizationForUser(
-                SERVICE_SUPPORT_REQUEST_RESOLVED, user, PARAM_USER_FULL_NAME,
-                user.getFullName());
-        client.sendMessage(request.getUser(), notification);
+                SERVICE_SUPPORT_REQUEST_RESOLVED, user, parameterMap);
+        clientManager.getClient(bot).sendMessage(request.getUser(), notification);
         if (request.getStaffMember() == null) {
             LOGGER.warn("User " + user.getId() + " resolved their support request "
                     + request.getId() + " prematurely. Staff member is unavailable, "
                     + "so only one message will be sent.");
         } else {
-            client.sendMessage(request.getStaffMember(), notification);
+            clientManager.getClient(bot).sendMessage(request.getStaffMember(), notification);
             LOGGER.debug("Messages sent.");
         }
         try {
-            menuService.terminateMenuGroup(request.getUser(), SEND_REPLY_MENU_TERMINATION
+            menuService.terminateMenuGroup(request.getUser(), bot, SEND_REPLY_MENU_TERMINATION
                     .formatted(request.getId()));
             LOGGER.debug("Some reply menus were terminated.");
         } catch (EntityNotFoundException e) {
@@ -252,7 +253,8 @@ public class SupportServiceImpl implements SupportService {
 
     @Override
     @NonNull
-    public SupportRequest getRequestById(@NonNull Long id, @NonNull UserEntity user) {
+    public SupportRequest getRequestById(@NonNull Long id, @NonNull UserEntity user,
+            @NonNull Bot bot) {
         return supportRequestRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Support request with id " + id + " does not exist",
                 localizationLoader.getLocalizationForUser(ERROR_SUPPORT_REQUEST_NOT_FOUND,
@@ -261,7 +263,8 @@ public class SupportServiceImpl implements SupportService {
 
     @Override
     @NonNull
-    public SupportReply getReplyById(@NonNull Long id, @NonNull UserEntity user) {
+    public SupportReply getReplyById(@NonNull Long id, @NonNull UserEntity user,
+            @NonNull Bot bot) {
         return supportReplyRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Support reply with id " + id + " does not exist",
                 localizationLoader.getLocalizationForUser(ERROR_SUPPORT_REPLY_NOT_FOUND,
@@ -269,8 +272,9 @@ public class SupportServiceImpl implements SupportService {
     }
 
     @Override
-    public boolean isUserEligibleForSupport(@NonNull UserEntity user) {
-        return supportRequestRepository.findUnresolvedByUser(user.getId()).isEmpty();
+    public boolean isUserEligibleForSupport(@NonNull UserEntity user, @NonNull Bot bot) {
+        return supportRequestRepository.findUnresolvedByUserInBot(user.getId(),
+                bot.getId()).isEmpty();
     }
 
     /**
@@ -278,9 +282,9 @@ public class SupportServiceImpl implements SupportService {
      */
     @Override
     @NonNull
-    public SupportMessage getLastReplyForUser(@NonNull UserEntity user) {
+    public SupportMessage getLastReplyForUser(@NonNull UserEntity user, @NonNull Bot bot) {
         final List<SupportRequest> requests = supportRequestRepository
-                .findUnresolvedByUser(user.getId());
+                .findUnresolvedByUserInBot(user.getId(), bot.getId());
         if (requests.isEmpty()) {
             throw new ForbiddenOperationException("User does not have any unresolved support "
                     + "requests", localizationLoader.getLocalizationForUser(
@@ -296,7 +300,7 @@ public class SupportServiceImpl implements SupportService {
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_USER_FULL_NAME, user.getFullName());
 
-        sendSupportReply(user, parameterMap, lastReply);
+        sendSupportReply(user, bot, parameterMap, lastReply);
         LOGGER.debug("Content sent.");
         return lastReply;
     }
@@ -306,14 +310,15 @@ public class SupportServiceImpl implements SupportService {
      */
     @Override
     @NonNull
-    public SupportMessage getLastMessageForStaffMember(@NonNull UserEntity user) {
+    public SupportMessage getLastMessageForStaffMember(@NonNull UserEntity user,
+            @NonNull Bot bot) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'getLastMessageForStaffMember'");
     }
 
     @Override
     public boolean checkRequestResolved(@NonNull SupportMessage message,
-            @NonNull UserEntity user) {
+            @NonNull UserEntity user, @NonNull Bot bot) {
         final SupportRequest request;
         if (message.getClass().equals(SupportRequest.class)) {
             request = (SupportRequest)message;
@@ -330,7 +335,7 @@ public class SupportServiceImpl implements SupportService {
 
     @Override
     public boolean checkSupportMessageAnswered(@NonNull SupportMessage message,
-            @NonNull UserEntity user) {
+            @NonNull UserEntity user, @NonNull Bot bot) {
         if (message.getClass().equals(SupportRequest.class)) {
             final SupportRequest request = (SupportRequest)message;
             if (request.getStaffMember() != null) {
@@ -351,43 +356,46 @@ public class SupportServiceImpl implements SupportService {
         return true;
     }
 
-    private void sendSupportRequest(UserEntity target, Map<String, Object> parameterMap,
+    private void sendSupportRequest(UserEntity target, Bot bot, Map<String, Object> parameterMap,
             SupportRequest request) {
-        client.sendMessage(target, localizationLoader.getLocalizationForUser(
-                SERVICE_SUPPORT_INFO, target, parameterMap));
+        clientManager.getClient(bot).sendMessage(target, localizationLoader
+                .getLocalizationForUser(SERVICE_SUPPORT_INFO, target, parameterMap));
         final List<Message> sendContent = contentService.sendContent(request.getContent(),
-                target);
+                target, bot);
 
         final Message menuMessage;
         if (sendContent.size() > 1) {
             final Localization mediaGroupBypassMessageLoc = localizationLoader
                     .getLocalizationForUser(SERVICE_SUPPORT_REQUEST_MEDIA_GROUP_BYPASS, target);
-            menuMessage = client.sendMessage(target, mediaGroupBypassMessageLoc);
+            menuMessage = clientManager.getClient(bot).sendMessage(target,
+                    mediaGroupBypassMessageLoc);
         } else {
             menuMessage = sendContent.get(0);
         }
         menuService.initiateMenu(REPLY_MENU, target, request.getId().toString(),
-                menuMessage.getMessageId());
-        menuService.addToMenuTerminationGroup(request.getUser(), target,
+                menuMessage.getMessageId(), bot);
+        menuService.addToMenuTerminationGroup(request.getUser(), target, bot,
                 menuMessage.getMessageId(), SEND_REPLY_MENU_TERMINATION.formatted(
                 request.getId()), null);
     }
 
-    private void sendSupportReply(UserEntity target, Map<String, Object> parameterMap,
+    private void sendSupportReply(UserEntity target, Bot bot, Map<String, Object> parameterMap,
             SupportReply reply) {
-        client.sendMessage(target, localizationLoader.getLocalizationForUser(
-                SERVICE_SUPPORT_REPLY_INFO, target, parameterMap));
-        final List<Message> sendContent = contentService.sendContent(reply.getContent(), target);
+        clientManager.getClient(bot).sendMessage(target, localizationLoader
+                .getLocalizationForUser(SERVICE_SUPPORT_REPLY_INFO, target, parameterMap));
+        final List<Message> sendContent = contentService.sendContent(reply.getContent(),
+                target, bot);
 
         final Message menuMessage;
         if (sendContent.size() > 1) {
             final Localization mediaGroupBypassMessageLoc = localizationLoader
                     .getLocalizationForUser(SERVICE_SUPPORT_REPLY_MEDIA_GROUP_BYPASS, target);
-            menuMessage = client.sendMessage(target, mediaGroupBypassMessageLoc);
+            menuMessage = clientManager.getClient(bot).sendMessage(target,
+                    mediaGroupBypassMessageLoc);
         } else {
             menuMessage = sendContent.get(0);
         }
         menuService.initiateMenu(REPLY_TO_REPLY_MENU, target, reply.getId().toString(),
-                menuMessage.getMessageId());
+                menuMessage.getMessageId(), bot);
     }
 }

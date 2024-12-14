@@ -1,8 +1,11 @@
 package com.unbidden.telegramcoursesbot.service.menu.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
@@ -41,14 +44,15 @@ public class RefundButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
+    @Security(authorities = AuthorityType.REFUND)
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
         LOGGER.info("User " + user.getId() + " is trying to refund course " + params[0] + "...");
-        paymentService.isRefundPossible(user, params[0]);
+        paymentService.isRefundPossible(user, bot, params[0]);
 
-        sessionService.createSession(user, m -> {
+        sessionService.createSession(user, bot, m -> {
             if (m.size() != 1) {
                 final Map<String, Object> parameterMap = new HashMap<>();
                     parameterMap.put(PARAM_EXPECTED_MESSAGES_AMOUNT, 1);
@@ -72,12 +76,12 @@ public class RefundButtonHandler implements ButtonHandler {
                         ERROR_REFUND_CONFIRMATION_PHRASE_FAILURE, user));
             }
             LOGGER.debug("Confirmation aquired. Initiating refund...");
-            paymentService.refund(user, params[0]);
+            paymentService.refund(user, bot, params[0]);
             LOGGER.info("Course " + params[0] + " has been refunded for user "
                     + user.getId() + ".");
         });
         LOGGER.debug("Sending request message...");
-        client.sendMessage(user, localizationLoader.getLocalizationForUser(
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
                 SERVICE_REFUND_CONFIRMATION_REQUEST, user, PARAM_CONFIRMATION_PHRASE,
                 CONFIRMATION_PHRASE.formatted(params[0])));
         LOGGER.debug("Message sent.");

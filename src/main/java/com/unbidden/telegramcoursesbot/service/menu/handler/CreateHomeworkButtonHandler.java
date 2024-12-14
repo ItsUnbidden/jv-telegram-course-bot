@@ -1,17 +1,19 @@
 package com.unbidden.telegramcoursesbot.service.menu.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
 import com.unbidden.telegramcoursesbot.service.course.LessonService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,58 +45,55 @@ public class CreateHomeworkButtonHandler implements ButtonHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final UserService userService;
-
     private final ContentService contentService;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public void handle(@NonNull UserEntity user, @NonNull String[] params) {
-        if (userService.isAdmin(user)) {
-            final Lesson lesson = lessonService.getById(Long.parseLong(params[2]), user);
+    @Security(authorities = AuthorityType.COURSE_SETTINGS)
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
+        final Lesson lesson = lessonService.getById(Long.parseLong(params[2]), user, bot);
 
-            LOGGER.info("User " + user.getId() + " want to add a new homework to lesson "
-                    + lesson.getId() + ".");
-            sessionService.createSession(user, m -> {
-                final String localizationName = COURSE_LESSON_CONTENT.formatted(
-                        lesson.getCourse().getName(), lesson.getPosition());
-                LOGGER.debug("Homework localization in lesson " + lesson.getId()
-                        + " will be " + localizationName);
-                final Message lastMessage = m.get(m.size() - 1);
-                final String languageCode;
+        LOGGER.info("User " + user.getId() + " want to add a new homework to lesson "
+                + lesson.getId() + ".");
+        sessionService.createSession(user, bot, m -> {
+            final String localizationName = COURSE_LESSON_CONTENT.formatted(
+                    lesson.getCourse().getName(), lesson.getPosition());
+            LOGGER.debug("Homework localization in lesson " + lesson.getId()
+                    + " will be " + localizationName);
+            final Message lastMessage = m.get(m.size() - 1);
+            final String languageCode;
 
-                if (lastMessage.hasText()) {
-                    if (lastMessage.getText().length() > 3
-                            || lastMessage.getText().length() < 2) {
-                        throw new InvalidDataSentException("Language code must be "
-                                + "between 2 and 3 characters", localizationLoader
-                                .getLocalizationForUser(ERROR_LANGUAGE_CODE_LENGTH, user));
-                    }
-                    LOGGER.debug("Language code for new content will be "
-                            + lastMessage.getText() + ".");
-                    languageCode = lastMessage.getText();
-                } else {
-                    languageCode = user.getLanguageCode();
-                    LOGGER.debug("Seems like language code is not specified. "
-                            + "Assuming it to be user's telegram language which is "
-                            + languageCode + ".");
+            if (lastMessage.hasText()) {
+                if (lastMessage.getText().length() > 3
+                        || lastMessage.getText().length() < 2) {
+                    throw new InvalidDataSentException("Language code must be "
+                            + "between 2 and 3 characters", localizationLoader
+                            .getLocalizationForUser(ERROR_LANGUAGE_CODE_LENGTH, user));
                 }
-                final Homework homework = homeworkService.createDefault(lesson, contentService
-                        .parseAndPersistContent(m, localizationName, languageCode));
-                LOGGER.info("New Homework " + homework.getId() + " has been created for lesson "
-                        + lesson.getId() + ".");
-                LOGGER.debug("Sending confirmation message...");
-                final Localization success = localizationLoader.getLocalizationForUser(
-                        SERVICE_NEW_HOMEWORK_CREATED, user, PARAM_HOMEWORK_ID, homework.getId());
-                client.sendMessage(user, success);
-                LOGGER.debug("Message sent.");
-            });
-            LOGGER.debug("Sending request message...");
-            final Localization request = localizationLoader.getLocalizationForUser(
-                    SERVICE_HOMEWORK_CONTENT_REQUEST, user, PARAM_LESSON_ID, lesson.getId());
-            client.sendMessage(user, request);
+                LOGGER.debug("Language code for new content will be "
+                        + lastMessage.getText() + ".");
+                languageCode = lastMessage.getText();
+            } else {
+                languageCode = user.getLanguageCode();
+                LOGGER.debug("Seems like language code is not specified. "
+                        + "Assuming it to be user's telegram language which is "
+                        + languageCode + ".");
+            }
+            final Homework homework = homeworkService.createDefault(lesson, contentService
+                    .parseAndPersistContent(bot, m, localizationName, languageCode));
+            LOGGER.info("New Homework " + homework.getId() + " has been created for lesson "
+                    + lesson.getId() + ".");
+            LOGGER.debug("Sending confirmation message...");
+            final Localization success = localizationLoader.getLocalizationForUser(
+                    SERVICE_NEW_HOMEWORK_CREATED, user, PARAM_HOMEWORK_ID, homework.getId());
+            clientManager.getClient(bot).sendMessage(user, success);
             LOGGER.debug("Message sent.");
-        }
+        });
+        LOGGER.debug("Sending request message...");
+        final Localization request = localizationLoader.getLocalizationForUser(
+                SERVICE_HOMEWORK_CONTENT_REQUEST, user, PARAM_LESSON_ID, lesson.getId());
+        clientManager.getClient(bot).sendMessage(user, request);
+        LOGGER.debug("Message sent.");
     }
 }

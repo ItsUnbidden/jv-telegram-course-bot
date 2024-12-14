@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-homework-triggers-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: homework_timed_triggers
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_users_homework_triggers
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: bot_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_bots_homework_triggers
+                    references: bots(id)
+                    nullable: false
+              - column:
+                  name: homework_progress_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_homework_progress_homework_triggers
+                    references: homework_progress(id)
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: target
+                  type: datetime
+                  constraints:
+                    nullable: false
