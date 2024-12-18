@@ -36,6 +36,10 @@ public class ContentSessionServiceImpl implements ContentSessionService {
 
     private static final String MENU_COMMIT_CONTENT_TERMINAL_PAGE =
             "menu_commit_content_terminal_page";
+    private static final String MENU_COMMIT_CONTENT_RESEND_TERMINAL_PAGE =
+            "menu_commit_content_resend_terminal_page";
+    private static final String MENU_COMMIT_CONTENT_CANCEL_TERMINAL_PAGE =
+            "menu_commit_content_cancel_terminal_page";
 
     private static final String CONFIRM_MENU_TERMINATOR = "session_%s_terminator";
 
@@ -141,7 +145,8 @@ public class ContentSessionServiceImpl implements ContentSessionService {
                 + " and recreating session...");
         if (!session.isSkippingConfirmation()) {
             menuService.terminateMenuGroup(user, session.getBot(), CONFIRM_MENU_TERMINATOR
-                    .formatted(session.getId()));
+                    .formatted(session.getId()), localizationLoader.getLocalizationForUser(
+                    MENU_COMMIT_CONTENT_RESEND_TERMINAL_PAGE, user));
         }
         removeSessionsForUserInBot(session.getUser(), session.getBot());
         createSession(session.getUser(), session.getBot(), session.getFunction());
@@ -164,7 +169,8 @@ public class ContentSessionServiceImpl implements ContentSessionService {
 
         if (!session.isSkippingConfirmation()) {
             menuService.terminateMenuGroup(user, session.getBot(), CONFIRM_MENU_TERMINATOR
-                    .formatted(session.getId()));
+                    .formatted(session.getId()), localizationLoader.getLocalizationForUser(
+                    MENU_COMMIT_CONTENT_CANCEL_TERMINAL_PAGE, user));
         }
         removeSessionsForUserInBot(session.getUser(), session.getBot());
     }

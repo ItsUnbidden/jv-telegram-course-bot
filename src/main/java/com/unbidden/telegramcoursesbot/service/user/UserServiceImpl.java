@@ -154,7 +154,7 @@ public class UserServiceImpl implements UserService {
     @NonNull
     public BotRole setRole(@NonNull UserEntity user, @NonNull UserEntity target,
             @NonNull Bot bot, @NonNull Role role) {
-        final BotRole botRole = getBotRole(user, bot);
+        final BotRole botRole = getBotRole(target, bot);
 
         if (role.getType().equals(RoleType.DIRECTOR) || role.getType().equals(RoleType.CREATOR)) {
             throw new ForbiddenOperationException("Director and Creator roles are predefined",
@@ -191,6 +191,7 @@ public class UserServiceImpl implements UserService {
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_WHO_CHANGED, user.getFullName());
         parameterMap.put(PARAM_NEW_ROLE_TYPE, role.getType());
+        parameterMap.put(PARAM_TITLE, getLocalizedTitle(user, bot));
         clientManager.getClient(bot).sendMessage(target, localizationLoader
                 .getLocalizationForUser(SERVICE_ROLE_CHANGED, user, parameterMap));
         return botRole;
@@ -438,7 +439,7 @@ public class UserServiceImpl implements UserService {
         final BotRole botRole = getBotRole(user, bot);
         
         botRole.setReceivingHomework(!botRole.isReceivingHomework());
-        return botRole;
+        return botRoleRepository.save(botRole);
     }
 
     @Override

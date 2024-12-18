@@ -178,10 +178,10 @@ public class BanButtonHandler implements ButtonHandler {
         try {
             hours = Integer.parseInt(message.getText().trim());
             if (hours > MAX_BAN_HOURS) {
-                throw new InvalidDataSentException("Hours must less than "
+                throw new InvalidDataSentException("Hours must be less than "
                         + "or equal to " + MAX_BAN_HOURS, localizationLoader
                         .getLocalizationForUser(ERROR_WRONG_BAN_HOURS, user,
-                        PARAM_HOURS, hours));
+                        PARAM_HOURS, MAX_BAN_HOURS));
             }
             LOGGER.debug("Hours have been parsed.");
         } catch (NumberFormatException e) {

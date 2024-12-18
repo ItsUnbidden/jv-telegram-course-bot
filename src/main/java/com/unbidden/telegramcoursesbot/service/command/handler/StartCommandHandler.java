@@ -22,11 +22,11 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 @Component
 @RequiredArgsConstructor
 public class StartCommandHandler implements CommandHandler {
+    private static final Logger LOGGER = LogManager.getLogger(StartCommandHandler.class);
+
     private static final String COMMAND = "/start";
 
     private static final String SERVICE_START = "service_%s_start";
-
-    private static final Logger LOGGER = LogManager.getLogger(StartCommandHandler.class);
 
     private final LocalizationLoader localizationLoader;
 
@@ -52,7 +52,7 @@ public class StartCommandHandler implements CommandHandler {
             try {
                 if (securityService.grantAccess(bot, user, AuthorityType.LAUNCH_COURSE,
                         AuthorityType.BUY)) {
-                    courseService.initMessage(user, bot, commandParts[0]);
+                    courseService.initMessage(user, bot, commandParts[1]);
                 }
             } catch (EntityNotFoundException e) {
                 LOGGER.warn("Additional parameters sent by user " + user.getId()

@@ -171,8 +171,8 @@ public class CourseSettingsMenu implements MenuConfigurer {
                     .getLocalizationForUser(COURSE_NAME.formatted(c.getName()), u).getData(),
                     c.getName(), 1))
                 .toList());
-            buttons.add(new TerminalButton(BUTTON_CREATE_NEW_COURSE, CREATE_COURSE,
-                createCourseHandler));
+            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+                BUTTON_CREATE_NEW_COURSE, u).getData(), CREATE_COURSE, createCourseHandler));
             return buttons;
         });
 

@@ -11,7 +11,6 @@ import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
-
 import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -91,7 +90,8 @@ public class UpdateCourseRefundStageButtonHandler implements ButtonHandler {
                 LOGGER.debug("Sending confirmation message...");
                 final Map<String, Object> parameterMap = new HashMap<>();
                 parameterMap.put(PARAM_COURSE_NAME, course.getName());
-                parameterMap.put(PARAM_NEW_REFUND_STAGE, course.getName());
+                parameterMap.put(PARAM_NEW_REFUND_STAGE, (course.getRefundStage() < 0)
+                        ? "Not available" : course.getRefundStage());
 
                 clientManager.getClient(bot).sendMessage(user, localizationLoader
                         .getLocalizationForUser(SERVICE_NEW_REFUND_STAGE_SUCCESS,

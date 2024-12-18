@@ -27,7 +27,7 @@ public class CreateCourseButtonHandler implements ButtonHandler {
 
     private static final String PARAM_MAX_PRICE = "${maxPrice}";
     private static final String PARAM_COURSE_NAME = "${courseName}";
-    private static final String PARAM_AMOUNT_OF_LESSONS = "${amountOfLessons}";
+    private static final String PARAM_MAX_AMOUNT_OF_LESSONS = "${maxAmountOfLessons}";
 
     private static final String SERVICE_NEW_COURSE_REQUEST = "service_new_course_request";
     private static final String SERVICE_NEW_COURSE_CREATED = "service_new_course_created";
@@ -45,6 +45,7 @@ public class CreateCourseButtonHandler implements ButtonHandler {
     private static final int MAX_PRICE = 100_000;
     private static final int MIN_COURSE_NAME_LENGTH = 3;
     private static final int MAX_COURSE_NAME_LENGTH = 20;
+    private static final int MAX_AMOUNT_OF_LESSONS = 20;
     private static final Pattern COURSE_NAME_PATTERN = Pattern
             .compile("[a-z0-9_]+");
 
@@ -93,11 +94,12 @@ public class CreateCourseButtonHandler implements ButtonHandler {
             final int amountOfLessons;
             try {
                 amountOfLessons = Integer.parseInt(m.get(1).getText());
-                if (amountOfLessons <= 0) {
-                    throw new InvalidDataSentException("Course must contain at least one lesson",
+                if (amountOfLessons <= 0 || amountOfLessons > MAX_AMOUNT_OF_LESSONS) {
+                    throw new InvalidDataSentException("Course must contain at least one lesson "
+                            + "and no more than " + MAX_AMOUNT_OF_LESSONS,
                             localizationLoader.getLocalizationForUser(
                             ERROR_NEW_COURSE_WRONG_LESSONS_AMOUNT, user,
-                            PARAM_AMOUNT_OF_LESSONS, amountOfLessons));
+                            PARAM_MAX_AMOUNT_OF_LESSONS, MAX_AMOUNT_OF_LESSONS));
                 }
                 LOGGER.debug("Amount of lessons has been parsed.");
             } catch (NumberFormatException e) {

@@ -12,7 +12,6 @@ import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
-
 import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -79,6 +78,7 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
                 course.setPrice(newPrice);
                 courseService.save(course);
                 LOGGER.info("New price saved.");
+                messageParams.put(PARAM_CURRENT_PRICE, course.getPrice());
                 final Localization response = localizationLoader.getLocalizationForUser(
                         SERVICE_COURSE_PRICE_UPDATE_SUCCESS, user, messageParams);
 

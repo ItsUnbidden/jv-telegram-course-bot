@@ -36,6 +36,7 @@ public class HomeworkMediaTypesChangeButtonHandler implements ButtonHandler {
 
     private static final String MEDIA_TYPE_DIVIDER = " ";
     private static final int EXPECTED_MESSAGES = 1;
+    private static final String NO_MEDIA_TYPES_STR = "null";
 
     private final ContentSessionService sessionService;
 
@@ -62,22 +63,26 @@ public class HomeworkMediaTypesChangeButtonHandler implements ButtonHandler {
             final String[] potentialMediaTypes = mediaTypesStr.split(MEDIA_TYPE_DIVIDER);
             LOGGER.debug("User " + user.getId() + " has provided this string: "
                     + mediaTypesStr + ". Trying to parse...");    
-            for (String mediaTypeStr : potentialMediaTypes) {
-                try {
-                    LOGGER.debug("Trying to parse " + mediaTypeStr + " to "
-                            + MediaType.class.getName() + "...");
-                    final MediaType value = MediaType.valueOf(mediaTypeStr);
-                    LOGGER.debug("Parsed to " + value + ".");
-                } catch (IllegalArgumentException e) {
-                    throw new InvalidDataSentException("Unable to parse " + mediaTypeStr
-                            + " to a " + MediaType.class.getName() + " enum value",
-                            localizationLoader.getLocalizationForUser(
-                            ERROR_PARSE_ENUM_FAILURE, user, PARAM_MEDIA_TYPES,
-                            Arrays.toString(MediaType.values())), e);
+            if (!mediaTypesStr.equals(NO_MEDIA_TYPES_STR)) {
+                for (String mediaTypeStr : potentialMediaTypes) {
+                    try {
+                        LOGGER.debug("Trying to parse " + mediaTypeStr + " to "
+                                + MediaType.class.getName() + "...");
+                        final MediaType value = MediaType.valueOf(mediaTypeStr.toUpperCase());
+                        LOGGER.debug("Parsed to " + value + ".");
+                    } catch (IllegalArgumentException e) {
+                        throw new InvalidDataSentException("Unable to parse " + mediaTypeStr
+                                + " to a " + MediaType.class.getName() + " enum value",
+                                localizationLoader.getLocalizationForUser(
+                                ERROR_PARSE_ENUM_FAILURE, user, PARAM_MEDIA_TYPES,
+                                Arrays.toString(MediaType.values())), e);
+                    }
                 }
+                LOGGER.debug("No problems occured during parsing. Persisting...");
+                homework.setAllowedMediaTypes(mediaTypesStr);
+            } else {
+                homework.setAllowedMediaTypes("");
             }
-            LOGGER.debug("No problems occured during parsing. Persisting...");
-            homework.setAllowedMediaTypes(mediaTypesStr);
             homeworkService.save(homework);
             LOGGER.info("Media types updated to " + mediaTypesStr + " for homework "
                     + homework.getId() + ".");

@@ -33,12 +33,10 @@ public class SetRoleButtonHandler implements ButtonHandler {
     private static final Logger LOGGER = LogManager.getLogger(
             SetRoleButtonHandler.class);
         
-    private static final String PARAM_GIVER_FULL_NAME = "${giverFullName}";
     private static final String PARAM_NEW_ROLE_TYPE = "${newRoleType}";
     private static final String PARAM_TARGET_FULL_NAME = "${targetFullName}";
     
     private static final String SERVICE_SET_ROLE_USER_REQUEST = "service_set_role_user_request";
-    private static final String SERVICE_SET_ROLE_NOTIFICATION = "service_set_role_notification";
     private static final String SERVICE_SET_ROLE_SUCCESS = "service_set_role_success";
     
     private static final String BUTTON_SET_ROLE_CHOOSE_USER = "button_set_role_choose_user";
@@ -88,20 +86,16 @@ public class SetRoleButtonHandler implements ButtonHandler {
                     user);
             userService.setRole(user, target, bot, role);
             LOGGER.info("User " + target.getId() + " is now of " + role.getType()
-                    + " role in bot " + bot.getName() + ". Sending notification and "
-                    + "confirmation...");
+                    + " role in bot " + bot.getName() + ". Sending confirmation...");
             final RegularClient client = (RegularClient)clientManager.getClient(bot);
 
             final Map<String, Object> parameterMap = new HashMap<>();
             parameterMap.put(PARAM_TARGET_FULL_NAME, target.getFullName());
             parameterMap.put(PARAM_NEW_ROLE_TYPE, role.getType());
-            parameterMap.put(PARAM_GIVER_FULL_NAME, user.getFullName());
 
             client.sendMessage(user, localizationLoader.getLocalizationForUser(
                     SERVICE_SET_ROLE_SUCCESS, user, parameterMap));
-            client.sendMessage(target, localizationLoader.getLocalizationForUser(
-                    SERVICE_SET_ROLE_NOTIFICATION, target, parameterMap));
-            LOGGER.info("Messages sent. Setting new menus for user " + target.getId() + "...");
+            LOGGER.info("Message sent. Setting new menus for user " + target.getId() + "...");
             client.removeMenuForUser(target);
             client.setUpMenuForUserForRole(target, role);
             LOGGER.info("Menus have been set up for user "+ target.getId() + ".");

@@ -72,16 +72,21 @@ button ban_options
 button lift_ban
 button give_ban
 button by_id
-button choose_user
-button create_bot_choose_user
+button choose_user 
+button create_bot_choose_user ** Botfather only
 button create_lesson
 button remove_lesson
 button set_homework_delay
 button set_lesson_delay
-button toggle_course_maintenance
-button menus_refresh
-button desc_name_refresh
-button localizations_refresh
+button toggle_course_maintenance 
+button menus_refresh ** Botfather only
+button desc_name_refresh ** Botfather only
+button localizations_refresh ** Botfather only
+button post_custom_role_set
+button send_private_message
+button post_options
+button get_archive_reviews
+button get_new_reviews
 
 
 menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes} ${delay}
@@ -90,7 +95,6 @@ menu course_settings_page_2
 menu course_settings_page_1 ${id} ${name} ${numberOfLessons} ${price} ${refundStage} ${isHomeworkIncluded} ${isFeedbackIncluded}
 menu course_settings_page_0
 menu commit_content_page_0
-menu commit_content_terminal_page
 menu mapping_settings_page_0 ${mappingId} ${position} ${content}
 menu my_courses_page_5
 menu my_courses_page_4
@@ -114,13 +118,21 @@ menu leave_basic_review_page_1
 menu support_request_page_0_no_courses
 menu support_request_page_0
 menu support_request_page_1
-menu bot_page_0
-menu bot_page_1
-menu refresh_page_0
+menu bot_page_0 ** Botfather only
+menu bot_page_1 ** Botfather only
+menu refresh_page_0 ** Botfather only
+menu general_post_page_0 ** Botfather only
+menu post_page_0
+menu post_page_1
+menu commit_content_terminal_page
+menu commit_content_resend_terminal_page
+menu commit_content_cancel_terminal_page
+menu commit_content_expired_terminal_page
+
 
 service add_lesson_content_request ${lessonId}
 service lesson_content_added ${contentId} ${lessonId}
-service add_new_localization_request ${contentId}
+service add_new_localization_request ${mappingId}
 service add_new_localization_success ${contentId} ${mappingId}
 service status_disabled
 service status_enabled
@@ -144,7 +156,6 @@ service send_homework_media_group_bypass
 service feedback_media_group_bypass
 service mapping_id_request
 service course_next_stage_media_group_bypass
-service resend_content
 service review_info ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead}
 service review_info_comment ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt}
 service review_info_content ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${contentId} ${originalContentId} ${advancedTimestamp}
@@ -160,18 +171,12 @@ service basic_review_submitted
 service advanced_review_terminal ${courseName}
 service basic_review_terminal ${courseName}
 service resend_content
-service new_course_request
-service new_course_created ${courseName}
-service update_homework_content_request
+service update_homework_content_request ${lessonId}
 service homework_content_updated ${homeworkId}
 service remove_lesson_content_request 
 service lesson_content_removed ${contentId} ${lessonId}
-service add_lesson_content_request
-service lesson_content_added ${contentId} ${lessonId}
 service review_comment_request
 service review_content_request
-service get_archive_reviews
-service get_new_reviews
 service feedback_for_homework_waiting
 service homework_accepted_auto
 service homework_feedback_request_notification ${targetId} ${targetFirstName} ${targetLastName} ${targetUsername} ${targetLanguageCode} ${courseName} ${lessonIndex}
@@ -188,10 +193,10 @@ service upload_content_success ${contentId}
 service upload_content_request
 service toggle_receive_homework ${status}
 service give_take_course_choose_action ${courseName}
-service course_gifted_successfuly ${courseName} ${targetFirstName}
-service course_gifted_notification ${courseName}
-service course_taken_successfuly ${courseName} ${targetFirstName}
-service course_taken_notification ${courseName}
+service course_gifted_successfuly ${courseName} ${targetFullName} ${targetTitle}
+service course_gifted_notification ${courseName} ${senderTitle} ${senderFullName}
+service course_taken_successfuly ${courseName} ${targetFullName} ${targetTitle}
+service course_taken_notification ${courseName} ${senderTitle} ${senderFullName}
 service about_<botName>_creator
 service get_admin_list ${mentorsInfo} ${supportInfo} ${creatorInfo}
 service on_maintenance_status_change ${status}
@@ -220,10 +225,10 @@ service support_reply_reply_sent
 service support_request_reply_sent
 service banned ${whoBanned} ${title}
 service temporary_banned ${whoBanned} ${title} ${hoursUntilLift}
-service role_changed ${whoChanged} ${newRoleType}
+service role_changed ${whoChanged} ${newRoleType} ${title}
 service ban_lifted ${whoLifted} ${title}
 service ban_lifted_auto
-service general_ban ${whoLifted} ${title}
+service general_ban ${whoBanned} ${title}
 service temporary_general_ban ${whoBanned} ${title} ${hoursUntilLift}
 service general_ban_lifted ${whoLifted} ${title}
 service general_ban_lifted_auto
@@ -231,7 +236,6 @@ service bot_%s_name
 service bot_%s_short_description
 service bot_%s_full_description
 service set_role_user_request
-service set_role_notification ${giverFullName} ${newRoleType}
 service set_role_success ${targetFullName} ${newRoleType}
 service role_%s_title
 service ban_choose_user_hours_request
@@ -252,12 +256,26 @@ service create_lesson_request
 service new_lesson_created
 service delete_lesson_request
 service lesson_deleted
-service new_homework_delay_request
+service new_homework_delay_request ${maxDelay} 
 service new_delay_set_success
 service course_maintenance_toggle_success ${status}
-service names_descriptions_refresh_success
-service localizations_refresh_success
-service menu_refresh_success
+service names_descriptions_refresh_success ** Botfather only
+service localizations_refresh_success ** Botfather only
+service menu_refresh_success ** Botfather only
+service post_started
+service post_roles_request
+service post_content_request
+service general_post_started ** Botfather only
+service general_post_roles_request ** Botfather only
+service general_post_content_request ** Botfather only
+service post_completed ${messagesSent}
+service general_post_completed ${messagesSent} ** Botfather only
+service new_lesson_delay_request ${maxDelay} 
+service less_then_an_hour
+service private_message_content_request ${targetTitle} ${targetFullName}
+service private_message_user_request
+service private_message_info ${title} ${senderFullName}
+service private_message_sent ${targetTitle} ${targetFullName}
 
 
 error no_exception_localization_available ${excMessage} ${excClassName}
@@ -265,7 +283,7 @@ error language_code_length
 error localized_content_is_already_present ${mappingId} ${languageCode}
 error price_limit ${maxPrice}
 error parse_price_failure
-error new_course_wrong_lessons_amount ${amountOfLessons}
+error new_course_wrong_lessons_amount ${maxAmountOfLessons}
 error message_text_missing ${messageIndex}
 error amount_of_messages ${providedMessagesNumber} ${expectedMessagesAmount}
 error parse_id_failure
@@ -300,24 +318,18 @@ error course_progress_not_found
 error course_not_found
 error content_mapping_not_found
 error content_not_found
-error new_price_cannot_parse
-error pre_checkout_unknown_course
+error pre_checkout_unknown_course ${courseName}
 error pre_checkout_currency_mismatch
 error pre_checkout_price_mismatch ${currentPrice}
-error payment_unknown_course ${courseName}
 error give_take_course_no_longer_available ${courseName}
 error give_course_user_not_found ${courseName} ${targetId}
-error give_course_already_owned ${courseName} ${targetFirstName}
+error give_course_already_owned ${courseName} ${targetFullName} ${targetTitle}
 error take_course_user_not_found ${courseName} ${targetId}
-error take_course_bought ${courseName} ${targetFirstName}
-error homework_already_awaits_approval
+error take_course_bought ${courseName} ${targetFullName} ${targetTitle}
 error homework_already_declined
 error homework_already_completed
 error unspecified_exception ${excMessage} ${excClassName}
 error critical_director_notification ${excMessage} ${excClassName} ${userFullName} ${botName}
-error unsupported_operation_exception
-error telegram_internal ${excMessage}
-error precheckout_unknown_course
 error pre_checkout_course_already_owned ${courseName}
 error payment_details_not_found
 error refund_failure
@@ -328,7 +340,7 @@ error same_new_course_grade ${courseGrade}
 error same_new_platform_grade ${platformGrade}
 error update_comment_failure
 error update_comment_forbidden
-error support_request_already_answered ${userFullName}
+error support_request_already_answered ${userFullName} ${title}
 error support_reply_not_found
 error support_request_not_found
 error support_request_already_resolved
@@ -364,12 +376,12 @@ error user_id_less_than_zero ${userId}
 error parse_user_id
 error payment_success_server_on_maintenance
 error unavailable_in_regular_bot
-error maintenance_in_not_enabled
+error maintenance_in_not_enabled ** Botfather only
 error parse_content_id_failure
-error bot_name_pattern_mismatch
-error bot_token_pattern_mismatch
-error bot_name_length
-error bot_already_exists
+error bot_name_pattern_mismatch ** Botfather only
+error bot_token_pattern_mismatch ** Botfather only
+error bot_name_length ** Botfather only
+error bot_already_exists ** Botfather only
 error course_already_exists
 error course_name_pattern_mismatch
 error course_name_length
@@ -377,5 +389,9 @@ error lesson_position_invalid
 error parse_index_failure
 error lesson_delete_confirmation_failure
 error parse_delay_failure
-error homework_delay_invalid
+error homework_delay_invalid ${maxDelay}
 error awaiting_lesson ${timeLeft}
+error too_many_post_requests
+error post_no_roles
+error lesson_delay_invalid ${maxDelay}
+error private_message_user_not_registered_in_bot

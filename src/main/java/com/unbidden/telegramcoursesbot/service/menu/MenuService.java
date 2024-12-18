@@ -36,6 +36,9 @@ public interface MenuService {
 
     void terminateMenuGroup(@NonNull UserEntity user, @NonNull Bot bot, @NonNull String key);
     
+    void terminateMenuGroup(@NonNull UserEntity user, @NonNull Bot bot, @NonNull String key,
+            @Nullable Localization terminalLocalizationOverride);
+    
     void terminateMenu(@NonNull Long chatId, @NonNull Integer messageId, @NonNull Bot bot,
             @Nullable Localization terminalPageLocalization);
 

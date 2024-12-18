@@ -23,6 +23,8 @@ public class LessonDelaySettingButtonHandler implements ButtonHandler {
     private static final Logger LOGGER = LogManager.getLogger(
             HomeworkDelaySettingButtonHandler.class);
     
+    private static final String PARAM_MAX_DELAY = "${maxDelay}";
+
     private static final String SERVICE_NEW_LESSON_DELAY_REQUEST =
             "service_new_lesson_delay_request";
     private static final String SERVICE_NEW_DELAY_SET_SUCCESS = "service_new_delay_set_success";
@@ -61,7 +63,7 @@ public class LessonDelaySettingButtonHandler implements ButtonHandler {
                 if (newDelay > MAX_LESSON_DELAY) {
                     throw new InvalidDataSentException("Lesson delay is capped to "
                             + MAX_LESSON_DELAY, localizationLoader.getLocalizationForUser(
-                            ERROR_LESSON_DELAY_INVALID, user));
+                            ERROR_LESSON_DELAY_INVALID, user, PARAM_MAX_DELAY, MAX_LESSON_DELAY));
                 }
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse provided string "
@@ -80,7 +82,8 @@ public class LessonDelaySettingButtonHandler implements ButtonHandler {
         }, true);
         LOGGER.debug("Sending new delay request...");
         clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .getLocalizationForUser(SERVICE_NEW_LESSON_DELAY_REQUEST, user));
+                .getLocalizationForUser(SERVICE_NEW_LESSON_DELAY_REQUEST, user,
+                PARAM_MAX_DELAY, MAX_LESSON_DELAY));
         LOGGER.debug("Request sent.");
     }
 }

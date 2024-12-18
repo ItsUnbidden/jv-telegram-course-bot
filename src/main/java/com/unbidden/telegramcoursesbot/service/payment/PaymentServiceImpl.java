@@ -57,8 +57,8 @@ public class PaymentServiceImpl implements PaymentService {
             "error_pre_checkout_currency_mismatch";
     private static final String ERROR_PAYMENT_DETAILS_NOT_FOUND =
             "error_payment_details_not_found";
-    private static final String ERROR_PRECHECKOUT_UNKNOWN_COURSE =
-            "error_precheckout_unknown_course";
+    private static final String ERROR_PRE_CHECKOUT_UNKNOWN_COURSE =
+            "error_pre_checkout_unknown_course";
     private static final String ERROR_PRE_CHECKOUT_COURSE_ALREADY_OWNED =
             "error_pre_checkout_course_already_owned";
     private static final String ERROR_ANSWER_PRECHECKOUT_FAILURE =
@@ -227,7 +227,7 @@ public class PaymentServiceImpl implements PaymentService {
             }
         } catch (EntityNotFoundException e) {
             final Localization errorLoc = localizationLoader.getLocalizationForUser(
-                    ERROR_PRECHECKOUT_UNKNOWN_COURSE, user, PARAM_COURSE_NAME,
+                    ERROR_PRE_CHECKOUT_UNKNOWN_COURSE, user, PARAM_COURSE_NAME,
                     preCheckoutQuery.getInvoicePayload());
             answerBuilder.errorMessage(errorLoc.getData());
             LOGGER.error("Precheckout query payload contained unknown course: "

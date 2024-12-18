@@ -298,15 +298,22 @@ public class MenuServiceImpl implements MenuService {
     @Override
     public void terminateMenuGroup(@NonNull UserEntity user, @NonNull Bot bot,
             @NonNull String key) {
+        terminateMenuGroup(user, bot, key, null);
+    }
+
+    @Override
+    public void terminateMenuGroup(@NonNull UserEntity user, @NonNull Bot bot, @NonNull String key,
+            @Nullable Localization terminalLocalizationOverride) {
         final MenuTerminationGroup group = menuTerminationGroupRepository.findByUserIdAndName(
                 user.getId(), key).orElseThrow(() -> new EntityNotFoundException(
                 "Menu termination group for user " + user.getId() + " and key " + key
                 + " does not exist", localizationLoader.getLocalizationForUser(
                 ERROR_MTG_NOT_FOUND, user)));
-        
+            
         for (MessageEntity message : group.getMessages()) {
             terminateMenu(message.getUser().getId(), message.getMessageId(), bot,
-                    (group.getTerminalLocalizationName() != null) ? localizationLoader
+                    (terminalLocalizationOverride != null) ? terminalLocalizationOverride
+                    : (group.getTerminalLocalizationName() != null) ? localizationLoader
                     .getLocalizationForUser(group.getTerminalLocalizationName(),
                     message.getUser()) : null);
         }

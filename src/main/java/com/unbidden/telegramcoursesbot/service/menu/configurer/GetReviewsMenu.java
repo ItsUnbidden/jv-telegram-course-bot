@@ -26,9 +26,8 @@ public class GetReviewsMenu implements MenuConfigurer {
     private static final String GET_NEW_REVIEWS = "gnr";
     private static final String ALL_COURSES = "-1";
 
-    private static final String SERVICE_GET_ARCHIVE_REVIEWS = "service_get_archive_reviews";
-    private static final String SERVICE_GET_NEW_REVIEWS = "service_get_new_reviews";
-
+    private static final String BUTTON_GET_ARCHIVE_REVIEWS = "button_get_archive_reviews";
+    private static final String BUTTON_GET_NEW_REVIEWS = "button_get_new_reviews";
     private static final String BUTTON_ALL_COURSES_REVIEWS = "button_all_courses_reviews";
     private static final String BUTTON_BACK = "button_back";
 
@@ -75,9 +74,9 @@ public class GetReviewsMenu implements MenuConfigurer {
         secondPage.setButtonsRowSize(2);
         secondPage.setMenu(menu);
         secondPage.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(localizationLoader
-                .getLocalizationForUser(SERVICE_GET_NEW_REVIEWS, u).getData(), GET_NEW_REVIEWS,
+                .getLocalizationForUser(BUTTON_GET_NEW_REVIEWS, u).getData(), GET_NEW_REVIEWS,
                 getNewReviewsHandler), new TerminalButton(localizationLoader
-                .getLocalizationForUser(SERVICE_GET_ARCHIVE_REVIEWS, u).getData(),
+                .getLocalizationForUser(BUTTON_GET_ARCHIVE_REVIEWS, u).getData(),
                 GET_ARCHIVE_REVIEWS, getArchiveReviewsHandler), new BackwardButton(
                 localizationLoader.getLocalizationForUser(BUTTON_BACK, u).getData())));
         menu.setName(MENU_NAME);

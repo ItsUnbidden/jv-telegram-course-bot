@@ -338,12 +338,17 @@ public class SupportServiceImpl implements SupportService {
             @NonNull UserEntity user, @NonNull Bot bot) {
         if (message.getClass().equals(SupportRequest.class)) {
             final SupportRequest request = (SupportRequest)message;
+
             if (request.getStaffMember() != null) {
+                final Map<String, Object> parameterMap = new HashMap<>();
+                parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(
+                        request.getStaffMember(), bot));
+                parameterMap.put(PARAM_USER_FULL_NAME, request.getStaffMember().getFullName());
+                
                 throw new ActionExpiredException("This support request has already been "
                         + "answered by user " + request.getStaffMember().getId(),
                         localizationLoader.getLocalizationForUser(
-                        ERROR_SUPPORT_REQUEST_ALREADY_ANSWERED, user,
-                        PARAM_USER_FULL_NAME, request.getStaffMember().getFullName()));
+                        ERROR_SUPPORT_REQUEST_ALREADY_ANSWERED, user, parameterMap));
             }
         } else {
             final SupportReply reply = (SupportReply)message;

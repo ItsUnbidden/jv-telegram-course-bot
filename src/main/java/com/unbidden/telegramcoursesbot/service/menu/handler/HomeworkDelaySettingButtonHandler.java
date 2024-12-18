@@ -22,6 +22,8 @@ import org.springframework.stereotype.Component;
 public class HomeworkDelaySettingButtonHandler implements ButtonHandler {
     private static final Logger LOGGER = LogManager.getLogger(
             HomeworkDelaySettingButtonHandler.class);
+
+    private static final String PARAM_MAX_DELAY = "${maxDelay}";
     
     private static final String SERVICE_NEW_HOMEWORK_DELAY_REQUEST =
             "service_new_homework_delay_request";
@@ -62,7 +64,7 @@ public class HomeworkDelaySettingButtonHandler implements ButtonHandler {
                 if (newDelay > MAX_HOMEWORK_DELAY) {
                     throw new InvalidDataSentException("Homework delay is capped to "
                             + MAX_HOMEWORK_DELAY, localizationLoader.getLocalizationForUser(
-                            ERROR_HOMEWORK_DELAY_INVALID, user));
+                            ERROR_HOMEWORK_DELAY_INVALID, user, PARAM_MAX_DELAY, MAX_HOMEWORK_DELAY));
                 }
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse provided string "
@@ -81,7 +83,8 @@ public class HomeworkDelaySettingButtonHandler implements ButtonHandler {
         }, true);
         LOGGER.debug("Sending new delay request...");
         clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .getLocalizationForUser(SERVICE_NEW_HOMEWORK_DELAY_REQUEST, user));
+                .getLocalizationForUser(SERVICE_NEW_HOMEWORK_DELAY_REQUEST, user,
+                PARAM_MAX_DELAY, PARAM_MAX_DELAY));
         LOGGER.debug("Request sent.");
     }
 }

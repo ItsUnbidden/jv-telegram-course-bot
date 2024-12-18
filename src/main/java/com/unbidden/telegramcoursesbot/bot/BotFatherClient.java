@@ -33,6 +33,7 @@ public class BotFatherClient extends CustomTelegramClient {
         COMMANDS.add("/refresh");
         COMMANDS.add("/generalban");
         COMMANDS.add("/botsettings");
+        COMMANDS.add("/generalpost");
         initialize();
     }
 

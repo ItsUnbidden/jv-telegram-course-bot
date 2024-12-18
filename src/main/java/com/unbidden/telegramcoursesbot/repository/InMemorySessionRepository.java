@@ -1,7 +1,10 @@
 package com.unbidden.telegramcoursesbot.repository;
 
+import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSession;
 import com.unbidden.telegramcoursesbot.service.session.Session;
 import com.unbidden.telegramcoursesbot.service.session.UserOrChatRequestSession;
@@ -12,6 +15,7 @@ import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +24,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@RequiredArgsConstructor
 public class InMemorySessionRepository implements SessionRepository, AutoClearable {
     private static final Logger LOGGER = LogManager.getLogger(InMemorySessionRepository.class);
 
@@ -29,6 +34,15 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
 
     private static final ConcurrentMap<Long, List<Session>> sessionsIndexedByUser =
             new ConcurrentHashMap<>();
+
+    private static final String CONFIRM_MENU_TERMINATOR = "session_%s_terminator";
+
+    private static final String MENU_COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE =
+            "menu_commit_content_expired_terminal_page";
+
+    private final MenuService menuService;
+
+    private final LocalizationLoader localizationLoader;
 
     @Value("${telegram.bot.message.session.expiration}")
     private Integer expiration;
@@ -57,6 +71,20 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
         for (Entry<Integer, Session> entry : sessions.entrySet()) {
             if (LocalDateTime.now().isAfter(entry.getValue()
                     .getTimestamp().plusSeconds(expiration))) {
+                if (entry.getValue() instanceof ContentSession) {
+                    try {
+                        menuService.terminateMenuGroup(entry.getValue().getUser(),
+                                entry.getValue().getBot(), CONFIRM_MENU_TERMINATOR
+                                .formatted(entry.getValue().getId()), localizationLoader
+                                .getLocalizationForUser(MENU_COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE,
+                                entry.getValue().getUser()));
+                        LOGGER.debug("An MTG for session " + entry.getValue().getId()
+                                + " was terminated after the session expired.");
+                    } catch (EntityNotFoundException e) {
+                        LOGGER.debug("There is no MTG for session "
+                                + entry.getValue().getId() + ".");
+                    }
+                }
                 keysToRemove.add(entry.getKey());
             }
         }
