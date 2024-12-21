@@ -188,17 +188,19 @@ public class AudioContentHandler implements LocalizedContentHandler<AudioContent
                 }
                 continue;
             }
-            final Audio audio = new Audio(message.getAudio());
-
-            if (message.getAudio().getThumbnail() != null) {
-                final Optional<Photo> potentialThumbnail = photoRepository.findById(
-                        message.getAudio().getThumbnail().getFileUniqueId());
-                if (potentialThumbnail.isPresent()) {
-                    audio.setThumbnail(potentialThumbnail.get());
-                } else {
-                    audio.setThumbnail(photoRepository.save(
-                            new Photo(message.getAudio().getThumbnail())));
+            if (message.hasAudio()) {
+                final Audio audio = new Audio(message.getAudio());
+                if (message.getAudio().getThumbnail() != null) {
+                    final Optional<Photo> potentialThumbnail = photoRepository.findById(
+                            message.getAudio().getThumbnail().getFileUniqueId());
+                    if (potentialThumbnail.isPresent()) {
+                        audio.setThumbnail(potentialThumbnail.get());
+                    } else {
+                        audio.setThumbnail(photoRepository.save(
+                                new Photo(message.getAudio().getThumbnail())));
+                    }
                 }
+                audios.add(audio);
             }
             if (!isTextSetUp && message.getCaption() != null && !message.getCaption().isEmpty()) {
                 captions = message.getCaption();
@@ -212,7 +214,6 @@ public class AudioContentHandler implements LocalizedContentHandler<AudioContent
                 languageCode = userService.getUser(message.getFrom().getId(),
                         userService.getDiretor()).getLanguageCode();
             }
-            audios.add(audio);
         }
         audioRepository.saveAll(audios);
         AudioContent audioContent = new AudioContent();

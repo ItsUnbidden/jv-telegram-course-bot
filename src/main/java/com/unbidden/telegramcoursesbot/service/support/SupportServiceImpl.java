@@ -163,7 +163,8 @@ public class SupportServiceImpl implements SupportService {
         LOGGER.debug("Reply menus removed. Sending content...");
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_USER_FULL_NAME, user.getFullName());
-        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, bot));
+        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user,
+                request.getUser(), bot));
 
         sendSupportReply(request.getUser(), bot, parameterMap, reply);
         LOGGER.debug("Content sent.");
@@ -192,7 +193,7 @@ public class SupportServiceImpl implements SupportService {
         
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_USER_FULL_NAME, user.getFullName());
-        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, bot));
+        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, reply.getUser(), bot));
 
         sendSupportReply(reply.getUser(), bot, parameterMap, newReply);
         LOGGER.debug("Content sent.");
@@ -228,17 +229,21 @@ public class SupportServiceImpl implements SupportService {
         LOGGER.debug("Sending notification messages to both parties...");
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_USER_FULL_NAME, user.getFullName());
-        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, bot));
 
-        final Localization notification = localizationLoader.getLocalizationForUser(
-                SERVICE_SUPPORT_REQUEST_RESOLVED, user, parameterMap);
-        clientManager.getClient(bot).sendMessage(request.getUser(), notification);
+        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, request.getUser(),
+                bot));
+        clientManager.getClient(bot).sendMessage(request.getUser(), localizationLoader
+                .getLocalizationForUser(SERVICE_SUPPORT_REQUEST_RESOLVED, user, parameterMap));
         if (request.getStaffMember() == null) {
             LOGGER.warn("User " + user.getId() + " resolved their support request "
                     + request.getId() + " prematurely. Staff member is unavailable, "
                     + "so only one message will be sent.");
         } else {
-            clientManager.getClient(bot).sendMessage(request.getStaffMember(), notification);
+            parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user,
+                    request.getStaffMember(), bot));
+            clientManager.getClient(bot).sendMessage(request.getStaffMember(), localizationLoader
+                    .getLocalizationForUser(SERVICE_SUPPORT_REQUEST_RESOLVED, user,
+                    parameterMap));
             LOGGER.debug("Messages sent.");
         }
         try {
@@ -342,7 +347,7 @@ public class SupportServiceImpl implements SupportService {
             if (request.getStaffMember() != null) {
                 final Map<String, Object> parameterMap = new HashMap<>();
                 parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(
-                        request.getStaffMember(), bot));
+                        request.getStaffMember(), user, bot));
                 parameterMap.put(PARAM_USER_FULL_NAME, request.getStaffMember().getFullName());
                 
                 throw new ActionExpiredException("This support request has already been "

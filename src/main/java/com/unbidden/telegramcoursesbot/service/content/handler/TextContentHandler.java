@@ -88,8 +88,10 @@ public class TextContentHandler implements LocalizedContentHandler<LocalizedCont
                     .getData().getData(), user)
                 : new Localization(localizedContent.getData().getData());
         
-        localization.setEntities(localizedContent.getData().getEntities().stream()
-                .map(m -> m.toMessageEntity()).toList());
+        if (localization.getEntities() == null || localization.getEntities().isEmpty()) {
+            localization.setEntities(localizedContent.getData().getEntities().stream()
+                    .map(m -> m.toMessageEntity()).toList());
+        }
         return List.of(clientManager.getClient(bot).sendMessage(SendMessage.builder()
                 .chatId(user.getId())
                 .text(localization.getData())

@@ -22,6 +22,8 @@ import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TransitoryButton;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.KeyboardUtil;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +49,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 public class MenuServiceImpl implements MenuService {
     private static final Logger LOGGER = LogManager.getLogger(MenuServiceImpl.class);
 
-    private static final String ERROR_UPDATE_MESSAGE_FAILURE = "error_update_message_failure";
+    // private static final String ERROR_UPDATE_MESSAGE_FAILURE = "error_update_message_failure";
     private static final String ERROR_UPDATE_MARKUP_FAILURE = "error_update_markup_failure";
     private static final String ERROR_MTG_NOT_FOUND = "error_mtg_not_found";
     private static final String ERROR_MENU_NOT_FOUND = "error_menu_not_found";
@@ -284,8 +286,11 @@ public class MenuServiceImpl implements MenuService {
             LOGGER.debug("MTG " + user.getId() + " and key " + key + " does not exist yet.");
             group = new MenuTerminationGroup();
             group.setName(key);
-            group.setMessages(List.of(messageRepository.save(
-                    new MessageEntity(messagedUser, messageId))));
+
+            List<MessageEntity> entities = new ArrayList<>();
+            entities.add(messageRepository.save(new MessageEntity(messagedUser, messageId)));
+            group.setMessages(entities);
+            
             group.setTerminalLocalizationName(terminalLocalizationName);
             group.setUser(user);
         }
@@ -323,7 +328,6 @@ public class MenuServiceImpl implements MenuService {
     @Override
     public void terminateMenu(@NonNull Long chatId, @NonNull Integer messageId, @NonNull Bot bot,
             @Nullable Localization terminalPageLocalization) {
-        final UserEntity user = userService.getUser(chatId, userService.getDiretor());
         final InlineKeyboardMarkup clearMarkup = InlineKeyboardMarkup.builder()
                 .clearKeyboard()
                 .keyboard(List.of())
@@ -345,9 +349,12 @@ public class MenuServiceImpl implements MenuService {
                     .replyMarkup(clearMarkup)
                     .build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to update message "
-                    + messageId + " in chat " + chatId, localizationLoader.getLocalizationForUser(
-                    ERROR_UPDATE_MESSAGE_FAILURE, user), e);
+            LOGGER.warn("Unable to update message " + messageId + " in chat " + chatId, e);
+            // TODO: make sure ignoring this does not cause any issues
+            
+            // throw new TelegramException("Unable to update message "
+            //         + messageId + " in chat " + chatId, localizationLoader.getLocalizationForUser(
+            //         ERROR_UPDATE_MESSAGE_FAILURE, user), e);
         }
     }
 

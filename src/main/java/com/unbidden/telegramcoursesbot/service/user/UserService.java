@@ -52,7 +52,8 @@ public interface UserService {
     List<BotRole> getHomeworkBotRoles(@NonNull Bot bot);
 
     @NonNull
-    String getLocalizedTitle(@NonNull UserEntity user, @NonNull Bot bot);
+    String getLocalizedTitle(@NonNull UserEntity user, @NonNull UserEntity localizedFor,
+            @NonNull Bot bot);
 
     @NonNull
     BotRole toggleReceiveHomework(@NonNull UserEntity user, @NonNull Bot bot);

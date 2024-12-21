@@ -50,7 +50,7 @@ public class HomeworkServiceImpl implements HomeworkService {
     private static final String REQUEST_FEEDBACK_MENU = "m_rqF";
     private static final String SEND_HOMEWORK_MENU = "m_sHw";
     private static final String COURSE_NEXT_STAGE_MENU = "m_crsNxtStg";
-
+    
     private static final String PARAM_TARGET_LANGUAGE_CODE = "${targetLanguageCode}";
     private static final String PARAM_TARGET_USERNAME = "${targetUsername}";
     private static final String PARAM_TARGET_LAST_NAME = "${targetLastName}";
@@ -78,6 +78,8 @@ public class HomeworkServiceImpl implements HomeworkService {
             "service_feedback_media_group_bypass";
     private static final String SERVICE_SEND_HOMEWORK_MEDIA_GROUP_BYPASS =
             "service_send_homework_media_group_bypass";
+
+    private static final String COURSE_NAME = "course_%s_name";
 
     private static final String ERROR_HOMEWORK_ALREADY_COMPLETED =
             "error_homework_already_completed";
@@ -262,7 +264,7 @@ public class HomeworkServiceImpl implements HomeworkService {
             homeworkBotRoles.forEach(br -> {
                 final Localization adminNotification = localizationLoader.getLocalizationForUser(
                         SERVICE_HOMEWORK_FEEDBACK_NOTIFICATION, br.getUser(),
-                        getParameterMapForUserAndCourseInfo(progress));
+                        getParameterMapForUserAndCourseInfo(progress, br.getUser()));
                 clientManager.getClient(bot).sendMessage(br.getUser(), adminNotification);
                 contentService.sendContent(progress.getContent(), br.getUser(), bot);
             });
@@ -295,7 +297,7 @@ public class HomeworkServiceImpl implements HomeworkService {
                     + "Sending approval message to them...");
             final Localization localization = localizationLoader.getLocalizationForUser(
                     SERVICE_HOMEWORK_FEEDBACK_REQUEST_NOTIFICATION, mentor,
-                    getParameterMapForUserAndCourseInfo(homeworkProgress));
+                    getParameterMapForUserAndCourseInfo(homeworkProgress, mentor));
             clientManager.getClient(bot).sendMessage(mentor, localization);
             LOGGER.debug("Homework feedback info has been sent to user " + mentor.getId() + ".");
             final List<Message> sendContent = contentService.sendContent(homeworkProgress
@@ -456,7 +458,8 @@ public class HomeworkServiceImpl implements HomeworkService {
         final Course course = progress.getHomework().getLesson().getCourse();
         final Map<String, Object> parameterMap = new HashMap<>();
 
-        parameterMap.put(PARAM_COURSE_NAME, course.getName());
+        parameterMap.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(COURSE_NAME
+                .formatted(course.getName()), progress.getUser()).getData());
 
         final CourseProgress courseProgress = courseProgressRepository
                 .findByUserIdAndCourseName(progress.getUser().getId(),
@@ -469,7 +472,7 @@ public class HomeworkServiceImpl implements HomeworkService {
         parameterMap.put(PARAM_LESSON_INDEX, courseProgress.getStage());
         parameterMap.put(PARAM_COMMENTER_NAME, progress.getCurator().getFullName());
         parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(progress.getCurator(),
-                courseProgress.getCourse().getBot()));
+                progress.getUser(), courseProgress.getCourse().getBot()));
 
         final Localization notification = localizationLoader
                 .getLocalizationForUser(localizationName, progress.getUser(), parameterMap);
@@ -478,7 +481,7 @@ public class HomeworkServiceImpl implements HomeworkService {
     }
 
     private Map<String, Object> getParameterMapForUserAndCourseInfo(
-            HomeworkProgress homeworkProgress) {
+            HomeworkProgress homeworkProgress, UserEntity user) {
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_TARGET_ID, homeworkProgress.getUser().getId());
         parameterMap.put(PARAM_TARGET_FIRST_NAME, homeworkProgress.getUser().getFirstName());
@@ -491,8 +494,9 @@ public class HomeworkServiceImpl implements HomeworkService {
         parameterMap.put(PARAM_TARGET_LANGUAGE_CODE, homeworkProgress
                 .getUser().getLanguageCode());
 
-        parameterMap.put(PARAM_COURSE_NAME, homeworkProgress.getHomework()
-                .getLesson().getCourse().getName());
+        parameterMap.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
+                COURSE_NAME.formatted(homeworkProgress.getHomework().getLesson()
+                .getCourse().getName()), user).getData());
 
         parameterMap.put(PARAM_LESSON_INDEX, homeworkProgress.getHomework()
                 .getLesson().getPosition());

@@ -189,16 +189,19 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
                 }
                 continue;
             }
-            final Document document = new Document(message.getDocument());
-            if (message.getDocument().getThumbnail() != null) {
-                final Optional<Photo> potentialThumbnail = photoRepository.findById(
-                        message.getDocument().getThumbnail().getFileUniqueId());
-                if (potentialThumbnail.isPresent()) {
-                    document.setThumbnail(potentialThumbnail.get());
-                } else {
-                    document.setThumbnail(photoRepository.save(
-                            new Photo(message.getDocument().getThumbnail())));
+            if (message.hasDocument()) {
+                final Document document = new Document(message.getDocument());
+                if (message.getDocument().getThumbnail() != null) {
+                    final Optional<Photo> potentialThumbnail = photoRepository.findById(
+                            message.getDocument().getThumbnail().getFileUniqueId());
+                    if (potentialThumbnail.isPresent()) {
+                        document.setThumbnail(potentialThumbnail.get());
+                    } else {
+                        document.setThumbnail(photoRepository.save(
+                                new Photo(message.getDocument().getThumbnail())));
+                    }
                 }
+                documents.add(document);
             }
             if (!isTextSetUp && message.getCaption() != null && !message.getCaption().isEmpty()) {
                 captions = message.getCaption();
@@ -212,7 +215,6 @@ public class DocumentContentHandler implements LocalizedContentHandler<DocumentC
                 languageCode = userService.getUser(message.getFrom().getId(),
                         userService.getDiretor()).getLanguageCode();
             }
-            documents.add(document);
         }
         documentRepository.saveAll(documents);
         DocumentContent documentContent = new DocumentContent();

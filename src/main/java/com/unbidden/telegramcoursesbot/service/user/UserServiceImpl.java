@@ -191,7 +191,7 @@ public class UserServiceImpl implements UserService {
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_WHO_CHANGED, user.getFullName());
         parameterMap.put(PARAM_NEW_ROLE_TYPE, role.getType());
-        parameterMap.put(PARAM_TITLE, getLocalizedTitle(user, bot));
+        parameterMap.put(PARAM_TITLE, getLocalizedTitle(user, target, bot));
         clientManager.getClient(bot).sendMessage(target, localizationLoader
                 .getLocalizationForUser(SERVICE_ROLE_CHANGED, user, parameterMap));
         return botRole;
@@ -225,7 +225,7 @@ public class UserServiceImpl implements UserService {
 
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_WHO_BANNED, user.getFullName());
-        parameterMap.put(PARAM_TITLE, getLocalizedTitle(user, bot));
+        parameterMap.put(PARAM_TITLE, getLocalizedTitle(user, target, bot));
         parameterMap.put(PARAM_HOURS_UNTIL_LIFT, hours);
 
         if (hours > 0) {
@@ -266,7 +266,7 @@ public class UserServiceImpl implements UserService {
             LOGGER.debug("Ban lift is manual.");
             final Map<String, Object> parameterMap = new HashMap<>();
             parameterMap.put(PARAM_WHO_LIFTED, user.getFullName());
-            parameterMap.put(PARAM_TITLE, getLocalizedTitle(user, bot));
+            parameterMap.put(PARAM_TITLE, getLocalizedTitle(user, target, bot));
 
             clientManager.getClient(bot).sendMessage(target, localizationLoader
                     .getLocalizationForUser(SERVICE_BAN_LIFTED, target, parameterMap));
@@ -298,7 +298,8 @@ public class UserServiceImpl implements UserService {
         LOGGER.debug("User " + user.getId() + " wants to ban user " + target.getId() + ".");
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_WHO_BANNED, user.getFullName());
-        parameterMap.put(PARAM_TITLE, getLocalizedTitle(user, botService.getInitialBot()));
+        parameterMap.put(PARAM_TITLE, getLocalizedTitle(user, target,
+                botService.getInitialBot()));
         parameterMap.put(PARAM_HOURS_UNTIL_LIFT, hours);
 
         if (hours > 0) {
@@ -341,7 +342,8 @@ public class UserServiceImpl implements UserService {
             LOGGER.debug("Ban lift is manual.");
             final Map<String, Object> parameterMap = new HashMap<>();
             parameterMap.put(PARAM_WHO_BANNED, user.getFullName());
-            parameterMap.put(PARAM_TITLE, getLocalizedTitle(user, botService.getInitialBot()));
+            parameterMap.put(PARAM_TITLE, getLocalizedTitle(user, target,
+                    botService.getInitialBot()));
         
             botRoleRepository.findByUser(user).forEach(br -> clientManager.getClient(br.getBot())
                     .sendMessage(target, localizationLoader
@@ -361,11 +363,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @NonNull
-    public String getLocalizedTitle(@NonNull UserEntity user, @NonNull Bot bot) {
+    public String getLocalizedTitle(@NonNull UserEntity user, @NonNull UserEntity localizedFor,
+            @NonNull Bot bot) {
         final String roleNameLower = getBotRole(user, bot).getRole()
                 .getType().toString().toLowerCase();
         return localizationLoader.getLocalizationForUser(SERVICE_ROLE_TITLE
-                .formatted(roleNameLower), user).getData();
+                .formatted(roleNameLower), localizedFor).getData();
     }
 
     @Override

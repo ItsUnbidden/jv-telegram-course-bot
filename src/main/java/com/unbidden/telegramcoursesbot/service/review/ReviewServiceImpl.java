@@ -90,6 +90,8 @@ public class ReviewServiceImpl implements ReviewService {
     private static final String SERVICE_REVIEW_MEDIA_GROUP_BYPASS =
             "service_review_media_group_bypass";
 
+    private static final String COURSE_NAME = "course_%s_name";
+
     private static final String ERROR_SEND_FILE_FAILURE = "error_send_file_failure";
     private static final String ERROR_LEAVE_COMMENT_FAILURE = "error_leave_comment_failure";
     private static final String ERROR_COMMIT_ADVANCED_REVIEW_FAILURE =
@@ -203,7 +205,8 @@ public class ReviewServiceImpl implements ReviewService {
 
         LOGGER.debug("Review object compiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
-                SERVICE_BASIC_REVIEW_SUBMITTED, user);
+                SERVICE_BASIC_REVIEW_SUBMITTED, user, PARAM_COURSE_NAME, localizationLoader
+                .getLocalizationForUser(COURSE_NAME.formatted(course.getName()), user));
         final Message confirmationMessage = clientManager.getClient(course.getBot())
                 .sendMessage(user, localization);
         LOGGER.debug("Message sent. Persisting review to the db...");
@@ -274,9 +277,10 @@ public class ReviewServiceImpl implements ReviewService {
         LOGGER.debug("Review " + review.getId() + " has been updated to include comment.");
 
         final Map<String, Object> parameterMap = new HashMap<>();
-        parameterMap.put(PARAM_COURSE_NAME, review.getCourse().getName());
+        parameterMap.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
+                COURSE_NAME.formatted(review.getCourse().getName()), user));
         parameterMap.put(PARAM_COMMENTER_FULL_NAME, user.getFullName());
-        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user,
+        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, review.getUser(),
                 review.getCourse().getBot()));
 
         LOGGER.debug("Sending notification to the review's owner...");
@@ -317,7 +321,8 @@ public class ReviewServiceImpl implements ReviewService {
         LOGGER.info("Review " + review.getId() + "'s comment content has been updated.");
 
         final Map<String, Object> parameterMap = new HashMap<>();
-        parameterMap.put(PARAM_COURSE_NAME, review.getCourse().getName());
+        parameterMap.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
+                COURSE_NAME.formatted(review.getCourse().getName()), user));
         parameterMap.put(PARAM_COMMENTER_FULL_NAME, user.getFullName());
 
         LOGGER.debug("Sending notification to the review's owner...");
@@ -355,7 +360,8 @@ public class ReviewServiceImpl implements ReviewService {
         LOGGER.debug("Review object recompiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_REVIEW_COURSE_GRADE_UPDATED, review.getUser(), PARAM_COURSE_NAME,
-                review.getCourse().getName());
+                localizationLoader.getLocalizationForUser(COURSE_NAME.formatted(
+                review.getCourse().getName()), user));
         clientManager.getClient(bot).sendMessage(review.getUser(), localization);
         LOGGER.debug("Message sent. Updating review in the db..."); 
         reviewRepository.save(review);
@@ -385,7 +391,8 @@ public class ReviewServiceImpl implements ReviewService {
         LOGGER.debug("Review object recompiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_REVIEW_PLATFORM_GRADE_UPDATED, review.getUser(), PARAM_COURSE_NAME,
-                review.getCourse().getName());
+                localizationLoader.getLocalizationForUser(COURSE_NAME.formatted(
+                review.getCourse().getName()), user));
         clientManager.getClient(bot).sendMessage(review.getUser(), localization);
         LOGGER.debug("Message sent. Updating review in the db..."); 
         reviewRepository.save(review);
@@ -414,7 +421,8 @@ public class ReviewServiceImpl implements ReviewService {
         LOGGER.debug("Review object recompiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_REVIEW_COURSE_CONTENT_UPDATED, review.getUser(), PARAM_COURSE_NAME,
-                review.getCourse().getName());
+                localizationLoader.getLocalizationForUser(COURSE_NAME.formatted(
+                review.getCourse().getName()), user));
         clientManager.getClient(content.getBot()).sendMessage(review.getUser(), localization);
         LOGGER.debug("Message sent. Updating review in the db..."); 
         reviewRepository.save(review);

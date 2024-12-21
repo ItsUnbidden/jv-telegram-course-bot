@@ -182,7 +182,7 @@ public class PostServiceImpl implements PostService {
         
         checkUserIsInBot(user, target, bot);
         final Map<String, Object> parameterMap = new HashMap<>();
-        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, bot));
+        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, target, bot));
         parameterMap.put(PARAM_SENDER_FULL_NAME, user.getFullName());
 
         clientManager.getClient(bot).sendMessage(target, localizationLoader

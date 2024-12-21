@@ -4,6 +4,7 @@ import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
+import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.BackwardButton;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TransitoryButton;
@@ -31,6 +32,7 @@ public class PostMenu implements MenuConfigurer {
     private static final String BUTTON_POST_CUSTOM_ROLE_SET = "button_post_custom_role_set";
     private static final String BUTTON_SEND_PRIVATE_MESSAGE = "button_send_private_message";
     private static final String BUTTON_POST_OPTIONS = "button_post_options";
+    private static final String BUTTON_BACK = "button_back";
 
     private final PostButtonHandler postButtonHandler;
     private final SendMessageToUserByIdButtonHandler sendMessageToUserByIdHandler;
@@ -64,6 +66,7 @@ public class PostMenu implements MenuConfigurer {
 
         page2.setMenu(menu);
         page2.setPageIndex(1);
+        page2.setPreviousPage(0);
         page2.setButtonsRowSize(3);
         page2.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
                 MENU_POST_PAGE_1, u));
@@ -76,10 +79,12 @@ public class PostMenu implements MenuConfigurer {
             buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
                     BUTTON_POST_CUSTOM_ROLE_SET, u).getData(),
                     POST_CUSTOM_ROLE_SET, postButtonHandler));
+            buttons.add(new BackwardButton(localizationLoader.getLocalizationForUser(
+                    BUTTON_BACK, u).getData()));
             return buttons;
         });
         menu.setName(MENU_NAME);
-        menu.setPages(List.of(page1));
+        menu.setPages(List.of(page1, page2));
         menuService.save(menu);
     }
 }

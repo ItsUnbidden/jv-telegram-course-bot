@@ -91,7 +91,7 @@ public class SendMessageToUserByIdButtonHandler implements ButtonHandler {
 
     private void requestContentAndSendMessage(UserEntity user, UserEntity target, Bot bot) {
         final Map<String, Object> parameterMap = new HashMap<>();
-        parameterMap.put(PARAM_TARGET_TITLE, userService.getLocalizedTitle(target, bot));
+        parameterMap.put(PARAM_TARGET_TITLE, userService.getLocalizedTitle(target, user, bot));
         parameterMap.put(PARAM_TARGET_FULL_NAME, target.getFullName());
 
         sessionService.createSession(user, bot, m -> {

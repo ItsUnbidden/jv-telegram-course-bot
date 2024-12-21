@@ -63,7 +63,7 @@ public class PostButtonHandler implements ButtonHandler {
                 + bot.getName() + "...");
         postService.checkExecution(user);
         final List<Role> roles = new ArrayList<>();
-        switch (params[0]) {
+        switch (params[1]) {
             case POST_CUSTOM_ROLE_SET:
                 sessionService.createSession(user, bot, m -> {
                     textUtil.checkExpectedMessages(EXPECTED_MESSAGES, user,
@@ -91,7 +91,7 @@ public class PostButtonHandler implements ButtonHandler {
                 LOGGER.debug("Request sent.");
                 break;
             default:
-                roles.add(userService.getRole(RoleType.valueOf(params[0])));
+                roles.add(userService.getRole(RoleType.valueOf(params[1])));
                 post(bot, user, roles);
                 break;
         }

@@ -232,12 +232,12 @@ service general_ban ${whoBanned} ${title}
 service temporary_general_ban ${whoBanned} ${title} ${hoursUntilLift}
 service general_ban_lifted ${whoLifted} ${title}
 service general_ban_lifted_auto
-service bot_%s_name
-service bot_%s_short_description
-service bot_%s_full_description
+service bot_<botName>_name
+service bot_<botName>_short_description
+service bot_<botName>_full_description
 service set_role_user_request
 service set_role_success ${targetFullName} ${newRoleType}
-service role_%s_title
+service role_<roleName>_title
 service ban_choose_user_hours_request
 service lift_ban_user_id_request
 service ban_user_id_request
