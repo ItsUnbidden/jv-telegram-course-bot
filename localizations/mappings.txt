@@ -92,7 +92,9 @@ button default_language_code
 button upload_image_file ** Botfather only
 button upload_localization_file ** Botfather only
 button delete_invoice_image ** Botfather only
-
+button create_bot ** Botfather only
+button disable_bot ** Botfather only
+button list_bots ** Botfather only
 
 menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes} ${delay}
 menu course_settings_page_3 ${mappingIds} ${homeworkId} ${index} ${lessonId} ${delay}
@@ -135,6 +137,7 @@ menu commit_content_cancel_terminal_page
 menu commit_content_expired_terminal_page
 menu language_page_0
 menu files_page_0 ** Botfather only
+menu general_ban_page_0 ** Botfather only
 
 
 service add_lesson_content_request ${lessonId}

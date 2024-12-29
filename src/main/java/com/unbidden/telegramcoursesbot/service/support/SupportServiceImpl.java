@@ -115,7 +115,7 @@ public class SupportServiceImpl implements SupportService {
         parameterMap.put(PARAM_SUPPORT_TYPE, supportRequest.getSupportType());
         parameterMap.put(PARAM_TAG, (supportRequest.getTag() != null) ? localizationLoader
                 .getLocalizationForUser(COURSE_NAME.formatted(supportRequest.getTag()),
-                supportRequest.getUser()) : "Not available");
+                supportRequest.getUser()).getData() : "Not available");
 
         LOGGER.debug("Sending support request infos to the staff...");
         final List<UserEntity> supportStaff = userService.getSupport(bot);
