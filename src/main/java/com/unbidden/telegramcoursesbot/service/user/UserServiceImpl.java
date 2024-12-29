@@ -400,19 +400,22 @@ public class UserServiceImpl implements UserService {
             hasChanged = true;
             LOGGER.trace("First name is " + user.getFirstName() + ". Setting...");
         }
-        if (user.getLanguageCode() != null) {
-            if (!user.getLanguageCode().equals(userFromDb.getLanguageCode())) {
-                userFromDb.setLanguageCode(user.getLanguageCode());
+        if (!userFromDb.isLanguageManuallySet()) {
+            if (user.getLanguageCode() != null) {
+                if (!user.getLanguageCode().equals(
+                        userFromDb.getLanguageCode())) {
+                    userFromDb.setLanguageCode(user.getLanguageCode());
+                    hasChanged = true;
+                    LOGGER.trace("Language code is " + user.getLanguageCode() + ". Setting...");
+                }
+            } else {
+                final String theMostPreferedLanguage = languagePriorityStr
+                        .split(LANGUAGE_PRIORITY_DIVIDER)[0].trim();
+                userFromDb.setLanguageCode(theMostPreferedLanguage);
                 hasChanged = true;
-                LOGGER.trace("Language code is " + user.getLanguageCode() + ". Setting...");
+                LOGGER.trace("Language code is unavailable. Setting to "
+                        + theMostPreferedLanguage + "...");
             }
-        } else {
-            final String theMostPreferedLanguage = languagePriorityStr
-                    .split(LANGUAGE_PRIORITY_DIVIDER)[0].trim();
-            userFromDb.setLanguageCode(theMostPreferedLanguage);
-            hasChanged = true;
-            LOGGER.trace("Language code is unavailable. Setting to "
-                    + theMostPreferedLanguage + "...");
         }
         if (user.getLastName() != null && !user.getLastName()
                 .equals(userFromDb.getLastName())) {
@@ -492,5 +495,27 @@ public class UserServiceImpl implements UserService {
                     new EntityNotFoundException("Authority " + type + " does not exist", null)));
         }
         return authorities;
+    }
+
+    @Override
+    @NonNull
+    public UserEntity changeLanguage(@NonNull UserEntity user, @NonNull String newCode) {
+        LOGGER.info("Changning language for user " + user.getId() + " to " + newCode + "...");
+        user.setLanguageCode(newCode);
+        user.setLanguageManuallySet(true);
+        userRepository.save(user);
+        LOGGER.info("Language code for user " + user.getId() + " has been changed to "
+                + newCode + ".");
+        return user;
+    }
+
+    @Override
+    @NonNull
+    public UserEntity resetLanguageToDefault(@NonNull UserEntity user) {
+        LOGGER.info("Resetting language code to default for user " + user.getId() + "...");
+        user.setLanguageManuallySet(false);
+        userRepository.save(user);
+        LOGGER.info("Language code for user " + user.getId() + " is now automatically set.");
+        return user;
     }
 }

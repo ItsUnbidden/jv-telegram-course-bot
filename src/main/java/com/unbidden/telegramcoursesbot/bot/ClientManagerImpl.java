@@ -52,7 +52,7 @@ public class ClientManagerImpl implements ClientManager {
     @Value("${telegram.bot.webhook.ip}")
     private String ip;
     
-    @Value("${telegram.bot.webhook.max-connections}")
+    @Value("${telegram.bot.webhook.max_connections}")
     private int maxConnections;
 
     @Value("${telegram.bot.webhook.use_certificate}")

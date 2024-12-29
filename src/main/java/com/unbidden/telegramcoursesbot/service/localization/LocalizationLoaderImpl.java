@@ -19,7 +19,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
@@ -27,14 +26,6 @@ import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 @Service
 public class LocalizationLoaderImpl implements LocalizationLoader {
     private static final Logger LOGGER = LogManager.getLogger(LocalizationLoaderImpl.class);
-
-    @Value("${telegram.bot.message.text.format}")
-    private String fileFormat;
-
-    @Value("${telegram.bot.message.text.path}")
-    private String pathStr;
-
-    private Path localizationFolderPath;
 
     private List<String> languagePriority;
 
@@ -49,16 +40,9 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
 
     @PostConstruct
     private void init() {
-        localizationFolderPath = Path.of(System.getProperty("user.dir")).resolve(pathStr);
-        LOGGER.info("Initialized localization files directory in "
-                + localizationFolderPath + ".");
-
         languagePriority = new ArrayList<>();
         String[] languagePriorityArray = textUtil.getLanguagePriority();
-        if (languagePriorityArray.length == 0) {
-            throw new LocalizationLoadingException("At least one language code should "
-                    + "be present in the priority list", null);
-        }
+
         for (String code : languagePriorityArray) {
             languagePriority.add(code.trim());
         }
@@ -132,18 +116,17 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
     @Override
     @NonNull
     public List<String> getAvailableLanguageCodes() {
-        return dao.list(localizationFolderPath).stream()
+        return dao.listLocalizationDirs().stream()
                 .filter(p -> p.toFile().isDirectory())
                 .map(p -> p.getFileName().toString())
                 .toList();
     }
 
     private void cacheLocalizationFiles() {
-        LOGGER.trace("Localization files caching is commencing...");
-        final List<Path> locDirs = dao.list(localizationFolderPath).stream()
+        LOGGER.info("Localization file caching is commencing...");
+        final List<Path> locDirs = dao.listLocalizationDirs().stream()
                 .filter(p -> p.toFile().isDirectory())
                 .toList();
-
         
         for (Path locDir : locDirs) {
             final List<Path> locFiles = dao.list(locDir).stream()
@@ -203,7 +186,7 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                 }
             }
         }
-        LOGGER.trace("Localization files cached successfuly.");
+        LOGGER.info("Localization files cached successfuly.");
     }
 
     private Localization setUpLocalization(Localization localization, String injectedData) {

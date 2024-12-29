@@ -87,6 +87,7 @@ button send_private_message
 button post_options
 button get_archive_reviews
 button get_new_reviews
+button default_language_code
 
 
 menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes} ${delay}
@@ -128,6 +129,7 @@ menu commit_content_terminal_page
 menu commit_content_resend_terminal_page
 menu commit_content_cancel_terminal_page
 menu commit_content_expired_terminal_page
+menu language_page_0
 
 
 service add_lesson_content_request ${lessonId}
@@ -276,6 +278,9 @@ service private_message_content_request ${targetTitle} ${targetFullName}
 service private_message_user_request
 service private_message_info ${title} ${senderFullName}
 service private_message_sent ${targetTitle} ${targetFullName}
+service language_code_<languageCode>
+service language_manually_set
+service language_reset_to_default
 
 
 error no_exception_localization_available ${excMessage} ${excClassName}

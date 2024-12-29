@@ -189,7 +189,7 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
                     .url(baseUrl + endpoint)
                     .certificate((isCustomCertificateIncluded) ? new InputFile(publicKeyStream,
                         CertificateDao.PUBLIC_KEY_FILE_NAME) : null)
-                    .ipAddress(ip)
+                    .ipAddress((ip == null || ip.equals("") ? null : ip))
                     .secretToken(secretToken)
                     .maxConnections(maxConnections)
                     .build());

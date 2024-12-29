@@ -32,12 +32,12 @@ public class InMemoryCallbackQueryRepository implements CallbackQueryRepository 
 
     @Data
     private static class Key {
-        UserEntity user;
+        Long userId;
 
         Bot bot;
 
         public Key(UserEntity user, Bot bot) {
-            this.user = user;
+            this.userId = user.getId();
             this.bot = bot;
         }
     }

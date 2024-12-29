@@ -255,7 +255,11 @@ public class TextUtil {
 
     @NonNull
     public String[] getLanguagePriority() {
-        return languagePriorityStr.split(LANGUAGE_PRIORITY_DIVIDER);
+        final String[] languageCodes = languagePriorityStr.split(LANGUAGE_PRIORITY_DIVIDER);
+        for (int i = 0; i < languageCodes.length; i++) {
+            languageCodes[i] = languageCodes[i].trim();
+        }
+        return languageCodes;
     }
 
     @NonNull

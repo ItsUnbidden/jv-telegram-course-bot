@@ -34,11 +34,11 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 @RequiredArgsConstructor
 @RequestMapping("/webhook")
 public class WebhookController {
-    private static final String ERROR_SERVER_ON_MAINTENANCE = "error_server_on_maintenance";
-
-    private static final String ERROR_BOTFATHER_CALLBACK_EXCEPTION = "error_botfather_callback_exception";
-
     private static final Logger LOGGER = LogManager.getLogger(WebhookController.class);
+
+    private static final String ERROR_SERVER_ON_MAINTENANCE = "error_server_on_maintenance";
+    private static final String ERROR_BOTFATHER_CALLBACK_EXCEPTION =
+            "error_botfather_callback_exception";
 
     private static final String SECRET_KEY_HEADER = "X-Telegram-Bot-Api-Secret-Token";
 

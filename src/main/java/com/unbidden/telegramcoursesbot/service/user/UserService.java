@@ -52,6 +52,12 @@ public interface UserService {
     List<BotRole> getHomeworkBotRoles(@NonNull Bot bot);
 
     @NonNull
+    UserEntity changeLanguage(@NonNull UserEntity user, @NonNull String newCode);
+
+    @NonNull
+    UserEntity resetLanguageToDefault(@NonNull UserEntity user);
+
+    @NonNull
     String getLocalizedTitle(@NonNull UserEntity user, @NonNull UserEntity localizedFor,
             @NonNull Bot bot);
 

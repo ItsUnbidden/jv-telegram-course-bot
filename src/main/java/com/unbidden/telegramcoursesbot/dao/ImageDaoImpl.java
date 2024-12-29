@@ -21,6 +21,10 @@ public class ImageDaoImpl implements ImageDao {
     @PostConstruct
     public void init() {
         imagePath = Path.of(System.getProperty("user.dir")).resolve(imagePathStr);
+        
+        if (!exists(imagePath)) {
+            createDir();
+        }
     }
 
     @Override
@@ -40,6 +44,22 @@ public class ImageDaoImpl implements ImageDao {
     public boolean isPresent(@NonNull String courseName) {
         final Path fileLocation = imagePath.resolve(courseName + IMAGE_FORMAT);
 
-        return Files.exists(fileLocation);
+        return exists(fileLocation);
+    }
+
+    @Override
+    @NonNull
+    public Path createDir() {
+        try {
+            return Files.createDirectories(imagePath);
+        } catch (IOException e) {
+            throw new FileDaoOperationException("Unable to create default image "
+                    + "directory on path " + imagePathStr, null, e);
+        }
+    }
+
+    @Override
+    public boolean exists(@NonNull Path path) {
+        return Files.exists(path);
     }
 }

@@ -6,9 +6,15 @@ import org.springframework.lang.NonNull;
 
 public interface LocalizationDao extends FileDao {
     @NonNull
+    Path createDir();
+
+    @NonNull
     String getText(@NonNull Path path);
 
     boolean exists(@NonNull Path path);
+
+    @NonNull
+    List<Path> listLocalizationDirs();
 
     @NonNull
     List<Path> list(@NonNull Path path);

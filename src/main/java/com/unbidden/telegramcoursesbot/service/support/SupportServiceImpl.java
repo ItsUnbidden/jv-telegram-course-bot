@@ -20,6 +20,7 @@ import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,8 @@ public class SupportServiceImpl implements SupportService {
     private static final String PARAM_TAG = "${tag}";
     private static final String PARAM_TITLE = "${title}";
     
+    private static final String COURSE_NAME = "course_%s_name";
+
     private static final String SERVICE_SUPPORT_REQUEST_MEDIA_GROUP_BYPASS =
             "service_support_request_media_group_bypass";
     private static final String SERVICE_SUPPORT_REPLY_MEDIA_GROUP_BYPASS =
@@ -107,10 +110,12 @@ public class SupportServiceImpl implements SupportService {
 
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_USER_FULL_NAME, supportRequest.getUser().getFullName());
-        parameterMap.put(PARAM_TIMESTAMP, supportRequest.getTimestamp());
+        parameterMap.put(PARAM_TIMESTAMP, supportRequest.getTimestamp()
+                .truncatedTo(ChronoUnit.SECONDS));
         parameterMap.put(PARAM_SUPPORT_TYPE, supportRequest.getSupportType());
-        parameterMap.put(PARAM_TAG, (supportRequest.getTag() != null) ? supportRequest.getTag()
-                : "Not available");
+        parameterMap.put(PARAM_TAG, (supportRequest.getTag() != null) ? localizationLoader
+                .getLocalizationForUser(COURSE_NAME.formatted(supportRequest.getTag()),
+                supportRequest.getUser()) : "Not available");
 
         LOGGER.debug("Sending support request infos to the staff...");
         final List<UserEntity> supportStaff = userService.getSupport(bot);
@@ -233,7 +238,8 @@ public class SupportServiceImpl implements SupportService {
         parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, request.getUser(),
                 bot));
         clientManager.getClient(bot).sendMessage(request.getUser(), localizationLoader
-                .getLocalizationForUser(SERVICE_SUPPORT_REQUEST_RESOLVED, user, parameterMap));
+                .getLocalizationForUser(SERVICE_SUPPORT_REQUEST_RESOLVED, request.getUser(),
+                parameterMap));
         if (request.getStaffMember() == null) {
             LOGGER.warn("User " + user.getId() + " resolved their support request "
                     + request.getId() + " prematurely. Staff member is unavailable, "
@@ -242,8 +248,8 @@ public class SupportServiceImpl implements SupportService {
             parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user,
                     request.getStaffMember(), bot));
             clientManager.getClient(bot).sendMessage(request.getStaffMember(), localizationLoader
-                    .getLocalizationForUser(SERVICE_SUPPORT_REQUEST_RESOLVED, user,
-                    parameterMap));
+                    .getLocalizationForUser(SERVICE_SUPPORT_REQUEST_RESOLVED,
+                    request.getStaffMember(), parameterMap));
             LOGGER.debug("Messages sent.");
         }
         try {
