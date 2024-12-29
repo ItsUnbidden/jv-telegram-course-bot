@@ -65,6 +65,7 @@ public class CourseServiceImpl implements CourseService {
     private static final String ERROR_CANNOT_DELETE_BOUGHT_COURSE =
             "error_cannot_delete_bought_course";
     private static final String ERROR_COURSE_UNDER_MAINTENANCE = "error_course_under_maintenance";
+    private static final String ERROR_NO_CONTENT_IN_LESSON = "error_no_content_in_lesson";
 
     private final CourseRepository courseRepository;
 
@@ -167,8 +168,11 @@ public class CourseServiceImpl implements CourseService {
         final Course course = courseProgress.getCourse();
         final UserEntity user = courseProgress.getUser();
         checkCourseIsNotUnderMaintenance(course, user);
+
         final Lesson lesson = lessonRepository.findByPositionAndCourseName(
                 courseProgress.getStage(), course.getName()).get();
+        checkLessonHasContent(lesson, user);
+
         final Optional<LessonTrigger> potentialTrigger = timingService
                 .findLessonTrigger(user, courseProgress);
 
@@ -423,5 +427,13 @@ public class CourseServiceImpl implements CourseService {
             lessons.add(lesson);
         }
         return lessons;
+    }
+
+    private void checkLessonHasContent(Lesson lesson, UserEntity user) {
+        if (lesson.getStructure().isEmpty()) {
+            throw new ForbiddenOperationException("Lesson " + lesson.getId() + " does not have "
+                    + "any content", localizationLoader.getLocalizationForUser(
+                    ERROR_NO_CONTENT_IN_LESSON, user));
+        }
     }
 }

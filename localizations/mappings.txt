@@ -414,3 +414,4 @@ error download_file ** Botfather only
 error no_language_code ** Botfather only
 error no_course_name ** Botfather only
 error invoice_image_does_not_exist ** Botfather only
+error no_content_in_lesson
