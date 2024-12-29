@@ -34,6 +34,7 @@ public class BotFatherClient extends CustomTelegramClient {
         COMMANDS.add("/generalban");
         COMMANDS.add("/botsettings");
         COMMANDS.add("/generalpost");
+        COMMANDS.add("/files");
         initialize();
     }
 

@@ -52,6 +52,7 @@ public class RegularClient extends CustomTelegramClient {
         COMMAND_MENU_EXCEPTIONS.add("/generalban");
         COMMAND_MENU_EXCEPTIONS.add("/botsettings");
         COMMAND_MENU_EXCEPTIONS.add("/generalpost");
+        COMMAND_MENU_EXCEPTIONS.add("/files");
         initialize();
     }
 

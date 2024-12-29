@@ -88,6 +88,8 @@ button post_options
 button get_archive_reviews
 button get_new_reviews
 button default_language_code
+button upload_image_file
+button upload_localization_file
 
 
 menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes} ${delay}
@@ -130,6 +132,7 @@ menu commit_content_resend_terminal_page
 menu commit_content_cancel_terminal_page
 menu commit_content_expired_terminal_page
 menu language_page_0
+menu files_page_0
 
 
 service add_lesson_content_request ${lessonId}
@@ -281,6 +284,8 @@ service private_message_sent ${targetTitle} ${targetFullName}
 service language_code_<languageCode>
 service language_manually_set
 service language_reset_to_default
+service localization_files_request
+service localization_files_updated ${filesUpdated}
 
 
 error no_exception_localization_available ${excMessage} ${excClassName}
@@ -400,3 +405,5 @@ error too_many_post_requests
 error post_no_roles
 error lesson_delay_invalid ${maxDelay}
 error private_message_user_not_registered_in_bot
+error download_file
+error no_language_code

@@ -4,6 +4,7 @@ import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationException;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.content.Document;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
@@ -22,6 +23,9 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 public class TextUtil {
+    private static final String 
+    ERROR_FILE_NOT_LOCALIZATION = "error_file_not_localization";
+
     private static final Logger LOGGER = LogManager.getLogger(TextUtil.class);
     
     private static final Map<String, String> MARKERS = new HashMap<>();
@@ -56,8 +60,17 @@ public class TextUtil {
     private static final String ERROR_MESSAGE_TEXT_MISSING = "error_message_text_missing";
     private static final String ERROR_AMOUNT_OF_MESSAGES = "error_amount_of_messages";
 
+    private static final String MENU = "menu";
+    private static final String ERROR = "error";
+    private static final String BUTTON = "button";
+    private static final String COURSE = "course";
+    private static final String SERVICE = "service";
+
     @Value("${telegram.bot.message.language.priority}")
     private String languagePriorityStr;
+
+    @Value("${telegram.bot.message.text.format}")
+    private String fileFormat;
 
     @PostConstruct
     public void init() {
@@ -269,6 +282,25 @@ public class TextUtil {
             return loader.getLocalizationForUser(SERVICE_LESS_THEN_AN_HOUR, user).getData();
         }
         return String.valueOf(hours);
+    }
+
+    public void checkIfDocumentIsALocalization(@NonNull Document document,
+            @NonNull UserEntity user, @NonNull LocalizationLoader loader) {
+        final String fileName = document.getFileName();
+
+        final List<String> possibleNames = new ArrayList<>();
+        possibleNames.add(SERVICE + fileFormat);
+        possibleNames.add(COURSE + fileFormat);
+        possibleNames.add(BUTTON + fileFormat);
+        possibleNames.add(ERROR + fileFormat);
+        possibleNames.add(MENU + fileFormat);
+
+        if (!possibleNames.contains(fileName)) {
+            throw new InvalidDataSentException("File " + fileName + " cannot be used for "
+                    + "localizations since it has an unknown name. Available names: "
+                    + possibleNames + ".", loader.getLocalizationForUser(
+                    ERROR_FILE_NOT_LOCALIZATION, user));
+        }
     }
 
     public void checkExpectedMessages(int amount, @NonNull UserEntity user,
