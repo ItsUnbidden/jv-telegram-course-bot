@@ -63,6 +63,7 @@ button update_comment
 button reply_to_support_request
 button reply_to_support_reply
 button resolve_support_request
+button resolve_last_support_request
 button support_request_platform
 button support_request_course
 button back
@@ -415,3 +416,4 @@ error no_language_code ** Botfather only
 error no_course_name ** Botfather only
 error invoice_image_does_not_exist ** Botfather only
 error no_content_in_lesson
+error server_on_maintenance

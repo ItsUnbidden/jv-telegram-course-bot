@@ -79,9 +79,10 @@ public class SupportRequestMenu implements MenuConfigurer{
             if (!supportService.isUserEligibleForSupport(u, b)) {
                 final SupportRequest lastUserRequest = supportService.getRequestById(
                         supportService.getUnresolvedRequestsForUser(u, b).get(0).getId(), u, b);
-                buttons.add(new TerminalButton(BUTTON_RESOLVE_LAST_SUPPORT_REQUEST,
-                        RESOLVE_LAST_SUPPORT_REQUEST, (b1, u1, pa) -> supportService
-                        .markAsResolved(u1, b1, lastUserRequest)));
+                buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+                        BUTTON_RESOLVE_LAST_SUPPORT_REQUEST, u).getData(),
+                        RESOLVE_LAST_SUPPORT_REQUEST, (b1, u1, pa) ->
+                        supportService.markAsResolved(u1, b1, lastUserRequest)));
             }
             return buttons;
         });
