@@ -8,7 +8,6 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
@@ -27,7 +26,7 @@ public class ImageDaoImpl implements ImageDao {
     public void init() {
         imagePath = Path.of(System.getProperty("user.dir")).resolve(imagePathStr);
         
-        if (!exists(imagePath)) {
+        if (!Files.exists(imagePath)) {
             createDir();
         }
     }
@@ -79,13 +78,6 @@ public class ImageDaoImpl implements ImageDao {
     }
 
     @Override
-    public boolean isPresent(@NonNull String courseName) {
-        final Path fileLocation = imagePath.resolve(courseName + IMAGE_FORMAT);
-
-        return exists(fileLocation);
-    }
-
-    @Override
     @NonNull
     public Path createDir() {
         try {
@@ -97,7 +89,19 @@ public class ImageDaoImpl implements ImageDao {
     }
 
     @Override
-    public boolean exists(@NonNull Path path) {
-        return Files.exists(path);
+    public boolean exists(@NonNull String courseName) {
+        return Files.exists(imagePath.resolve(courseName + IMAGE_FORMAT));
+    }
+
+    @Override
+    public void delete(@NonNull String courseName) {
+        final Path path = imagePath.resolve(courseName + IMAGE_FORMAT);
+        
+        try {
+            Files.delete(path);
+        } catch (IOException e) {
+            throw new FileDaoOperationException("Unable to delete image on path "
+                    + path.toString(), null, e);
+        }
     }
 }

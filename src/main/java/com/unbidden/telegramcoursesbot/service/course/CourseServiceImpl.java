@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
+import com.unbidden.telegramcoursesbot.bot.BotService;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.AccessDeniedException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
@@ -84,6 +85,8 @@ public class CourseServiceImpl implements CourseService {
     private final ContentService contentService;
 
     private final TimingService timingService;
+
+    private final BotService botService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -277,7 +280,7 @@ public class CourseServiceImpl implements CourseService {
         final Course course = courseRepository.findByName(courseName).orElseThrow(() ->
                 new EntityNotFoundException("Course " + courseName + " does not exist",
                 localizationLoader.getLocalizationForUser(ERROR_COURSE_NOT_FOUND, user)));
-        if (!course.getBot().equals(bot)) {
+        if (!course.getBot().equals(bot) && !botService.getBotFather().equals(bot)) {
             throw new AccessDeniedException("Course " + courseName + " is not available for bot "
                     + bot.getName(), localizationLoader.getLocalizationForUser(
                     ERROR_BOT_VISIBILITY_MISMATCH, user));

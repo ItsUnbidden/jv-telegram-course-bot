@@ -7,6 +7,7 @@ import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
+import com.unbidden.telegramcoursesbot.service.menu.handler.DeleteInvoiceImageButtonHandler;
 import com.unbidden.telegramcoursesbot.service.menu.handler.ImageFileUploadButtonHandler;
 import com.unbidden.telegramcoursesbot.service.menu.handler.LocalizationFileUploadButtonHandler;
 import java.util.ArrayList;
@@ -19,9 +20,11 @@ import org.springframework.stereotype.Component;
 public class FileMenu implements MenuConfigurer {
     private static final String MENU_NAME = "m_fls";
     
+    private static final String BUTTON_DELETE_INVOICE_IMAGE = "button_delete_invoice_image";
     private static final String BUTTON_UPLOAD_IMAGE_FILE = "button_upload_image_file";
     private static final String BUTTON_UPLOAD_LOCALIZATION_FILE = "button_upload_localization_file";
     
+    private static final String DELETE_INVOICE_IMAGE = "dii";
     private static final String UPLOAD_IMAGE_FILE = "uif";
     private static final String UPLOAD_LOCALIZATION_FILE = "ulf";
 
@@ -29,6 +32,7 @@ public class FileMenu implements MenuConfigurer {
 
     private final LocalizationFileUploadButtonHandler localizationFileUploadHandler;
     private final ImageFileUploadButtonHandler imageFileUploadHandler;
+    private final DeleteInvoiceImageButtonHandler deleteInvoiceImageHandler;
 
     private final MenuService menuService;
 
@@ -53,6 +57,10 @@ public class FileMenu implements MenuConfigurer {
             buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
                     BUTTON_UPLOAD_IMAGE_FILE, u).getData(), UPLOAD_IMAGE_FILE,
                     imageFileUploadHandler));
+
+            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+                    BUTTON_DELETE_INVOICE_IMAGE, u).getData(), DELETE_INVOICE_IMAGE,
+                    deleteInvoiceImageHandler));
             return buttons;
         });
         menu.setName(MENU_NAME);

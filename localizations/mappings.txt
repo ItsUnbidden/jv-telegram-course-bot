@@ -88,8 +88,9 @@ button post_options
 button get_archive_reviews
 button get_new_reviews
 button default_language_code
-button upload_image_file
-button upload_localization_file
+button upload_image_file ** Botfather only
+button upload_localization_file ** Botfather only
+button delete_invoice_image ** Botfather only
 
 
 menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes} ${delay}
@@ -132,7 +133,7 @@ menu commit_content_resend_terminal_page
 menu commit_content_cancel_terminal_page
 menu commit_content_expired_terminal_page
 menu language_page_0
-menu files_page_0
+menu files_page_0 ** Botfather only
 
 
 service add_lesson_content_request ${lessonId}
@@ -284,8 +285,12 @@ service private_message_sent ${targetTitle} ${targetFullName}
 service language_code_<languageCode>
 service language_manually_set
 service language_reset_to_default
-service localization_files_request
-service localization_files_updated ${filesUpdated}
+service localization_files_request ** Botfather only
+service localization_files_updated ${filesUpdated} ** Botfather only
+service invoice_image_request ** Botfather only
+service invoice_image_updated ** Botfather only
+service invoice_image_delete_request ** Botfather only
+service invoice_image_deleted ** Botfather only
 
 
 error no_exception_localization_available ${excMessage} ${excClassName}
@@ -405,5 +410,7 @@ error too_many_post_requests
 error post_no_roles
 error lesson_delay_invalid ${maxDelay}
 error private_message_user_not_registered_in_bot
-error download_file
-error no_language_code
+error download_file ** Botfather only
+error no_language_code ** Botfather only
+error no_course_name ** Botfather only
+error invoice_image_does_not_exist ** Botfather only

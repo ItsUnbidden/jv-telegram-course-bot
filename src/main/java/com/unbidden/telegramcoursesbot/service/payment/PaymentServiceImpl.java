@@ -160,7 +160,7 @@ public class PaymentServiceImpl implements PaymentService {
                     .build())
                 .startParameter(course.getName());
 
-                if (imageDao.isPresent(courseName)) {
+                if (imageDao.exists(courseName)) {
                     builder.photoUrl(imageUrl);
                 } else {
                     LOGGER.warn("Image for invoice for course " + courseName

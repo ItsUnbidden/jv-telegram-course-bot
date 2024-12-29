@@ -14,7 +14,7 @@ public interface ImageDao extends FileDao {
     @NonNull
     byte[] read(@NonNull String courseName);
 
-    boolean isPresent(@NonNull String courseName);
+    boolean exists(@NonNull String courseName);
 
-    boolean exists(@NonNull Path path);
+    void delete(@NonNull String courseName);
 }
