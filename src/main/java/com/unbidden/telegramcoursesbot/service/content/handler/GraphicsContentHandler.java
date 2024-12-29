@@ -1,7 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.content.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
-import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
@@ -41,8 +40,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 @RequiredArgsConstructor
 public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsContent> {
     private static final Logger LOGGER = LogManager.getLogger(GraphicsContentHandler.class);
-
-    private static final String ERROR_SEND_CONTENT_FAILURE = "error_send_content_failure";
 
     private final PhotoRepository photoRepository;
 
@@ -138,9 +135,8 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
                                 ? captionsLoc.getEntities() : List.of())
                             .build()));
                 } catch (TelegramApiException e) {
-                    throw new TelegramException("Unable to send photo media in content "
-                            + content.getId() + " to user " + user.getId(), localizationLoader
-                            .getLocalizationForUser(ERROR_SEND_CONTENT_FAILURE, user), e);
+                    LOGGER.error("Unable to send photo media in content " + content.getId()
+                            + " to user " + user.getId(), e);
                 }
             }
             LOGGER.debug("The media is a video.");
@@ -154,9 +150,8 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
                             ? captionsLoc.getEntities() : List.of())
                         .build()));
             } catch (TelegramApiException e) {
-                throw new TelegramException("Unable to send video media in content "
-                        + content.getId() + " to user " + user.getId(), localizationLoader
-                        .getLocalizationForUser(ERROR_SEND_CONTENT_FAILURE, user), e);
+                LOGGER.error("Unable to send video media in content " + content.getId()
+                        + " to user " + user.getId(), e);
             }
         }
 
@@ -167,10 +162,10 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
                     .medias(inputMedias)
                     .build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to send graphics media group in content "
-                    + content.getId() + " to user " + user.getId(), localizationLoader
-                    .getLocalizationForUser(ERROR_SEND_CONTENT_FAILURE, user), e);
+            LOGGER.error("Unable to send graphics media group in content " + content.getId()
+                    + " to user " + user.getId(), e);
         }
+        return List.of();
     }
 
     @Override

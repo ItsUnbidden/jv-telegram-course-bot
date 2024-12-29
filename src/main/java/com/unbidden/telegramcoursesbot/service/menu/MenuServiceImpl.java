@@ -5,7 +5,6 @@ import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.CallbackQueryAnswerException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.MenuExpiredException;
-import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.MenuTerminationGroup;
 import com.unbidden.telegramcoursesbot.model.MessageEntity;
@@ -22,7 +21,6 @@ import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TransitoryButton;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.KeyboardUtil;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -50,7 +48,6 @@ public class MenuServiceImpl implements MenuService {
     private static final Logger LOGGER = LogManager.getLogger(MenuServiceImpl.class);
 
     // private static final String ERROR_UPDATE_MESSAGE_FAILURE = "error_update_message_failure";
-    private static final String ERROR_UPDATE_MARKUP_FAILURE = "error_update_markup_failure";
     private static final String ERROR_MTG_NOT_FOUND = "error_mtg_not_found";
     private static final String ERROR_MENU_NOT_FOUND = "error_menu_not_found";
     private static final String ERROR_MENU_BUTTON_ISSUE = "error_menu_button_issue";
@@ -128,12 +125,11 @@ public class MenuServiceImpl implements MenuService {
         LOGGER.trace("Menu " + menuName + "'s markup compiled. Sending...");
         try {
             clientManager.getClient(bot).execute(editMessageReplyMarkup);
+            LOGGER.trace("Markup sent.");
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to update markup for message " + messageId
-                    + " for user " + user.getId(), localizationLoader.getLocalizationForUser(
-                    ERROR_UPDATE_MARKUP_FAILURE, user), e);
+            LOGGER.error("Unable to update markup for message " + messageId + " for user "
+                    + user.getId(), e);
         }
-        LOGGER.trace("Markup sent.");
     }
 
     @Override
@@ -255,10 +251,8 @@ public class MenuServiceImpl implements MenuService {
                 }  
             }
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to update markup for message "
-                    + query.getMessage().getMessageId() + " and user "
-                    + user.getId(), localizationLoader.getLocalizationForUser(
-                    ERROR_UPDATE_MARKUP_FAILURE, user), e);
+            LOGGER.error("Unable to update markup for message " + query.getMessage()
+                    .getMessageId() + " and user " + user.getId(), e);
         }
     }
 

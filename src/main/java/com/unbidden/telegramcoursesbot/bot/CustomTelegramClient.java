@@ -27,8 +27,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 public abstract class CustomTelegramClient extends OkHttpTelegramClient {
-    private static final String ERROR_SEND_MESSAGE_FAILURE = "error_send_message_failure";
-
     protected final Logger logger;
 
     protected final Bot bot;
@@ -103,14 +101,11 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
      * @return sent {@link Message}
      */
     public Message sendMessage(@NonNull SendMessage sendMessage) {
-        final UserEntity user = userService.getUser(Long.parseLong(sendMessage.getChatId()),
-                userService.getDiretor());
-
         try {
             return execute(sendMessage);
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to send message.", localizationLoader
-                    .getLocalizationForUser(ERROR_SEND_MESSAGE_FAILURE, user), e);
+            logger.error("Unable to send message.", e);
+            return new Message();
         }
     }
 
@@ -129,8 +124,8 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
                     .entities(localization.getEntities())
                     .build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to send message.", localizationLoader
-                    .getLocalizationForUser(ERROR_SEND_MESSAGE_FAILURE, user), e);
+            logger.error("Unable to send message.", e);
+            return new Message();
         }
     }
 
@@ -153,8 +148,8 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
                     .replyMarkup(replyMarkup)
                     .build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to send message.", localizationLoader
-                    .getLocalizationForUser(ERROR_SEND_MESSAGE_FAILURE, user), e);
+            logger.error("Unable to send message.", e);
+            return new Message();
         }
     }
 
