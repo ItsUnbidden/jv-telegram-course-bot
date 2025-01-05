@@ -45,4 +45,6 @@ public interface BotRoleRepository extends JpaRepository<BotRole, Long> {
     @NonNull
     @EntityGraph(attributePaths = {"user", "bot"})
     List<BotRole> findByUser(@NonNull UserEntity user);
+
+    long countByBotAndRoleType(@NonNull Bot bot, @NonNull RoleType roleType);
 }

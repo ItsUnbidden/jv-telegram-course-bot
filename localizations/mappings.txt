@@ -95,6 +95,16 @@ button delete_invoice_image ** Botfather only
 button create_bot ** Botfather only
 button disable_bot ** Botfather only
 button list_bots ** Botfather only
+button multipage_list_back
+button multipage_list_next
+button course_statistics
+button bot_users_statistics
+button course_users_statistics
+button general_bot_statistics
+button course_users_by_stage
+button course_completed_users
+button course_all_users
+
 
 menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes} ${delay}
 menu course_settings_page_3 ${mappingIds} ${homeworkId} ${index} ${lessonId} ${delay}
@@ -138,6 +148,10 @@ menu commit_content_expired_terminal_page
 menu language_page_0
 menu files_page_0 ** Botfather only
 menu general_ban_page_0 ** Botfather only
+menu statistics_page_0
+menu statistics_page_1
+menu statistics_page_2
+menu statistics_page_3
 
 
 service add_lesson_content_request ${lessonId}
@@ -177,9 +191,9 @@ service review_course_grade_updated ${courseName}
 service comment_submitted_notification ${courseName} ${commenterFullName} ${title}
 service comment_submitted ${reviewId}
 service advanced_review_submitted
-service basic_review_submitted
+service basic_review_submitted ${courseName}
 service advanced_review_terminal ${courseName}
-service basic_review_terminal ${courseName}
+service basic_review_terminal
 service resend_content
 service update_homework_content_request ${lessonId}
 service homework_content_updated ${homeworkId}
@@ -295,6 +309,15 @@ service invoice_image_request ** Botfather only
 service invoice_image_updated ** Botfather only
 service invoice_image_delete_request ** Botfather only
 service invoice_image_deleted ** Botfather only
+service user_bought_course ${courseName} ${userFullName}
+service user_refunded_course ${courseName} ${userFullName}
+service refund_confirmation_phrase ${spentStars} ${courseName}
+service bot_statistics_report ${numberOfBannedUsers} ${numberOfUsers} ${totalStarsIncome} ${coursesRefunded} ${coursesBought} ${numberOfCourses} ${botname} ${coursesCurrentlyOwned} ${coursesTaken} ${coursesGifted}
+service course_statistics_report ${totalStarsIncome} ${courseName} ${numberOfUsersWhoCompleted} ${numberOfOwners} ${timesTaken} ${timesGifted} ${timesRefunded} ${timesBought}
+service course_stage_users ${stage} ${currentPage} ${numberOfPages} ${data} ${courseName}
+service course_completed_users ${currentPage} ${numberOfPages} ${data} ${courseName}
+service course_users ${currentPage} ${numberOfPages} ${data} ${courseName}
+service bot_users ${currentPage} ${numberOfPages} ${data} ${botname}
 
 
 error no_exception_localization_available ${excMessage} ${excClassName}
@@ -420,3 +443,5 @@ error no_course_name ** Botfather only
 error invoice_image_does_not_exist ** Botfather only
 error no_content_in_lesson
 error server_on_maintenance
+error multipage_list_meta_not_found
+error no_data_for_multipage_list

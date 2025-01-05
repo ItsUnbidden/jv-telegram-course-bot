@@ -76,5 +76,10 @@ public enum AuthorityType {
     /**
      * List, create and disable bots (18)
      */
-    BOTS_SETTINGS
+    BOTS_SETTINGS,
+    
+    /**
+     * See bot statistics (19)
+     */
+    STATISTICS
 }

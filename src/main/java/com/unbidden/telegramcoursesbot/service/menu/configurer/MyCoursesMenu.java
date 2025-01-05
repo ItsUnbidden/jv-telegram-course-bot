@@ -110,7 +110,8 @@ public class MyCoursesMenu implements MenuConfigurer {
                 final String buttonLocName = COURSE_NAME.formatted(course.getName());
                 boolean isRefundPossible;
                 try {
-                    isRefundPossible = paymentService.isRefundPossible(u, b, course.getName());
+                    isRefundPossible = paymentService.isRefundPossible(u, b,
+                            course.getName()) != null;
                 } catch (RefundImpossibleException e) {
                     isRefundPossible = false;
                 }
@@ -162,7 +163,8 @@ public class MyCoursesMenu implements MenuConfigurer {
                 }
                 try {
                     paymentService.isRefundPossible(u, b, course.getName());
-                    buttons.add(new TerminalButton(BUTTON_REFUND, REFUND, refundHandler));
+                    buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+                            BUTTON_REFUND, u).getData(), REFUND, refundHandler));
                 } catch (RefundImpossibleException e) {
                 }
                 buttons.add(new BackwardButton(localizationLoader.getLocalizationForUser(

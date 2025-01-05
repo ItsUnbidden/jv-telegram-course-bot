@@ -328,9 +328,6 @@ public class CourseSettingsMenu implements MenuConfigurer {
 
         courseSettingsMenu.setName(MENU_NAME);
         courseSettingsMenu.setPages(List.of(firstPage, secondPage, thirdPage, fourthPage, fifthPage));
-        courseSettingsMenu.setInitialParameterPresent(false);
-        courseSettingsMenu.setOneTimeMenu(false);
-        courseSettingsMenu.setUpdateAfterTerminalButtonRequired(true);
         menuService.save(courseSettingsMenu);
     }
 }

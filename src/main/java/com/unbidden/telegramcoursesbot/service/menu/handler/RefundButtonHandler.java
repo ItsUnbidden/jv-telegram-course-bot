@@ -3,6 +3,7 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.PaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
@@ -25,18 +26,20 @@ public class RefundButtonHandler implements ButtonHandler {
     private static final String PARAM_PROVIDED_MESSAGES_AMOUNT = "${providedMessagesNumber}";
     private static final String PARAM_EXPECTED_MESSAGES_AMOUNT = "${expectedMessagesAmount}";
     private static final String PARAM_CONFIRMATION_PHRASE = "${confirmationPhrase}";
+    private static final String PARAM_SPENT_STARS = "${spentStars}";
+    private static final String PARAM_COURSE_NAME = "${courseName}";
 
     private static final String SERVICE_REFUND_CONFIRMATION_REQUEST =
             "service_refund_confirmation_request";
+    private static final String SERVICE_REFUND_CONFIRMATION_PHRASE =
+            "service_refund_confirmation_phrase";
+
+    private static final String COURSE_NAME = "course_%s_name";
         
     private static final String ERROR_AMOUNT_OF_MESSAGES = "error_amount_of_messages";
     private static final String ERROR_TEXT_MESSAGE_EXPECTED = "error_text_message_expected";
     private static final String ERROR_REFUND_CONFIRMATION_PHRASE_FAILURE =
             "error_refund_confirmation_phrase_failure";
-
-    private static final String CONFIRMATION_PHRASE = "I confirm that I want to refund course \""
-            + "%s\" and I understand that I will receive spent amount of Telegram Stars "
-            + "as a compensation";
 
     private final PaymentService paymentService;
 
@@ -50,7 +53,16 @@ public class RefundButtonHandler implements ButtonHandler {
     @Security(authorities = AuthorityType.REFUND)
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
         LOGGER.info("User " + user.getId() + " is trying to refund course " + params[0] + "...");
-        paymentService.isRefundPossible(user, bot, params[0]);
+        final PaymentDetails paymentDetails = paymentService
+                .isRefundPossible(user, bot, params[0]);
+        final Map<String, Object> confirmationPhraseParameterMap = new HashMap<>();
+        confirmationPhraseParameterMap.put(PARAM_COURSE_NAME, localizationLoader
+                .getLocalizationForUser(COURSE_NAME.formatted(params[0]), user).getData());
+        confirmationPhraseParameterMap.put(PARAM_SPENT_STARS, paymentDetails.getTotalAmount());
+
+        final String confirmationPhrase = localizationLoader.getLocalizationForUser(
+                SERVICE_REFUND_CONFIRMATION_PHRASE, user,
+                confirmationPhraseParameterMap).getData();
 
         sessionService.createSession(user, bot, m -> {
             if (m.size() != 1) {
@@ -70,7 +82,7 @@ public class RefundButtonHandler implements ButtonHandler {
             final String providedStr = m.get(0).getText();
             LOGGER.debug("User has provided this string - " + providedStr
                     + ". Checking if this matches the confirmation phrase...");
-            if (!CONFIRMATION_PHRASE.formatted(params[0]).equals(providedStr)) {
+            if (!confirmationPhrase.equals(providedStr.trim())) {
                 throw new InvalidDataSentException("Provided string does not match "
                         + "the confirmation phrase", localizationLoader.getLocalizationForUser(
                         ERROR_REFUND_CONFIRMATION_PHRASE_FAILURE, user));
@@ -82,8 +94,8 @@ public class RefundButtonHandler implements ButtonHandler {
         });
         LOGGER.debug("Sending request message...");
         clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
-                SERVICE_REFUND_CONFIRMATION_REQUEST, user, PARAM_CONFIRMATION_PHRASE,
-                CONFIRMATION_PHRASE.formatted(params[0])));
+                SERVICE_REFUND_CONFIRMATION_REQUEST, user,
+                PARAM_CONFIRMATION_PHRASE, confirmationPhrase));
         LOGGER.debug("Message sent.");
     }
 }

@@ -46,10 +46,13 @@ public class PaymentServiceImpl implements PaymentService {
     private static final String PARAM_CURRENT_PRICE = "${currentPrice}";
     private static final String PARAM_COURSE_NAME = "${courseName}";
     private static final String PARAM_MAX_STAGE_FOR_REFUND = "${maxStageForRefund}";
+    private static final String PARAM_USER_FULL_NAME = "${userFullName}";
     private static final String PARAM_CURRENT_STAGE = "${currentStage}";
 
     private static final String SERVICE_REFUND_SUCCESS = "service_refund_success";
     private static final String SERVICE_SUCCESSFUL_PAYMENT = "service_successful_payment";
+    private static final String SERVICE_USER_BOUGHT_COURSE = "service_user_bought_course";
+    private static final String SERVICE_USER_REFUNDED_COURSE = "service_user_refunded_course";
 
     private static final String ERROR_PRE_CHECKOUT_PRICE_MISMATCH =
             "error_pre_checkout_price_mismatch";
@@ -77,6 +80,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     private static final String COURSE_INVOICE_DESCRIPTION = "course_%s_invoice_description";
     private static final String COURSE_INVOICE_TITLE = "course_%s_invoice_title";
+    private static final String COURSE_NAME = "course_%s_name";
 
     private static final String INVOICE_IMAGES_ENDPOINT = "/invoiceimages";
 
@@ -117,11 +121,8 @@ public class PaymentServiceImpl implements PaymentService {
             @NonNull String courseName) {
         final Course course = courseService.getCourseByName(courseName, user, bot);
         
-        return !paymentDetailsRepository
-                .findByUserIdAndCourseName(user.getId(), course.getName()).stream()
-                .filter(pd -> pd.isGifted())
-                .toList()
-                .isEmpty();
+        return paymentDetailsRepository.countByUserIdAndCourseNameAndIsValidTrueAndIsGiftedTrue(
+                user.getId(), course.getName()) > 0;
     }
 
     @Override
@@ -133,7 +134,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public void deleteByCourseForUser(@NonNull String courseName, @NonNull Long userId) {
         PaymentDetails details = paymentDetailsRepository
-                .findByUserIdAndCourseName(userId, courseName).get(0);
+                .findByUserIdAndCourseNameAndIsValidTrue(userId, courseName).get(0);
         paymentDetailsRepository.delete(details);
     }
 
@@ -197,7 +198,8 @@ public class PaymentServiceImpl implements PaymentService {
             if (isAvailable(user, bot, course.getName())) {
                 final Localization errorLoc = localizationLoader.getLocalizationForUser(
                         ERROR_PRE_CHECKOUT_COURSE_ALREADY_OWNED, user, PARAM_COURSE_NAME,
-                        course.getName());
+                        localizationLoader.getLocalizationForUser(COURSE_NAME.formatted(
+                        course.getName()), user).getData());
                 answerBuilder.errorMessage(errorLoc.getData());
                 LOGGER.warn("Precheckout failed: user " + user.getId()
                         + " already has course " + course.getName());
@@ -228,7 +230,8 @@ public class PaymentServiceImpl implements PaymentService {
         } catch (EntityNotFoundException e) {
             final Localization errorLoc = localizationLoader.getLocalizationForUser(
                     ERROR_PRE_CHECKOUT_UNKNOWN_COURSE, user, PARAM_COURSE_NAME,
-                    preCheckoutQuery.getInvoicePayload());
+                    localizationLoader.getLocalizationForUser(COURSE_NAME.formatted(
+                    preCheckoutQuery.getInvoicePayload()), user).getData());
             answerBuilder.errorMessage(errorLoc.getData());
             LOGGER.error("Precheckout query payload contained unknown course: "
                     + preCheckoutQuery.getInvoicePayload() + ". Investigation required. User "
@@ -255,6 +258,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         final PaymentDetails paymentDetails = new PaymentDetails();
         paymentDetails.setTelegramPaymentChargeId(payment.getTelegramPaymentChargeId());
+        paymentDetails.setBot(bot);
         paymentDetails.setUser(user);
         paymentDetails.setTotalAmount(payment.getTotalAmount());
         paymentDetails.setValid(true);
@@ -270,9 +274,16 @@ public class PaymentServiceImpl implements PaymentService {
 
         LOGGER.debug("Saving payment details...");
         addPaymentDetails(paymentDetails);
-        LOGGER.debug("Payment details saved. Sending confirmation message...");
+        LOGGER.debug("Payment details saved. Sending confirmation messages...");
+        final Map<String, Object> parameterMap = new HashMap<>();
+        parameterMap.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
+                COURSE_NAME.formatted(course.getName()), user).getData());
+        parameterMap.put(PARAM_USER_FULL_NAME, user.getFullName());
+
         clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
-                SERVICE_SUCCESSFUL_PAYMENT, user, PARAM_COURSE_NAME, course.getName()));
+                SERVICE_SUCCESSFUL_PAYMENT, user, parameterMap));
+        clientManager.getClient(bot).sendMessage(userService.getCreator(bot), localizationLoader
+                .getLocalizationForUser(SERVICE_USER_BOUGHT_COURSE, user, parameterMap));
         LOGGER.debug("Message sent.");
         LOGGER.info("User " + user.getId() + " has bought course " + course.getName()
                 + "! Do not forget to thank them!");
@@ -290,7 +301,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public void refund(@NonNull UserEntity user, @NonNull Bot bot, @NonNull String courseName) {
         final List<PaymentDetails> paymentDetailsList = paymentDetailsRepository
-                .findByUserIdAndCourseName(user.getId(), courseName);
+                .findByUserIdAndCourseNameAndIsValidTrue(user.getId(), courseName);
 
         for (PaymentDetails paymentDetailsEntry : paymentDetailsList) {
             if (!paymentDetailsEntry.isGifted() && paymentDetailsEntry.isValid()) {
@@ -301,7 +312,8 @@ public class PaymentServiceImpl implements PaymentService {
                 try {
                     clientManager.getClient(bot).execute(refundStarPayment);
                 } catch (TelegramApiException e) {
-                    throw new TelegramException(courseName, localizationLoader.getLocalizationForUser(ERROR_REFUND_FAILURE, user), e);
+                    throw new TelegramException(courseName, localizationLoader
+                            .getLocalizationForUser(ERROR_REFUND_FAILURE, user), e);
                 }
                 paymentDetailsEntry.setRefundedAt(LocalDateTime.now());
                 paymentDetailsEntry.setValid(false);
@@ -310,11 +322,18 @@ public class PaymentServiceImpl implements PaymentService {
                 paymentDetailsRepository.save(paymentDetailsEntry);
                 LOGGER.info("Payment details " + paymentDetailsEntry.getId()
                         + " has been invalidated.");
-                LOGGER.debug("Sending confirmation message...");
+                LOGGER.debug("Sending confirmation messages...");
+                final Map<String, Object> parameterMap = new HashMap<>();
+                parameterMap.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
+                        COURSE_NAME.formatted(courseName), user).getData());
+                parameterMap.put(PARAM_USER_FULL_NAME, user.getFullName());
+
                 clientManager.getClient(bot).sendMessage(user, localizationLoader
-                        .getLocalizationForUser(SERVICE_REFUND_SUCCESS, user,
-                        PARAM_COURSE_NAME, courseName));
-                LOGGER.debug("Message sent.");
+                        .getLocalizationForUser(SERVICE_REFUND_SUCCESS, user, parameterMap));
+                clientManager.getClient(bot).sendMessage(userService.getCreator(bot),
+                        localizationLoader.getLocalizationForUser(SERVICE_USER_REFUNDED_COURSE,
+                        user, parameterMap));
+                LOGGER.debug("Messages sent.");
                 return;
             }
         }
@@ -331,7 +350,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public boolean isRefundPossible(@NonNull UserEntity user, @NonNull Bot bot,
+    public PaymentDetails isRefundPossible(@NonNull UserEntity user, @NonNull Bot bot,
             @NonNull String courseName) {
         final Course course = courseService.getCourseByName(courseName, user, bot);
         LOGGER.info("Performing checks for refund of course " + courseName
@@ -340,7 +359,8 @@ public class PaymentServiceImpl implements PaymentService {
         if (course.getRefundStage() < 0) {
             throw new RefundImpossibleException("Refund of course " + courseName 
                     + " is not possible", localizationLoader.getLocalizationForUser(
-                    ERROR_REFUND_COURSE_UNAVAILABLE, user, PARAM_COURSE_NAME, courseName));
+                    ERROR_REFUND_COURSE_UNAVAILABLE, user, PARAM_COURSE_NAME, localizationLoader
+                    .getLocalizationForUser(COURSE_NAME.formatted(courseName), user).getData()));
         }
         LOGGER.debug("Checking whether course " + courseName + " is owned by user "
                 + user.getId() + "...");
@@ -365,14 +385,16 @@ public class PaymentServiceImpl implements PaymentService {
             throw new RefundImpossibleException("User " + user.getId() + " cannot refund course "
                     + course.getName() + " because they have already completed it",
                     localizationLoader.getLocalizationForUser(ERROR_REFUND_COURSE_COMPLETED,
-                    user, PARAM_COURSE_NAME, course.getName()));
+                    user, PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(COURSE_NAME
+                    .formatted(courseName), user).getData()));
         }
         LOGGER.debug("Checking whether user " + user.getId() + " has advanced past stage "
                 + course.getRefundStage() + " in course " + courseName + " (current stage is "
                 + courseProgress.getStage() + ")...");
         if (courseProgress.getStage() > course.getRefundStage()) {
             final Map<String, Object> parameterMap = new HashMap<>();
-            parameterMap.put(PARAM_COURSE_NAME, course.getName());
+            parameterMap.put(PARAM_COURSE_NAME, localizationLoader
+                    .getLocalizationForUser(COURSE_NAME.formatted(courseName), user).getData());
             parameterMap.put(PARAM_CURRENT_STAGE, courseProgress.getStage());
             parameterMap.put(PARAM_MAX_STAGE_FOR_REFUND, course.getRefundStage());
 
@@ -385,7 +407,9 @@ public class PaymentServiceImpl implements PaymentService {
         }
         LOGGER.info("User " + user.getId() + " is eligible for course "
                 + course.getName() + "'s refund.");
-        return true;
+        return paymentDetailsRepository.findByUserAndBot(user, bot).stream()
+                .filter(pd -> !pd.isGifted() && pd.isValid())
+                .toList().get(0);
     }
 
     @Override
@@ -398,7 +422,7 @@ public class PaymentServiceImpl implements PaymentService {
     private boolean isAvailable0(UserEntity user, Bot bot, String courseName) {
         final Course course = courseService.getCourseByName(courseName, user, bot);
         
-        return !paymentDetailsRepository.findByUserIdAndCourseName(user.getId(), course.getName())
-                .isEmpty();
+        return !paymentDetailsRepository.findByUserIdAndCourseNameAndIsValidTrue(user.getId(),
+                course.getName()).isEmpty();
     }
 }

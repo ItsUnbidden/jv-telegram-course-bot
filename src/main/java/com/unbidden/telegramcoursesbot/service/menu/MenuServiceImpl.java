@@ -5,6 +5,8 @@ import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.CallbackQueryAnswerException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.MenuExpiredException;
+import com.unbidden.telegramcoursesbot.exception.NoDataForMultipageListException;
+import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.MenuTerminationGroup;
 import com.unbidden.telegramcoursesbot.model.MessageEntity;
@@ -13,6 +15,7 @@ import com.unbidden.telegramcoursesbot.repository.CallbackQueryRepository;
 import com.unbidden.telegramcoursesbot.repository.MenuRepository;
 import com.unbidden.telegramcoursesbot.repository.MenuTerminationGroupRepository;
 import com.unbidden.telegramcoursesbot.repository.MessageRepository;
+import com.unbidden.telegramcoursesbot.repository.MultipageListMetaRepository;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
@@ -23,8 +26,14 @@ import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.KeyboardUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,18 +56,30 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 public class MenuServiceImpl implements MenuService {
     private static final Logger LOGGER = LogManager.getLogger(MenuServiceImpl.class);
 
-    // private static final String ERROR_UPDATE_MESSAGE_FAILURE = "error_update_message_failure";
+    private static final String PARAM_CURRENT_PAGE = "${currentPage}";
+    private static final String PARAM_NUMBER_OF_PAGES = "${numberOfPages}";
+    private static final String PARAM_DATA = "${data}";
+    
+    private static final String ERROR_UPDATE_MESSAGE_FAILURE = "error_update_message_failure";
     private static final String ERROR_MTG_NOT_FOUND = "error_mtg_not_found";
     private static final String ERROR_MENU_NOT_FOUND = "error_menu_not_found";
     private static final String ERROR_MENU_BUTTON_ISSUE = "error_menu_button_issue";
+    private static final String ERROR_MULTIPAGE_LIST_META_NOT_FOUND =
+            "error_multipage_list_meta_not_found";
+    private static final String ERROR_NO_DATA_FOR_MULTIPAGE_LIST =
+            "error_no_data_for_multipage_list";
     
     private static final String DIVIDER = ":";
     private static final int MENU_NAME = 0;
     private static final int PAGE_NUMBER = 1;
+    private static final int NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST = 1;
+    private static final String MULTIPAGE_MENU_NAME = "m_mpl";
 
     private final MenuRepository menuRepository;
 
     private final MenuTerminationGroupRepository menuTerminationGroupRepository;
+
+    private final MultipageListMetaRepository multipageListMetaRepository;
 
     private final MessageRepository messageRepository;
 
@@ -258,6 +279,73 @@ public class MenuServiceImpl implements MenuService {
 
     @Override
     @NonNull
+    public Message initiateMultipageList(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull Function<Map<String, Object>, Localization> localizationFunction,
+            @NonNull BiFunction<Integer, Integer, List<String>> dataFunction,
+            @NonNull Supplier<Long> totalAmountOfElementsSupplier) {
+        LOGGER.debug("Initiating a new multipage list... Applying data function...");
+        final String data = applyMultipageListDataFunction(user, 0, dataFunction);
+        final int amountOfPages = (int)Math.ceil((double)totalAmountOfElementsSupplier.get()
+                / NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST);
+        LOGGER.debug("Data function applied and data parsed. Sending the message...");
+        final Message message = clientManager.getClient(bot).sendMessage(user,
+                localizationFunction.apply(getMultipageListParamMap(amountOfPages, 0, data)));
+        LOGGER.debug("Message has been sent. Creating new multipage meta...");
+
+        final MultipageListMeta meta = new MultipageListMeta(ThreadLocalRandom.current().nextInt(
+                Integer.MIN_VALUE, Integer.MAX_VALUE), user, bot, message.getMessageId(), 0,
+                localizationFunction, dataFunction);
+        meta.setAmountOfPages(amountOfPages);
+        multipageListMetaRepository.save(meta);
+        LOGGER.debug("Multipage meta " + meta.getId() + " has been created and persisted.");
+        
+        if (meta.getAmountOfPages() != 1) {
+            LOGGER.debug("There is more than one page, so a control menu will be attached.");
+            initiateMenu(MULTIPAGE_MENU_NAME, user, meta.getId().toString(),
+                    message.getMessageId(), bot);
+            LOGGER.debug("Menu initiated.");
+        }
+        return message;
+    }
+
+    @Override
+    public void processMultipageListRequest(@NonNull MultipageListMeta meta) {
+        LOGGER.debug("Updating multipage list message " + meta.getMessageId() + " for user "
+                + meta.getUser().getId() + "...");
+        final Localization localization = meta.getLocalizationFunction().apply(
+                getMultipageListParamMap(meta.getAmountOfPages(), meta.getPage(),
+                applyMultipageListDataFunction(meta.getUser(), meta.getPage(),
+                meta.getDataFunction())));
+        final Menu menu = menuRepository.find(MULTIPAGE_MENU_NAME).get();
+
+        try {
+            clientManager.getClient(meta.getBot()).execute(EditMessageText.builder()
+                    .chatId(meta.getUser().getId())
+                    .messageId(meta.getMessageId())
+                    .text(localization.getData())
+                    .entities(localization.getEntities())
+                    .replyMarkup(getInitialMarkup(menu.getPages().getFirst(),
+                        meta.getId().toString(), meta.getUser(), meta.getBot()))
+                    .build());
+        } catch (TelegramApiException e) {
+            throw new TelegramException("Unable to update a multipage list message "
+                    + meta.getMessageId() + " for user " + meta.getUser().getId(),
+                    localizationLoader.getLocalizationForUser(ERROR_UPDATE_MESSAGE_FAILURE,
+                    meta.getUser()), e);
+        }
+    }
+
+    @Override
+    @NonNull
+    public MultipageListMeta getMultipageListMeta(@NonNull Integer id, @NonNull UserEntity user) {
+        return multipageListMetaRepository.find(id).orElseThrow(() -> new EntityNotFoundException(
+                "Multipage list meta " + id + " does not exist. It might have expired.",
+                localizationLoader.getLocalizationForUser(ERROR_MULTIPAGE_LIST_META_NOT_FOUND,
+                user)));
+    }
+
+    @Override
+    @NonNull
     public Menu save(@NonNull Menu menu) {
         return menuRepository.save(menu);
     }
@@ -343,7 +431,7 @@ public class MenuServiceImpl implements MenuService {
                     .replyMarkup(clearMarkup)
                     .build());
         } catch (TelegramApiException e) {
-            LOGGER.warn("Unable to update message " + messageId + " in chat " + chatId, e);
+            LOGGER.error("Unable to update message " + messageId + " in chat " + chatId, e);
             // TODO: make sure ignoring this does not cause any issues
             
             // throw new TelegramException("Unable to update message "
@@ -426,5 +514,31 @@ public class MenuServiceImpl implements MenuService {
         return InlineKeyboardMarkup.builder()
                 .keyboard(keyboardUtil.getInlineKeyboard(buttons, menuPage.getButtonsRowSize()))
                 .build();
+    }
+
+    private String applyMultipageListDataFunction(UserEntity user, int page,
+            BiFunction<Integer, Integer, List<String>> dataFunction) {
+        final List<String> data = dataFunction.apply(page, NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST);
+        if (data.isEmpty()) {
+            throw new NoDataForMultipageListException("No data available for multipage list",
+                    localizationLoader.getLocalizationForUser(ERROR_NO_DATA_FOR_MULTIPAGE_LIST,
+                    user));
+        }
+        final StringBuilder builder = new StringBuilder();
+
+        for (String entry : data) {
+            builder.append(entry).append('\n').append("-----").append('\n');
+        }
+        builder.delete(builder.length() - 7, builder.length());
+        
+        return builder.toString();
+    }
+
+    private Map<String, Object> getMultipageListParamMap(int amountOfPages, int page, String data) {
+        final Map<String, Object> params = new HashMap<>();
+        params.put(PARAM_DATA, data);
+        params.put(PARAM_NUMBER_OF_PAGES, amountOfPages);
+        params.put(PARAM_CURRENT_PAGE, page + 1);
+        return params;
     }
 }

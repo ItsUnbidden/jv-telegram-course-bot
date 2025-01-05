@@ -23,7 +23,7 @@ public interface PaymentService {
 
     void resolveSuccessfulPayment(@NonNull Message message, @NonNull Bot bot);
 
-    boolean isRefundPossible(@NonNull UserEntity user, @NonNull Bot bot,
+    PaymentDetails isRefundPossible(@NonNull UserEntity user, @NonNull Bot bot,
             @NonNull String courseName);
 
     void refund(@NonNull UserEntity user, @NonNull Bot bot, @NonNull String courseName);

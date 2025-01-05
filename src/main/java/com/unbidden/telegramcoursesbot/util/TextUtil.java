@@ -49,6 +49,7 @@ public class TextUtil {
     private static final String FIRST_NAME_PATTERN = "${firstName}";
     private static final String LAST_NAME_PATTERN = "${lastName}";
     private static final String USERNAME_PATTERN = "${username}";
+
     private static final char TAG_OPEN = '<';
     private static final char TAG_CLOSE = '>';
     private static final String TAG_PARAMS_DIVIDER = " ";

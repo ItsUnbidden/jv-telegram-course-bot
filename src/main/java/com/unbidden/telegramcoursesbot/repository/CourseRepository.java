@@ -16,4 +16,6 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @NonNull
     @EntityGraph(attributePaths = {"lessons", "bot"})
     Optional<Course> findByName(@NonNull String name);
+
+    long countByBot(@NonNull Bot bot);
 }

@@ -2,14 +2,14 @@ package com.unbidden.telegramcoursesbot.model;
 
 public enum RoleType {
     /**
-     * 19 (all) authorities. Automatically added to every new bot created for a specified 
+     * 20 (all) authorities. Automatically added to every new bot created for a specified 
      * user (application.properties -> telegram.bot.authorization.director.id).
      */
     DIRECTOR,
     /**
      * 1 COURSE_SETTINGS, 2 GIVE_COURSE, 3 SEE_REVIEWS, 4 GIVE_HOMEWORK_FEEDBACK, 
      * 5 ANSWER_SUPPORT, 10 ROLE_SETTINGS, 11 POST, 13 CONTENT_SETTINGS, 14 INFO, 
-     * 15 BOT_USER_BANS, REPLY_SUPPORT 17. Automatically added to every new bot 
+     * 15 BOT_USER_BANS, REPLY_SUPPORT 17, STATISTICS 19. Automatically added to every new bot 
      * created for user who created that bot.
      */
     CREATOR,

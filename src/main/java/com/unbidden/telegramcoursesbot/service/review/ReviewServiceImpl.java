@@ -206,7 +206,7 @@ public class ReviewServiceImpl implements ReviewService {
         LOGGER.debug("Review object compiled. Sending confirmation message...");
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_BASIC_REVIEW_SUBMITTED, user, PARAM_COURSE_NAME, localizationLoader
-                .getLocalizationForUser(COURSE_NAME.formatted(course.getName()), user));
+                .getLocalizationForUser(COURSE_NAME.formatted(course.getName()), user).getData());
         final Message confirmationMessage = clientManager.getClient(course.getBot())
                 .sendMessage(user, localization);
         LOGGER.debug("Message sent. Persisting review to the db...");

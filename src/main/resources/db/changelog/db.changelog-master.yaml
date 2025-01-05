@@ -73,3 +73,5 @@ databaseChangeLog:
       file: /db/changelog/changes/36-insert-roles-authorities.yaml
   - include:
       file: /db/changelog/changes/37-create-ban-triggers-table.yaml
+  - include:
+      file: /db/changelog/changes/38-add-statistics-authority.yaml

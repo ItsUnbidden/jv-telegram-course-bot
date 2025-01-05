@@ -56,4 +56,9 @@ public class UserEntity {
         }
         return firstName + "(" + id + ")";
     }
+
+    @NonNull
+    public String getFullUserInfo() { 
+        return id + " — " + getFullName() + " — " + languageCode;
+    }
 }
