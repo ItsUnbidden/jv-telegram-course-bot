@@ -72,7 +72,7 @@ public class MenuServiceImpl implements MenuService {
     private static final String DIVIDER = ":";
     private static final int MENU_NAME = 0;
     private static final int PAGE_NUMBER = 1;
-    private static final int NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST = 1;
+    private static final int NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST = 15;
     private static final String MULTIPAGE_MENU_NAME = "m_mpl";
 
     private final MenuRepository menuRepository;
