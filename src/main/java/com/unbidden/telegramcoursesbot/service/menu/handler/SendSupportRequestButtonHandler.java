@@ -51,6 +51,7 @@ public class SendSupportRequestButtonHandler implements ButtonHandler {
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
         LOGGER.info("User " + user.getId() + " is trying to get some support...");
 
+        supportService.checkifUserIsStaffMember(user, bot);
         if (!supportService.isUserEligibleForSupport(user, bot)) {
             throw new ForbiddenOperationException("User " + user.getId() + " cannot send another "
                     + "support request without resolving previous one.", localizationLoader

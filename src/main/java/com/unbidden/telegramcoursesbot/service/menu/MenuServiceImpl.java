@@ -56,6 +56,8 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 public class MenuServiceImpl implements MenuService {
     private static final Logger LOGGER = LogManager.getLogger(MenuServiceImpl.class);
 
+    // These are parameters that are allways included in multipage lists.
+    private static final String PARAM_NUMBER_OF_ELEMENTS = "${numberOfElements}";
     private static final String PARAM_CURRENT_PAGE = "${currentPage}";
     private static final String PARAM_NUMBER_OF_PAGES = "${numberOfPages}";
     private static final String PARAM_DATA = "${data}";
@@ -68,6 +70,8 @@ public class MenuServiceImpl implements MenuService {
             "error_multipage_list_meta_not_found";
     private static final String ERROR_NO_DATA_FOR_MULTIPAGE_LIST =
             "error_no_data_for_multipage_list";
+    private static final String ERROR_MULTIPAGE_LIST_PAGE_HAS_NO_DATA =
+            "error_multipage_list_page_has_no_data";
     
     private static final String DIVIDER = ":";
     private static final int MENU_NAME = 0;
@@ -284,23 +288,33 @@ public class MenuServiceImpl implements MenuService {
             @NonNull BiFunction<Integer, Integer, List<String>> dataFunction,
             @NonNull Supplier<Long> totalAmountOfElementsSupplier) {
         LOGGER.debug("Initiating a new multipage list... Applying data function...");
+        final long amountOfElements = totalAmountOfElementsSupplier.get();
+
+        if (amountOfElements == 0) {
+            throw new NoDataForMultipageListException("No data available for multipage list",
+                    localizationLoader.getLocalizationForUser(ERROR_NO_DATA_FOR_MULTIPAGE_LIST,
+                    user));
+        }
         final String data = applyMultipageListDataFunction(user, 0, dataFunction);
-        final int amountOfPages = (int)Math.ceil((double)totalAmountOfElementsSupplier.get()
+        final int amountOfPages = (int)Math.ceil((double)amountOfElements
                 / NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST);
         LOGGER.debug("Data function applied and data parsed. Sending the message...");
         final Message message = clientManager.getClient(bot).sendMessage(user,
-                localizationFunction.apply(getMultipageListParamMap(amountOfPages, 0, data)));
-        LOGGER.debug("Message has been sent. Creating new multipage meta...");
+                localizationFunction.apply(getMultipageListParamMap(amountOfElements,
+                amountOfPages, 0, data)));
+        LOGGER.debug("Message has been sent.");
 
-        final MultipageListMeta meta = new MultipageListMeta(ThreadLocalRandom.current().nextInt(
-                Integer.MIN_VALUE, Integer.MAX_VALUE), user, bot, message.getMessageId(), 0,
-                localizationFunction, dataFunction);
-        meta.setAmountOfPages(amountOfPages);
-        multipageListMetaRepository.save(meta);
-        LOGGER.debug("Multipage meta " + meta.getId() + " has been created and persisted.");
-        
-        if (meta.getAmountOfPages() != 1) {
-            LOGGER.debug("There is more than one page, so a control menu will be attached.");
+        if (amountOfPages > 1) {
+            LOGGER.debug("There is more than one page. Creating new multipage meta...");
+            final MultipageListMeta meta = new MultipageListMeta(ThreadLocalRandom.current()
+                    .nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE), user, bot,
+                    message.getMessageId(), 0, localizationFunction, dataFunction);
+            meta.setAmountOfElements(amountOfElements);
+            meta.setAmountOfPages(amountOfPages);
+            multipageListMetaRepository.save(meta);
+            LOGGER.debug("Multipage meta " + meta.getId() + " has been created and persisted.");
+
+            LOGGER.debug("Attaching a control menu...");
             initiateMenu(MULTIPAGE_MENU_NAME, user, meta.getId().toString(),
                     message.getMessageId(), bot);
             LOGGER.debug("Menu initiated.");
@@ -313,8 +327,8 @@ public class MenuServiceImpl implements MenuService {
         LOGGER.debug("Updating multipage list message " + meta.getMessageId() + " for user "
                 + meta.getUser().getId() + "...");
         final Localization localization = meta.getLocalizationFunction().apply(
-                getMultipageListParamMap(meta.getAmountOfPages(), meta.getPage(),
-                applyMultipageListDataFunction(meta.getUser(), meta.getPage(),
+                getMultipageListParamMap(meta.getAmountOfElements(), meta.getAmountOfPages(),
+                meta.getPage(), applyMultipageListDataFunction(meta.getUser(), meta.getPage(),
                 meta.getDataFunction())));
         final Menu menu = menuRepository.find(MULTIPAGE_MENU_NAME).get();
 
@@ -520,9 +534,9 @@ public class MenuServiceImpl implements MenuService {
             BiFunction<Integer, Integer, List<String>> dataFunction) {
         final List<String> data = dataFunction.apply(page, NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST);
         if (data.isEmpty()) {
-            throw new NoDataForMultipageListException("No data available for multipage list",
-                    localizationLoader.getLocalizationForUser(ERROR_NO_DATA_FOR_MULTIPAGE_LIST,
-                    user));
+            throw new NoDataForMultipageListException("No data available for a page in a "
+                    + "multipage list", localizationLoader.getLocalizationForUser(
+                    ERROR_MULTIPAGE_LIST_PAGE_HAS_NO_DATA, user));
         }
         final StringBuilder builder = new StringBuilder();
 
@@ -534,11 +548,13 @@ public class MenuServiceImpl implements MenuService {
         return builder.toString();
     }
 
-    private Map<String, Object> getMultipageListParamMap(int amountOfPages, int page, String data) {
+    private Map<String, Object> getMultipageListParamMap(long amountOfElements, int amountOfPages,
+            int page, String data) {
         final Map<String, Object> params = new HashMap<>();
         params.put(PARAM_DATA, data);
         params.put(PARAM_NUMBER_OF_PAGES, amountOfPages);
         params.put(PARAM_CURRENT_PAGE, page + 1);
+        params.put(PARAM_NUMBER_OF_ELEMENTS, amountOfElements);
         return params;
     }
 }

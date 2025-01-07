@@ -26,6 +26,8 @@ public class MultipageListMeta {
 
     private int amountOfPages;
 
+    private long amountOfElements;
+
     private int page;
 
     @NonNull

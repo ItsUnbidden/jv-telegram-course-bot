@@ -247,6 +247,6 @@ public class WebhookController {
     }
 
     private boolean doesSecretMatch(HttpServletRequest request) {
-        return request.getHeader(SECRET_KEY_HEADER).equals(secretKey);
+        return secretKey.equals(request.getHeader(SECRET_KEY_HEADER));
     }
 }

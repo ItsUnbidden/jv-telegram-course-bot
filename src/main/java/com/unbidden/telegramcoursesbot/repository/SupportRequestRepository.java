@@ -1,6 +1,9 @@
 package com.unbidden.telegramcoursesbot.repository;
 
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.SupportRequest;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
+
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -21,9 +24,10 @@ public interface SupportRequestRepository extends JpaRepository<SupportRequest, 
     List<SupportRequest> findUnresolved(@NonNull Long botId, @NonNull Pageable pageable);
 
     @NonNull
-    @Query("from SupportRequest sr left join fetch sr.user u left join fetch sr.bot b "
-            + "where u.id = :userId and b.id = :botId and sr.isResolved = false")
-    List<SupportRequest> findUnresolvedByUserInBot(@NonNull Long userId, @NonNull Long botId);
+    @EntityGraph(attributePaths = {"bot", "user"})
+    List<SupportRequest> findByUserAndBotAndIsResolvedFalse(@NonNull UserEntity user, @NonNull Bot bot);
+
+    long countByUserAndBotAndIsResolvedFalse(@NonNull UserEntity user, @NonNull Bot bot);
 
     @NonNull
     @Query("from SupportRequest sr left join fetch sr.staffMember sm left join fetch sr.bot b "

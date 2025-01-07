@@ -43,6 +43,8 @@ public interface SupportService {
 
     boolean isUserEligibleForSupport(@NonNull UserEntity user, @NonNull Bot bot);
 
+    boolean checkifUserIsStaffMember(@NonNull UserEntity user, @NonNull Bot bot);
+
     @NonNull
     SupportMessage getLastReplyForUser(@NonNull UserEntity user, @NonNull Bot bot);
 

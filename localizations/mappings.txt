@@ -151,7 +151,7 @@ menu general_ban_page_0 ** Botfather only
 menu statistics_page_0
 menu statistics_page_1
 menu statistics_page_2
-menu statistics_page_3
+menu statistics_page_3 ${usersOnStage}
 
 
 service add_lesson_content_request ${lessonId}
@@ -314,10 +314,10 @@ service user_refunded_course ${courseName} ${userFullName}
 service refund_confirmation_phrase ${spentStars} ${courseName}
 service bot_statistics_report ${numberOfBannedUsers} ${numberOfUsers} ${totalStarsIncome} ${coursesRefunded} ${coursesBought} ${numberOfCourses} ${botname} ${coursesCurrentlyOwned} ${coursesTaken} ${coursesGifted}
 service course_statistics_report ${totalStarsIncome} ${courseName} ${numberOfUsersWhoCompleted} ${numberOfOwners} ${timesTaken} ${timesGifted} ${timesRefunded} ${timesBought}
-service course_stage_users ${stage} ${currentPage} ${numberOfPages} ${data} ${courseName}
-service course_completed_users ${currentPage} ${numberOfPages} ${data} ${courseName}
-service course_users ${currentPage} ${numberOfPages} ${data} ${courseName}
-service bot_users ${currentPage} ${numberOfPages} ${data} ${botname}
+service course_stage_users ${stage} ${currentPage} ${numberOfPages} ${numberOfElements} ${data} ${courseName}
+service course_completed_users ${currentPage} ${numberOfPages} ${numberOfElements} ${data} ${courseName}
+service course_users ${currentPage} ${numberOfPages} ${numberOfElements} ${data} ${courseName}
+service bot_users ${currentPage} ${numberOfPages} ${numberOfElements} ${data} ${botname}
 
 
 error no_exception_localization_available ${excMessage} ${excClassName}
@@ -445,3 +445,5 @@ error no_content_in_lesson
 error server_on_maintenance
 error multipage_list_meta_not_found
 error no_data_for_multipage_list
+error multipage_list_page_has_no_data
+error support_staff_request

@@ -22,8 +22,11 @@ import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -69,6 +72,7 @@ public class SupportServiceImpl implements SupportService {
             "error_user_not_eligible_for_support";
     private static final String ERROR_NO_SUPPORT_REQUESTS_AVAILABLE_FOR_USER =
             "error_no_support_requests_available_for_user";
+    private static final String ERROR_SUPPORT_STAFF_REQUEST = "error_support_staff_request";
 
     private static final String SEND_REPLY_MENU_TERMINATION = "support_request_%s_reply_menus";
 
@@ -216,7 +220,7 @@ public class SupportServiceImpl implements SupportService {
     @NonNull
     public List<SupportRequest> getUnresolvedRequestsForUser(@NonNull UserEntity user,
             @NonNull Bot bot) {
-        return supportRequestRepository.findUnresolvedByUserInBot(user.getId(), bot.getId());
+        return supportRequestRepository.findByUserAndBotAndIsResolvedFalse(user, bot);
     }
 
     @Override
@@ -284,8 +288,7 @@ public class SupportServiceImpl implements SupportService {
 
     @Override
     public boolean isUserEligibleForSupport(@NonNull UserEntity user, @NonNull Bot bot) {
-        return supportRequestRepository.findUnresolvedByUserInBot(user.getId(),
-                bot.getId()).isEmpty();
+        return supportRequestRepository.countByUserAndBotAndIsResolvedFalse(user, bot) == 0;
     }
 
     /**
@@ -295,7 +298,7 @@ public class SupportServiceImpl implements SupportService {
     @NonNull
     public SupportMessage getLastReplyForUser(@NonNull UserEntity user, @NonNull Bot bot) {
         final List<SupportRequest> requests = supportRequestRepository
-                .findUnresolvedByUserInBot(user.getId(), bot.getId());
+                .findByUserAndBotAndIsResolvedFalse(user, bot);
         if (requests.isEmpty()) {
             throw new ForbiddenOperationException("User does not have any unresolved support "
                     + "requests", localizationLoader.getLocalizationForUser(
@@ -413,5 +416,22 @@ public class SupportServiceImpl implements SupportService {
         }
         menuService.initiateMenu(REPLY_TO_REPLY_MENU, target, reply.getId().toString(),
                 menuMessage.getMessageId(), bot);
+    }
+
+    @Override
+    public boolean checkifUserIsStaffMember(@NonNull UserEntity user, @NonNull Bot bot) {
+        final Set<UserEntity> uneligibleUsers = new HashSet<>();
+        
+        uneligibleUsers.addAll(userService.getMentors(bot));
+        uneligibleUsers.addAll(userService.getSupport(bot));
+        uneligibleUsers.add(userService.getCreator(bot));
+        uneligibleUsers.add(userService.getDiretor());
+        
+        if (uneligibleUsers.contains(user)) {
+            throw new ForbiddenOperationException("User " + user.getId() + " is a part of the "
+                    + "staff, they are uneligible for support", localizationLoader
+                    .getLocalizationForUser(ERROR_SUPPORT_STAFF_REQUEST, user));
+        }
+        return true;
     }
 }

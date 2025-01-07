@@ -278,7 +278,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
-                COURSE_NAME.formatted(review.getCourse().getName()), user));
+                COURSE_NAME.formatted(review.getCourse().getName()), user).getData());
         parameterMap.put(PARAM_COMMENTER_FULL_NAME, user.getFullName());
         parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, review.getUser(),
                 review.getCourse().getBot()));
@@ -322,8 +322,10 @@ public class ReviewServiceImpl implements ReviewService {
 
         final Map<String, Object> parameterMap = new HashMap<>();
         parameterMap.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
-                COURSE_NAME.formatted(review.getCourse().getName()), user));
+                COURSE_NAME.formatted(review.getCourse().getName()), user).getData());
         parameterMap.put(PARAM_COMMENTER_FULL_NAME, user.getFullName());
+        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(user, review.getUser(),
+                review.getCourse().getBot()));
 
         LOGGER.debug("Sending notification to the review's owner...");
         final Localization notification = localizationLoader.getLocalizationForUser(
@@ -361,7 +363,7 @@ public class ReviewServiceImpl implements ReviewService {
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_REVIEW_COURSE_GRADE_UPDATED, review.getUser(), PARAM_COURSE_NAME,
                 localizationLoader.getLocalizationForUser(COURSE_NAME.formatted(
-                review.getCourse().getName()), user));
+                review.getCourse().getName()), user).getData());
         clientManager.getClient(bot).sendMessage(review.getUser(), localization);
         LOGGER.debug("Message sent. Updating review in the db..."); 
         reviewRepository.save(review);
@@ -392,7 +394,7 @@ public class ReviewServiceImpl implements ReviewService {
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_REVIEW_PLATFORM_GRADE_UPDATED, review.getUser(), PARAM_COURSE_NAME,
                 localizationLoader.getLocalizationForUser(COURSE_NAME.formatted(
-                review.getCourse().getName()), user));
+                review.getCourse().getName()), user).getData());
         clientManager.getClient(bot).sendMessage(review.getUser(), localization);
         LOGGER.debug("Message sent. Updating review in the db..."); 
         reviewRepository.save(review);
@@ -422,7 +424,7 @@ public class ReviewServiceImpl implements ReviewService {
         final Localization localization = localizationLoader.getLocalizationForUser(
                 SERVICE_REVIEW_COURSE_CONTENT_UPDATED, review.getUser(), PARAM_COURSE_NAME,
                 localizationLoader.getLocalizationForUser(COURSE_NAME.formatted(
-                review.getCourse().getName()), user));
+                review.getCourse().getName()), user).getData());
         clientManager.getClient(content.getBot()).sendMessage(review.getUser(), localization);
         LOGGER.debug("Message sent. Updating review in the db..."); 
         reviewRepository.save(review);

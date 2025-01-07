@@ -1,5 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.menu.configurer;
 
+import com.unbidden.telegramcoursesbot.model.Course;
+import com.unbidden.telegramcoursesbot.model.Lesson;
+import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
@@ -20,6 +23,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class StatisticsMenu implements MenuConfigurer {
     private static final String MENU_NAME = "m_stat";
+
+    private static final String PARAN_USERS_ON_STAGE = "${usersOnStage}";
     
     private static final String BUTTON_COURSE_STATISTICS = "button_course_statistics";
     private static final String BUTTON_BOT_USERS_STATISTICS = "button_bot_users_statistics";
@@ -46,6 +51,8 @@ public class StatisticsMenu implements MenuConfigurer {
     private static final String COURSE_NAME = "course_%s_name";
 
     private final StatisticsButtonHandler statisticsHandler;
+
+    private final CourseProgressRepository courseProgressRepository;
 
     private final MenuService menuService;
 
@@ -134,8 +141,22 @@ public class StatisticsMenu implements MenuConfigurer {
         page4.setPageIndex(3);
         page4.setButtonsRowSize(3);
         page4.setPreviousPage(2);
-        page4.setLocalizationFunction((u, p, b) -> localizationLoader
-                .getLocalizationForUser(MENU_STATISTICS_PAGE_3, u));
+        page4.setLocalizationFunction((u, p, b) -> {
+            final StringBuilder builder = new StringBuilder();
+            final Course course = courseService.getCourseByName(p.get(0), u, b);
+
+            long amountOfUsers = 0;
+            for (Lesson lesson : course.getLessons()) {
+                amountOfUsers = courseProgressRepository
+                        .countByCourseAndStageAndNumberOfTimesCompleted(course,
+                        lesson.getPosition(), 0);
+                builder.append(lesson.getPosition()).append(" — ").append(amountOfUsers)
+                        .append('\n');
+            }
+            builder.delete(builder.length() - 1, builder.length());
+            return localizationLoader.getLocalizationForUser(MENU_STATISTICS_PAGE_3, u,
+                    PARAN_USERS_ON_STAGE, builder.toString());
+        });
         page4.setButtonsFunction((u, p, b) -> {
             final List<Button> buttons = new ArrayList<>();
             
