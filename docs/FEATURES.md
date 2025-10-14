@@ -14,7 +14,7 @@ Here I'll explain how different **subsystems** of the platform work.
   - [Statistics](#statistics)
 
 ## Content
-**Content** represents one **Telegram message**. It can be *video(s)*, *image(s)*, *audio(s)*, *document(s)*, or just *text*. **Content** is used for communication between the bot and the *user*. Internally, videos and images are grouped together under *Graphics* due to how **media groups** work. *Images* and *videos* can be combined in one **media group**. Telegram limits the size of a **media group** to *10*, so that is the maximum size for the platform as well. 
+**Content** represents one **Telegram message**. It can be *video(s)*, *image(s)*, *audio(s)*, *document(s)*, or just *text*. **Content** is used for communication between the bot and the *user*. Internally, videos and images are grouped under *Graphics* due to how **media groups** work. *Images* and *videos* can be combined in one **media group**. Telegram limits the size of a **media group** to *10*, so that is the maximum size for the platform as well. 
 
 When you are asked to supply *user content* (like for a **homework response** or a **review**), you usually just need to send the *message* and **confirm it** in the menu that appears. There might be some *specific requirements* for some cases, which need to be **clearly** explained in the *request messages*.
 
@@ -76,7 +76,7 @@ A **homework** can also have a **delay**, just like with **lessons**. If delay i
 
 Just like **lessons**, **homework** uses *localized content* with **mappings**, and needs its text to be written in localization files. *Unlike* **lessons**, only one **mapping** can be assigned to a **homework**.
 
-There is also an option to **restrict** what **types of media** user can send as a **homework**. *For example*, you can configure things in such a way that only **audios** and **text** are accepted.
+There is also an option to **restrict** what **types of media** a user can send as a **homework**. *For example*, you can configure things in such a way that only **audios** and **text** are accepted.
 
 *Sending an incorrect media type as a homework:*
 
