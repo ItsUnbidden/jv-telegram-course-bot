@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress;
 import com.unbidden.telegramcoursesbot.model.Lesson;
@@ -12,24 +13,29 @@ import org.springframework.lang.Nullable;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 public interface HomeworkService {
-    void sendHomework(@NonNull UserEntity user, @NonNull Homework homework);
+    void initiateHomework(@NonNull UserEntity user, @NonNull Homework homework);
 
-    void commit(@NonNull Long id, @NonNull List<Message> messages);
+    void sendHomework(@NonNull HomeworkProgress progress);
+
+    void commit(@NonNull HomeworkProgress progress, @NonNull List<Message> messages);
 
     boolean requestFeedback(@NonNull HomeworkProgress homeworkProgress);
 
-    void approve(@NonNull Long id, @NonNull UserEntity user,
+    void approve(@NonNull HomeworkProgress progress, @NonNull UserEntity user,
             @Nullable List<Message> adminComment);
 
-    void decline(@NonNull Long id, @NonNull UserEntity user,
+    void decline(@NonNull HomeworkProgress progress, @NonNull UserEntity user,
             @NonNull List<Message> adminComment);
 
     @NonNull
     ContentMapping updateContent(@NonNull Long homeworkId, @NonNull LocalizedContent content,
-            @NonNull UserEntity user);
+            @NonNull UserEntity user, @NonNull Bot bot);
 
     @NonNull
-    Homework getHomework(@NonNull Long id, @NonNull UserEntity user);
+    Homework getHomework(@NonNull Long id, @NonNull UserEntity user, @NonNull Bot bot);
+
+    @NonNull
+    HomeworkProgress getProgress(@NonNull Long id, @NonNull UserEntity user);
 
     @NonNull
     Homework save(@NonNull Homework homework);

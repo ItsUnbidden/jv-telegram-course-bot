@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.repository;
 
-import com.unbidden.telegramcoursesbot.service.button.menu.Menu;
+import com.unbidden.telegramcoursesbot.service.menu.Menu;
 
 public interface MenuRepository extends CustomGeneralRepository<String, Menu> {
 

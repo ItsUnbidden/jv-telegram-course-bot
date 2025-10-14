@@ -1,0 +1,47 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-statistics-authority
+      author: Unbidden
+      changes:
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  valueNumeric: 19
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 20
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 2
+              - column:
+                  name: authority_id
+                  valueNumeric: 20
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 3
+              - column:
+                  name: authority_id
+                  valueNumeric: 20
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 4
+              - column:
+                  name: authority_id
+                  valueNumeric: 20

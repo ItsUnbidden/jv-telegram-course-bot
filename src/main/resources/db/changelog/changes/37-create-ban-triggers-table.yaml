@@ -1,0 +1,45 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-ban-triggers-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: ban_timed_triggers
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_users_ban_triggers
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: bot_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_bots_ban_triggers
+                    references: bots(id)
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: target
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_general
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

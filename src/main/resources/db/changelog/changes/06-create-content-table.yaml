@@ -1,0 +1,41 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-content-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: content
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: bot_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_bots_content
+                    references: bots(id)
+                    nullable: false
+              - column:
+                  name: type
+                  type: tinyint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data
+                  type: varchar(4096)
+              - column:
+                  name: is_localization
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: language_code
+                  type: varchar(8)
+                  constraints:
+                    nullable: false

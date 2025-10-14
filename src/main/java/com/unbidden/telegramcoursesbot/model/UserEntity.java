@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 import org.springframework.lang.NonNull;
+import org.telegram.telegrambots.meta.api.objects.User;
 
 @Entity
 @Table(name = "users")
@@ -23,21 +24,23 @@ public class UserEntity {
     
     @Column(nullable = false)
     private String languageCode;
-
-    private boolean isBot;
+    
+    private boolean isLanguageManuallySet;
 
     private boolean isBanned;
-
-    private boolean isAdmin;
-
-    private boolean isReceivingHomeworkRequests;
 
     public UserEntity() {
         
     }
 
-    public UserEntity(Long id) {
-        this.id = id;
+    public UserEntity(User user) {
+        this.id = user.getId();
+        this.firstName = user.getFirstName();
+        this.lastName = user.getLastName();
+        this.username = user.getUserName();
+        this.languageCode = user.getLanguageCode();
+        this.isLanguageManuallySet = false;
+        this.isBanned = false;
     }
 
     @NonNull
@@ -52,5 +55,10 @@ public class UserEntity {
             return firstName + " @" + username;
         }
         return firstName + "(" + id + ")";
+    }
+
+    @NonNull
+    public String getFullUserInfo() { 
+        return id + " — " + getFullName() + " — " + languageCode;
     }
 }

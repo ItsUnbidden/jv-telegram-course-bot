@@ -3,6 +3,7 @@ package com.unbidden.telegramcoursesbot.service.content;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.exception.NoImplementationException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
@@ -11,6 +12,7 @@ import com.unbidden.telegramcoursesbot.repository.ContentMappingRepository;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.service.content.handler.LocalizedContentHandler;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,7 +25,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
-import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Service
@@ -55,6 +56,8 @@ public class ContentServiceImpl implements ContentService {
 
     private final ContentManager contentManager;
 
+    private final UserService userService;
+
     private final LocalizationLoader localizationLoader;
 
     private final TextUtil textUtil;
@@ -64,74 +67,54 @@ public class ContentServiceImpl implements ContentService {
 
     @Override
     @NonNull
-    public LocalizedContent parseAndPersistContent(@NonNull List<Message> messages) {
-        return parseAndPersistContent(messages, List.of());
+    public LocalizedContent parseAndPersistContent(@NonNull Bot bot,
+            @NonNull List<Message> messages) {
+        return parseAndPersistContent(bot, messages, List.of());
     }
 
     @Override
     @NonNull
-    public LocalizedContent parseAndPersistContent(@NonNull List<Message> messages, boolean isLocalized) {
-        return persistContent(null, messages, List.of(), isLocalized);
+    public LocalizedContent parseAndPersistContent(@NonNull Bot bot,
+            @NonNull List<Message> messages, boolean isLocalized) {
+        return persistContent(messages, List.of(), bot, isLocalized);
     }
 
     @Override
     @NonNull
-    public LocalizedContent parseAndPersistContent(@NonNull List<Message> messages,
-            @NonNull List<MediaType> allowedContentTypes) {
-        return persistContent(null, messages, allowedContentTypes, false);
+    public LocalizedContent parseAndPersistContent(@NonNull Bot bot,
+            @NonNull List<Message> messages, @NonNull List<MediaType> allowedContentTypes) {
+        return persistContent(messages, allowedContentTypes, bot, false);
     }
 
     @Override
     @NonNull
-    public LocalizedContent parseAndPersistContent(@NonNull List<Message> messages,
-            @NonNull String localizationName, @NonNull String languageCode) {
+    public LocalizedContent parseAndPersistContent(@NonNull Bot bot,
+            @NonNull List<Message> messages, @NonNull String localizationName,
+            @NonNull String languageCode) {
         LOGGER.info("Initiating parsing of a message to content with predefined localization...");
         final MediaType messagesContentType = defineContentType(messages);
 
         try {
             final LocalizedContentHandler<? extends Content> handler = contentManager
                     .getHandler(messagesContentType);
-            final Content content = handler.parseLocalized(messages, localizationName, languageCode);
+            final Content content = handler.parseLocalized(messages, bot, localizationName,
+                    languageCode);
 
             content.setType(messagesContentType);
 
             return (LocalizedContent)handler.persist(content);
         } catch (NoImplementationException e) {
             throw new InvalidDataSentException("Unknown media type", localizationLoader
-                    .getLocalizationForUser(ERROR_UNKNOWN_MEDIA_TYPE,
-                    messages.get(0).getFrom()));
+                    .getLocalizationForUser(ERROR_UNKNOWN_MEDIA_TYPE, userService.getUser(
+                    messages.get(0).getFrom().getId(), userService.getDiretor())));
         }
     }
 
     @Override
     @NonNull
-    @Deprecated
-    public LocalizedContent parseAndUpdateContent(@NonNull Long contentId,
-            @NonNull List<Message> messages) {
-        return persistContent(contentId, messages, List.of(), false);
-    }
-
-    @Override
-    @NonNull
-    @Deprecated
-    public LocalizedContent parseAndUpdateContent(@NonNull Long contentId, @NonNull List<Message> messages,
-            boolean isLocalized) {
-        return persistContent(contentId, messages, List.of(), isLocalized);
-    }
-
-    @Override
-    @NonNull
-    @Deprecated
-    public LocalizedContent parseAndUpdateContent(@NonNull Long contentId, @NonNull List<Message> messages,
-            @NonNull List<MediaType> allowedContentTypes) {
-        return persistContent(contentId, messages, allowedContentTypes, false);
-    }
-
-    @Override
-    @NonNull
-    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user) {
+    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user, @NonNull Bot bot) {
         try {
-            return contentManager.getHandler(content.getType()).sendContent(content, user);
+            return contentManager.getHandler(content.getType()).sendContent(content, user, bot);
         } catch (NoImplementationException e) {
             throw new InvalidDataSentException("Unknown media type", localizationLoader
                     .getLocalizationForUser(ERROR_UNKNOWN_MEDIA_TYPE, user));
@@ -141,10 +124,10 @@ public class ContentServiceImpl implements ContentService {
     @Override
     @NonNull
     public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
-            boolean isProtected, boolean skipText) {
+            @NonNull Bot bot, boolean isProtected, boolean skipText) {
         try {
             return contentManager.getHandler(content.getType())
-                    .sendContent(content, user, isProtected, skipText);
+                    .sendContent(content, user, bot, isProtected, skipText);
         } catch (NoImplementationException e) {
             throw new InvalidDataSentException("Unknown media type", localizationLoader
                     .getLocalizationForUser(ERROR_UNKNOWN_MEDIA_TYPE, user));
@@ -154,7 +137,7 @@ public class ContentServiceImpl implements ContentService {
     @Override
     @NonNull
     public List<Message> sendLocalizedContent(@NonNull ContentMapping contentMapping,
-            @NonNull UserEntity user) {
+            @NonNull UserEntity user, @NonNull Bot bot) {
         Assert.notEmpty(contentMapping.getContent(), "Content mapping cannot be empty");
         final Map<String, LocalizedContent> contentMap =
                 getContentMap(contentMapping.getContent());
@@ -163,8 +146,8 @@ public class ContentServiceImpl implements ContentService {
             LOGGER.debug("Localized content in group " + contentMapping.getId()
                     + " for user " + user.getId() + "'s prefered code " + user.getLanguageCode()
                     + " is available.");
-            return sendContent(getById(contentMap.get(user.getLanguageCode()).getId(), user),
-                    user, true, !contentMapping.isTextEnabled());
+            return sendContent(getById(contentMap.get(user.getLanguageCode()).getId(), user, bot),
+                    user, bot, true, !contentMapping.isTextEnabled());
         }
         LOGGER.debug("Localized content in group " + contentMapping.getId() + " for user "
                 + user.getId() + "'s prefered code " + user.getLanguageCode()
@@ -176,8 +159,8 @@ public class ContentServiceImpl implements ContentService {
                 if (contentMap.containsKey(code)) {
                     LOGGER.debug("Localized content in group " + contentMapping.getId()
                             + " has been found for language code " + code + ".");
-                    return sendContent(getById(contentMap.get(code).getId(), user), user,
-                            true, !contentMapping.isTextEnabled());
+                    return sendContent(getById(contentMap.get(code).getId(), user, bot),
+                            user, bot, true, !contentMapping.isTextEnabled());
                 }
             }
         }
@@ -185,14 +168,15 @@ public class ContentServiceImpl implements ContentService {
         LOGGER.warn("There is no available content in group " + contentMapping.getId()
                 + " for any of the priority language codes. First content in the list (Id: "
                 + firstAvailableContent.getId() + ") will be used instead.");
-        return sendContent(getById(firstAvailableContent.getId(), user), user,
+        return sendContent(getById(firstAvailableContent.getId(), user, bot), user, bot,
                 true, !contentMapping.isTextEnabled());
     }
 
     @Override
     @NonNull
-    public LocalizedContent getById(@NonNull Long id, @NonNull UserEntity user) {
-        return contentManager.getById(id, user);
+    public LocalizedContent getById(@NonNull Long id, @NonNull UserEntity user,
+            @NonNull Bot bot) {
+        return contentManager.getById(id, user, bot);
     }
 
     @Override
@@ -228,7 +212,7 @@ public class ContentServiceImpl implements ContentService {
     @Override
     @NonNull
     public ContentMapping addNewLocalization(@NonNull ContentMapping mapping,
-            @NonNull LocalizedContent content) {
+            @NonNull LocalizedContent content, @NonNull Bot bot) {
         mapping.getContent().add(content);
         return contentMappingRepository.save(mapping);
     }
@@ -268,7 +252,8 @@ public class ContentServiceImpl implements ContentService {
                 isCaptionPresent = true;
             }
         }
-        final User user = messages.get(0).getFrom();
+        final UserEntity user = userService.getUser(messages.get(0).getFrom().getId(),
+                userService.getDiretor());
 
         if (numberOfText != 0 && isCaptionPresent) {
             throw new InvalidDataSentException("Captions and text in the "
@@ -314,11 +299,13 @@ public class ContentServiceImpl implements ContentService {
         return MediaType.TEXT;
     }
 
-    private LocalizedContent persistContent(Long contentId, List<Message> messages,
-            List<MediaType> allowedContentTypes,
+    private LocalizedContent persistContent(List<Message> messages,
+            List<MediaType> allowedContentTypes, Bot bot,
             boolean isLocalized) {
         LOGGER.info("Initiating parsing of a message to content.");
         final MediaType messagesContentType = defineContentType(messages);
+        final UserEntity user = userService.getUser(messages.get(0).getFrom().getId(),
+                userService.getDiretor());
 
         if (!allowedContentTypes.isEmpty()) {
             LOGGER.info("Allowed content types are " + allowedContentTypes + ".");
@@ -330,22 +317,21 @@ public class ContentServiceImpl implements ContentService {
                 throw new InvalidDataSentException("Allowed content types are "
                         + allowedContentTypes + " but user sent messages of type "
                         + messagesContentType, localizationLoader
-                        .getLocalizationForUser(ERROR_CONTENT_MEDIA_GROUP_DOES_NOT_MATCH,
-                        messages.get(0).getFrom(), parameterMap));
+                        .getLocalizationForUser(ERROR_CONTENT_MEDIA_GROUP_DOES_NOT_MATCH, user,
+                        parameterMap));
             }
         }
         
         try {
             final LocalizedContentHandler<? extends Content> handler = contentManager
                     .getHandler(messagesContentType);
-            final Content content = (isLocalized) ? handler.parseLocalized(messages, isLocalized)
-                    : handler.parse(messages);
+            final Content content = (isLocalized) ? handler.parseLocalized(messages,
+                    bot, isLocalized) : handler.parse(messages, bot);
             content.setType(messagesContentType);
-            content.setId(contentId);
         return (LocalizedContent)handler.persist(content);
         } catch (NoImplementationException e) {
             throw new InvalidDataSentException("Unknown media type", localizationLoader
-                    .getLocalizationForUser(ERROR_UNKNOWN_MEDIA_TYPE, messages.get(0).getFrom()));
+                    .getLocalizationForUser(ERROR_UNKNOWN_MEDIA_TYPE, user));
         }
     }
 

@@ -1,14 +1,13 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.BotService;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.Security;
+import com.unbidden.telegramcoursesbot.service.menu.MenuService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
@@ -18,38 +17,19 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 public class RefreshCommandHandler implements CommandHandler {
     private static final String COMMAND = "/refresh";
 
-    private static final String SERVICE_REFRESH_SUCCESS = "service_refresh_success";
-    
-    private final UserService userService;
+    private static final String MENU_NAME = "m_rfsh";
 
-    private final LocalizationLoader localizationLoader;
-    
-    private final CustomTelegramClient client;
+    private final BotService botService;
 
-    @Autowired
-    @Lazy
-    private CommandHandlerManager commandHandlerManager;
+    private final MenuService menuService;
 
     @Override
-    public void handle(@NonNull Message message, @NonNull String[] commandParts) {
-        final UserEntity user = userService.getUser(message.getFrom().getId());
-
-        if (userService.isAdmin(user)) {
-            client.setOnMaintenance(true);
-
-            localizationLoader.reloadResourses();
-            client.setUpMenuButton();
-            localizationLoader.getAvailableLanguageCodes().forEach(c -> client.setUpUserMenu(c,
-                    commandHandlerManager.getUserCommands()));
-            userService.getAdminList().forEach(a -> client.setUpMenuForAdmin(a,
-                    commandHandlerManager.getAllCommands()));
-            
-            client.setOnMaintenance(false);
-
-            final Localization localization = localizationLoader.getLocalizationForUser(
-                    SERVICE_REFRESH_SUCCESS, message.getFrom());
-            client.sendMessage(user, localization);
-        }
+    @Security(authorities = AuthorityType.MAINTENANCE)
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
+            @NonNull String[] commandParts) {
+        botService.checkBotFather(bot, user);
+        
+        menuService.initiateMenu(MENU_NAME, user, bot);
     }
 
     @Override
@@ -59,7 +39,8 @@ public class RefreshCommandHandler implements CommandHandler {
     }
 
     @Override
-    public boolean isAdminCommand() {
-        return true;
+    @NonNull
+    public List<AuthorityType> getAuthorities() {
+        return List.of(AuthorityType.MAINTENANCE);
     }
 }

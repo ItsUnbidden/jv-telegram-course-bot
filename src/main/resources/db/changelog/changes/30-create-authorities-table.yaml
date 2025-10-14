@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-authorities-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: authorities
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: type
+                  type: tinyint
+                  constraints:
+                    nullable: false

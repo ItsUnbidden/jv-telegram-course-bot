@@ -19,23 +19,13 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 @Service
 public class LocalizationLoaderImpl implements LocalizationLoader {
     private static final Logger LOGGER = LogManager.getLogger(LocalizationLoaderImpl.class);
-
-    @Value("${telegram.bot.message.text.format}")
-    private String fileFormat;
-
-    @Value("${telegram.bot.message.text.path}")
-    private String pathStr;
-
-    private Path localizationFolderPath;
 
     private List<String> languagePriority;
 
@@ -50,34 +40,14 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
 
     @PostConstruct
     private void init() {
-        localizationFolderPath = Path.of(System.getProperty("user.dir")).resolve(pathStr);
-        LOGGER.info("Initialized localization files directory in "
-                + localizationFolderPath + ".");
-
         languagePriority = new ArrayList<>();
         String[] languagePriorityArray = textUtil.getLanguagePriority();
-        if (languagePriorityArray.length == 0) {
-            throw new LocalizationLoadingException("At least one language code should "
-                    + "be present in the priority list", null);
-        }
+
         for (String code : languagePriorityArray) {
             languagePriority.add(code.trim());
         }
 
         cacheLocalizationFiles();
-    }
-
-    @Override
-    @NonNull
-    public Localization getLocalizationForUser(@NonNull String name, @NonNull User user) {
-        final Localization localization = loadLocalization(name, user.getLanguageCode());
-        
-        if (!localization.isInjectionRequired()) {
-            return localization;
-        }
-        final String withInjectedUserData = textUtil.injectUserData(localization.getData(), user);
-        LOGGER.trace("User data injected. Setting up entities...");
-        return setUpLocalization(localization, withInjectedUserData);
     }
 
     @Override
@@ -95,21 +65,6 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
 
     @Override
     @NonNull
-    public Localization getLocalizationForUser(@NonNull String name, @NonNull User user,
-            @NonNull Map<String, Object> parameterMap) {
-        final Localization localization = loadLocalization(name, user.getLanguageCode());
-
-        if (!localization.isInjectionRequired()) {
-            return localization;
-        }
-        final String withInjectedParams = textUtil.injectParams(textUtil.injectUserData(
-                localization.getData(), user), parameterMap);
-        LOGGER.trace("User data and custom parameters injected. Setting up entities...");
-        return setUpLocalization(localization, withInjectedParams);
-    }
-
-    @Override
-    @NonNull
     public Localization getLocalizationForUser(@NonNull String name, @NonNull UserEntity user,
             @NonNull Map<String, Object> parameterMap) {
         final Localization localization = loadLocalization(name, user.getLanguageCode());
@@ -121,16 +76,6 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                 localization.getData(), user), parameterMap);
         LOGGER.trace("User data and custom parameters injected. Setting up entities...");
         return setUpLocalization(localization, withInjectedParams);
-    }
-
-    @Override
-    @NonNull
-    public Localization getLocalizationForUser(@NonNull String name, @NonNull User user,
-            @NonNull String paramKey, @NonNull Object param) {
-        final Map<String, Object> parameterMap = new HashMap<>();
-
-        parameterMap.put(paramKey, param);
-        return getLocalizationForUser(name, user, parameterMap);
     }
 
     @Override
@@ -171,18 +116,17 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
     @Override
     @NonNull
     public List<String> getAvailableLanguageCodes() {
-        return dao.list(localizationFolderPath).stream()
+        return dao.listLocalizationDirs().stream()
                 .filter(p -> p.toFile().isDirectory())
                 .map(p -> p.getFileName().toString())
                 .toList();
     }
 
     private void cacheLocalizationFiles() {
-        LOGGER.trace("Localization files caching is commencing...");
-        final List<Path> locDirs = dao.list(localizationFolderPath).stream()
+        LOGGER.info("Localization file caching is commencing...");
+        final List<Path> locDirs = dao.listLocalizationDirs().stream()
                 .filter(p -> p.toFile().isDirectory())
                 .toList();
-
         
         for (Path locDir : locDirs) {
             final List<Path> locFiles = dao.list(locDir).stream()
@@ -242,7 +186,7 @@ public class LocalizationLoaderImpl implements LocalizationLoader {
                 }
             }
         }
-        LOGGER.trace("Localization files cached successfuly.");
+        LOGGER.info("Localization files cached successfuly.");
     }
 
     private Localization setUpLocalization(Localization localization, String injectedData) {

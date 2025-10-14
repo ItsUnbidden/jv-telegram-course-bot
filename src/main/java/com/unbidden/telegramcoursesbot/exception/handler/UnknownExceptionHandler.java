@@ -1,7 +1,8 @@
 package com.unbidden.telegramcoursesbot.exception.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dao.LogDao;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
@@ -29,6 +31,8 @@ public class UnknownExceptionHandler implements ExceptionHandler {
 
     private static final String PARAM_EXC_MESSAGE = "${excMessage}";
     private static final String PARAM_EXC_CLASS_NAME = "${excClassName}";
+    private static final String PARAM_USER_FULL_NAME = "${userFullName}";
+    private static final String PARAM_BOT_NAME = "${botName}";
     
     private static final String ERROR_UNSPECIFIED_EXCEPTION = "error_unspecified_exception";
     private static final String ERROR_CRITICAL_DIRECTOR_NOTIFICATION =
@@ -40,38 +44,43 @@ public class UnknownExceptionHandler implements ExceptionHandler {
 
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
+
+    private final ReplyKeyboardRemove keyboardRemove;
 
     @Override
-    public SendMessage compileSendMessage(@NonNull UserEntity user, @NonNull Exception exc) {
+    public SendMessage compileSendMessage(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull Exception exc) {
         LOGGER.error("Unspecified exception has occured during user " + user.getId()
                 + "'s session.", exc);
 
         final Localization errorLoc = localizationLoader.getLocalizationForUser(
-                ERROR_UNSPECIFIED_EXCEPTION, user, getParameterMap(exc));
+                ERROR_UNSPECIFIED_EXCEPTION, user, getParameterMap(exc, user, bot));
 
-        notifyDirector(exc);
+        notifyDirector(exc, user, bot);
 
         return SendMessage.builder()
                 .chatId(user.getId())
                 .text(errorLoc.getData())
                 .entities(errorLoc.getEntities())
+                .replyMarkup(keyboardRemove)
                 .build();
     }
 
-    private void notifyDirector(@NonNull Exception exc) {
+    private void notifyDirector(@NonNull Exception exc, @NonNull UserEntity user,
+            @NonNull Bot bot) {
         final UserEntity diretor = userService.getDiretor();
         final InputStream stream = logDao.readCurrentLogFile();
 
         final Localization criticalErrorDirectorNotification = localizationLoader
                 .getLocalizationForUser(ERROR_CRITICAL_DIRECTOR_NOTIFICATION, diretor,
-                getParameterMap(exc));
+                getParameterMap(exc, user, bot));
 
-        client.sendMessage(diretor, criticalErrorDirectorNotification);
+        clientManager.getBotFatherClient().sendMessage(diretor,
+                criticalErrorDirectorNotification);
         
-        // TODO: make sending log files to director optional and configurable in the bot's interface
         try {
-            client.execute(SendDocument.builder()
+            clientManager.getBotFatherClient().execute(SendDocument.builder()
                     .chatId(diretor.getId())
                     .document(new InputFile(stream, CURRENT_LOG_FILE_NAME))
                     .build());
@@ -89,11 +98,13 @@ public class UnknownExceptionHandler implements ExceptionHandler {
         }
     }
 
-    private Map<String, Object> getParameterMap(Exception exc) {
+    private Map<String, Object> getParameterMap(Exception exc, UserEntity user, Bot bot) {
         final Map<String, Object> parameterMap = new HashMap<>();
 
         parameterMap.put(PARAM_EXC_MESSAGE, exc.getMessage());
         parameterMap.put(PARAM_EXC_CLASS_NAME, exc.getClass().getSimpleName());
+        parameterMap.put(PARAM_BOT_NAME, bot.getName());
+        parameterMap.put(PARAM_USER_FULL_NAME, user.getFullName());
         return parameterMap;
     }
 }

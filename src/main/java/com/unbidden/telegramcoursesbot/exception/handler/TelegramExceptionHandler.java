@@ -2,6 +2,7 @@ package com.unbidden.telegramcoursesbot.exception.handler;
 
 import com.unbidden.telegramcoursesbot.exception.LocalizedException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 
 @Component
 public class TelegramExceptionHandler extends GeneralLocalizedExceptionHandler {
@@ -24,9 +26,12 @@ public class TelegramExceptionHandler extends GeneralLocalizedExceptionHandler {
     @Autowired
     protected LocalizationLoader localizationLoader;
 
+    @Autowired
+    protected ReplyKeyboardRemove keyboardRemove;
+
     @Override
     public SendMessage compileSendMessageFromLocalizedExc(@NonNull UserEntity user,
-            @NonNull LocalizedException exc) {
+            @NonNull Bot bot, @NonNull LocalizedException exc) {
         LOGGER.error("During user " + user.getId()
                 + "'s session a telegram exception occured: ", exc);
 
@@ -39,6 +44,7 @@ public class TelegramExceptionHandler extends GeneralLocalizedExceptionHandler {
                     .chatId(user.getId())
                     .text(errorLocalization.getData())
                     .entities(errorLocalization.getEntities())
+                    .replyMarkup(keyboardRemove)
                     .build();
         }
         LOGGER.debug("Compiling error message to user " + user.getId() + "...");
@@ -46,6 +52,7 @@ public class TelegramExceptionHandler extends GeneralLocalizedExceptionHandler {
                 .chatId(user.getId())
                 .text(exc.getErrorLocalization().getData())
                 .entities(exc.getErrorLocalization().getEntities())
+                .replyMarkup(keyboardRemove)
                 .build();
     }
 

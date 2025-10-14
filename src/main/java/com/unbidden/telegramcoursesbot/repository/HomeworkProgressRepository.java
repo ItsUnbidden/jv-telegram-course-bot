@@ -10,7 +10,7 @@ import org.springframework.lang.NonNull;
 public interface HomeworkProgressRepository extends JpaRepository<HomeworkProgress, Long> {
     @NonNull
     @EntityGraph(attributePaths = {"user", "homework", "content", "homework.lesson",
-            "homework.lesson.course", "homework.mapping"})
+            "homework.lesson.course", "homework.mapping", "homework.lesson.course.bot"})
     Optional<HomeworkProgress> findById(@NonNull Long id);
 
     @NonNull
@@ -20,8 +20,8 @@ public interface HomeworkProgressRepository extends JpaRepository<HomeworkProgre
 
     @NonNull
     @Query("from HomeworkProgress hp left join fetch hp.user u left join fetch hp.homework h"
-            + " left join fetch h.lesson l left join fetch l.course c where u.id = :userId and "
-            + "h.id = :homeworkId and hp.status != 1")
+            + " left join fetch h.lesson l left join fetch l.course c left join fetch c.bot b "
+            + "where u.id = :userId and h.id = :homeworkId and hp.status != 1")
     Optional<HomeworkProgress> findByUserIdAndHomeworkIdUnresolved(@NonNull Long userId,
             @NonNull Long homeworkId);
 }

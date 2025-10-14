@@ -1,6 +1,8 @@
 package com.unbidden.telegramcoursesbot.model;
 
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -37,21 +39,19 @@ public class Lesson implements Comparable<Lesson> {
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "homework_id")
     private Homework homework;
 
+    /**
+     * Delay before this lesson will be sent to user. Specified in minutes.
+     * If less then 0 then it is interpreted as no delay.
+     */
     @Column(nullable = false)
-    private SequenceOption sequenceOption;
+    private Integer delay;
 
     public boolean isHomeworkIncluded() {
         return homework != null;
-    }
-    
-    public enum SequenceOption {
-        TIMED,
-        BUTTON,
-        HOMEWORK
     }
 
     @Override

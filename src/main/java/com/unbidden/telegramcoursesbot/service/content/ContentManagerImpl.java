@@ -1,7 +1,9 @@
 package com.unbidden.telegramcoursesbot.service.content;
 
+import com.unbidden.telegramcoursesbot.exception.AccessDeniedException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.NoImplementationException;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
@@ -20,13 +22,14 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class ContentManagerImpl implements ContentManager {
-    private static final String ERROR_CONTENT_NOT_FOUND = "error_content_not_found";
-
     private static final Map<MediaType, LocalizedContentHandler<? extends Content>> handlerMap =
             new HashMap<>();
 
     private final List<LocalizedContentHandler<? extends Content>> handlers;
 
+    private static final String ERROR_BOT_VISIBILITY_MISMATCH = "error_bot_visibility_mismatch";
+    private static final String ERROR_CONTENT_NOT_FOUND = "error_content_not_found";
+    
     private final LocalizationLoader localizationLoader;
 
     @PostConstruct
@@ -51,11 +54,17 @@ public class ContentManagerImpl implements ContentManager {
 
     @Override
     @NonNull
-    public LocalizedContent getById(@NonNull Long id, @NonNull UserEntity user) {
+    public LocalizedContent getById(@NonNull Long id, @NonNull UserEntity user,
+            @NonNull Bot bot) {
         for (LocalizedContentHandler<? extends Content> handler : handlers) {
             final Optional<? extends Content> potentialContent = handler.findById(id);
 
             if (potentialContent.isPresent()) {
+                if (!potentialContent.get().getBot().equals(bot)) {
+                    throw new AccessDeniedException("Content with id " + id
+                            + " is not available for bot " + bot.getName(), localizationLoader
+                            .getLocalizationForUser(ERROR_BOT_VISIBILITY_MISMATCH, user));
+                }
                 return (LocalizedContent)potentialContent.get();
             }
         }

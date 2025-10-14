@@ -1,0 +1,58 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-support-replies-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: support_replies
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_user_support_replies
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: bot_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_bots_support_replies
+                    references: bots(id)
+                    nullable: false
+              - column:
+                  name: reply_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_reply_support_replies
+                    references: support_replies(id)
+              - column:
+                  name: request_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_request_support_replies
+                    references: support_requests(id)
+              - column:
+                  name: content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_content_support_replies
+                    references: content(id)
+                    nullable: false
+              - column:
+                  name: timestamp
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reply_side
+                  type: tinyint
+                  constraints:
+                    nullable: false

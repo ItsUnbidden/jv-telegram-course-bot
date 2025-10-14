@@ -13,11 +13,12 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
     List<Lesson> findByCourseName(@NonNull String courseName);
 
     @NonNull
-    @EntityGraph(attributePaths = {"course", "structure", "homework", "homework.mapping"})
+    @EntityGraph(attributePaths = {"course", "structure", "homework",
+            "homework.mapping", "course.bot"})
     Optional<Lesson> findByPositionAndCourseName(@NonNull Integer index,
             @NonNull String courseName);
 
     @NonNull
-    @EntityGraph(attributePaths = {"course", "structure", "homework"})
+    @EntityGraph(attributePaths = {"course", "structure", "homework", "course.bot"})
     Optional<Lesson> findById(@NonNull Long id);
 }

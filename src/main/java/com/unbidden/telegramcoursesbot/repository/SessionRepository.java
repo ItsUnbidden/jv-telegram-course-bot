@@ -1,18 +1,19 @@
 package com.unbidden.telegramcoursesbot.repository;
 
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.service.session.Session;
 import java.util.List;
 import org.springframework.lang.NonNull;
 
 public interface SessionRepository extends CustomGeneralRepository<Integer, Session> {
-    void removeForUser(@NonNull Long userId);
+    void removeForUserInBot(@NonNull Long userId, @NonNull Bot bot);
 
-    void removeContentSessionsForUser(@NonNull Long userId);
+    void removeContentSessionsForUserInBot(@NonNull Long userId, @NonNull Bot bot);
 
-    void removeSessionsWithoutConfirmationForUser(@NonNull Long userId);
+    void removeSessionsWithoutConfirmationForUserInBot(@NonNull Long userId, @NonNull Bot bot);
 
-    void removeUserOrChatRequestSessionsForUser(@NonNull Long userId);
+    void removeUserOrChatRequestSessionsForUserInBot(@NonNull Long userId, @NonNull Bot bot);
     
     @NonNull
-    List<Session> findForUser(@NonNull Long userId);
+    List<Session> findForUserInBot(@NonNull Long userId, @NonNull Bot bot);
 }

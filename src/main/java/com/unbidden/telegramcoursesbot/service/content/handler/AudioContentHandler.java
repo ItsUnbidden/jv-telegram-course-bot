@@ -1,7 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.content.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
-import com.unbidden.telegramcoursesbot.exception.TelegramException;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Audio;
 import com.unbidden.telegramcoursesbot.model.content.AudioContent;
@@ -38,8 +38,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 public class AudioContentHandler implements LocalizedContentHandler<AudioContent> {
     private static final Logger LOGGER = LogManager.getLogger(AudioContentHandler.class);
 
-    private static final String ERROR_SEND_CONTENT_FAILURE = "error_send_content_failure";
-
     private final PhotoRepository photoRepository;
 
     private final AudioRepository audioRepository;
@@ -54,31 +52,32 @@ public class AudioContentHandler implements LocalizedContentHandler<AudioContent
 
     private final UserService userService;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public AudioContent parseLocalized(@NonNull List<Message> messages, boolean isLocalized) {
-        return parse0(messages, null, isLocalized);
+    public AudioContent parseLocalized(@NonNull List<Message> messages, @NonNull Bot bot,
+            boolean isLocalized) {
+        return parse0(messages, bot, null, isLocalized);
     }
 
     @Override
-    public AudioContent parseLocalized(@NonNull List<Message> messages,
+    public AudioContent parseLocalized(@NonNull List<Message> messages, @NonNull Bot bot,
             @NonNull String localizationName, @NonNull String languageCode) {
-        final AudioContent content = parse0(messages, localizationName, true);
+        final AudioContent content = parse0(messages, bot, localizationName, true);
         content.setLanguageCode(languageCode);
         return content;
     }
 
     @Override
     @NonNull
-    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user) {
-        return sendContent(content, user, false, false);
+    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user, @NonNull Bot bot) {
+        return sendContent(content, user, bot, false, false);
     }
 
     @Override
     @NonNull
     public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
-            boolean isProtected, boolean skipText) {
+            @NonNull Bot bot, boolean isProtected, boolean skipText) {
         final List<InputMedia> inputMedias = new ArrayList<>();
         final AudioContent audioContent = (AudioContent)content;
 
@@ -105,7 +104,7 @@ public class AudioContentHandler implements LocalizedContentHandler<AudioContent
             LOGGER.warn("Content " + content.getId() + " is of type " + content.getType()
                     + " but does not have any relevant content. Text content handler "
                     + "will be used instead.");
-            return textContentHandler.sendContent(content, user, isProtected, false);
+            return textContentHandler.sendContent(content, user, bot, isProtected, false);
         }
 
         if (captionsLoc != null) {
@@ -119,7 +118,7 @@ public class AudioContentHandler implements LocalizedContentHandler<AudioContent
 
             if (inputMedia.getClass().equals(InputMediaAudio.class)) {
                 try {
-                    return List.of(client.execute(SendAudio.builder()
+                    return List.of(clientManager.getClient(bot).execute(SendAudio.builder()
                             .chatId(user.getId())
                             .protectContent(isProtected)
                             .audio(new InputFile(inputMedia.getMedia()))
@@ -128,24 +127,23 @@ public class AudioContentHandler implements LocalizedContentHandler<AudioContent
                                 ? captionsLoc.getEntities() : List.of())
                             .build()));
                 } catch (TelegramApiException e) {
-                    throw new TelegramException("Unable to send audio media in content "
-                            + content.getId() + " to user " + user.getId(), localizationLoader
-                            .getLocalizationForUser(ERROR_SEND_CONTENT_FAILURE, user), e);
+                    LOGGER.error("Unable to send audio media in content " + content.getId()
+                            + " to user " + user.getId(), e);
                 }
             }
         }
 
         try {
-            return client.execute(SendMediaGroup.builder()
+            return clientManager.getClient(bot).execute(SendMediaGroup.builder()
                     .chatId(user.getId())
                     .protectContent(isProtected)
                     .medias(inputMedias)
                     .build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to send audios media group in content "
-                    + content.getId() + " to user " + user.getId(), localizationLoader
-                    .getLocalizationForUser(ERROR_SEND_CONTENT_FAILURE, user), e);
+            LOGGER.error("Unable to send audios media group in content " + content.getId()
+                    + " to user " + user.getId(), e);
         }
+        return List.of();
     }
 
     @Override
@@ -167,7 +165,7 @@ public class AudioContentHandler implements LocalizedContentHandler<AudioContent
         return MediaType.AUDIO;
     }
 
-     private AudioContent parse0(List<Message> messages, String localizationName,
+     private AudioContent parse0(List<Message> messages, Bot bot, String localizationName,
             boolean isLocalized) {
         final List<Audio> audios = new ArrayList<>();
         final List<MarkerArea> markers = new ArrayList<>();
@@ -186,17 +184,19 @@ public class AudioContentHandler implements LocalizedContentHandler<AudioContent
                 }
                 continue;
             }
-            final Audio audio = new Audio(message.getAudio());
-
-            if (message.getAudio().getThumbnail() != null) {
-                final Optional<Photo> potentialThumbnail = photoRepository.findById(
-                        message.getAudio().getThumbnail().getFileUniqueId());
-                if (potentialThumbnail.isPresent()) {
-                    audio.setThumbnail(potentialThumbnail.get());
-                } else {
-                    audio.setThumbnail(photoRepository.save(
-                            new Photo(message.getAudio().getThumbnail())));
+            if (message.hasAudio()) {
+                final Audio audio = new Audio(message.getAudio());
+                if (message.getAudio().getThumbnail() != null) {
+                    final Optional<Photo> potentialThumbnail = photoRepository.findById(
+                            message.getAudio().getThumbnail().getFileUniqueId());
+                    if (potentialThumbnail.isPresent()) {
+                        audio.setThumbnail(potentialThumbnail.get());
+                    } else {
+                        audio.setThumbnail(photoRepository.save(
+                                new Photo(message.getAudio().getThumbnail())));
+                    }
                 }
+                audios.add(audio);
             }
             if (!isTextSetUp && message.getCaption() != null && !message.getCaption().isEmpty()) {
                 captions = message.getCaption();
@@ -207,12 +207,13 @@ public class AudioContentHandler implements LocalizedContentHandler<AudioContent
                 }
             }
             if (languageCode == null) {
-                languageCode = userService.getUser(message.getFrom().getId()).getLanguageCode();
+                languageCode = userService.getUser(message.getFrom().getId(),
+                        userService.getDiretor()).getLanguageCode();
             }
-            audios.add(audio);
         }
         audioRepository.saveAll(audios);
         AudioContent audioContent = new AudioContent();
+        audioContent.setBot(bot);
         audioContent.setData(new ContentTextData(captions, markers, isLocalized));
         audioContent.setAudios(audios);
         audioContent.setLanguageCode(languageCode);

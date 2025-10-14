@@ -1,6 +1,8 @@
 package com.unbidden.telegramcoursesbot.model;
 
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
+
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -28,6 +30,13 @@ public class Homework {
 
     @OneToOne(mappedBy = "homework")
     private Lesson lesson;
+
+    /**
+     * Delay before this homework will be sent to user. Specified in minutes.
+     * If less then 0 then it is interpreted as no delay.
+     */
+    @Column(nullable = false)
+    private Integer delay;
 
     private boolean isFeedbackRequired;
 

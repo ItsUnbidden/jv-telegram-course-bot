@@ -1,0 +1,419 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-roles_authorities
+      author: Unbidden
+      changes:
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 1
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 2
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 3
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 4
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 5
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 6
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 7
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 8
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 9
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 10
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 11
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 12
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 13
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 14
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 15
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 16
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 17
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 18
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 1
+              - column:
+                  name: authority_id
+                  valueNumeric: 19
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 2
+              - column:
+                  name: authority_id
+                  valueNumeric: 2
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 2
+              - column:
+                  name: authority_id
+                  valueNumeric: 3
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 2
+              - column:
+                  name: authority_id
+                  valueNumeric: 4
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 2
+              - column:
+                  name: authority_id
+                  valueNumeric: 5
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 2
+              - column:
+                  name: authority_id
+                  valueNumeric: 6
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 2
+              - column:
+                  name: authority_id
+                  valueNumeric: 11
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 2
+              - column:
+                  name: authority_id
+                  valueNumeric: 12
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 2
+              - column:
+                  name: authority_id
+                  valueNumeric: 14
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 2
+              - column:
+                  name: authority_id
+                  valueNumeric: 15
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 2
+              - column:
+                  name: authority_id
+                  valueNumeric: 16
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 2
+              - column:
+                  name: authority_id
+                  valueNumeric: 18
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 3
+              - column:
+                  name: authority_id
+                  valueNumeric: 6
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 3
+              - column:
+                  name: authority_id
+                  valueNumeric: 15
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 3
+              - column:
+                  name: authority_id
+                  valueNumeric: 16
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 3
+              - column:
+                  name: authority_id
+                  valueNumeric: 18
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 4
+              - column:
+                  name: authority_id
+                  valueNumeric: 4
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 4
+              - column:
+                  name: authority_id
+                  valueNumeric: 5
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 4
+              - column:
+                  name: authority_id
+                  valueNumeric: 12
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 4
+              - column:
+                  name: authority_id
+                  valueNumeric: 15
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 4
+              - column:
+                  name: authority_id
+                  valueNumeric: 16
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 5
+              - column:
+                  name: authority_id
+                  valueNumeric: 7
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 5
+              - column:
+                  name: authority_id
+                  valueNumeric: 8
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 5
+              - column:
+                  name: authority_id
+                  valueNumeric: 9
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 5
+              - column:
+                  name: authority_id
+                  valueNumeric: 10
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 5
+              - column:
+                  name: authority_id
+                  valueNumeric: 13
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 5
+              - column:
+                  name: authority_id
+                  valueNumeric: 15
+        - insert:  
+            tableName: roles_authorities
+            columns:
+              - column:
+                  name: role_id
+                  valueNumeric: 5
+              - column:
+                  name: authority_id
+                  valueNumeric: 18

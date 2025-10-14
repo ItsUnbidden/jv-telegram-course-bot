@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-bot-roles-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: bot_roles
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: bot_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_bots_bot_roles
+                    references: bots(id)
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_users_bot_roles
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: role_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_roles_bot_roles
+                    references: roles(id)
+                    nullable: false
+              - column:
+                  name: is_receiving_homework
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false

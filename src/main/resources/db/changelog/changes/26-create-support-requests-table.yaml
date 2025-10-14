@@ -1,0 +1,61 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-support-requests-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: support_requests
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_user_support_requests
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: bot_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_bots_support_requests
+                    references: bots(id)
+                    nullable: false
+              - column:
+                  name: staff_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_staff_support_requests
+                    references: users(id)
+              - column:
+                  name: content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_content_support_requests
+                    references: content(id)
+                    nullable: false
+              - column:
+                  name: timestamp
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: support_type
+                  type: tinyint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tag
+                  type: varchar(64)
+              - column:
+                  name: is_resolved
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

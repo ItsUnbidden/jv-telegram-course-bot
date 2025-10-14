@@ -1,14 +1,19 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.exception.AccessDeniedException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
+import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress.Status;
+import com.unbidden.telegramcoursesbot.model.HomeworkTrigger;
 import com.unbidden.telegramcoursesbot.model.Lesson;
+import com.unbidden.telegramcoursesbot.model.TimedTrigger;
 import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
@@ -16,10 +21,11 @@ import com.unbidden.telegramcoursesbot.repository.ContentMappingRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.HomeworkProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.HomeworkRepository;
-import com.unbidden.telegramcoursesbot.service.button.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.menu.MenuService;
+import com.unbidden.telegramcoursesbot.service.timing.TimingService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -44,7 +50,7 @@ public class HomeworkServiceImpl implements HomeworkService {
     private static final String REQUEST_FEEDBACK_MENU = "m_rqF";
     private static final String SEND_HOMEWORK_MENU = "m_sHw";
     private static final String COURSE_NEXT_STAGE_MENU = "m_crsNxtStg";
-
+    
     private static final String PARAM_TARGET_LANGUAGE_CODE = "${targetLanguageCode}";
     private static final String PARAM_TARGET_USERNAME = "${targetUsername}";
     private static final String PARAM_TARGET_LAST_NAME = "${targetLastName}";
@@ -53,6 +59,7 @@ public class HomeworkServiceImpl implements HomeworkService {
     private static final String PARAM_COMMENTER_NAME = "${commenterName}";
     private static final String PARAM_LESSON_INDEX = "${lessonIndex}";
     private static final String PARAM_COURSE_NAME = "${courseName}";
+    private static final String PARAM_TITLE = "${title}";
 
     private static final String SERVICE_HOMEWORK_DECLINED_NOTIFICATION_PLUS_COMMENT =
             "service_homework_declined_notification_plus_comment";
@@ -72,6 +79,8 @@ public class HomeworkServiceImpl implements HomeworkService {
     private static final String SERVICE_SEND_HOMEWORK_MEDIA_GROUP_BYPASS =
             "service_send_homework_media_group_bypass";
 
+    private static final String COURSE_NAME = "course_%s_name";
+
     private static final String ERROR_HOMEWORK_ALREADY_COMPLETED =
             "error_homework_already_completed";
     private static final String ERROR_HOMEWORK_ALREADY_AWAITS_APPROVAL =
@@ -79,6 +88,7 @@ public class HomeworkServiceImpl implements HomeworkService {
     private static final String ERROR_HOMEWORK_PROGRESS_NOT_FOUND =
             "error_homework_progress_not_found";
     private static final String ERROR_HOMEWORK_NOT_FOUND = "error_homework_not_found";
+    private static final String ERROR_BOT_VISIBILITY_MISMATCH = "error_bot_visibility_mismatch";
 
     private static final String SEND_HOMEWORK_MENU_TERMINATION =
             "homework_progress_%s_send_homework_menus";
@@ -102,21 +112,19 @@ public class HomeworkServiceImpl implements HomeworkService {
 
     private final LessonService lessonService;
 
+    private final TimingService timingService;
+
     private final LocalizationLoader localizationLoader;
     
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Lazy
     @Autowired
     private CourseService courseService;
 
     @Override
-    public void sendHomework(@NonNull UserEntity user, @NonNull Homework homework) {
-        LOGGER.debug("Sending homework " + homework.getId() + " content to user "
-                + user.getId() + "...");
-        final List<Message> sendContent = contentService.sendLocalizedContent(contentService
-                .getMappingById(homework.getMapping().getId(), user), user);
-        LOGGER.debug("Content has been sent.");
+    public void initiateHomework(@NonNull UserEntity user, @NonNull Homework homework) {
+        courseService.checkCourseIsNotUnderMaintenance(homework.getLesson().getCourse(), user);
 
         final Optional<HomeworkProgress> potentialProgress = homeworkProgressRepository
                 .findByUserIdAndHomeworkIdUnresolved(user.getId(), homework.getId());
@@ -136,15 +144,47 @@ public class HomeworkServiceImpl implements HomeworkService {
             LOGGER.debug("User " + user.getId() + " already has an unresolved homework progress.");
             homeworkProgress = potentialProgress.get();
         }
+        final Optional<HomeworkTrigger> potentialHomeworkTrigger = timingService
+                .findHomeworkTrigger(user, homework);
+        if (potentialHomeworkTrigger.isPresent()) {
+            LOGGER.debug("User " + user.getId() + " is currently awaiting homework.");
+            return;
+        }
+
+        if (homework.getDelay() > 0 && courseProgressRepository.findByUserIdAndCourseName(
+                user.getId(), homework.getLesson().getCourse().getName()).get()
+                .getNumberOfTimesCompleted() == 0) {
+            LOGGER.debug("Homework " + homework.getId() + " has a delay of "
+                    + homework.getDelay() + " minutes. Creating homework trigger...");
+            final TimedTrigger trigger = timingService.createTrigger(homeworkProgress);
+            LOGGER.debug("New trigger " + trigger.getId() + " for user " + user.getId()
+                    + " and homework " + homework.getId() + " has been created. It will "
+                    + "activate at " + trigger.getTarget() + ".");
+            return;
+        }
+        sendHomework(homeworkProgress);
+    }
+
+    @Override
+    public void sendHomework(@NonNull HomeworkProgress progress) {
+        final UserEntity user = progress.getUser();
+        final Homework homework = progress.getHomework();
+        final Bot bot = homework.getLesson().getCourse().getBot();
+
+        LOGGER.debug("Sending homework " + homework.getId() + " content to user "
+                + user.getId() + "...");
+        final List<Message> sendContent = contentService.sendLocalizedContent(contentService
+                .getMappingById(homework.getMapping().getId(), user), user, bot);
+        LOGGER.debug("Content has been sent.");
         Localization errorLocalization;
-        switch (homeworkProgress.getStatus()) {
+        switch (progress.getStatus()) {
             case AWAITS_APPROVAL:
                 LOGGER.debug("User " + user.getId() + " is currently awaiting feedback for "
                         + "homework " + homework.getId() + ".");
                 errorLocalization = localizationLoader
                         .getLocalizationForUser(ERROR_HOMEWORK_ALREADY_AWAITS_APPROVAL,
                         user);
-                client.sendMessage(user, errorLocalization);
+                clientManager.getClient(bot).sendMessage(user, errorLocalization);
                 return;
             case COMPLETED:
                 if (homework.isRepeatedCompletionAvailable()) {
@@ -168,11 +208,12 @@ public class HomeworkServiceImpl implements HomeworkService {
                 }
                 errorLocalization = localizationLoader
                         .getLocalizationForUser(ERROR_HOMEWORK_ALREADY_COMPLETED, user);
-                final Message message = client.sendMessage(user, errorLocalization);
+                final Message message = clientManager.getClient(bot)
+                        .sendMessage(user, errorLocalization);
                 menuService.initiateMenu(COURSE_NEXT_STAGE_MENU, user, course.getName()
                         + CourseService.COURSE_NAME_LESSON_INDEX_DIVIDER + courseProgress.getStage(),
-                        message.getMessageId());
-                menuService.addToMenuTerminationGroup(user, user, message.getMessageId(),
+                        message.getMessageId(), bot);
+                menuService.addToMenuTerminationGroup(user, user, bot, message.getMessageId(),
                         CourseService.COURSE_NEXT_STAGE_MENU_TERMINATION
                         .formatted(courseProgress.getId()), null);
                 return;
@@ -185,170 +226,181 @@ public class HomeworkServiceImpl implements HomeworkService {
                     + "additional message to be sent for menu.");
             final Localization mediaGroupBypassMessageLoc = localizationLoader
                     .getLocalizationForUser(SERVICE_SEND_HOMEWORK_MEDIA_GROUP_BYPASS, user);
-            menuMessage = client.sendMessage(user, mediaGroupBypassMessageLoc);
+            menuMessage = clientManager.getClient(bot).sendMessage(user, mediaGroupBypassMessageLoc);
             LOGGER.debug("Additional message for menu has been sent.");
         } else {
             LOGGER.debug("Content in homework " + homework.getId() + " is not a media group. "
                     + "Menu will be attached to it.");    
             menuMessage = sendContent.get(0);
         }
-        menuService.initiateMenu(SEND_HOMEWORK_MENU, user, homeworkProgress.getId().toString(),
-                menuMessage.getMessageId());
-        menuService.addToMenuTerminationGroup(user, user, menuMessage.getMessageId(),
-                SEND_HOMEWORK_MENU_TERMINATION.formatted(homeworkProgress.getId()), null);
+        menuService.initiateMenu(SEND_HOMEWORK_MENU, user, progress.getId().toString(),
+                menuMessage.getMessageId(), bot);
+        menuService.addToMenuTerminationGroup(user, user, bot, menuMessage.getMessageId(),
+                SEND_HOMEWORK_MENU_TERMINATION.formatted(progress.getId()), null);
     }
 
     @Override
-    public void commit(@NonNull Long id, @NonNull List<Message> messages) {
-        final HomeworkProgress homeworkProgress = getHomeworkProgress(id);
-        homeworkProgress.setContent(contentService.parseAndPersistContent(messages,
-                contentService.parseMediaTypes((homeworkProgress.getHomework()
-                .getAllowedMediaTypes() != null) ? homeworkProgress.getHomework()
+    public void commit(@NonNull HomeworkProgress progress, @NonNull List<Message> messages) {
+        final Bot bot = progress.getHomework().getLesson().getCourse().getBot();
+
+        progress.setContent(contentService.parseAndPersistContent(bot, messages,
+                contentService.parseMediaTypes((progress.getHomework()
+                .getAllowedMediaTypes() != null) ? progress.getHomework()
                 .getAllowedMediaTypes() : "")));
 
         Localization localization;
-        if (homeworkProgress.getHomework().getLesson().getCourse().isFeedbackIncluded()
-                && homeworkProgress.getHomework().isFeedbackRequired()
-                && requestFeedback(homeworkProgress)) {
-            homeworkProgress.setStatus(Status.AWAITS_APPROVAL);
-            homeworkProgress.setApproveRequestedAt(LocalDateTime.now());
+        if (progress.getHomework().getLesson().getCourse().isFeedbackIncluded()
+                && progress.getHomework().isFeedbackRequired()
+                && requestFeedback(progress)) {
+            progress.setStatus(Status.AWAITS_APPROVAL);
+            progress.setApproveRequestedAt(LocalDateTime.now());
             localization = localizationLoader.getLocalizationForUser(
-                    SERVICE_FEEDBACK_FOR_HOMEWORK_WAITING, homeworkProgress.getUser());
-            client.sendMessage(homeworkProgress.getUser(), localization);
+                    SERVICE_FEEDBACK_FOR_HOMEWORK_WAITING, progress.getUser());
+            clientManager.getClient(bot).sendMessage(progress.getUser(), localization);
         } else {
-            homeworkProgress.setStatus(Status.COMPLETED);
+            progress.setStatus(Status.COMPLETED);
             localization = localizationLoader.getLocalizationForUser(
-                SERVICE_HOMEWORK_ACCEPTED_AUTO, homeworkProgress.getUser());
+                SERVICE_HOMEWORK_ACCEPTED_AUTO, progress.getUser());
 
-            final List<UserEntity> admins = userService.getHomeworkReveivingAdmins();
-            admins.forEach(a -> {
+            final List<BotRole> homeworkBotRoles = userService.getHomeworkBotRoles(bot);
+            homeworkBotRoles.forEach(br -> {
                 final Localization adminNotification = localizationLoader.getLocalizationForUser(
-                        SERVICE_HOMEWORK_FEEDBACK_NOTIFICATION, a,
-                        getParameterMapForUserAndCourseInfo(homeworkProgress));
-                client.sendMessage(a, adminNotification);
-                contentService.sendContent(homeworkProgress.getContent(), a);
+                        SERVICE_HOMEWORK_FEEDBACK_NOTIFICATION, br.getUser(),
+                        getParameterMapForUserAndCourseInfo(progress, br.getUser()));
+                clientManager.getClient(bot).sendMessage(br.getUser(), adminNotification);
+                contentService.sendContent(progress.getContent(), br.getUser(), bot);
             });
-            client.sendMessage(homeworkProgress.getUser(), localization);
-            courseService.next(homeworkProgress.getUser(), homeworkProgress.getHomework()
+            clientManager.getClient(bot).sendMessage(progress.getUser(), localization);
+            courseService.next(progress.getUser(), progress.getHomework()
                     .getLesson().getCourse().getName());
-            homeworkProgress.setFinishedAt(LocalDateTime.now());
+                    progress.setFinishedAt(LocalDateTime.now());
         }
-        menuService.terminateMenuGroup(homeworkProgress.getUser(), SEND_HOMEWORK_MENU_TERMINATION
-                .formatted(homeworkProgress.getId()));
-        homeworkProgressRepository.save(homeworkProgress);
+        menuService.terminateMenuGroup(progress.getUser(), bot,
+                SEND_HOMEWORK_MENU_TERMINATION.formatted(progress.getId()));
+        homeworkProgressRepository.save(progress);
     }
 
     @Override
     public boolean requestFeedback(@NonNull HomeworkProgress homeworkProgress) {
-        final List<UserEntity> admins = userService.getHomeworkReveivingAdmins();
+        final Bot bot = homeworkProgress.getHomework().getLesson().getCourse().getBot();
+        final List<BotRole> homeworkBotRoles = userService.getHomeworkBotRoles(bot);
         
         LOGGER.debug("Checking if there are any users who are receiving "
-                + "homework feedback requests...", admins);
-        if (admins.isEmpty()) {
-            LOGGER.warn("There are no users who are receiving homework feedback. "
-                    + "This means homework inclusion in course settings will be ignored.");
+                + "homework feedback requests...");
+        if (homeworkBotRoles.isEmpty()) {
+            LOGGER.warn("There are no users who are receiving homework feedback in bot "
+                    + bot.getName() + ". This means homework inclusion in course settings "
+                    + "will be ignored.");
             return false;
         }
-        for (UserEntity admin : admins) {
-            LOGGER.debug("User " + admin.getId() + " has homework feedback enabled. "
+        for (BotRole botRole : homeworkBotRoles) {
+            final UserEntity mentor = botRole.getUser();
+            LOGGER.debug("User " + mentor.getId() + " has homework feedback enabled. "
                     + "Sending approval message to them...");
             final Localization localization = localizationLoader.getLocalizationForUser(
-                    SERVICE_HOMEWORK_FEEDBACK_REQUEST_NOTIFICATION, admin,
-                    getParameterMapForUserAndCourseInfo(homeworkProgress));
-            client.sendMessage(admin, localization);
-            LOGGER.debug("Homework feedback info has been sent to user " + admin.getId() + ".");
+                    SERVICE_HOMEWORK_FEEDBACK_REQUEST_NOTIFICATION, mentor,
+                    getParameterMapForUserAndCourseInfo(homeworkProgress, mentor));
+            clientManager.getClient(bot).sendMessage(mentor, localization);
+            LOGGER.debug("Homework feedback info has been sent to user " + mentor.getId() + ".");
             final List<Message> sendContent = contentService.sendContent(homeworkProgress
-                    .getContent(), admin);
-            LOGGER.debug("Homework content has been sent to user " + admin.getId() + ".");
+                    .getContent(), mentor, bot);
+            LOGGER.debug("Homework content has been sent to user " + mentor.getId() + ".");
             final Message menuMessage;
         if (sendContent.size() > 1) {
             LOGGER.debug("Homework progress " + homeworkProgress.getId()
                     + "'s content is a media group. To avoid Telegram restrictions, an "
-                    + "additional message will be sent to user " + admin.getId()
+                    + "additional message will be sent to user " + mentor.getId()
                     + " to attach the feedback menu to.");
             final Localization mediaGroupBypassMessageLoc = localizationLoader
-                    .getLocalizationForUser(SERVICE_FEEDBACK_MEDIA_GROUP_BYPASS, admin);
-            menuMessage = client.sendMessage(admin, mediaGroupBypassMessageLoc);
+                    .getLocalizationForUser(SERVICE_FEEDBACK_MEDIA_GROUP_BYPASS, mentor);
+            menuMessage = clientManager.getClient(bot).sendMessage(mentor,
+                    mediaGroupBypassMessageLoc);
             LOGGER.debug("Additional message for menu has been sent.");
         } else {
             LOGGER.debug("Homework progress " + homeworkProgress.getId() + "'s content "
                     + "is not a media group. Menu will be attached to it.");    
             menuMessage = sendContent.get(0);
         }
-            menuService.initiateMenu(REQUEST_FEEDBACK_MENU, admin,
-                    homeworkProgress.getId().toString(), menuMessage.getMessageId());
-            menuService.addToMenuTerminationGroup(homeworkProgress.getUser(), admin,
-                    menuMessage.getMessageId(),FEEDBACK_MENU_TERMINATION.formatted(
+            menuService.initiateMenu(REQUEST_FEEDBACK_MENU, mentor,
+                    homeworkProgress.getId().toString(), menuMessage.getMessageId(), bot);
+            menuService.addToMenuTerminationGroup(homeworkProgress.getUser(), mentor, bot,
+                    menuMessage.getMessageId(), FEEDBACK_MENU_TERMINATION.formatted(
                     homeworkProgress.getId()), null);
-            LOGGER.debug("Feedback menu has been initialized for user " + admin.getId() + ".");
+            LOGGER.debug("Feedback menu has been initialized for user " + mentor.getId() + ".");
         }
         return true;
     }
 
     @Override
-    public void approve(@NonNull Long id, @NonNull UserEntity user,
+    public void approve(@NonNull HomeworkProgress progress, @NonNull UserEntity user,
             @Nullable List<Message> adminComment) {
-        final HomeworkProgress homeworkProgress = getHomeworkProgress(id);
+        final Bot bot = progress.getHomework().getLesson().getCourse().getBot();
 
-        if (!homeworkProgress.getStatus().equals(Status.COMPLETED) &&
-                !homeworkProgress.getStatus().equals(Status.DECLINED)) {
+        if (!progress.getStatus().equals(Status.COMPLETED) &&
+                !progress.getStatus().equals(Status.DECLINED)) {
             Content adminCommentContent = null;
             if (adminComment != null) {
-                adminCommentContent = contentService.parseAndPersistContent(adminComment);
+                adminCommentContent = contentService.parseAndPersistContent(bot, adminComment);
             }
 
-            homeworkProgress.setCurator(userService.getUser(user.getId()));
-            homeworkProgress.setStatus(Status.COMPLETED);
-            homeworkProgressRepository.save(homeworkProgress);
+            progress.setCurator(user);
+            progress.setStatus(Status.COMPLETED);
+            homeworkProgressRepository.save(progress);
     
-            menuService.terminateMenuGroup(homeworkProgress.getUser(),
-                    FEEDBACK_MENU_TERMINATION.formatted(homeworkProgress.getId()));
+            menuService.terminateMenuGroup(progress.getUser(), bot,
+                    FEEDBACK_MENU_TERMINATION.formatted(progress.getId()));
 
-            sendHomeworkNotification(homeworkProgress, (adminCommentContent != null)
+            sendHomeworkNotification(progress, (adminCommentContent != null)
                     ? SERVICE_HOMEWORK_APPROVED_NOTIFICATION_PLUS_COMMENT
                     : SERVICE_HOMEWORK_APPROVED_NOTIFICATION);
 
             if (adminCommentContent != null) {
-                contentService.sendContent(adminCommentContent, homeworkProgress.getUser());
+                contentService.sendContent(adminCommentContent, progress.getUser(), bot);
             }
-            homeworkProgress.setFinishedAt(LocalDateTime.now());
+            progress.setFinishedAt(LocalDateTime.now());
 
-            courseService.next(homeworkProgress.getUser(), homeworkProgress.getHomework()
+            courseService.next(progress.getUser(), progress.getHomework()
                     .getLesson().getCourse().getName());
-            // TODO: look into timed responses
         }
     }
 
     @Override
-    public void decline(@NonNull Long id, @NonNull UserEntity user,
+    public void decline(@NonNull HomeworkProgress progress, @NonNull UserEntity user,
             @NonNull List<Message> adminComment) {
-        final HomeworkProgress homeworkProgress = getHomeworkProgress(id);
-        final Content adminCommentContent = contentService.parseAndPersistContent(adminComment);
+        final Bot bot = progress.getHomework().getLesson().getCourse().getBot();
+        final Content adminCommentContent = contentService
+                .parseAndPersistContent(bot, adminComment);
 
-        if (!homeworkProgress.getStatus().equals(Status.COMPLETED) &&
-                !homeworkProgress.getStatus().equals(Status.DECLINED)) {
-            homeworkProgress.setCurator(userService.getUser(user.getId()));
-            homeworkProgress.setStatus(Status.DECLINED);
-            homeworkProgressRepository.save(homeworkProgress);
+        if (!progress.getStatus().equals(Status.COMPLETED) &&
+                !progress.getStatus().equals(Status.DECLINED)) {
+            progress.setCurator(user);
+            progress.setStatus(Status.DECLINED);
+            homeworkProgressRepository.save(progress);
     
-            menuService.terminateMenuGroup(homeworkProgress.getUser(),
-                    FEEDBACK_MENU_TERMINATION.formatted(homeworkProgress.getId()));
+            menuService.terminateMenuGroup(progress.getUser(), bot,
+                    FEEDBACK_MENU_TERMINATION.formatted(progress.getId()));
 
-            sendHomeworkNotification(homeworkProgress, 
+            sendHomeworkNotification(progress, 
                     SERVICE_HOMEWORK_DECLINED_NOTIFICATION_PLUS_COMMENT);
 
-            contentService.sendContent(adminCommentContent, homeworkProgress.getUser());
+            contentService.sendContent(adminCommentContent, progress.getUser(), bot);
 
-            sendHomework(homeworkProgress.getUser(), homeworkProgress.getHomework());
+            initiateHomework(progress.getUser(), progress.getHomework());
         }
     }
 
     @Override
     @NonNull
-    public Homework getHomework(@NonNull Long id, @NonNull UserEntity user) {
-        return homeworkRepository.findById(id).orElseThrow(() -> new EntityNotFoundException(
-                "Homework with id " + id + " does not exist", localizationLoader
-                .getLocalizationForUser(ERROR_HOMEWORK_NOT_FOUND, user)));
+    public Homework getHomework(@NonNull Long id, @NonNull UserEntity user, @NonNull Bot bot) {
+        final Homework homework = homeworkRepository.findById(id).orElseThrow(() ->
+                new EntityNotFoundException("Homework with id " + id + " does not exist",
+                localizationLoader.getLocalizationForUser(ERROR_HOMEWORK_NOT_FOUND, user)));
+        if (!homework.getLesson().getCourse().getBot().equals(bot)) {
+            throw new AccessDeniedException("Homework " + id + " is not available for bot "
+                    + bot.getName(), localizationLoader.getLocalizationForUser(
+                    ERROR_BOT_VISIBILITY_MISMATCH, user));
+        }
+        return homework;
     }
 
     @Override
@@ -360,8 +412,8 @@ public class HomeworkServiceImpl implements HomeworkService {
     @Override
     @NonNull
     public ContentMapping updateContent(@NonNull Long homeworkId,
-            @NonNull LocalizedContent content, @NonNull UserEntity user) {
-        final Homework homework = getHomework(homeworkId, user);
+            @NonNull LocalizedContent content, @NonNull UserEntity user, @NonNull Bot bot) {
+        final Homework homework = getHomework(homeworkId, user, bot);
         final ContentMapping contentMapping = new ContentMapping();
 
         contentMapping.setPosition(0);
@@ -370,58 +422,6 @@ public class HomeworkServiceImpl implements HomeworkService {
         homework.setMapping(contentMappingRepository.save(contentMapping));
         homeworkRepository.save(homework);
         return contentMapping;
-    }
-
-    private HomeworkProgress getHomeworkProgress(Long id) {
-        return homeworkProgressRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Homework progress " + id
-                + " does not exist", localizationLoader.getLocalizationForUser(
-                ERROR_HOMEWORK_PROGRESS_NOT_FOUND, userService.getDiretor())));
-    }
-
-    private void sendHomeworkNotification(HomeworkProgress progress, String localizationName) {
-        final Course course = progress.getHomework().getLesson().getCourse();
-        final Map<String, Object> parameterMap = new HashMap<>();
-
-        parameterMap.put(PARAM_COURSE_NAME, course.getName());
-
-        final CourseProgress courseProgress = courseProgressRepository
-                .findByUserIdAndCourseName(progress.getUser().getId(),
-                course.getName()).orElseThrow(() -> new EntityNotFoundException(
-                "Course progress for course " + course.getName() + " and user "
-                + progress.getUser().getId() + " does not exist", localizationLoader
-                .getLocalizationForUser(ERROR_HOMEWORK_PROGRESS_NOT_FOUND,
-                userService.getDiretor())));
-
-        parameterMap.put(PARAM_LESSON_INDEX, courseProgress.getStage());
-        parameterMap.put(PARAM_COMMENTER_NAME, progress.getCurator().getFirstName());
-
-        final Localization notification = localizationLoader
-                .getLocalizationForUser(localizationName, progress.getUser(), parameterMap);
-        
-        client.sendMessage(progress.getUser(), notification);
-    }
-
-    private Map<String, Object> getParameterMapForUserAndCourseInfo(
-            HomeworkProgress homeworkProgress) {
-        final Map<String, Object> parameterMap = new HashMap<>();
-        parameterMap.put(PARAM_TARGET_ID, homeworkProgress.getUser().getId());
-        parameterMap.put(PARAM_TARGET_FIRST_NAME, homeworkProgress.getUser().getFirstName());
-        parameterMap.put(PARAM_TARGET_LAST_NAME,
-                (homeworkProgress.getUser().getLastName() != null) ? homeworkProgress
-                .getUser().getLastName() : "Not available");
-        parameterMap.put(PARAM_TARGET_USERNAME,
-                (homeworkProgress.getUser().getUsername() != null) ? MENTION + homeworkProgress
-                .getUser().getUsername() : "Not available");
-        parameterMap.put(PARAM_TARGET_LANGUAGE_CODE, homeworkProgress
-                .getUser().getLanguageCode());
-
-        parameterMap.put(PARAM_COURSE_NAME, homeworkProgress.getHomework()
-                .getLesson().getCourse().getName());
-
-        parameterMap.put(PARAM_LESSON_INDEX, homeworkProgress.getHomework()
-                .getLesson().getPosition());
-        return parameterMap;
     }
 
     @Override
@@ -437,6 +437,7 @@ public class HomeworkServiceImpl implements HomeworkService {
         homework.setAllowedMediaTypes("");
         homework.setFeedbackRequired(true);
         homework.setLesson(lesson);
+        homework.setDelay(0);
         homework.setMapping(contentMappingRepository.save(mapping));
         homework.setRepeatedCompletionAvailable(false);
         save(homework);
@@ -444,5 +445,63 @@ public class HomeworkServiceImpl implements HomeworkService {
         lessonService.save(lesson);
         LOGGER.debug("New homework " + homework.getId() + " has been created.");
         return homework;
+    }
+
+    @Override
+    @NonNull
+    public HomeworkProgress getProgress(@NonNull Long id, @NonNull UserEntity user) {
+        return homeworkProgressRepository.findById(id).orElseThrow(() ->
+                new EntityNotFoundException("Homework progress with id " + id + " does not exist",
+                localizationLoader.getLocalizationForUser(ERROR_HOMEWORK_PROGRESS_NOT_FOUND,
+                user)));
+    }
+
+    private void sendHomeworkNotification(HomeworkProgress progress, String localizationName) {
+        final Course course = progress.getHomework().getLesson().getCourse();
+        final Map<String, Object> parameterMap = new HashMap<>();
+
+        parameterMap.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(COURSE_NAME
+                .formatted(course.getName()), progress.getUser()).getData());
+
+        final CourseProgress courseProgress = courseProgressRepository
+                .findByUserIdAndCourseName(progress.getUser().getId(),
+                course.getName()).orElseThrow(() -> new EntityNotFoundException(
+                "Course progress for course " + course.getName() + " and user "
+                + progress.getUser().getId() + " does not exist", localizationLoader
+                .getLocalizationForUser(ERROR_HOMEWORK_PROGRESS_NOT_FOUND,
+                userService.getDiretor())));
+
+        parameterMap.put(PARAM_LESSON_INDEX, courseProgress.getStage());
+        parameterMap.put(PARAM_COMMENTER_NAME, progress.getCurator().getFullName());
+        parameterMap.put(PARAM_TITLE, userService.getLocalizedTitle(progress.getCurator(),
+                progress.getUser(), courseProgress.getCourse().getBot()));
+
+        final Localization notification = localizationLoader
+                .getLocalizationForUser(localizationName, progress.getUser(), parameterMap);
+        
+        clientManager.getClient(course.getBot()).sendMessage(progress.getUser(), notification);
+    }
+
+    private Map<String, Object> getParameterMapForUserAndCourseInfo(
+            HomeworkProgress homeworkProgress, UserEntity user) {
+        final Map<String, Object> parameterMap = new HashMap<>();
+        parameterMap.put(PARAM_TARGET_ID, homeworkProgress.getUser().getId());
+        parameterMap.put(PARAM_TARGET_FIRST_NAME, homeworkProgress.getUser().getFirstName());
+        parameterMap.put(PARAM_TARGET_LAST_NAME,
+                (homeworkProgress.getUser().getLastName() != null) ? homeworkProgress
+                .getUser().getLastName() : "Not available");
+        parameterMap.put(PARAM_TARGET_USERNAME,
+                (homeworkProgress.getUser().getUsername() != null) ? MENTION + homeworkProgress
+                .getUser().getUsername() : "Not available");
+        parameterMap.put(PARAM_TARGET_LANGUAGE_CODE, homeworkProgress
+                .getUser().getLanguageCode());
+
+        parameterMap.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
+                COURSE_NAME.formatted(homeworkProgress.getHomework().getLesson()
+                .getCourse().getName()), user).getData());
+
+        parameterMap.put(PARAM_LESSON_INDEX, homeworkProgress.getHomework()
+                .getLesson().getPosition());
+        return parameterMap;
     }
 }

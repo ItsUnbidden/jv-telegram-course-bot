@@ -1,10 +1,13 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
-import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
+import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.security.Security;
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -15,21 +18,20 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 public class CreatorCommandHandler implements CommandHandler {
     private static final String COMMAND = "/creator";
     
-    private static final String SERVICE_ABOUT_CREATOR = "service_about_creator";
-
-    private final UserService userService;
+    private static final String SERVICE_ABOUT_CREATOR = "service_about_%s_creator";
 
     private final LocalizationLoader localizationLoader;
 
-    private final CustomTelegramClient client;
+    private final ClientManager clientManager;
 
     @Override
-    public void handle(@NonNull Message message, @NonNull String[] commandParts) {
+    @Security(authorities = AuthorityType.INFO)
+    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
+            @NonNull String[] commandParts) {
         final Localization localization = localizationLoader.getLocalizationForUser(
-                SERVICE_ABOUT_CREATOR, message.getFrom());
-        final UserEntity user = userService.getUser(message.getFrom().getId());
+                SERVICE_ABOUT_CREATOR.formatted(bot.getName()), user);
 
-        client.sendMessage(user, localization);
+        clientManager.getClient(bot).sendMessage(user, localization);
     }
 
     @Override
@@ -39,7 +41,8 @@ public class CreatorCommandHandler implements CommandHandler {
     }
 
     @Override
-    public boolean isAdminCommand() {
-        return false;
+    @NonNull
+    public List<AuthorityType> getAuthorities() {
+        return List.of(AuthorityType.INFO);
     }
 }

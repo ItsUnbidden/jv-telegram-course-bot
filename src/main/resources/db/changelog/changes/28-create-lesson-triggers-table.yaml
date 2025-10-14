@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-lesson-triggers-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: lesson_timed_triggers
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_users_lesson_triggers
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: bot_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_bots_lesson_triggers
+                    references: bots(id)
+                    nullable: false
+              - column:
+                  name: course_progress_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_course_progress_lesson_triggers
+                    references: course_progress(id)
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: target
+                  type: datetime
+                  constraints:
+                    nullable: false

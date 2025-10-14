@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
+import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.SessionRepository;
 import java.time.LocalDateTime;
@@ -23,15 +24,16 @@ public class UserOrChatRequestSessionServiceImpl implements UserOrChatRequestSes
 
     @Override
     @NonNull
-    public Integer createSession(@NonNull UserEntity user,
+    public Integer createSession(@NonNull UserEntity user, @NonNull Bot bot,
             @NonNull Consumer<List<Message>> function) {
-        sessionRepository.removeContentSessionsForUser(user.getId());
+        sessionRepository.removeContentSessionsForUserInBot(user.getId(), bot);
 
         LOGGER.debug("Creating new user or chat request session for user "
                 + user.getId() + "...");
         final UserOrChatRequestSession session = new UserOrChatRequestSession();
         session.setId(ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE));
         session.setUser(user);
+        session.setBot(bot);
         session.setTimestamp(LocalDateTime.now());
         session.setFunction(function);
         sessionRepository.save(session);
@@ -40,12 +42,13 @@ public class UserOrChatRequestSessionServiceImpl implements UserOrChatRequestSes
     }
 
     @Override
-    public void removeSessionsForUser(@NonNull UserEntity user) {
-        sessionRepository.removeForUser(user.getId());
+    public void removeSessionsForUserInBot(@NonNull UserEntity user, @NonNull Bot bot) {
+        sessionRepository.removeForUserInBot(user.getId(), bot);
     }
 
     @Override
     public void processResponse(@NonNull Session session, @NonNull Message message) {
+        removeSessionsForUserInBot(session.getUser(), session.getBot());
         session.getFunction().accept(List.of(message));
     }
 }
