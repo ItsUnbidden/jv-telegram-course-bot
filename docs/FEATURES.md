@@ -1,5 +1,5 @@
 # Features
-Here I'll explain how different **subsystems** of the platfrom work.
+Here I'll explain how different **subsystems** of the platform work.
 
 - [Features](#features)
   - [Content](#content)
@@ -31,10 +31,10 @@ For **mappings**, sending content is a *little different*. After you've sent the
 
 ![Sending new content for a lesson](/images/mapping_content_upload.png)
 
-Some things need to be clarified here. Since **mappings** only represent internal content which relies on *localization files*, you **cannot** send *text content* through the bot. Text is automatically loaded for **lessons** and **homeworks** from *localization files*. If you want to *disable* text, you can do so using `/content` -> **Get Mapping** -> **Toggle Text**. This system has *limitations* due to the project’s **early design**, but will be **improved** in future versions.
+Some things need to be clarified here. Since **mappings** only represent internal content that relies on *localization files*, you **cannot** send *text content* through the bot. Text is automatically loaded for **lessons** and **homeworks** from *localization files*. If you want to *disable* text, you can do so using `/content` -> **Get Mapping** -> **Toggle Text**. This system has *limitations* due to the project’s **early design**, but will be **improved** in future versions.
 
 ## Course
-**Courses** represent the **main purpose** of the *platform*. They consist of **lessons** which have a certain order in a **course**. When a **course** is launched, the user doesn't immediatelly see all the **lessons**, but only the *first one*. To progress, they have *severel options* that depend on the **course** *settings*:
+**Courses** represent the **main purpose** of the *platform*. They consist of **lessons** which have a certain order in a **course**. When a **course** is launched, the user doesn't immediately see all the **lessons**, but only the *first one*. To progress, they have *severel options* that depend on the **course** *settings*:
 - Press **continue** button.
 - Complete **homework**
 - Wait
@@ -42,11 +42,11 @@ Some things need to be clarified here. Since **mappings** only represent interna
 *More about each option:*
 If the **lesson** does not have a **homework** (or it is disabled) and there is no **delay**, the **continue** button will appear. If the user presses it, the next lesson appears. 
 
-If the **lesson** has a **homework** then the only way to progress forward is to **complete** it. If there is no **delay**, the moment it is approved, the user will progress to the next lesson.
+If the **lesson** has a **homework**, then the only way to progress forward is to **complete** it. If there is no **delay**, the moment it is approved, the user will progress to the next lesson.
 
 If there is a **delay**, the **lesson** will be sent after a *certain amount of time*. Like I've already mentioned above, even if the **homework** is present, the **delay** will still work.
 
-The **course** is considered **completed** after the *last lesson* is sent or its **homework** is approved. When that happens, a *special message* will be sent as well along with the *last lesson*. Also, a **review** will be requested from user. 
+The **course** is considered **completed** after the *last lesson* is sent or its **homework** is approved. When that happens, a *special message* will be sent as well, along with the *last lesson*. Also, a **review** will be requested from the user. 
 
 After the course is completed, the user can select any lesson through `/courses` -> Select course -> **Select lesson**.
 ### Lesson
@@ -97,14 +97,14 @@ The **platform** supports internal *Telegram payments* using **Telegram Stars**,
 
 No specific setup is necessary — everything works by default.
 
-If the *Creator* wants to **give a course** to someone without *Telegram payments*, they can do that in this way: `/coursesettings` -> **Give/take course** -> *Give course (choose user)*. They can also **take a course** from a *user* using the same menu. Be aware, that courses that have been **bought** *cannot be taken away*.
+If the *Creator* wants to **give a course** to someone without *Telegram payments*, they can do that in this way: `/coursesettings` -> **Give/take course** -> *Give course (choose user)*. They can also **take a course** from a *user* using the same menu. Be aware that courses that have been **bought** *cannot be taken away*.
 
 **Invoices** can contain a **product image** (*recommended to always include one*). Only the *Director* can upload **invoice images** due to how they work. Also, the **invoice images** will only be able to load if the server has a legitimate address that uses DNS and has an SSL certificate.
 
 In the future, **direct payments** with **payment providers** might be implemented to avoid **Stars** and their issues.
 
 ### Refund
-There is an *optional* function to include a possibility of a **refund** for a **course**. *Creators* can enable it using `/coursesettings`. Whether the *user* can **refund** a **course** depends on what **lesson** the *user* is at. If they **surpassed** the **lesson** specified by the *Creator* in the **course settings** (*current_stage* > *refund_stage*), **refund** will be *blocked*. If the **course** has been already **completed**, **refund** is *impossible*. **Refund** will also be *disabled* if more than **21 days** has passed since the **course** was bought. This last condition is due to how **Telegram Stars** work.
+There is an *optional* function to include a possibility of a **refund** for a **course**. *Creators* can enable it using `/coursesettings`. Whether the *user* can **refund** a **course** depends on what **lesson** the *user* is at. If they **surpassed** the **lesson** specified by the *Creator* in the **course settings** (*current_stage* > *refund_stage*), **refund** will be *blocked*. If the **course** has already been **completed**, a **refund** is *impossible*. **Refund** will also be *disabled* if more than **21 days** has passed since the **course** was bought. This last condition is due to how **Telegram Stars** work.
 
 *Users* can access **refund** here: `/courses` -> *Select course* -> **Refund**. This button will *not be present* at all if the refund is unavailable for some reason.
 
@@ -115,7 +115,7 @@ There is an *optional* function to include a possibility of a **refund** for a *
 ## Reviews
 **Reviews** are a way for the *Creators* to receive feedback on their **courses** from *users* and improve them. Currently, **reviews** cannot be seen by *users*, only the *Director*, the *Creator*, and *Mentors*.
 
-A **review** can only be given if the *user* has completed a **course**. In fact, an *proposition* to leave a **review** will **automatically** be presented after *finishing*. There are *two types* of **reviews**:
+A **review** can only be given if the *user* has completed a **course**. In fact, a *proposition* to leave a **review** will **automatically** be presented after *finishing*. There are *two types* of **reviews**:
 - Basic
 - Advanced
 
@@ -131,7 +131,7 @@ When the *user* answers these **two questions**, they have left a **basic review
 
 ![Advanced review](/images/review_advanced.png)
 
-*Creators* (and *Mentors*) can view reviews using `/reviews`. There they can choose to see **new** or **archived reviews**. 
+*Creators* (and *Mentors*) can view reviews using `/reviews`. There, they can choose to see **new** or **archived reviews**. 
 - **New reviews** will be shown in batches (3 by default). *Creators* can **mark them as read**, or **send a comment**. 
   - **Mark as read** moves the review into the archive.
   - **Comment** allows the *Creator* to send some **content** to the *user*. This will automatically **mark the review** as archived.
@@ -142,7 +142,7 @@ When the *user* answers these **two questions**, they have left a **basic review
 **Comments** for **reviews** can also be edited if a **review** is *modified*, although only by the one *who left* the **comment** in the first place.
 
 ## Support
-**Support** allows *users* to request **technical** or **course support** from *admins (the Director, Creators, Support)*. To access support, the user needs to use `/support`. Support request contains content (any type of media). When *someone* requests **support**, the request is sent to all *Support* users. A **course support request** is also sent to the *Creator*, while **technical support request** is sent to the *Director*.
+**Support** allows *users* to request **technical** or **course support** from *admins (the Director, Creators, Support)*. To access support, the user needs to use `/support`. Support request contains content (any type of media). When *someone* requests **support**, the request is sent to all *Support* users. A **course support request** is also sent to the *Creator*, while a **technical support request** is sent to the *Director*.
 
 When a **support request** is received, it needs to be answered with a **reply**. After *at least one* **reply**, the request can be **resolved** by either side.
 
@@ -171,4 +171,4 @@ There are three options available:
 
 ![Course statistics](/images/statistics_course.png)
 
-*Users* can be filtered by either **course stage** or **course completion**. *All users* can also be requested. If there are too many *users*, menu with *several pages* will appear.
+*Users* can be filtered by either **course stage** or **course completion**. *All users* can also be requested. If there are too many *users*, a menu with *several pages* will appear.

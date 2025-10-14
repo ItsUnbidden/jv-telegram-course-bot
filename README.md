@@ -9,7 +9,7 @@
 - [Future plans](#future-plans)
   - [Fix localizations](#fix-localizations)
   - [Add payment provider support](#add-payment-provider-support)
-  - [Quizes](#quizes)
+  - [Quizzes](#quizzes)
   - [Improve statistics](#improve-statistics)
   - [Other ideas](#other-ideas)
 - [Additionally](#additionally)
@@ -31,7 +31,7 @@ Large online learning platforms are often challenging to set up and prohibitivel
 For a **full** and **detailed** list of *features* of the platform, go [here](/docs/FEATURES.md). Here are the main ones:
 
  - Different creators have their **own dedicated bots** where their content is located.
- - Application wide **role system**, allowing creators to manage their content, customers and so on.
+ - Application-wide **role system**, allowing creators to manage their content, customers, and so on.
  - Creators can **add or edit** courses inside the bot:
    <table>
      <tr>
@@ -58,18 +58,18 @@ For a **full** and **detailed** list of *features* of the platform, go [here](/d
        </td>
      </tr>
    </table>
- - Courses can be bought with **Telegram Stars** directly in the bot: ![*Buying a course*](/images/gifs/course_purchase.gif)
+ - Courses can be bought with **Telegram Stars** directly in the bot: <br />![*Buying a course*](/images/gifs/course_purchase.gif)
    - All courses are saved in perpetuity and can be accessed by users again anytime.
-   - Courses can also be gifted: ![*Gifting a course*](/images/gifs/give_course.gif)
- - Statistics on the bot's performance can be requested by creators: ![*Statistics*](/images/gifs/statistics.gif)
- - Customers can leave **reviews** when they complete a course: ![*Leaving a review*](/images/gifs/leave_reviews.gif)
- - Customers can request technical or course support: ![*Request support*](/images/gifs/support.gif)
- - Custom **localization system** to support different languages: ![*Select language*](/images/gifs/changing_language.gif)
+   - Courses can also be gifted: <br />![*Gifting a course*](/images/gifs/give_course.gif)
+ - Statistics on the bot's performance can be requested by creators: <br />![*Statistics*](/images/gifs/statistics.gif)
+ - Customers can leave **reviews** when they complete a course: <br />![*Leaving a review*](/images/gifs/leave_reviews.gif)
+ - Customers can request technical or course support: <br />![*Request support*](/images/gifs/support.gif)
+ - Custom **localization system** to support different languages: <br />![*Select language*](/images/gifs/changing_language.gif)
  - The system works with webhooks and supports self-signed certificates as well as the normal SSL.
  - There are many other small things which are too numerous to mention here.
 
 # Technologies
-The project is built using mainly **Spring Framework**. Here is a list of technologies employed:
+The project is built using mainly the **Spring Framework**. Here is a list of technologies employed:
 
  - Spring Boot
  - Spring Boot Web
@@ -112,15 +112,15 @@ This is by far the **biggest** problem that needs a *significant* **revamp**. Du
 *To put it simply*, **courses** will have the **same system** for *text* as they have for the *images*. The same goes for things like *bot descriptions*, *invoices*, etc.
 
 ## Add payment provider support
-This will make it possible to pay for courses directly through a **payment provider** avoiding **Telegram Stars** and their numerous issues.
+This will make it possible to pay for courses directly through a **payment provider**, avoiding **Telegram Stars** and their numerous issues.
 
 Implementation is relatively straightforward; I just need to dedicate some time to it.
 
-## Quizes
-A *potential* future feature for **homeworks**. It will be possible for creators to add **quizes** to **homeworks** to *improve* the *quality of lessons*. I'm not currently thinking about implementing this, but I might in the future when the two major issues explained above are **resolved**.
+## Quizzes
+A *potential* future feature for **homeworks**. It will be possible for creators to add **quizzes** to **homeworks** to *improve* the *quality of lessons*. I'm not currently considering implementing this, but I might in the future when the two major issues explained above are **resolved**.
 
 ## Improve statistics
-Also, a potential future improvement. Currently, statistics can be useful, but it's relatively limited. It would be cool to add features like performace during a period or even some graphics, like graphs, through external services.
+Also, a potential future improvement. Currently, statistics can be useful, but it's relatively limited. It would be cool to add features like performance during a period or even some graphics, like graphs, through external services.
 
 ## Other ideas
 I have *some other ideas*, but the ones I mentioned *above* are the **main ones**. If you have something to **propose** as well, you can do so here on the [issues](https://github.com/ItsUnbidden/jv-telegram-course-bot/issues) page.
