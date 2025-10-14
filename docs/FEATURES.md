@@ -19,6 +19,7 @@ Here I'll explain how different **subsystems** of the platfrom work.
 When you are asked to supply *user content* (like for a **homework response** or a **review**), you usually just need to send the *message* and **confirm it** in the menu that appears. There might be some *specific requirements* for some cases, which need to be **clearly** explained in the *request messages*.
 
 *Sending content:*
+
 ![Sending content](/images/content_upload.png)
 
 ### Mappings
@@ -27,6 +28,7 @@ Because the platform is localized, content for lessons is grouped in **mappings*
 For **mappings**, sending content is a *little different*. After you've sent the *main message*, you need to send *another one* with the **language code** for this content. This language code will be used to localize the content. **Don't mind** that your message will be *after the confirmation button* — it doesn't matter. Of course, you'll have to press the button **after** you've sent both messages.
 
 *Sending new content for a lesson:*
+
 ![Sending new content for a lesson](/images/mapping_content_upload.png)
 
 Some things need to be clarified here. Since **mappings** only represent internal content which relies on *localization files*, you **cannot** send *text content* through the bot. Text is automatically loaded for **lessons** and **homeworks** from *localization files*. If you want to *disable* text, you can do so using `/content` -> **Get Mapping** -> **Toggle Text**. This system has *limitations* due to the project’s **early design**, but will be **improved** in future versions.
@@ -76,6 +78,8 @@ Just like **lessons**, **homework** uses *localized content* with **mappings**, 
 
 There is also an option to **restrict** what **types of media** user can send as a **homework**. *For example*, you can configure things in such a way that only **audios** and **text** are accepted.
 
+*Sending an incorrect media type as a homework:*
+
 ![Sending incorrect media type](/images/gifs/sending_homework_incorrect_mediatype.gif)
 
 *Localization mapping* for **homework** content has this pattern: `<courseName>_lesson_<lessonIndex>_homework_content`.
@@ -105,6 +109,7 @@ There is an *optional* function to include a possibility of a **refund** for a *
 *Users* can access **refund** here: `/courses` -> *Select course* -> **Refund**. This button will *not be present* at all if the refund is unavailable for some reason.
 
 *Refunding a course:*
+
 ![Refund example](/images/gifs/course_refund.gif)
 
 ## Reviews
@@ -117,11 +122,13 @@ A **review** can only be given if the *user* has completed a **course**. In fact
 **Basic review** is a simple **quiz** with just *two questions*: "*How would you rate this course from 1 to 10?*" and "*How would you rate this platform from 1 to 10?*". To simplify everything even further, the user does not need to write anything. Instead, they just press a button with the mark of their choice.
 
 *Basic review first step:*
+
 ![Basic review](/images/review_basic.png)
 
 When the *user* answers these **two questions**, they have left a **basic review**. After that, another *proposition* to leave an **advanced review** will be given. **Advanced review** allows the user to send content as a **review**, so that might be basically *any media*. That will be added as an attachment to the **basic review**.
 
 *Advanced review request:*
+
 ![Advanced review](/images/review_advanced.png)
 
 *Creators* (and *Mentors*) can view reviews using `/reviews`. There they can choose to see **new** or **archived reviews**. 
@@ -140,9 +147,11 @@ When the *user* answers these **two questions**, they have left a **basic review
 When a **support request** is received, it needs to be answered with a **reply**. After *at least one* **reply**, the request can be **resolved** by either side.
 
 *A support request:*
+
 ![Support request](/images/support_request.png)
 
 *A support reply:*
+
 ![Support reply](/images/support_reply.png)
 
 ## Statistics
@@ -153,11 +162,13 @@ There are three options available:
 - Registered users
 
 *Bot statistics:*
+
 ![Bot statistics](/images/statistics_bot.png)
 
 **Course statistics** allows you to see general **statistics** or *users* who have this **course**. 
 
 *Course statistics:*
+
 ![Course statistics](/images/statistics_course.png)
 
 *Users* can be filtered by either **course stage** or **course completion**. *All users* can also be requested. If there are too many *users*, menu with *several pages* will appear.

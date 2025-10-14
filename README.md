@@ -33,25 +33,31 @@ For a **full** and **detailed** list of *features* of the platform, go [here](/d
  - Different creators have their **own dedicated bots** where their content is located.
  - Application wide **role system**, allowing creators to manage their content, customers and so on.
  - Creators can **add or edit** courses inside the bot:
-    <p align="center">
-        <figure style="display: inline-block; width: 45%; text-align: center; margin: 0 10px">
-            <img src="/images/gifs/course_price_change.gif" alt="Changing course price" width="100%">
-            <figcaption><em>Changing course price</em><br /></figcaption>
-        </figure><figure style="display: inline-block; width: 45%; text-align: center; margin: 0 10px">
-            <img src="/images/gifs/add_content.gif" alt="Adding content to a course" width="100%">
-            <figcaption><em>Adding new content to a course</em><br /></figcaption>
-        </figure>
-    </p>
+   <table>
+     <tr>
+       <td align="center">
+         <img src="/images/gifs/course_price_change.gif" alt="Changing course price" width="100%">
+         <em>Changing course price</em>
+       </td>
+       <td align="center">
+         <img src="/images/gifs/add_content.gif" alt="Adding content to a course" width="100%">
+         <em>Adding new content to a course</em>
+       </td>
+     </tr>
+   </table>
  - Courses have an *optional* **homework system** with automatic or manual approval:
-    <p align="center">
-        <figure style="display: inline-block; width: 45%; text-align: center; margin: 0 10px">
-            <img src="/images/gifs/sending_homework.gif" alt="Sending homework" width="100%">
-            <figcaption><em>Sending homework</em><br /></figcaption>
-        </figure><figure style="display: inline-block; width: 45%; text-align: center; margin: 0 10px">
-            <img src="/images/gifs/accepting_homework.gif" alt="Accepting homework" width="100%">
-            <figcaption><em>Accepting homework</em><br /></figcaption>
-        </figure>
-    </p>
+    <table>
+     <tr>
+       <td align="center">
+         <img src="/images/gifs/sending_homework.gif" alt="Sending homework" width="100%">
+         <em>Sending homework</em>
+       </td>
+       <td align="center">
+         <img src="/images/gifs/accepting_homework.gif" alt="Accepting homework" width="100%">
+         <em>Accepting homework</em>
+       </td>
+     </tr>
+   </table>
  - Courses can be bought with **Telegram Stars** directly in the bot: ![*Buying a course*](/images/gifs/course_purchase.gif)
    - All courses are saved in perpetuity and can be accessed by users again anytime.
    - Courses can also be gifted: ![*Gifting a course*](/images/gifs/give_course.gif)
