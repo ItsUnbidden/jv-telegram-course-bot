@@ -29,8 +29,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     @NonNull
     @Query("from Review r left join fetch r.user u left join fetch r.course c "
             + "left join fetch r.commentContent cc left join fetch r.markedAsReadBy"
-            + " mr left join fetch c.bot b where :user not in elements(mr)")
-    List<Review> findNewReviewsForUser(@NonNull UserEntity user, Pageable pageable);
+            + " mr left join fetch c.bot b where b.id = :botId and :user not in elements(mr)")
+    List<Review> findNewReviewsForUser(@NonNull UserEntity user, @NonNull Long botId, Pageable pageable);
 
     @NonNull
     @Query("from Review r left join fetch r.user u left join fetch r.course c "

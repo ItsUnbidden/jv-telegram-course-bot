@@ -5,7 +5,7 @@ target/
 **/src/main/resources/application.properties
 **/src/main/resources/liquibase.properties
 **/localizations/*
-**/images/*
+/invoice/images/*
 **/temp/*
 !**/localizations/mappings.txt
 

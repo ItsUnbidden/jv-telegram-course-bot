@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class CertificateDaoImpl implements CertificateDao {
-    @Value("${server.ssl.certificate}")
+    @Value("${server.ssl.certificate:}")
     private String certificatePathStr;
 
     private Path certificatePath;

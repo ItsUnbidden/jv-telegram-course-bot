@@ -77,6 +77,7 @@ public class PaymentServiceImpl implements PaymentService {
             "error_refund_course_unavailable";
     private static final String ERROR_PAYMENT_SUCCESS_SERVER_ON_MAINTENANCE =
             "error_payment_success_server_on_maintenance";
+    private static final String ERROR_REFUND_PURCHASE_TOO_OLD = "error_refund_purchase_too_old";
 
     private static final String COURSE_INVOICE_DESCRIPTION = "course_%s_invoice_description";
     private static final String COURSE_INVOICE_TITLE = "course_%s_invoice_title";
@@ -87,6 +88,8 @@ public class PaymentServiceImpl implements PaymentService {
     private static final String TELEGRAM_STARS = "XTR";
 
     private static final String PROVIDER_TOKEN = "foo";
+
+    private static final int REFUND_EXPIRATION_DAYS = 21;
 
     @Autowired
     private PaymentDetailsRepository paymentDetailsRepository;
@@ -377,6 +380,19 @@ public class PaymentServiceImpl implements PaymentService {
                     + " and therefore it cannot be refunded", localizationLoader
                     .getLocalizationForUser(ERROR_REFUND_COURSE_WAS_GIFTED, user));
         }
+        final PaymentDetails paymentDetails = paymentDetailsRepository.findByUserAndBot(user, bot)
+                .stream()
+                .filter(pd -> !pd.isGifted() && pd.isValid())
+                .toList().get(0);
+        LOGGER.debug("Checking whether the refund expiration period is over for user "
+                + user.getId() + "'s payment details for course " + courseName + "...");
+        if (paymentDetails.getTimestamp().plusDays(REFUND_EXPIRATION_DAYS)
+                .isBefore(LocalDateTime.now())) {
+            throw new RefundImpossibleException("User " + user.getId() + " cannot refund course "
+                    + courseName + " because " + REFUND_EXPIRATION_DAYS + " days have passed "
+                    + "since the purchase", localizationLoader.getLocalizationForUser(
+                    ERROR_REFUND_PURCHASE_TOO_OLD, user));
+        }
         final CourseProgress courseProgress = courseService
                 .getCurrentCourseProgressForUser(user.getId(), courseName);
         LOGGER.debug("Checking whether course " + courseName + " has been completed by user "
@@ -407,9 +423,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
         LOGGER.info("User " + user.getId() + " is eligible for course "
                 + course.getName() + "'s refund.");
-        return paymentDetailsRepository.findByUserAndBot(user, bot).stream()
-                .filter(pd -> !pd.isGifted() && pd.isValid())
-                .toList().get(0);
+        return paymentDetails;
     }
 
     @Override

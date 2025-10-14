@@ -26,7 +26,7 @@ public class LocalizationCommandHandler implements CommandHandler {
     private final ClientManager clientManager;
 
     @Override
-    @Security(authorities = {AuthorityType.CONTENT_SETTINGS})
+    @Security(authorities = {AuthorityType.MAINTENANCE})
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
             @NonNull String[] commandParts) {
         if (commandParts.length > 2) {

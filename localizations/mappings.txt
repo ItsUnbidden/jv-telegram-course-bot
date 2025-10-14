@@ -104,6 +104,7 @@ button general_bot_statistics
 button course_users_by_stage
 button course_completed_users
 button course_all_users
+button select_course_stage
 
 
 menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes} ${delay}
@@ -113,6 +114,7 @@ menu course_settings_page_1 ${id} ${name} ${numberOfLessons} ${price} ${refundSt
 menu course_settings_page_0
 menu commit_content_page_0
 menu mapping_settings_page_0 ${mappingId} ${position} ${content}
+menu my_courses_page_6
 menu my_courses_page_5
 menu my_courses_page_4
 menu my_courses_page_3
@@ -377,6 +379,7 @@ error payment_details_not_found
 error refund_failure
 error refund_course_unavailable ${courseName}
 error refund_stage_bigger_then_amount_of_lessons ${amountOfLessons}
+error refund_purchase_too_old
 error parse_refund_stage_failure
 error same_new_course_grade ${courseGrade}
 error same_new_platform_grade ${platformGrade}
@@ -447,3 +450,4 @@ error multipage_list_meta_not_found
 error no_data_for_multipage_list
 error multipage_list_page_has_no_data
 error support_staff_request
+error select_lesson_course_not_completed

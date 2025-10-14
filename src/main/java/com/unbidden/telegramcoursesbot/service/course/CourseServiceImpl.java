@@ -66,6 +66,8 @@ public class CourseServiceImpl implements CourseService {
             "error_cannot_delete_bought_course";
     private static final String ERROR_COURSE_UNDER_MAINTENANCE = "error_course_under_maintenance";
     private static final String ERROR_NO_CONTENT_IN_LESSON = "error_no_content_in_lesson";
+    private static final String ERROR_SELECT_LESSON_COURSE_NOT_COMPLETED =
+            "error_select_lesson_course_not_completed";
 
     private final CourseRepository courseRepository;
 
@@ -152,7 +154,7 @@ public class CourseServiceImpl implements CourseService {
         final Lesson lesson = lessonRepository.findByPositionAndCourseName(
                 progress.getStage(), progress.getCourse().getName()).get();
 
-        if (lesson.getDelay() > 0) {
+        if (lesson.getDelay() > 0 && progress.getNumberOfTimesCompleted() == 0) {
             LOGGER.debug("Lesson " + lesson.getId() + " has a delay of " + lesson.getDelay()
                     + " minutes. Creating a new lesson timed trigger...");
             final TimedTrigger trigger = timingService.createTrigger(progress);
@@ -160,6 +162,33 @@ public class CourseServiceImpl implements CourseService {
                     + " and lesson " + lesson.getId() + " has been created. It will activate at "
                     + trigger.getTarget() + ".");
         }
+        current(progress);
+    }
+
+    @Override
+    public void selectStage(@NonNull UserEntity user, @NonNull String courseName, int stage) {
+        final CourseProgress progress = courseProgressRepository.findByUserIdAndCourseName(
+                user.getId(), courseName).orElseThrow(() -> new EntityNotFoundException(
+                "Course progress for course " + courseName + " and user " + user.getId()
+                + " does not exist", localizationLoader.getLocalizationForUser(
+                ERROR_COURSE_PROGRESS_NOT_FOUND, user)));
+
+        if (!paymentService.isAvailable(user, progress.getCourse().getBot(), courseName)) {
+            paymentService.sendInvoice(user, progress.getCourse().getBot(), courseName);
+            return;
+        }
+        checkCourseIsNotUnderMaintenance(progress.getCourse(), user);
+        if (progress.getNumberOfTimesCompleted() == 0) {
+            throw new ForbiddenOperationException("User " + user.getId() + " must complete "
+                    + "course " + courseName + " before they can choose lessons",
+                    localizationLoader.getLocalizationForUser(
+                    ERROR_SELECT_LESSON_COURSE_NOT_COMPLETED, user));
+        }
+        LOGGER.info("Current stage for user " + user.getId() + " in course " + courseName + " is "
+                + progress.getStage() + ". Setting it to " + stage + "...");
+        progress.setStage(stage);
+        courseProgressRepository.save(progress);
+        LOGGER.debug("Course stage has been set and progress persisted.");
         current(progress);
     }
 
@@ -218,7 +247,7 @@ public class CourseServiceImpl implements CourseService {
         LOGGER.debug("This is not the last lesson. Checking if the next lesson has a delay...");
         final Lesson nextLesson = lessonRepository.findByPositionAndCourseName(
                 courseProgress.getStage() + 1, course.getName()).get();
-        if (nextLesson.getDelay() > 0) {
+        if (nextLesson.getDelay() > 0 && courseProgress.getNumberOfTimesCompleted() == 0) {
             LOGGER.debug("Lesson " + nextLesson.getId() + " has a delay. "
                     + "No next lesson button will be created.");
             next(user, course.getName());
@@ -317,7 +346,7 @@ public class CourseServiceImpl implements CourseService {
     public List<Course> getAllOwnedByUser(@NonNull UserEntity user, @NonNull Bot bot) {
         final List<PaymentDetails> paymentDetails = paymentService.getAllForUserAndBot(user, bot);
 
-        return paymentDetails.stream().map(pd -> pd.getCourse()).toList();
+        return paymentDetails.stream().filter(pd -> pd.isValid()).map(pd -> pd.getCourse()).toList();
     }
 
     @Override

@@ -151,7 +151,9 @@ public class HomeworkServiceImpl implements HomeworkService {
             return;
         }
 
-        if (homework.getDelay() > 0) {
+        if (homework.getDelay() > 0 && courseProgressRepository.findByUserIdAndCourseName(
+                user.getId(), homework.getLesson().getCourse().getName()).get()
+                .getNumberOfTimesCompleted() == 0) {
             LOGGER.debug("Homework " + homework.getId() + " has a delay of "
                     + homework.getDelay() + " minutes. Creating homework trigger...");
             final TimedTrigger trigger = timingService.createTrigger(homeworkProgress);

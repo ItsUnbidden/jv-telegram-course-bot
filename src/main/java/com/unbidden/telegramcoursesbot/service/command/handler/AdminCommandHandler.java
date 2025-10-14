@@ -20,7 +20,7 @@ public class AdminCommandHandler implements CommandHandler {
     private final MenuService menuService;
 
     @Override
-    @Security(authorities = {AuthorityType.BOT_USER_BANS, AuthorityType.ROLE_SETTINGS})
+    @Security(authorities = {AuthorityType.BOT_USER_BANS})
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
             @NonNull String[] commandParts) {
         menuService.initiateMenu(ADMIN_MENU, user, bot);
@@ -35,6 +35,6 @@ public class AdminCommandHandler implements CommandHandler {
     @Override
     @NonNull
     public List<AuthorityType> getAuthorities() {
-        return List.of(AuthorityType.BOT_USER_BANS, AuthorityType.ROLE_SETTINGS);
+        return List.of(AuthorityType.BOT_USER_BANS);
     }
 }

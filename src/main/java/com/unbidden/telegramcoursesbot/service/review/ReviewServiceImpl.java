@@ -441,7 +441,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public void sendNewReviewsForUser(@NonNull UserEntity user, @NonNull Bot bot) {
         final List<Review> reviews = reviewRepository.findNewReviewsForUser(
-                user, PageRequest.of(0, pageSize));
+                user, bot.getId(), PageRequest.of(0, pageSize));
 
         LOGGER.info("Sending " + reviews.size() + " new review(s) to user " + user.getId());
         sendReviews(reviews, user, bot);
