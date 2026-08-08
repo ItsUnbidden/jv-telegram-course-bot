@@ -2,12 +2,12 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.course.LessonService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
 import lombok.RequiredArgsConstructor;
@@ -52,10 +52,10 @@ public class AddLessonToCourseButtonHandler implements ButtonHandler {
             final int position;
             try {
                 position = Integer.parseInt(m.get(0).getText());
-                if (position < 0 || position > course.getAmountOfLessons()) {
+                if (position < 0 || position > course.getNumberOfLessons()) {
                     throw new InvalidDataSentException("Position " + position + " is anvailable "
                             + "for course " + course.getName() + " because it is outside "
-                            + "allowed boundaries of 0 to " + course.getAmountOfLessons(),
+                            + "allowed boundaries of 0 to " + course.getNumberOfLessons(),
                             localizationLoader.getLocalizationForUser(
                             ERROR_LESSON_POSITION_INVALID, user));
                 }

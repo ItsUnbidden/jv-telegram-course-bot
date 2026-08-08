@@ -1,39 +1,140 @@
 package com.unbidden.telegramcoursesbot.bot;
 
 import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.RoleType;
+import com.unbidden.telegramcoursesbot.repository.BotRepository;
+import com.unbidden.telegramcoursesbot.repository.BotRoleRepository;
+import com.unbidden.telegramcoursesbot.util.EntityUtil;
+
+import java.util.ArrayList;
 import java.util.List;
-import org.springframework.lang.NonNull;
+import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-public interface BotService {
-    @NonNull
-    Bot createBot(@NonNull UserEntity creator, @NonNull String name, @NonNull String token);
+@Service
+@RequiredArgsConstructor
+public class BotService {
+    private static final Logger LOGGER = LogManager.getLogger(BotService.class);
+    
+    private final BotRepository botRepository;
 
-    @NonNull
-    Bot createInitialBot(@NonNull UserEntity director);
+    private final BotRoleRepository botRoleRepository;
 
-    @NonNull
-    Bot createBotFather(@NonNull UserEntity director);
+    private final EntityUtil entityUtil;
 
-    @NonNull
-    List<Bot> initializeBots();
+    private final ClientManager clientManager;
 
-    @NonNull
-    Bot initializeBotFather(@NonNull Bot bot);
+    @Value("${telegram.bot.authorization.start_bot.token}")
+    private String initialBotToken;
 
-    void removeBot(@NonNull Bot bot);
+    @Value("${telegram.bot.authorization.bot_lord.token}")
+    private String botLordToken;
 
-    @NonNull
-    Bot getBot(@NonNull String name);
+    @Transactional
+    public Bot createBot(UserEntity creator, String token) {
+        LOGGER.info("Creating new bot...");
+        final Bot bot = new Bot();
 
-    @NonNull
-    Bot getBotFather();
+        bot.setToken(token);
 
-    @NonNull
-    Bot getInitialBot();
+        final List<BotRole> botRoles = new ArrayList<>();
+        final UserEntity director = entityUtil.getDiretor();
 
-    void checkBotFather(@NonNull Bot bot, @NonNull UserEntity user);
+        if (director.getId().equals(creator.getId())) {
+            LOGGER.warn("Bot Creator is Director. No Creator role will be added.");
+            botRoles.add(new BotRole(bot, director, entityUtil.getRole(RoleType.DIRECTOR), true));
+        } else {
+            botRoles.add(new BotRole(bot, creator, entityUtil.getRole(RoleType.CREATOR), true));
+            botRoles.add(new BotRole(bot, director, entityUtil.getRole(RoleType.DIRECTOR), false));
+        }
+        
+        botRepository.save(bot);
+        botRoleRepository.saveAll(botRoles);
+        LOGGER.debug("New bot " + bot.getId() + " has been created. Initializing...");
+        clientManager.addClient(bot); // TODO: performs HTTP requests, so it might be a potential problem if it remains inside a transaction.
+        LOGGER.info("Client initialized for the new bot " + bot.getId() + ".");
+        return bot;
+    }
 
-    @NonNull
-    List<Bot> getAllBots();
+    public Bot updateInitialBot(UserEntity director) {
+        LOGGER.info("Updating start bot token...");
+
+        final Bot startBot = entityUtil.getStartBot();
+
+        startBot.setToken(initialBotToken);
+
+        if (!botRoleRepository.existsByBotIdAndUserId(startBot.getId(), director.getId())) {
+            LOGGER.debug("Director does not have a bot role in the start bot.");
+            final List<BotRole> roles = botRoleRepository.findByBotId(startBot.getId());
+                
+            if (roles.isEmpty()) {
+                LOGGER.debug("Start bot does not have any roles. Creating a new Director role...");
+            } else {
+                LOGGER.debug("Start bot has some old roles. Deleting them and creating "
+                        + "a new one for the current Director " + director.getId() + "...");
+                botRoleRepository.deleteAllInBatch(roles);
+
+            }
+            botRoleRepository.save(new BotRole(startBot, director,
+                        entityUtil.getRole(RoleType.DIRECTOR), true));
+        }
+        LOGGER.info("Start bot has been updated.");
+
+        return startBot;
+    }
+
+    @Transactional
+    public Bot updateBotLord(UserEntity director) {
+        LOGGER.info("Updating bot lord token...");
+
+        final Bot botLord = entityUtil.getBotLord();
+
+        botLord.setToken(botLordToken);
+
+        if (!botRoleRepository.existsByBotIdAndUserId(botLord.getId(), director.getId())) {
+            LOGGER.debug("Director does not have a bot role in bot lord.");
+            final List<BotRole> roles = botRoleRepository.findByBotId(botLord.getId());
+                
+            if (roles.isEmpty()) {
+                LOGGER.debug("Bot lord does not have any roles. Creating a new Director role...");
+            } else {
+                LOGGER.debug("Bot lord has some old roles. Deleting them and creating "
+                        + "a new one for the current director " + director.getId() + "...");
+                botRoleRepository.deleteAllInBatch(roles);
+
+            }
+            botRoleRepository.save(new BotRole(botLord, director,
+                        entityUtil.getRole(RoleType.DIRECTOR), true));
+        }
+        LOGGER.info("Bot lord has been updated.");
+
+        return botLord;
+    }
+
+    public List<Bot> initializeBots() {
+        final List<Bot> bots = botRepository.findAllRegularBots();
+
+        bots.forEach(b -> clientManager.addClient(b));
+        return bots;
+    }
+
+    public void removeBot(Bot bot) {
+        botRepository.delete(bot);
+    }
+
+    public Bot initializeBotLord(Bot bot) {
+        clientManager.addBotLordClient(bot);
+
+        return bot;
+    }
+
+    public List<Bot> getAllBots() {
+        return botRepository.findAllRegularBots();
+    }
 }

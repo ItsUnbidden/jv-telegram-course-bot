@@ -9,29 +9,17 @@ import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.lang.NonNull;
 
 public interface SupportRequestRepository extends JpaRepository<SupportRequest, Long> {
-    @NonNull
     @EntityGraph(attributePaths = {"staffMember", "user", "content", "bot"})
-    Optional<SupportRequest> findById(@NonNull Long id);
+    Optional<SupportRequest> findById(Long id);
 
-    @NonNull
-    @Query("from SupportRequest sr left join fetch sr.staffMember sm left join fetch sr.bot b "
-            + "left join fetch sr.user u left join fetch sr.content c where b.id = :botId and "
-            + "sr.isResolved = false")
-    List<SupportRequest> findUnresolved(@NonNull Long botId, @NonNull Pageable pageable);
+    List<SupportRequest> findByBotIdAndIsResolvedFalse(Long botId, Pageable pageable);
 
-    @NonNull
-    @EntityGraph(attributePaths = {"bot", "user"})
-    List<SupportRequest> findByUserAndBotAndIsResolvedFalse(@NonNull UserEntity user, @NonNull Bot bot);
+    @EntityGraph(attributePaths = {"bot", "user", "replies"})
+    List<SupportRequest> findByUserAndBotAndIsResolvedFalse(UserEntity user, Bot bot);
 
-    long countByUserAndBotAndIsResolvedFalse(@NonNull UserEntity user, @NonNull Bot bot);
+    long countByUserAndBotAndIsResolvedFalse(UserEntity user, Bot bot);
 
-    @NonNull
-    @Query("from SupportRequest sr left join fetch sr.staffMember sm left join fetch sr.bot b "
-            + "where sm.id = :userId and b.id = :botId and sr.isResolved = false")
-    List<SupportRequest> findUnresolvedByStaffMemberInBot(@NonNull Long userId,
-            @NonNull Long botId);
+    List<SupportRequest> findByStaffMemberIdAndBotIdAndIsResolvedFalse(Long staffMemberId, Long botId);
 }

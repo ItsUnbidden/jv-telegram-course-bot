@@ -40,8 +40,14 @@ databaseChangeLog:
                     foreignKeyName: fk_content_homework_progress
                     references: content(id)
               - column:
+                  name: last_comment_content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_last_comment_content_homework_progress
+                    references: content(id)
+              - column:
                   name: status
-                  type: tinyint
+                  type: varchar(100)
                   constraints:
                     nullable: false
               - column:
@@ -55,3 +61,8 @@ databaseChangeLog:
               - column:
                   name: finished_at
                   type: datetime
+              - column:
+                  name: version
+                  type: bigint
+                  constraints:
+                    nullable: false

@@ -3,11 +3,12 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 import com.unbidden.telegramcoursesbot.bot.BotService;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,7 +36,7 @@ public class RefreshLocalizationsButtonHandler implements ButtonHandler {
     @Override
     @Security(authorities = AuthorityType.MAINTENANCE)
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
-        botService.checkBotFather(bot, user);
+        botService.checkBotLord(bot, user);
         if (!clientManager.isOnMaintenance()) {
             throw new ForbiddenOperationException("Unable to refresh because server is not on "
                     + "maintenance", localizationLoader.getLocalizationForUser(
@@ -49,7 +50,7 @@ public class RefreshLocalizationsButtonHandler implements ButtonHandler {
 
         LOGGER.info("Localizations refresh has been completed.");
         LOGGER.debug("Sending confirmation message...");
-        clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+        clientManager.getBotLordClient().sendMessage(user, localizationLoader
                 .getLocalizationForUser(SERVICE_LOCALIZATIONS_REFRESH_SUCCESS, user));
         LOGGER.debug("Message sent.");
     }

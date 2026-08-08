@@ -9,8 +9,8 @@ import org.springframework.lang.NonNull;
 
 public interface HomeworkProgressRepository extends JpaRepository<HomeworkProgress, Long> {
     @NonNull
-    @EntityGraph(attributePaths = {"user", "homework", "content", "homework.lesson",
-            "homework.lesson.course", "homework.mapping", "homework.lesson.course.bot"})
+    @EntityGraph(attributePaths = {"user", "homework", "homework.lesson",
+            "homework.lesson.course", "homework.mapping", "homework.lesson.course"})
     Optional<HomeworkProgress> findById(@NonNull Long id);
 
     @NonNull

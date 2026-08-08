@@ -1,59 +1,87 @@
 package com.unbidden.telegramcoursesbot.repository;
 
 import com.unbidden.telegramcoursesbot.model.Review;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.lang.NonNull;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
-    @NonNull
-    @EntityGraph(attributePaths = {"user", "course", "markedAsReadBy", "content",
-            "commentContent", "course.bot"})
-    Optional<Review> findById(@NonNull Long userId);
+    @EntityGraph(attributePaths = {"user", "course"})
+    Optional<Review> findById(Long userId);
 
-    @NonNull
-    @EntityGraph(attributePaths = {"user", "course", "markedAsReadBy", "content",
-            "commentContent", "course.bot"})
-    List<Review> findByUserId(@NonNull Long userId, Pageable pageable);
+    @EntityGraph(attributePaths = {"user", "course"})
+    Page<Review> findByUserId(Long userId, Pageable pageable);
 
-    @NonNull
-    @EntityGraph(attributePaths = {"user", "course", "markedAsReadBy", "content",
-            "commentContent", "course.bot"})
-    List<Review> findByCourseId(@NonNull Long courseId, Pageable pageable);
+    @EntityGraph(attributePaths = {"user", "course"})
+    Page<Review> findByCourseId(Long courseId, Pageable pageable);
     
-    @NonNull
-    @Query("from Review r left join fetch r.user u left join fetch r.course c "
-            + "left join fetch r.commentContent cc left join fetch r.markedAsReadBy"
-            + " mr left join fetch c.bot b where b.id = :botId and :user not in elements(mr)")
-    List<Review> findNewReviewsForUser(@NonNull UserEntity user, @NonNull Long botId, Pageable pageable);
+    @Query("""
+        from Review r
+        left join fetch r.user u
+        left join fetch r.course c
+        left join fetch r.commentedBy cb
+        where c.bot.id = :botId and exists(
+            select 1
+            from Review r2
+            left join r.markedAsRead marked
+            where r2.id = r.id and :userId not in elements(marked.id))
+    """)
+    Page<Review> findNewReviewsForUser(Long userId, Long botId, Pageable pageable);
 
-    @NonNull
-    @Query("from Review r left join fetch r.user u left join fetch r.course c "
-            + "left join fetch r.commentContent cc left join fetch r.markedAsReadBy"
-            + " mr left join fetch c.bot b where c.id = :courseId and :user not in elements(mr)")
-    List<Review> findNewReviewsForUserAndCourse(@NonNull UserEntity user, @NonNull Long courseId,
-            Pageable pageable);
+    @Query("""
+        from Review r
+        left join fetch r.user u
+        left join fetch r.course c
+        left join fetch r.commentedBy cb
+        where c.id = :courseId and exists(
+            select 1
+            from Review r2
+            left join r.markedAsRead marked
+            where r2.id = r.id and :userId not in elements(marked.id))
+    """)
+    Page<Review> findNewReviewsForUserAndCourse(Long userId, Long courseId, Pageable pageable);
 
-    @NonNull
-    @Query("from Review r left join fetch r.user u left join fetch r.course c "
-            + "left join fetch r.commentContent cc left join fetch r.markedAsReadBy"
-            + " mr left join fetch c.bot b where :user in elements(mr)")
-    List<Review> findArchiveReviewsForUser(@NonNull UserEntity user);
+    @Query("""
+        select distinct r
+        from Review r
+        left join fetch r.user u
+        left join fetch r.course c
+        left join fetch r.commentedBy cb
+        left join fetch r.content cnt
+        left join fetch r.markedAsRead marked
+        where c.bot.id = :botId and :userId in elements(marked.id)
+    """)
+    List<Review> findArchiveReviewsForUser(Long userId, Long botId);
 
-    @NonNull
-    @Query("from Review r left join fetch r.user u left join fetch r.course c "
-            + "left join fetch r.commentContent cc left join fetch r.markedAsReadBy"
-            + " mr left join fetch c.bot b where c.id = :courseId and :user in elements(mr)")
-    List<Review> findArchiveReviewsForUserAndCourse(@NonNull UserEntity user,
-            @NonNull Long courseId);
+    @Query("""
+        select distinct r
+        from Review r
+        left join fetch r.user u
+        left join fetch r.course c
+        left join fetch r.commentedBy cb
+        left join fetch r.content cnt
+        left join fetch r.markedAsRead marked
+        where c.id = :courseId and :userId in elements(marked.id)
+    """)
+    List<Review> findArchiveReviewsForUserAndCourse(Long userId, Long courseId);
 
-    @NonNull
-    @EntityGraph(attributePaths = {"user", "course", "markedAsReadBy", "content",
-            "commentContent", "course.bot"})
-    Optional<Review> findByCourseNameAndUserId(@NonNull String courseName, @NonNull Long userId);
+    @Query("""
+        select distinct r
+        from Review r
+        left join fetch r.markedAsReadBy markedBy
+        where r.id in :reviewIds        
+    """)
+    List<Review> findByIdIn(List<Long> reviewIds);
+    
+    @EntityGraph(attributePaths = {"user", "course", "markedAsReadBy"})
+    Optional<Review> findByCourseIdAndUserId(Long courseId, Long userId);
+
+    boolean existsByCourseIdAndUserId(Long courseId, Long userId);
+
+    boolean existsByCourseIdAndUserIdAndContentIsNotNull(Long courseId, Long userId);
 }

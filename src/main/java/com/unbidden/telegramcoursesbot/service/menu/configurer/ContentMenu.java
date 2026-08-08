@@ -2,9 +2,9 @@ package com.unbidden.telegramcoursesbot.service.menu.configurer;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.SecurityService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
@@ -84,7 +84,7 @@ public class ContentMenu implements MenuConfigurer {
                             parameterMap.put(PARAM_PROVIDED_MESSAGES_AMOUNT, m.size());
                             throw new InvalidDataSentException("One message was expected but "
                                 + m.size() + " was/were sent", localizationLoader
-                                .getLocalizationForUser(ERROR_AMOUNT_OF_MESSAGES,
+                                .getLocalizationForUser(NUMBER_OF_MESSAGES,
                                 u, parameterMap));
                         }
                         if (!m.get(0).hasText()) {

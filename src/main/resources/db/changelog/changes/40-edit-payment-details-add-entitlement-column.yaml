@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-payment-details-add-entitlement-column
+      author: Unbidden
+      changes:
+        - addColumn:
+            tableName: payment_details
+            columns:
+              - column:
+                  name: entitlement_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_entitlements_payment_details
+                    references: entitlements(id)
+        # - addForeignKeyConstraint:
+        #     baseTableName: payment_details
+        #     baseColumnNames: entitlement_id
+        #     referencedTableName: entitlements
+        #     referencedColumnNames: id
+        #     constraintName: fk_entitlements_payment_details

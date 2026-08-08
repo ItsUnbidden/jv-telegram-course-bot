@@ -1,8 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.menu.configurer;
 
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
@@ -39,7 +39,7 @@ public class CourseNextStageMenu implements MenuConfigurer {
             final String[] courseNameAndCurrentLesson = p.get(0).split(
                     CourseService.COURSE_NAME_LESSON_INDEX_DIVIDER);
             final CourseProgress courseProgress = courseService
-                    .getCurrentCourseProgressForUser(u.getId(),
+                    .getCourseProgressForUser(u.getId(),
                     courseNameAndCurrentLesson[0]);
             return List.of(new TerminalButton(
                 localizationLoader.getLocalizationForUser(BUTTON_COURSE_NEXT_STAGE.formatted(

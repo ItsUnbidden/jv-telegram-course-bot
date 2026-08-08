@@ -4,11 +4,11 @@ import com.unbidden.telegramcoursesbot.bot.BotService;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dao.ImageDao;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +47,7 @@ public class DeleteInvoiceImageButtonHandler implements ButtonHandler {
     @Override
     @Security(authorities = AuthorityType.MAINTENANCE)
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
-        botService.checkBotFather(bot, user);
+        botService.checkBotLord(bot, user);
 
         sessionService.createSession(user, bot, m -> {
             textUtil.checkExpectedMessages(EXPECTED_MESSAGES, user, m, localizationLoader);
@@ -63,12 +63,12 @@ public class DeleteInvoiceImageButtonHandler implements ButtonHandler {
             imageDao.delete(courseName);
             LOGGER.info("Image deleted.");
             LOGGER.debug("Sending confirmation message...");
-            clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+            clientManager.getBotLordClient().sendMessage(user, localizationLoader
                     .getLocalizationForUser(SERVICE_INVOICE_IMAGE_DELETED, user));
             LOGGER.debug("Message sent.");
         }, true);
         LOGGER.debug("Sending request message...");
-        clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+        clientManager.getBotLordClient().sendMessage(user, localizationLoader
                 .getLocalizationForUser(SERVICE_INVOICE_IMAGE_DELETE_REQUEST, user));
         LOGGER.debug("Message sent.");
     }

@@ -5,20 +5,14 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.lang.NonNull;
 
 public interface LessonRepository extends JpaRepository<Lesson, Long> {
-    @NonNull
     @EntityGraph(attributePaths = {"course", "structure"})
-    List<Lesson> findByCourseName(@NonNull String courseName);
+    List<Lesson> findByCourseIdOrderByPosition(Long courseId);
 
-    @NonNull
-    @EntityGraph(attributePaths = {"course", "structure", "homework",
-            "homework.mapping", "course.bot"})
-    Optional<Lesson> findByPositionAndCourseName(@NonNull Integer index,
-            @NonNull String courseName);
+    @EntityGraph(attributePaths = {"course", "structure", "homework"})
+    Optional<Lesson> findByPositionAndCourseId(Integer index, Long courseId);
 
-    @NonNull
-    @EntityGraph(attributePaths = {"course", "structure", "homework", "course.bot"})
-    Optional<Lesson> findById(@NonNull Long id);
+    @EntityGraph(attributePaths = {"course", "structure", "homework"})
+    Optional<Lesson> findById(Long id);
 }

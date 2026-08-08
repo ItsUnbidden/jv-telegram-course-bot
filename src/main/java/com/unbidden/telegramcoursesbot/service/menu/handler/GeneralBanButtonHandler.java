@@ -3,11 +3,11 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 import com.unbidden.telegramcoursesbot.bot.BotService;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.service.session.UserOrChatRequestSessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
@@ -76,7 +76,7 @@ private static final Logger LOGGER = LogManager.getLogger(GeneralBanButtonHandle
     @Override
     @Security(authorities = AuthorityType.GENERAL_BANS)
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
-        botService.checkBotFather(bot, user);
+        botService.checkBotLord(bot, user);
         switch (params[1]) {
             case CHOOSE_USER:
                 LOGGER.debug("User " + user.getId() + " wants to choose user.");

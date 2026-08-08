@@ -3,6 +3,8 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.CourseBoughtException;
 import com.unbidden.telegramcoursesbot.exception.CourseIsAlreadyOwnedException;
+import com.unbidden.telegramcoursesbot.localization.Localization;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
@@ -10,8 +12,6 @@ import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
 import com.unbidden.telegramcoursesbot.service.session.UserOrChatRequestSessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
@@ -49,8 +49,6 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
             "service_course_taken_successfuly";
     private static final String SERVICE_COURSE_GIFTED_NOTIFICATION =
             "service_course_gifted_notification";
-    private static final String SERVICE_COURSE_GIFTED_SUCCESSFULY =
-            "service_course_gifted_successfuly";
     private static final String SERVICE_GIVE_TAKE_COURSE_CHOOSE_ACTION =
             "service_give_take_course_choose_action";
     

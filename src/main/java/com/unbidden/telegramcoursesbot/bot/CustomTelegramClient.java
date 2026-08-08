@@ -2,10 +2,10 @@ package com.unbidden.telegramcoursesbot.bot;
 
 import com.unbidden.telegramcoursesbot.dao.CertificateDao;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
+import com.unbidden.telegramcoursesbot.localization.Localization;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.io.InputStream;
 import org.apache.logging.log4j.LogManager;
@@ -67,7 +67,7 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
         this.bot = bot;
         this.userService = userService;
         this.localizationLoader = loader;
-        this.logger = LogManager.getLogger("Bot " + bot.getName() + "'s Client");
+        this.logger = LogManager.getLogger("Bot " + bot.getId() + "'s Client");
         this.certificateDao = dao;
         this.baseUrl = baseUrl;
         this.secretToken = secretToken;
@@ -189,7 +189,7 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
                     .maxConnections(maxConnections)
                     .build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to set up bot " + bot.getName()
+            throw new TelegramException("Unable to set up bot " + bot.getId()
                     + "'s webhook.", null, e);
         } finally {
             if (publicKeyStream != null) {
@@ -197,20 +197,11 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
                 logger.debug("Certificate public key stream has been closed.");
             }
         }
-        logger.info("Bot " + bot.getName() + " has been registered.");
-    }
-
-    public String getBotName() {
-        return bot.getName();
+        logger.info("Bot " + bot.getId() + " has been registered.");
     }
 
     protected void initialize(@NonNull String endpoint, @NonNull Integer maxConnections) {
         runDeleteWebhook();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Unable to sleep");
-        }
         runSetWebhook(endpoint, maxConnections);
 
         setUpMenuButton();

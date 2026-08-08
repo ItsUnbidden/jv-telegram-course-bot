@@ -1,11 +1,11 @@
 package com.unbidden.telegramcoursesbot.service.menu;
 
+import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
+
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import lombok.Data;
@@ -34,7 +34,7 @@ public class MultipageListMeta {
     private LocalDateTime createdAt;
 
     @NonNull
-    private Function<Map<String, Object>, Localization> localizationFunction;
+    private Function<MultipageListParams, Localization> localizationFunction;
 
     @NonNull
     private BiFunction<Integer, Integer, List<String>> dataFunction;
@@ -43,7 +43,7 @@ public class MultipageListMeta {
 
     public MultipageListMeta(@NonNull Integer id, @NonNull UserEntity user,
             @NonNull Bot bot, int messageId, int page,
-            @NonNull Function<Map<String, Object>, Localization> localizationFunction,
+            @NonNull Function<MultipageListParams, Localization> localizationFunction,
             @NonNull BiFunction<Integer, Integer, List<String>> dataFunction) {
         this.id = id;
         this.user = user;

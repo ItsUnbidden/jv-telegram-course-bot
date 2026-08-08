@@ -3,11 +3,11 @@ package com.unbidden.telegramcoursesbot.service.session;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.SessionException;
+import com.unbidden.telegramcoursesbot.localization.Localization;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.SessionRepository;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -109,9 +109,9 @@ public class ContentSessionServiceImpl implements ContentSessionService {
             commit(session.getId(), session.getUser());
         } else if (!contentSession.isMenuInitialized()) {
             LOGGER.debug("Sending confirmation menu...");
-            final Message menuMessage = menuService.initiateMenu(CONFIRMATION_MENU,
-                    contentSession.getUser(), contentSession.getId().toString(),
-                    session.getBot());
+            final Message menuMessage = menuService.initiateMenu(contentSession.getUser(), session.getBot(),
+                    CONFIRMATION_MENU, contentSession.getId().toString());
+            
             menuService.addToMenuTerminationGroup(session.getUser(), session.getUser(),
                     session.getBot(), menuMessage.getMessageId(), CONFIRM_MENU_TERMINATOR
                     .formatted(session.getId()), MENU_COMMIT_CONTENT_TERMINAL_PAGE);

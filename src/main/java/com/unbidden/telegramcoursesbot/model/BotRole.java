@@ -1,32 +1,29 @@
 package com.unbidden.telegramcoursesbot.model;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
 import org.springframework.lang.NonNull;
 
+@Getter
+@Setter
 @Entity
-@Data
 @Table(name = "bot_roles")
-public class BotRole {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @ManyToOne
+public class BotRole extends BaseEntity {
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bot_id", nullable = false)
     private Bot bot;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
@@ -42,5 +39,11 @@ public class BotRole {
         this.user = user;
         this.role = role;
         this.isReceivingHomework = isReceivingHomework;
+    }
+
+    @Override
+    public String toString() {
+        return "BotRole(id=" + getId() + ", botId=" + bot.getId() + ", userId=" + user.getId() + ", roleId=" + role.getId()
+                + ", isReceivingHomework=" + isReceivingHomework + ")";
     }
 }

@@ -8,6 +8,6 @@ import org.springframework.lang.NonNull;
 
 public interface ContentMappingRepository extends JpaRepository<ContentMapping, Long> {
     @NonNull
-    @EntityGraph(attributePaths = "content")
+    @EntityGraph(attributePaths = {"content"})
     Optional<ContentMapping> findById(@NonNull Long id);
 }

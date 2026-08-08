@@ -27,7 +27,7 @@ public class GeneralPostCommandHandler implements CommandHandler {
     @Security(authorities = {AuthorityType.POST, AuthorityType.MAINTENANCE})
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
             @NonNull String[] commandParts) {
-        botService.checkBotFather(bot, user);
+        botService.checkBotLord(bot, user);
         menuService.initiateMenu(MENU_NAME, user, bot);
     }
 

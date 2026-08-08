@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.menu.configurer;
 
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
@@ -43,7 +43,7 @@ public class SupportReplyToReplyMenu implements MenuConfigurer {
                 .getData(), REPLY_TO_SUPPORT_REPLY, replyToSupportReplyHandler),
                 new TerminalButton(localizationLoader.getLocalizationForUser(
                 BUTTON_RESOLVE_SUPPORT_REQUEST, u).getData(), MARK_AS_RESOLVED,
-                (b1, u1, pa) -> supportService.markAsResolved(u1, b1, supportService.getReplyById(
+                (b1, u1, pa) -> supportService.markAsResolved(u1, b1, supportService.getSupportReplyById(
                     Long.parseLong(pa[0]), u1, b1).getRequest()))));
         menu.setName(MENU_NAME);
         menu.setPages(List.of(page));

@@ -2,13 +2,13 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.course.LessonService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
 import lombok.RequiredArgsConstructor;
@@ -46,7 +46,7 @@ public class RemoveLessonFromCourseButtonHandler implements ButtonHandler {
     @Override
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
         final Course course = courseService.getCourseByName(params[0], user, bot);
-        final Lesson lesson = lessonService.getById(Long.parseLong(params[2]), user, bot);
+        final Lesson lesson = lessonService.getLessonById(Long.parseLong(params[2]), user, bot);
         LOGGER.info("User " + user.getId() + " is trying to remove lesson " + lesson.getId()
                 + " from course " + course.getName() + "...");
         sessionService.createSession(user, bot, m -> {

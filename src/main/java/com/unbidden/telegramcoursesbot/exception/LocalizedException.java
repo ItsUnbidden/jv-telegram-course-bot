@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.exception;
 
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
+import com.unbidden.telegramcoursesbot.localization.Localization;
 
 public class LocalizedException extends RuntimeException {
     private Localization errorLocalization;

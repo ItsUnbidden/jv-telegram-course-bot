@@ -5,6 +5,7 @@ import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dao.ImageDao;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
@@ -15,7 +16,6 @@ import com.unbidden.telegramcoursesbot.model.content.DocumentContent;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -66,7 +66,7 @@ public class ImageFileUploadButtonHandler implements ButtonHandler {
     @Override
     @Security(authorities = AuthorityType.MAINTENANCE)
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
-        botService.checkBotFather(bot, user);
+        botService.checkBotLord(bot, user);
         
         sessionService.createSession(user, bot, m -> {
             LOGGER.info("User " + user.getId() + " is trying to update a course invoice image.");
@@ -98,9 +98,9 @@ public class ImageFileUploadButtonHandler implements ButtonHandler {
             
             final Document document = content.getDocuments().get(0);
             try {
-                final File file = clientManager.getBotFatherClient()
+                final File file = clientManager.getBotLordClient()
                         .execute(new GetFile(document.getId()));
-                final Path path = imageDao.addOrUpdateImage(clientManager.getBotFatherClient()
+                final Path path = imageDao.addOrUpdateImage(clientManager.getBotLordClient()
                         .downloadFileAsStream(file), course.getName());
 
                 LOGGER.info("Invoice image file " + path.toString() + " has been updated.");
@@ -113,12 +113,12 @@ public class ImageFileUploadButtonHandler implements ButtonHandler {
             LOGGER.info("Invoice image file for course " + course.getName()
                     + " has been updated.");
             LOGGER.debug("Sending confirmation message...");
-            clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+            clientManager.getBotLordClient().sendMessage(user, localizationLoader
                     .getLocalizationForUser(SERVICE_INVOICE_IMAGE_UPDATED, user));
             LOGGER.debug("Message sent.");
         });
         LOGGER.debug("Sending request message...");
-        clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+        clientManager.getBotLordClient().sendMessage(user, localizationLoader
                 .getLocalizationForUser(SERVICE_INVOICE_IMAGE_REQUEST, user));
         LOGGER.debug("Message sent.");
     }

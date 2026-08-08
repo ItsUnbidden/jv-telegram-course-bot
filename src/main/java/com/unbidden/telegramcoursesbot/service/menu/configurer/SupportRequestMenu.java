@@ -1,9 +1,9 @@
 package com.unbidden.telegramcoursesbot.service.menu.configurer;
 
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.SupportRequest;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.BackwardButton;
@@ -77,7 +77,7 @@ public class SupportRequestMenu implements MenuConfigurer{
                 BUTTON_SUPPORT_REQUEST_PLATFORM, u).getData(), REQUEST_SUPPORT_PLATFORM,
                 sendSupportRequestHandler));
             if (!supportService.isUserEligibleForSupport(u, b)) {
-                final SupportRequest lastUserRequest = supportService.getRequestById(
+                final SupportRequest lastUserRequest = supportService.getSupportRequestById(
                         supportService.getUnresolvedRequestsForUser(u, b).get(0).getId(), u, b);
                 buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
                         BUTTON_RESOLVE_LAST_SUPPORT_REQUEST, u).getData(),

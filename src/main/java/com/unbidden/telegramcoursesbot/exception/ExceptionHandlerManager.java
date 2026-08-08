@@ -5,10 +5,10 @@ import com.unbidden.telegramcoursesbot.exception.handler.LocalizedExceptionHandl
 import com.unbidden.telegramcoursesbot.exception.handler.UnknownExceptionHandler;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -18,15 +18,19 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 public class ExceptionHandlerManager {
     private static final Logger LOGGER = LogManager.getLogger(ExceptionHandlerManager.class);
 
-    @Autowired
-    private List<LocalizedExceptionHandler> handlers;
+    private final List<LocalizedExceptionHandler> handlers;
 
-    @Autowired
-    @Qualifier("generalLocalizedExceptionHandler")
-    private GeneralLocalizedExceptionHandler generalLocalizedHandler;
+    private final GeneralLocalizedExceptionHandler generalLocalizedHandler;
 
-    @Autowired
-    private UnknownExceptionHandler unknownHandler;
+    private final UnknownExceptionHandler unknownHandler;
+
+    public ExceptionHandlerManager(List<LocalizedExceptionHandler> handlers,
+            @Qualifier("generalLocalizedExceptionHandler") GeneralLocalizedExceptionHandler generalLocalizedHandler,
+            UnknownExceptionHandler unknownHandler) {
+        this.handlers = handlers;
+        this.generalLocalizedHandler = generalLocalizedHandler;
+        this.unknownHandler = unknownHandler;
+    }
 
     @NonNull
     public SendMessage handleException(@NonNull UserEntity user, @NonNull Bot bot,

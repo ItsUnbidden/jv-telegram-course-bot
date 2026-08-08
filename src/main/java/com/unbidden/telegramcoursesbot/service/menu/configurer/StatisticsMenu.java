@@ -1,10 +1,10 @@
 package com.unbidden.telegramcoursesbot.service.menu.configurer;
 
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.BackwardButton;
@@ -148,7 +148,7 @@ public class StatisticsMenu implements MenuConfigurer {
             long amountOfUsers = 0;
             for (Lesson lesson : course.getLessons()) {
                 amountOfUsers = courseProgressRepository
-                        .countByCourseAndStageAndNumberOfTimesCompleted(course,
+                        .countByCourseIdAndStageAndNumberOfTimesCompleted(course,
                         lesson.getPosition(), 0);
                 builder.append(lesson.getPosition()).append(" — ").append(amountOfUsers)
                         .append('\n');

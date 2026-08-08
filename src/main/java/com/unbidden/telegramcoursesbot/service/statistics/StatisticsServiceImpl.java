@@ -1,6 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.statistics;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.RoleType;
@@ -9,7 +11,7 @@ import com.unbidden.telegramcoursesbot.repository.BotRoleRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
 import com.unbidden.telegramcoursesbot.repository.PaymentDetailsRepository;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -30,7 +32,6 @@ public class StatisticsServiceImpl implements StatisticsService {
     private static final String SERVICE_COURSE_STATISTICS_REPORT =
             "service_course_statistics_report";
     private static final String SERVICE_COURSE_STAGE_USERS = "service_course_stage_users";
-    private static final String SERVICE_COURSE_COMPLETED_USERS = "service_course_completed_users";
     private static final String SERVICE_COURSE_USERS = "service_course_users";
     private static final String SERVICE_BOT_USERS = "service_bot_users";
 
@@ -60,6 +61,8 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     private final CourseRepository courseRepository;
 
+    private final ContentService contentService;
+
     private final BotRoleRepository botRoleRepository;
     
     private final CourseProgressRepository courseProgressRepository;
@@ -75,21 +78,21 @@ public class StatisticsServiceImpl implements StatisticsService {
         final Map<String, Object> params = new HashMap<>();
 
         params.put(PARAM_BOTNAME, bot.getName());
-        params.put(PARAM_NUMBER_OF_COURSES, courseRepository.countByBot(bot));
+        params.put(PARAM_NUMBER_OF_COURSES, courseRepository.countByBotId(bot));
         params.put(PARAM_COURSES_BOUGHT, paymentDetailsRepository
-                .countByBotAndIsGiftedFalse(bot));
+                .countByBotIdAndIsGiftedFalse(bot));
         params.put(PARAM_COURSES_REFUNDED, paymentDetailsRepository
-                .countByBotAndRefundedAtIsNotNull(bot));
-        params.put(PARAM_COURSES_GIFTED, paymentDetailsRepository.countByBotAndIsGiftedTrue(bot));
+                .countByBotIdAndRefundedAtIsNotNull(bot));
+        params.put(PARAM_COURSES_GIFTED, paymentDetailsRepository.countByBotIdAndIsGiftedTrue(bot));
         params.put(PARAM_COURSES_TAKEN, paymentDetailsRepository
-                .countByBotAndIsGiftedTrueAndIsValidFalse(bot));
+                .countByBotIdAndIsGiftedTrueAndIsValidFalse(bot));
         params.put(PARAM_COURSES_CURRENTLY_OWNED, paymentDetailsRepository
-                .countByBotAndIsValidTrue(bot));
+                .countByBotIdAndIsValidTrue(bot));
         params.put(PARAM_TOTAL_STARS_INCOME, paymentDetailsRepository.getTotalBotIncome(bot,
                 LocalDateTime.now()));
-        params.put(PARAM_NUMBER_OF_USERS, botRoleRepository.countByBotAndRoleType(bot,
+        params.put(PARAM_NUMBER_OF_USERS, botRoleRepository.countByBotIdAndRoleType(bot,
                 RoleType.USER));
-        params.put(PARAM_NUMBER_OF_BANNED_USERS, botRoleRepository.countByBotAndRoleType(bot,
+        params.put(PARAM_NUMBER_OF_BANNED_USERS, botRoleRepository.countByBotIdAndRoleType(bot,
                 RoleType.BANNED));
 
         LOGGER.debug("All data fetched for statistics report on bot " + bot.getName()
@@ -111,7 +114,7 @@ public class StatisticsServiceImpl implements StatisticsService {
                 (p, q) -> botRoleRepository.findByBotAndRoleType(bot, RoleType.USER,
                     PageRequest.of(p, q)).stream().map(br -> br.getUser().getFullUserInfo())
                     .toList(),
-                () -> botRoleRepository.countByBotAndRoleType(bot, RoleType.USER));
+                () -> botRoleRepository.countByBotIdAndRoleType(bot, RoleType.USER));
     }
 
     @Override
@@ -121,15 +124,15 @@ public class StatisticsServiceImpl implements StatisticsService {
         params.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
                 COURSE_NAME.formatted(course.getName()), user).getData());
         params.put(PARAM_TIMES_BOUGHT, paymentDetailsRepository
-                .countByCourseAndIsGiftedFalse(course));
+                .countByCourseIdAndIsGiftedFalse(course));
         params.put(PARAM_TIMES_REFUNDED, paymentDetailsRepository
-                .countByCourseAndRefundedAtIsNotNull(course));
+                .countByCourseIdAndRefundedAtIsNotNull(course));
         params.put(PARAM_TIMES_GIFTED, paymentDetailsRepository
-                .countByCourseAndIsGiftedTrue(course));
+                .countByCourseIdAndIsGiftedTrue(course));
         params.put(PARAM_TIMES_TAKEN, paymentDetailsRepository
-                .countByCourseAndIsGiftedTrueAndIsValidFalse(course));
+                .countByCourseIdAndIsGiftedTrueAndIsValidFalse(course));
         params.put(PARAM_NUMBER_OF_OWNERS, paymentDetailsRepository
-                .countByCourseAndIsValidTrue(course));
+                .countByCourseIdAndIsValidTrue(course));
         params.put(PARAM_TOTAL_STARS_INCOME, paymentDetailsRepository
                 .getTotalCourseIncome(course, LocalDateTime.now()));
         params.put(PARAM_NUMBER_OF_USERS_WHO_COMPLETED, courseProgressRepository
@@ -152,21 +155,21 @@ public class StatisticsServiceImpl implements StatisticsService {
                     return localizationLoader.getLocalizationForUser(SERVICE_COURSE_USERS,
                         user, m);
                 },
-                (p, q) -> paymentDetailsRepository.findByCourseAndIsValidTrue(course,
+                (p, q) -> paymentDetailsRepository.findByCourseIdAndIsValidTrue(course,
                     PageRequest.of(p, q)).stream().map(pd -> pd.getUser().getFullUserInfo())
                     .toList(),
-                () -> paymentDetailsRepository.countByCourseAndIsValidTrue(course));
+                () -> paymentDetailsRepository.countByCourseIdAndIsValidTrue(course));
     }
 
     @Override
     public void sendCourseCompletedUsers(@NonNull UserEntity user, @NonNull Course course) {
         menuService.initiateMultipageList(user, course.getBot(),
-                m -> {
-                    m.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
-                        COURSE_NAME.formatted(course.getName()), user).getData());
-
+                p -> {
                     return localizationLoader.getLocalizationForUser(
-                        SERVICE_COURSE_COMPLETED_USERS, user, m);
+                        Localizations.Service.COURSE_COMPLETED_USERS, user,
+                        	new Localizations.Service.CourseCompletedUsersParams(p.currentPage(), p.numberOfPages(),
+							p.numberOfElements(), p.data(), contentService.getLocalizedText(user, course.getBot(),
+							course.getTitle().getId())));
                 },
                 (p, q) -> courseProgressRepository.findByCourseAndNumberOfTimesCompletedGreaterThan(
                     course, 0, PageRequest.of(p, q)).stream()
@@ -188,10 +191,10 @@ public class StatisticsServiceImpl implements StatisticsService {
                         user, m);
                 },
                 (p, q) -> courseProgressRepository
-                    .findByCourseAndStageAndNumberOfTimesCompleted(course, stage, 0,
+                    .findByCourseIdAndStageAndNumberOfTimesCompleted(course, stage, 0,
                         PageRequest.of(p, q)).stream().map(cp -> cp.getUser().getFullUserInfo())
                         .toList(),
                 () -> courseProgressRepository
-                    .countByCourseAndStageAndNumberOfTimesCompleted(course, stage, 0));
+                    .countByCourseIdAndStageAndNumberOfTimesCompleted(course, stage, 0));
     }
 }

@@ -2,6 +2,8 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.localization.Localization;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.Lesson;
@@ -11,8 +13,6 @@ import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
 import com.unbidden.telegramcoursesbot.service.course.LessonService;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
@@ -52,7 +52,7 @@ public class CreateHomeworkButtonHandler implements ButtonHandler {
     @Override
     @Security(authorities = AuthorityType.COURSE_SETTINGS)
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
-        final Lesson lesson = lessonService.getById(Long.parseLong(params[2]), user, bot);
+        final Lesson lesson = lessonService.getLessonById(Long.parseLong(params[2]), user, bot);
 
         LOGGER.info("User " + user.getId() + " want to add a new homework to lesson "
                 + lesson.getId() + ".");

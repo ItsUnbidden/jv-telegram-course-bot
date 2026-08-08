@@ -1,9 +1,9 @@
 package com.unbidden.telegramcoursesbot.service.menu;
 
 import com.unbidden.telegramcoursesbot.exception.MenuExpiredException;
+import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
 import com.unbidden.telegramcoursesbot.service.menu.handler.ButtonHandler;
 import java.util.Arrays;
 import java.util.List;
@@ -14,6 +14,7 @@ import org.apache.commons.lang3.function.TriFunction;
 @Data
 public class Menu {
     private static final String BACK_DATA = "back";
+    private static final String LINK_DATA = "link";
 
     private String name;
 
@@ -69,6 +70,17 @@ public class Menu {
             }
         }
 
+        @Data()
+        @EqualsAndHashCode(callSuper = true)
+        public static class LinkButton extends Button {
+            private String url;
+
+            public LinkButton(String name, String url) {
+                super(name, LINK_DATA, Type.LINK);
+                this.url = url;
+            }
+        }
+
         @Data
         @EqualsAndHashCode(callSuper = true)
         public static class TransitoryButton extends Button {
@@ -102,8 +114,9 @@ public class Menu {
                 this.type = type;
             }
 
-            public enum Type {
+            public static enum Type {
                 TERMINAL,
+                LINK,
                 TRANSITORY,
                 BACKWARD
             }

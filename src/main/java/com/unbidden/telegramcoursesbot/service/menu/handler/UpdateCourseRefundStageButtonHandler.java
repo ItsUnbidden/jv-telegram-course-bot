@@ -2,13 +2,13 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
 import java.util.HashMap;
@@ -70,12 +70,12 @@ public class UpdateCourseRefundStageButtonHandler implements ButtonHandler {
                     LOGGER.debug("Number is less then -1. It will be forced to -1.");
                     newRefundStage = -1;
                 }
-                if (newRefundStage > course.getAmountOfLessons() - 1) {
+                if (newRefundStage > course.getNumberOfLessons() - 1) {
                     throw new InvalidDataSentException("Specified new refund stage is bigger "
                             + "then the amount of lessons for course " + course.getName(),
                             localizationLoader.getLocalizationForUser(
                             ERROR_REFUND_STAGE_BIGGER_THEN_AMOUNT_OF_LESSONS, user,
-                            PARAM_AMOUNT_OF_LESSONS, course.getAmountOfLessons()));
+                            PARAM_AMOUNT_OF_LESSONS, course.getNumberOfLessons()));
                 }
                 if (newRefundStage.equals(course.getRefundStage())) {
                     throw new InvalidDataSentException("New refund stage is the same as before",

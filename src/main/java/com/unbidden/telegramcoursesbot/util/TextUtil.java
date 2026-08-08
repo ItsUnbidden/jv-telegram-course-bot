@@ -2,64 +2,42 @@ package com.unbidden.telegramcoursesbot.util;
 
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
+import com.unbidden.telegramcoursesbot.localization.Localizations.Service;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Document;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import jakarta.annotation.PostConstruct;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
-import org.telegram.telegrambots.meta.api.objects.User;
-import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 public class TextUtil {
-    private static final String 
-    ERROR_FILE_NOT_LOCALIZATION = "error_file_not_localization";
-
     private static final Logger LOGGER = LogManager.getLogger(TextUtil.class);
     
     private static final Map<String, String> MARKERS = new HashMap<>();
-    
-    private static final String PARAM_LAST_UPDATE_TIMESTAMP = "${lastUpdateTimestamp}";
-    private static final String PARAM_USER_FULL_NAME = "${userFullName}";
-    private static final String PARAM_ADVANCED_TIMESTAMP = "${advancedTimestamp}";
-    private static final String PARAM_ORIGINAL_CONTENT_ID = "${originalContentId}";
-    private static final String PARAM_CONTENT_ID = "${contentId}";
-    private static final String PARAM_COMMENTED_AT = "${commentedAt}";
-    private static final String PARAM_USER_WHO_COMMENTED = "${userWhoCommented}";
-    private static final String PARAM_USERS_WHO_READ = "${usersWhoRead}";
-    private static final String PARAM_ORIGINAL_PLATFORM_GRADE = "${originalPlatformGrade}";
-    private static final String PARAM_ORIGINAL_COURSE_GRADE = "${originalCourseGrade}";
-    private static final String PARAM_PLATFORM_GRADE = "${platformGrade}";
-    private static final String PARAM_COURSE_GRADE = "${courseGrade}";
-    private static final String PARAM_BASIC_TIMESTAMP = "${basicTimestamp}";
-    private static final String PARAM_MESSAGE_INDEX = "${messageIndex}";
-    private static final String PARAM_PROVIDED_MESSAGES_AMOUNT = "${providedMessagesNumber}";
-    private static final String PARAM_EXPECTED_MESSAGES_AMOUNT = "${expectedMessagesAmount}";
-    private static final String FIRST_NAME_PATTERN = "${firstName}";
-    private static final String LAST_NAME_PATTERN = "${lastName}";
-    private static final String USERNAME_PATTERN = "${username}";
 
     private static final char TAG_OPEN = '<';
     private static final char TAG_CLOSE = '>';
     private static final String TAG_PARAMS_DIVIDER = " ";
     private static final String END_LINE_OVERRIDE_MARKER = "\\\n";
     private static final String LANGUAGE_PRIORITY_DIVIDER = ",";
-
-    private static final String SERVICE_LESS_THEN_AN_HOUR = "service_less_then_an_hour";
-
-    private static final String ERROR_MESSAGE_TEXT_MISSING = "error_message_text_missing";
-    private static final String ERROR_AMOUNT_OF_MESSAGES = "error_amount_of_messages";
+    private static final String PARAM_NAME_REGEX = "\\$\\{[a-zA-Z0-9_]+\\}";
 
     private static final String MENU = "menu";
     private static final String ERROR = "error";
@@ -67,41 +45,31 @@ public class TextUtil {
     private static final String COURSE = "course";
     private static final String SERVICE = "service";
 
-    @Value("${telegram.bot.message.language.priority}")
-    private String languagePriorityStr;
+    private final String languagePriorityStr;
+    private final String fileFormat;
+    private final Pattern paramNamePattern;
 
-    @Value("${telegram.bot.message.text.format}")
-    private String fileFormat;
-
-    @PostConstruct
-    public void init() {
+    public TextUtil(@Value("${telegram.bot.message.language.priority}") String languagePriorityStr,
+            @Value("${telegram.bot.message.text.format}") String fileFormat) {
         MARKERS.put("**", "bold");
         MARKERS.put("__", "italic");
         MARKERS.put("--", "underline");
         MARKERS.put("~~", "strikethrough");
         MARKERS.put("^^", "spoiler");
+
+        this.languagePriorityStr = languagePriorityStr;
+        this.fileFormat = fileFormat;
+        this.paramNamePattern = Pattern.compile(PARAM_NAME_REGEX);
     }
 
-    @NonNull
-    public String injectUserData(@NonNull String text, @NonNull User user) {
-        return injectUserData0(text, user.getFirstName(), user.getLastName(), user.getUserName());
-    }
-
-    @NonNull
-    public String injectUserData(@NonNull String text, @NonNull UserEntity user) {
-        return injectUserData0(text, user.getFirstName(), user.getLastName(), user.getUsername());
-    }
-
-    @NonNull
-    public String injectParams(@NonNull String text, @NonNull Map<String, Object> params) {
+    public String injectParams(String text, Map<String, Object> params) {
         for (Entry<String, Object> entry : params.entrySet()) {
             text = text.replace(entry.getKey(), entry.getValue().toString());
         }
         return text;
     }
 
-    @NonNull
-    public List<MessageEntity> getEntities(@NonNull String text) {
+    public List<MessageEntity> getEntities(String text) {
         final List<MessageEntity> entities = new ArrayList<>();
         
         int offsetFactor0 = 0;
@@ -128,8 +96,7 @@ public class TextUtil {
         return entities;
     }
 
-    @NonNull
-    public Map<Tag, String> getMappedTagContent(@NonNull String data)
+    public Map<Tag, String> getMappedTagContent(String data)
             throws TaggedStringInterpretationException {
         LOGGER.trace("Parsing tagged string...");
         final int[] chars = data.chars().toArray();
@@ -184,25 +151,28 @@ public class TextUtil {
         return result;
     }
 
-    @NonNull
-    public String removeMarkers(@NonNull String text) {
+    public String removeMarkers(String text) {
         for (Entry<String, String> entry : MARKERS.entrySet()) {
             text = text.replace(entry.getKey(), "");
         }
         return text;
     }
 
-    @NonNull
-    public String removeEndLineOverrides(@NonNull String text) {
+    public String removeEndLineOverrides(String text) {
         return text.replace(END_LINE_OVERRIDE_MARKER, "");
     }
 
-    @NonNull
-    public String getArchiveReviewInfo(@NonNull Review review, @NonNull StringBuilder builder) {
+    public Set<String> getParamNames(String text) {
+        final Matcher matcher = paramNamePattern.matcher(text);
+
+        return matcher.results().map(mr -> mr.group()).collect(Collectors.toSet());
+    }
+
+    public String getArchiveReviewInfo(Review review, String localizedCourseName, StringBuilder builder) {
         LOGGER.info("Compiling review info for archive review " + review.getId() + "...");
         builder.append("Id: ").append(review.getId()).append("\n")
                 .append("User: ").append(review.getUser().getFullName()).append("\n")
-                .append("Course: ").append(review.getCourse().getName()).append("\n")
+                .append("Course: ").append(localizedCourseName).append("\n")
                 .append("Course grade: ").append(review.getCourseGrade()).append("\n")
                 .append("Platform grade: ").append(review.getPlatformGrade()).append("\n")
                 .append("Original course grade: ").append(review.getOriginalCourseGrade())
@@ -239,54 +209,27 @@ public class TextUtil {
         return builder.toString();
     }
 
-    @NonNull
-    public Map<String, Object> getParamsMapForNewReview(@NonNull Review review) {
-        final Map<String, Object> parameterMap = new HashMap<>();
-
-        parameterMap.put(PARAM_USER_FULL_NAME, review.getUser().getFullName());
-        parameterMap.put(PARAM_BASIC_TIMESTAMP, review.getBasicSubmittedTimestamp());
-        parameterMap.put(PARAM_COURSE_GRADE, review.getCourseGrade());
-        parameterMap.put(PARAM_PLATFORM_GRADE, review.getPlatformGrade());
-        parameterMap.put(PARAM_ORIGINAL_COURSE_GRADE, review.getOriginalCourseGrade());
-        parameterMap.put(PARAM_ORIGINAL_PLATFORM_GRADE, review.getOriginalPlatformGrade());
-        parameterMap.put(PARAM_USERS_WHO_READ, review.getUsersWhoReadAsString());
-        parameterMap.put(PARAM_LAST_UPDATE_TIMESTAMP, (review.getLastUpdateTimestamp() != null)
-                ? review.getLastUpdateTimestamp() : "Not available");
-
-        if (review.getCommentContent() != null) {
-            parameterMap.put(PARAM_USER_WHO_COMMENTED, review.getCommentedBy()
-                    .getFullName());
-            parameterMap.put(PARAM_COMMENTED_AT, review.getCommentedAt());
-        }
-
-        if (review.getContent() != null) {
-            parameterMap.put(PARAM_CONTENT_ID, review.getContent().getId());
-            parameterMap.put(PARAM_ORIGINAL_CONTENT_ID, review.getOriginalContent().getId());
-            parameterMap.put(PARAM_ADVANCED_TIMESTAMP, review.getAdvancedSubmittedTimestamp());
-        }
-        return parameterMap;
+    public List<String> getLanguagePriority() {
+        return Arrays.stream(
+                languagePriorityStr.split(LANGUAGE_PRIORITY_DIVIDER))
+                .map(lc -> lc.trim()).toList();
     }
 
-    @NonNull
-    public String[] getLanguagePriority() {
-        final String[] languageCodes = languagePriorityStr.split(LANGUAGE_PRIORITY_DIVIDER);
-        for (int i = 0; i < languageCodes.length; i++) {
-            languageCodes[i] = languageCodes[i].trim();
+    public String formatTimeLeft(UserEntity user, LocalizationLoader loader, int hours) {
+        if (hours > 1) {
+            return loader.getLocalizationForUser(Service.HOURS, user, new Service.HoursParams(hours)).getData();
         }
-        return languageCodes;
-    }
-
-    @NonNull
-    public String formatTimeLeft(@NonNull UserEntity user, @NonNull LocalizationLoader loader,
-            int hours) {
+        if (hours == 1) {
+            return loader.getLocalizationForUser(Service.AN_HOUR, user).getData();
+        }
         if (hours <= 0) {
-            return loader.getLocalizationForUser(SERVICE_LESS_THEN_AN_HOUR, user).getData();
+            return loader.getLocalizationForUser(Service.LESS_THEN_AN_HOUR, user).getData();
         }
         return String.valueOf(hours);
     }
 
-    public void checkIfDocumentIsALocalization(@NonNull Document document,
-            @NonNull UserEntity user, @NonNull LocalizationLoader loader) {
+    public void checkIfDocumentIsALocalization(Document document,
+            UserEntity user, LocalizationLoader loader) {
         final String fileName = document.getFileName();
 
         final List<String> possibleNames = new ArrayList<>();
@@ -300,34 +243,8 @@ public class TextUtil {
             throw new InvalidDataSentException("File " + fileName + " cannot be used for "
                     + "localizations since it has an unknown name. Available names: "
                     + possibleNames + ".", loader.getLocalizationForUser(
-                    ERROR_FILE_NOT_LOCALIZATION, user));
+                    Error.FILE_NOT_LOCALIZATION, user));
         }
-    }
-
-    public void checkExpectedMessages(int amount, @NonNull UserEntity user,
-            @NonNull List<Message> messages, @NonNull LocalizationLoader loader) {
-        if (messages.size() != amount) {
-            final Map<String, Object> parameterMap = new HashMap<>();
-            parameterMap.put(PARAM_EXPECTED_MESSAGES_AMOUNT, amount);
-            parameterMap.put(PARAM_PROVIDED_MESSAGES_AMOUNT, messages.size());
-
-            throw new InvalidDataSentException("There are supposed to be "
-                    + amount + " messages. User " + user.getId()
-                    + " has sent " + messages.size() + " messages though.",
-                    loader.getLocalizationForUser(
-                    ERROR_AMOUNT_OF_MESSAGES, user, parameterMap));
-        }
-        for (int i = 0; i < messages.size(); i++) {
-            if (!messages.get(i).hasText()) {
-                throw new InvalidDataSentException("Message " + messages.get(i)
-                        .getMessageId() + " sent by user " + user.getId()
-                        + " does not have any text.",
-                        loader.getLocalizationForUser(
-                        ERROR_MESSAGE_TEXT_MISSING, user, PARAM_MESSAGE_INDEX, i));
-            }
-        }
-        LOGGER.debug("Prelimenary checks have been completed. "
-                + "Trying to set variables...");
     }
 
     private int extractEntities(MarkerDataDto markerData, List<MessageEntity> entities) {
@@ -359,15 +276,6 @@ public class TextUtil {
         }
         
         return new MarkerDataDto(text);
-    }
-
-    private String injectUserData0(String text, String firstName, String lastName,
-            String username) {
-        return text.replace(FIRST_NAME_PATTERN, firstName)
-                .replace(LAST_NAME_PATTERN, (lastName == null) ? ""
-                    : lastName)
-                .replace(USERNAME_PATTERN, (username == null) ? ""
-                    : username);
     }
 
     private static class MarkerDataDto {

@@ -2,14 +2,14 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
+import com.unbidden.telegramcoursesbot.localization.Localization;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.review.ReviewService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +20,6 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class UpdateReviewCommentButtonHandler implements ButtonHandler {
     private static final String SERVICE_UPDATE_REVIEW_COMMENT_REQUEST = "service_update_review_comment_request";
-
-    private static final String ERROR_UPDATE_COMMENT_FORBIDDEN = "error_update_comment_forbidden";
 
     private final ContentSessionService sessionService;
 

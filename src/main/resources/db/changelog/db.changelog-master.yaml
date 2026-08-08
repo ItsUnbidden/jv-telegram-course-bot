@@ -48,30 +48,42 @@ databaseChangeLog:
   - include:
       file: /db/changelog/changes/24-create-markers-table.yaml
   - include:
-      file: /db/changelog/changes/25-create-content-markers-table.yaml
+      file: /db/changelog/changes/25-create-support-requests-table.yaml
   - include:
-      file: /db/changelog/changes/26-create-support-requests-table.yaml
+      file: /db/changelog/changes/26-create-support-replies-table.yaml
   - include:
-      file: /db/changelog/changes/27-create-support-replies-table.yaml
+      file: /db/changelog/changes/27-create-lesson-triggers-table.yaml
   - include:
-      file: /db/changelog/changes/28-create-lesson-triggers-table.yaml
+      file: /db/changelog/changes/28-create-homework-triggers-table.yaml
   - include:
-      file: /db/changelog/changes/29-create-homework-triggers-table.yaml
+      file: /db/changelog/changes/29-create-authorities-table.yaml
   - include:
-      file: /db/changelog/changes/30-create-authorities-table.yaml
+      file: /db/changelog/changes/30-create-roles-table.yaml
   - include:
-      file: /db/changelog/changes/31-create-roles-table.yaml
+      file: /db/changelog/changes/31-create-roles-authorities-table.yaml
   - include:
-      file: /db/changelog/changes/32-create-roles-authorities-table.yaml
+      file: /db/changelog/changes/32-create-bot-roles-table.yaml
   - include:
-      file: /db/changelog/changes/33-create-bot-roles-table.yaml
+      file: /db/changelog/changes/33-insert-authorities.yaml
   - include:
-      file: /db/changelog/changes/34-insert-authorities.yaml
+      file: /db/changelog/changes/34-insert-roles.yaml
   - include:
-      file: /db/changelog/changes/35-insert-roles.yaml
+      file: /db/changelog/changes/35-insert-roles-authorities.yaml
   - include:
-      file: /db/changelog/changes/36-insert-roles-authorities.yaml
+      file: /db/changelog/changes/36-create-ban-triggers-table.yaml
   - include:
-      file: /db/changelog/changes/37-create-ban-triggers-table.yaml
+      file: /db/changelog/changes/37-add-statistics-authority.yaml
   - include:
-      file: /db/changelog/changes/38-add-statistics-authority.yaml
+      file: /db/changelog/changes/38-create-creator-payment-tokens-table.yaml
+  - include:
+      file: /db/changelog/changes/39-create-entitlement-table.yaml
+  - include:
+      file: /db/changelog/changes/40-edit-payment-details-add-entitlement-column.yaml
+  - include:
+      file: /db/changelog/changes/41-insert-bots.yaml
+  - include:
+      file: /db/changelog/changes/42-edit-courses-add-new-content-columns.yaml
+  - include:
+      file: /db/changelog/changes/43-add-primary-keys-to-join-tables.yaml
+  - include:
+      file: /db/changelog/changes/44-create-course-ownerships-table.yaml

@@ -3,11 +3,12 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 import com.unbidden.telegramcoursesbot.bot.BotService;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.bot.RegularClient;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
@@ -33,7 +34,7 @@ public class RefreshBotNameAndDescriptionsButtonHandler implements ButtonHandler
     @Override
     @Security(authorities = AuthorityType.MAINTENANCE)
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
-        botService.checkBotFather(bot, user);
+        botService.checkBotLord(bot, user);
         LOGGER.info("The director is trying to refresh bot names and descriptions...");
         final List<Bot> bots = botService.getAllBots();
 
@@ -50,7 +51,7 @@ public class RefreshBotNameAndDescriptionsButtonHandler implements ButtonHandler
         }
         LOGGER.info("Names and descriptions have been refreshed.");
         LOGGER.debug("Sending confirmation message...");
-        clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+        clientManager.getBotLordClient().sendMessage(user, localizationLoader
                 .getLocalizationForUser(SERVICE_NAMES_DESCRIPTIONS_REFRESH_SUCCESS, user));
         LOGGER.debug("Message sent.");
     }

@@ -1,12 +1,3 @@
-course <courseName>_end
-course <courseName>_end_repeat
-course <courseName>_name
-course <courseName>_lesson_<lessonIndex>_content_<contentIndex>
-course <courseName>_lesson_<lessonIndex>_homework_content
-course <courseName>_invoice_description
-course <courseName>_invoice_title
-
-
 button course_price_change
 button course_feedback_setting
 button course_homework_setting
@@ -105,6 +96,7 @@ button course_users_by_stage
 button course_completed_users
 button course_all_users
 button select_course_stage
+button external_invoice_more_info
 
 
 menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes} ${delay}
@@ -182,16 +174,16 @@ service send_homework_media_group_bypass
 service feedback_media_group_bypass
 service mapping_id_request
 service course_next_stage_media_group_bypass
-service review_info ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead}
-service review_info_comment ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt}
-service review_info_content ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${contentId} ${originalContentId} ${advancedTimestamp}
-service review_info_content_comment ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseGrade} ${platformGrade} ${originalCourseGrade} ${originalPlatformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt} ${contentId} ${originalContentId} ${advancedTimestamp}
+service review_info ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseName} ${courseGrade} ${platformGrade} ${usersWhoRead}
+service review_info_comment ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseName} ${courseGrade} ${platformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt}
+service review_info_content ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseName} ${courseGrade} ${platformGrade} ${usersWhoRead} ${contentId} ${advancedTimestamp}
+service review_info_content_comment ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseName} ${courseGrade} ${platformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt} ${contentId} ${advancedTimestamp}
 service no_new_reviews_for_user
-service review_course_content_updated ${courseName}
+service review_content_updated ${courseName}
 service review_platform_grade_updated ${courseName}
 service review_course_grade_updated ${courseName}
 service comment_submitted_notification ${courseName} ${commenterFullName} ${title}
-service comment_submitted ${reviewId}
+service comment_submitted
 service advanced_review_submitted
 service basic_review_submitted ${courseName}
 service advanced_review_terminal ${courseName}
@@ -205,11 +197,11 @@ service review_comment_request
 service review_content_request
 service feedback_for_homework_waiting
 service homework_accepted_auto
-service homework_feedback_request_notification ${targetId} ${targetFirstName} ${targetLastName} ${targetUsername} ${targetLanguageCode} ${courseName} ${lessonIndex}
-service homework_approved_notification_plus_comment ${courseName} ${lessonIndex} ${commenterName} ${title}
-service homework_approved_notification ${courseName} ${lessonIndex} ${commenterName} ${title}
-service homework_declined_notification_plus_comment ${courseName} ${lessonIndex} ${commenterName} ${title}
-service homework_feedback_notification ${targetId} ${targetFirstName} ${targetLastName} ${targetUsername} ${targetLanguageCode}
+service homework_feedback_request_notification ${targetId} ${targetFullName} ${targetLanguageCode} ${courseName} ${lessonIndex}
+service homework_approved_notification_plus_comment ${courseName} ${lessonIndex} ${whoApproved} ${title}
+service homework_approved_notification ${courseName} ${lessonIndex} ${whoApproved} ${title}
+service homework_declined_notification_plus_comment ${courseName} ${lessonIndex} ${whoDeclined} ${title}
+service homework_submitted_notification ${targetId} ${targetFullName} ${targetLanguageCode}
 service approve_homework_comment_request
 service decline_homework_comment_request
 service get_content_success ${contentId}
@@ -238,7 +230,7 @@ service refund_confirmation_request ${confirmationPhrase}
 service new_refund_stage_request ${courseName}
 service new_refund_stage_success ${courseName} ${newRefundStage}
 service update_review_comment_request
-service support_info ${userFullName} ${timestamp} ${supportType} ${tag}
+service support_info ${userFullName} ${timestamp} ${tag}
 service support_request_media_group_bypass
 service support_reply_media_group_bypass
 service support_reply_info ${userFullName} ${title}
@@ -258,9 +250,6 @@ service general_ban ${whoBanned} ${title}
 service temporary_general_ban ${whoBanned} ${title} ${hoursUntilLift}
 service general_ban_lifted ${whoLifted} ${title}
 service general_ban_lifted_auto
-service bot_<botName>_name
-service bot_<botName>_short_description
-service bot_<botName>_full_description
 service set_role_user_request
 service set_role_success ${targetFullName} ${newRoleType}
 service role_<roleName>_title
@@ -298,6 +287,8 @@ service post_completed ${messagesSent}
 service general_post_completed ${messagesSent} ** Botfather only
 service new_lesson_delay_request ${maxDelay} 
 service less_then_an_hour
+service an_hour
+service hours ${hours}
 service private_message_content_request ${targetTitle} ${targetFullName}
 service private_message_user_request
 service private_message_info ${title} ${senderFullName}
@@ -320,6 +311,9 @@ service course_stage_users ${stage} ${currentPage} ${numberOfPages} ${numberOfEl
 service course_completed_users ${currentPage} ${numberOfPages} ${numberOfElements} ${data} ${courseName}
 service course_users ${currentPage} ${numberOfPages} ${numberOfElements} ${data} ${courseName}
 service bot_users ${currentPage} ${numberOfPages} ${numberOfElements} ${data} ${botname}
+service course_external_invoice_media_group_bypass
+service automatic_refund_notification ${courseId} ${userId}
+service not_available
 
 
 error no_exception_localization_available ${excMessage} ${excClassName}
@@ -329,7 +323,7 @@ error price_limit ${maxPrice}
 error parse_price_failure
 error new_course_wrong_lessons_amount ${maxAmountOfLessons}
 error message_text_missing ${messageIndex}
-error amount_of_messages ${providedMessagesNumber} ${expectedMessagesAmount}
+error number_of_messages ${providedMessagesNumber} ${expectedMessagesNumber}
 error parse_id_failure
 error text_message_expected ${messageIndex}
 error parse_enum_failure ${mediaTypes}
@@ -373,7 +367,7 @@ error take_course_bought ${courseName} ${targetFullName} ${targetTitle}
 error homework_already_declined
 error homework_already_completed
 error unspecified_exception ${excMessage} ${excClassName}
-error critical_director_notification ${excMessage} ${excClassName} ${userFullName} ${botName}
+error critical_director_notification ${excMessage} ${excClassName} ${userId} ${botId}
 error pre_checkout_course_already_owned ${courseName}
 error payment_details_not_found
 error refund_failure
@@ -451,3 +445,6 @@ error no_data_for_multipage_list
 error multipage_list_page_has_no_data
 error support_staff_request
 error select_lesson_course_not_completed
+error_automatic_refund_failure
+error_automatic_refund_failure_notification ${courseId} ${userId}
+error_course_ownership_not_found

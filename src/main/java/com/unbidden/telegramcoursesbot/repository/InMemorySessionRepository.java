@@ -1,9 +1,10 @@
 package com.unbidden.telegramcoursesbot.repository;
 
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations.Menu;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSession;
 import com.unbidden.telegramcoursesbot.service.session.Session;
@@ -36,9 +37,6 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
             new ConcurrentHashMap<>();
 
     private static final String CONFIRM_MENU_TERMINATOR = "session_%s_terminator";
-
-    private static final String MENU_COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE =
-            "menu_commit_content_expired_terminal_page";
 
     private final MenuService menuService;
 
@@ -76,7 +74,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
                         menuService.terminateMenuGroup(entry.getValue().getUser(),
                                 entry.getValue().getBot(), CONFIRM_MENU_TERMINATOR
                                 .formatted(entry.getValue().getId()), localizationLoader
-                                .getLocalizationForUser(MENU_COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE,
+                                .getLocalizationForUser(Menu.COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE,
                                 entry.getValue().getUser()));
                         LOGGER.debug("An MTG for session " + entry.getValue().getId()
                                 + " was terminated after the session expired.");

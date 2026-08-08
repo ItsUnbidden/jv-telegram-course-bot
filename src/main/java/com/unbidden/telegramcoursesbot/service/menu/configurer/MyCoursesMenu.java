@@ -1,9 +1,9 @@
 package com.unbidden.telegramcoursesbot.service.menu.configurer;
 
 import com.unbidden.telegramcoursesbot.exception.RefundImpossibleException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
@@ -113,7 +113,7 @@ public class MyCoursesMenu implements MenuConfigurer {
                 final String buttonLocName = COURSE_NAME.formatted(course.getName());
                 boolean isRefundPossible;
                 try {
-                    isRefundPossible = paymentService.isRefundPossible(u, b,
+                    isRefundPossible = paymentService.checkRefundPossible(u, b,
                             course.getName()) != null;
                 } catch (RefundImpossibleException e) {
                     isRefundPossible = false;
@@ -168,7 +168,7 @@ public class MyCoursesMenu implements MenuConfigurer {
                     }
                 }
                 try {
-                    paymentService.isRefundPossible(u, b, course.getName());
+                    paymentService.checkRefundPossible(u, b, course.getName());
                     buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
                             BUTTON_REFUND, u).getData(), REFUND, refundHandler));
                 } catch (RefundImpossibleException e) {

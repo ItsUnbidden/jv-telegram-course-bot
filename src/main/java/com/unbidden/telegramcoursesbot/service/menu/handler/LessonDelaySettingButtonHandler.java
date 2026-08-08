@@ -2,13 +2,13 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.course.LessonService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +48,7 @@ public class LessonDelaySettingButtonHandler implements ButtonHandler {
     @Override
     @Security(authorities = AuthorityType.COURSE_SETTINGS)
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
-        final Lesson lesson = lessonService.getById(Long.parseLong(params[2]), user, bot);
+        final Lesson lesson = lessonService.getLessonById(Long.parseLong(params[2]), user, bot);
         LOGGER.info("User " + user.getId() + " is trying to update lesson "
                 + lesson.getId() + "'s delay...");
         sessionService.createSession(user, bot, m -> {

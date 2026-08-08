@@ -11,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
@@ -29,12 +28,15 @@ public class InMemoryMultipageListMetaRepository implements MultipageListMetaRep
 
     private static final int INITIAL_EXPIRY_CHECK_DELAY = 10000;
 
-    @Autowired
-    @Lazy
-    private MenuService menuService;
+    private final MenuService menuService;
 
-    @Value("${telegram.bot.message.multipage.meta.expiration}")
-    private Integer expiration;
+    private final Integer expiration;
+
+    public InMemoryMultipageListMetaRepository(@Lazy MenuService menuService,
+            @Value("${telegram.bot.message.multipage.meta.expiration}") Integer expiration) {
+        this.menuService = menuService;
+        this.expiration = expiration;
+    }
 
     @Override
     @NonNull

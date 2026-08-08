@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.SupportReply;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
@@ -8,7 +9,6 @@ import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.service.support.SupportService;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +41,7 @@ private static final Logger LOGGER = LogManager.getLogger(
     @Override
     @Security(authorities = AuthorityType.REPLY_SUPPORT)
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
-        final SupportReply reply = supportService.getReplyById(Long.parseLong(params[0]),
+        final SupportReply reply = supportService.getSupportReplyById(Long.parseLong(params[0]),
                 user, bot);
         LOGGER.info("User " + user.getId() + " is trying to reply to support reply "
                 + reply.getId() + "...");

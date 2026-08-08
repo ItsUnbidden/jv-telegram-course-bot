@@ -21,12 +21,6 @@ databaseChangeLog:
                     references: bots(id)
                     nullable: false
               - column:
-                  name: name
-                  type: varchar(255)
-                  constraints:
-                    nullable: false
-                    unique: true
-              - column:
                   name: price
                   type: int
                   constraints:
@@ -37,10 +31,16 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: amount_of_lessons
+                  name: number_of_lessons
                   type: int
+              - column:
+                  name: payment_type
+                  type: varchar(64)
                   constraints:
                     nullable: false
+              - column:
+                  name: external_store_page_url
+                  type: varchar(512)
               - column:
                   name: is_under_maintenance
                   type: boolean
@@ -57,5 +57,10 @@ databaseChangeLog:
                   name: is_feedback_included
                   type: boolean
                   defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
                   constraints:
                     nullable: false

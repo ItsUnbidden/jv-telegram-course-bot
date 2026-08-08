@@ -25,7 +25,7 @@ public class BotSettingsCommandHandler implements CommandHandler {
     @Override
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
             @NonNull String[] commandParts) {
-        botService.checkBotFather(bot, user);
+        botService.checkBotLord(bot, user);
 
         menuService.initiateMenu(MENU_NAME, user, bot);
     }

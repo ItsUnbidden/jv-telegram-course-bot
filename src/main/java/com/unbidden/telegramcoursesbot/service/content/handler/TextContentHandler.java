@@ -3,114 +3,71 @@ package com.unbidden.telegramcoursesbot.service.content.handler;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.model.content.Content;
-import com.unbidden.telegramcoursesbot.model.content.ContentTextData;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.model.content.MarkerArea;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 import com.unbidden.telegramcoursesbot.repository.LocalizedContentRepository;
 import com.unbidden.telegramcoursesbot.repository.MarkerAreaRepository;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
+
+import jakarta.transaction.Transactional;
+
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 @RequiredArgsConstructor
 public class TextContentHandler implements LocalizedContentHandler<LocalizedContent> {
-    private static final Logger LOGGER = LogManager.getLogger(TextContentHandler.class);
-
-    private final LocalizedContentRepository localizedContentRepository;
+    private final LocalizedContentRepository contentRepository;
 
     private final MarkerAreaRepository markerAreaRepository;
 
-    private final LocalizationLoader localizationLoader;
-
-    private final UserService userService;
-
     private final ClientManager clientManager;
 
+    @NonNull
     @Override
-    public LocalizedContent parseLocalized(@NonNull List<Message> messages, @NonNull Bot bot,
-            boolean isLocalized) {
-        final LocalizedContent localizedContent = new LocalizedContent();
-        final Message message = messages.get(0);
+    @Transactional
+    public LocalizedContent parseAndPersist(@NonNull Bot bot, @NonNull List<Message> messages,
+            @NonNull String languageCode, boolean isProtected) {
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(messages, "messages cannot be null");
+        Assert.notNull(languageCode, "languageCode cannot be null");
+
+        final LocalizedContent content = new LocalizedContent();
+        final Message message = messages.getFirst();
         final List<MarkerArea> markers = (message.getEntities() != null) ? message.getEntities()
-                .stream().map(e -> markerAreaRepository.save(new MarkerArea(e)))
+                .stream().map(e -> new MarkerArea(e, content))
                 .toList() : List.of();
-
-        localizedContent.setBot(bot);
-        localizedContent.setData(new ContentTextData(message.getText(),
-                markers, isLocalized));
-        localizedContent.setLanguageCode(userService.getUser(message
-                .getFrom().getId(), userService.getDiretor()).getLanguageCode());
-        return localizedContent;
-    }
-
-    @Override
-    public LocalizedContent parseLocalized(@NonNull List<Message> messages, @NonNull Bot bot,
-            @NonNull String localizationName, @NonNull String languageCode) {
-        final LocalizedContent localizedContent = new LocalizedContent();
         
-        localizedContent.setBot(bot);
-        localizedContent.setData(new ContentTextData(localizationName, List.of(), true));
-        localizedContent.setLanguageCode(languageCode);
-        return localizedContent;
+        content.setBot(bot);
+        content.setData(message.getText());
+        content.setLanguageCode(languageCode);
+        content.setType(getContentType());
+        content.setProtected(isProtected);
+        contentRepository.save(content);
+        markerAreaRepository.saveAll(markers);
+        return content;
     }
 
     @Override
     @NonNull
-    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
-            @NonNull Bot bot) {
-        return sendContent(content, user, bot, false, false);
-    }
+    public List<Message> sendContent(@NonNull UserEntity user, @NonNull Bot bot,
+            @NonNull LocalizedContent content) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(content, "content cannot be null");
 
-    @Override
-    @NonNull
-    public List<Message> sendContent(@NonNull Content content, @NonNull UserEntity user,
-            @NonNull Bot bot, boolean isProtected, boolean skipText) {
-        if (skipText) {
-            LOGGER.warn("Content " + content.getId() + " is of type " + content.getType()
-                    + " but parameter to skip text is enabled, meaning no content will be sent.");
-            return List.of();
-        }
-        final LocalizedContent localizedContent = (LocalizedContent)content;
-        final Localization localization = (localizedContent.getData().isLocalization())
-                ? localizationLoader.getLocalizationForUser(localizedContent
-                    .getData().getData(), user)
-                : new Localization(localizedContent.getData().getData());
-        
-        if (localization.getEntities() == null || localization.getEntities().isEmpty()) {
-            localization.setEntities(localizedContent.getData().getEntities().stream()
-                    .map(m -> m.toMessageEntity()).toList());
-        }
         return List.of(clientManager.getClient(bot).sendMessage(SendMessage.builder()
                 .chatId(user.getId())
-                .text(localization.getData())
-                .entities(localization.getEntities())
-                .protectContent(isProtected)
+                .text(content.getData())
+                .entities(markerAreaRepository.findByContentId(content.getId()).stream()
+                        .map(MarkerArea::toMessageEntity).toList())
+                .protectContent(content.isProtected())
                 .build()));
-    }
-
-    @Override
-    @NonNull
-    public Optional<LocalizedContent> findById(@NonNull Long id) {
-        return localizedContentRepository.findById(id);
-    }
-
-    @Override
-    @NonNull
-    public LocalizedContent persist(@NonNull Content content) {
-        final LocalizedContent localizedContent = (LocalizedContent)content;
-        return localizedContentRepository.save(localizedContent);
     }
 
     @Override

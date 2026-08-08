@@ -1,0 +1,39 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-courses-add-title-description-columns
+      author: Unbidden
+      changes:
+        - addColumn:
+            tableName: courses
+            columns:
+              - column:
+                  name: title_mapping_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_title_mapping_courses
+                    references: content_mappings(id)
+                    nullable: false
+              - column:
+                  name: description_mapping_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_description_mapping_courses
+                    references: content_mappings(id)
+              - column:
+                  name: end_mapping_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_end_mapping_courses
+                    references: content_mappings(id)
+              - column:
+                  name: external_invoice_content_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_external_invoice_content_courses
+                    references: content_mappings(id)
+        # - addForeignKeyConstraint:
+        #     baseTableName: messages
+        #     baseColumnNames: comment_id
+        #     referencedTableName: messages
+        #     referencedColumnNames: id
+        #     constraintName: fk_replies_comments

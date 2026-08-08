@@ -21,8 +21,8 @@ public class DisableBotButtonHandler implements ButtonHandler {
     @Override
     @Security(authorities = AuthorityType.BOTS_SETTINGS)
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
-        botService.checkBotFather(bot, user);
-        clientManager.getBotFatherClient().sendMessage(SendMessage.builder()
+        botService.checkBotLord(bot, user);
+        clientManager.getBotLordClient().sendMessage(SendMessage.builder()
                 .chatId(user.getId())
                 .text("This is not implemented at the moment.")
                 .build());

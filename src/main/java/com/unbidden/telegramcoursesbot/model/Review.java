@@ -3,33 +3,34 @@ package com.unbidden.telegramcoursesbot.model;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+
 import java.time.LocalDateTime;
-import java.util.List;
-import lombok.Data;
+import java.util.Set;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import org.hibernate.Hibernate;
 import org.springframework.lang.NonNull;
 
+@Getter
+@Setter
 @Entity
-@Data
 @Table(name = "reviews")
-public class Review {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @ManyToOne
+public class Review extends BaseEntity {
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
@@ -52,28 +53,31 @@ public class Review {
     @Column(nullable = false)
     private Integer platformGrade;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "original_content_id")
     private LocalizedContent originalContent;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "content_id")
     private LocalizedContent content;
 
     @ManyToMany
     @JoinTable(name = "reviews_users_who_read", joinColumns = @JoinColumn(name = "review_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id"))
-    private List<UserEntity> markedAsReadBy;
+    private Set<UserEntity> markedAsReadBy;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "comment_content_id")
     private LocalizedContent commentContent;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_who_commented_id")
     private UserEntity commentedBy;
 
     private LocalDateTime commentedAt;
+
+    @Version
+    private Long version;
 
     @NonNull
     public String getUsersWhoReadAsString() {
@@ -86,5 +90,16 @@ public class Review {
             return builder.delete(builder.length() - 2, builder.length()).toString();
         }
         return "";
+    }
+
+    @Override
+    public String toString() {
+        return "Review(id=" + getId() + ", userId=" + user.getId() + ", courseId=" + course.getId() + ", basicSubmittedTimestamp="
+                + basicSubmittedTimestamp + ", advancedSubmittedTimestamp=" + advancedSubmittedTimestamp
+                + ", lastUpdateTimestamp=" + lastUpdateTimestamp + ", courseGrade=" + courseGrade
+                + ", platformGrade=" + platformGrade + ", contentId=" + (content != null ? content.getId() : "NULL")
+                + ", markedAsReadBy=" + (Hibernate.isInitialized(markedAsReadBy) ? markedAsReadBy.stream().map(u -> u.getId()) : "LAZY")
+                + ", commentContentId=" + (commentContent != null ? commentContent.getId() : "NULL") + ", commentedById="
+                + (commentedBy != null ? commentedBy.getId() : "NULL") + ", commentedAt=" + commentedAt + ", version=" + version + ")";
     }
 }

@@ -12,19 +12,19 @@ import org.springframework.lang.NonNull;
 
 public interface LessonTriggersRepository extends JpaRepository<LessonTrigger, Long> {
     @NonNull
-    @Query("from LessonTrigger lt left join fetch lt.user u left join fetch lt.bot b "
-            + "left join fetch lt.progress p left join fetch p.course c "
-            + "where lt.target < :currentTime")
+    @Query("""
+           from LessonTrigger lt
+           left join fetch lt.progress p
+           left join fetch p.user u
+           where lt.target < :currentTime
+    """)
     List<LessonTrigger> findAllExpired(@NonNull LocalDateTime currentTime);
 
     @NonNull
-    @EntityGraph(attributePaths = {"user", "bot", "progress"})
+    @EntityGraph(attributePaths = {"user", "progress"})
     Optional<LessonTrigger> findById(@NonNull Long id);
 
     @NonNull
-    @Query("from LessonTrigger lt left join fetch lt.user u left join fetch lt.bot b "
-            + "left join fetch lt.progress p left join fetch p.course c where u.id = :userId and "
-            + "c.id = :courseId and p.stage = :stage")
-    Optional<LessonTrigger> findByCourseStageAndUser(@NonNull Long userId,
+    Optional<LessonTrigger> findByUserIdAndCourseIdAndProgressStage(@NonNull Long userId,
             @NonNull Long courseId, @NonNull Integer stage);
 }

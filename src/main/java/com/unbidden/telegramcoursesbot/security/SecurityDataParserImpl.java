@@ -4,7 +4,8 @@ import com.unbidden.telegramcoursesbot.exception.SecurityDataParsingException;
 import com.unbidden.telegramcoursesbot.model.Authority;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
+import com.unbidden.telegramcoursesbot.util.EntityUtil;
+
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Component;
 public class SecurityDataParserImpl implements SecurityDataParser {
     private static final Logger LOGGER = LogManager.getLogger(SecurityDataParserImpl.class);
 
-    private final UserService userService;
+    private final EntityUtil entityUtil;
 
     @NonNull
     @Override
@@ -86,8 +87,7 @@ public class SecurityDataParserImpl implements SecurityDataParser {
         }
 
         LOGGER.trace("Fetching authorities...");
-        final List<Authority> authorities = userService.parseAuthorities(
-                annotation.authorities());
+        final List<Authority> authorities = entityUtil.parseAuthorities(List.of(annotation.authorities()));
         LOGGER.trace("Authorities have been loaded.");
 
         LOGGER.trace("Data successfuly parsed. User id: " + user.getId()

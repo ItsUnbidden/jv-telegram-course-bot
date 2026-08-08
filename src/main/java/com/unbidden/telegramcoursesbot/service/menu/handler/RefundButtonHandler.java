@@ -2,12 +2,12 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.PaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import java.util.HashMap;
@@ -54,7 +54,7 @@ public class RefundButtonHandler implements ButtonHandler {
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
         LOGGER.info("User " + user.getId() + " is trying to refund course " + params[0] + "...");
         final PaymentDetails paymentDetails = paymentService
-                .isRefundPossible(user, bot, params[0]);
+                .checkRefundPossible(user, bot, params[0]);
         final Map<String, Object> confirmationPhraseParameterMap = new HashMap<>();
         confirmationPhraseParameterMap.put(PARAM_COURSE_NAME, localizationLoader
                 .getLocalizationForUser(COURSE_NAME.formatted(params[0]), user).getData());

@@ -4,6 +4,7 @@ import com.unbidden.telegramcoursesbot.bot.BotService;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.Role;
@@ -11,7 +12,6 @@ import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.repository.BotRoleRepository;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 
 import java.util.ArrayList;
@@ -130,7 +130,7 @@ public class PostServiceImpl implements PostService {
                     targets = new ArrayList<>();
                     bots = new ArrayList<>();
                     for (BotRole botRole : botRoles) {
-                        if (!botRole.getBot().getId().equals(botService.getBotFather().getId())) {
+                        if (!botRole.getBot().getId().equals(botService.getBotLord().getId())) {
                             targets.add(botRole.getUser());
                             bots.add(botRole.getBot());
                         }
@@ -149,7 +149,7 @@ public class PostServiceImpl implements PostService {
                     + "has finished execution with " + totalMessagesCounter + " messages sent.");
             isRequestBeingExecuted = false;
             LOGGER.debug("Sending success message...");
-            clientManager.getBotFatherClient().sendMessage(director, localizationLoader
+            clientManager.getBotLordClient().sendMessage(director, localizationLoader
                     .getLocalizationForUser(SERVICE_GENERAL_POST_COMPLETED, director,
                     PARAM_MESSAGES_SENT, totalMessagesCounter));
             LOGGER.debug("Message sent.");

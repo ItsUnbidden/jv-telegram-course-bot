@@ -21,7 +21,7 @@ public class SecurityAspect {
     
     @Around("@annotation(com.unbidden.telegramcoursesbot.security.Security)")
     public void projectAccessAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
-        LOGGER.trace("Project security aspect commencing...");
+        LOGGER.trace("Bot security aspect commencing...");
         SecurityDto dataFromJoinPoint;
         try {
             dataFromJoinPoint = dataParser.parse(joinPoint);

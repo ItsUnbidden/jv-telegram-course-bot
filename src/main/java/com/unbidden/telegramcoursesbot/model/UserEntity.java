@@ -4,13 +4,18 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.Data;
-import org.springframework.lang.NonNull;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.Objects;
+
+import org.hibernate.Hibernate;
 import org.telegram.telegrambots.meta.api.objects.User;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "users")
-@Data
 public class UserEntity {
     @Id
     private Long id;
@@ -43,7 +48,6 @@ public class UserEntity {
         this.isBanned = false;
     }
 
-    @NonNull
     public String getFullName() {
         if (lastName != null && username != null) {
             return firstName + " @" + username + " " + lastName;
@@ -57,8 +61,30 @@ public class UserEntity {
         return firstName + "(" + id + ")";
     }
 
-    @NonNull
     public String getFullUserInfo() { 
         return id + " — " + getFullName() + " — " + languageCode;
+    }
+
+    @Override
+    public String toString() {
+        return "UserEntity(id=" + id + ", firstName=" + firstName + ", lastName=" + lastName + ", username=" + username
+                + ", languageCode=" + languageCode + ", isLanguageManuallySet=" + isLanguageManuallySet + ", isBanned="
+                + isBanned + ")";
+    }
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (o == null || !Hibernate.getClass(this).equals(Hibernate.getClass(o))) return false;
+
+        final UserEntity that = (UserEntity)o;
+
+        return getId() != null && getId().equals(that.getId());
+    }
+
+    @Override
+    public final int hashCode() {
+        return Objects.hashCode(getId());
     }
 }

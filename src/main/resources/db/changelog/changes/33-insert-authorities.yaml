@@ -1,0 +1,119 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-authorities
+      author: Unbidden
+      changes:
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: MAINTENANCE
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: COURSE_SETTINGS
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: GIVE_COURSE
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: SEE_REVIEWS
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: GIVE_HOMEWORK_FEEDBACK
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: ANSWER_SUPPORT
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: LAUNCH_COURSE
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: LEAVE_REVIEW
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: ASK_SUPPORT
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: BUY
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: ROLE_SETTINGS
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: POST
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: REFUND
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: CONTENT_SETTINGS
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: INFO
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: BOT_USER_BANS
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: GENERAL_BANS
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: REPLY_SUPPORT
+        - insert:  
+            tableName: authorities
+            columns:
+              - column:
+                  name: type
+                  value: BOTS_SETTINGS

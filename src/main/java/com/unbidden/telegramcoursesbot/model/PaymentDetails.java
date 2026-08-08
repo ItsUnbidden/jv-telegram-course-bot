@@ -1,50 +1,57 @@
 package com.unbidden.telegramcoursesbot.model;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorColumn;
+import jakarta.persistence.DiscriminatorType;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
-import lombok.Data;
-import org.hibernate.annotations.SQLDelete;
+import jakarta.persistence.Version;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @Entity
-@Data
 @Table(name = "payment_details")
-@SQLDelete(sql = "UPDATE payment_details SET is_valid = false WHERE id = ?")
-public class PaymentDetails {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @ManyToOne
+@DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.STRING)
+public abstract class PaymentDetails extends BaseEntity {
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bot_id", nullable = false)
     private Bot bot;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
-    
-    @Column(nullable = false)
-    private Integer totalAmount;
-    
-    @Column(nullable = false)
-    private String telegramPaymentChargeId;
 
     @Column(nullable = false)
     private LocalDateTime timestamp;
 
-    private LocalDateTime refundedAt;
+    @Column(nullable = false)
+    private Integer totalAmount;
 
-    private boolean isValid;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private CurrencyCode currency;
 
-    private boolean isGifted;
+    @Version
+    private Long version;
+
+    @Override
+    public String toString() {
+        return "PaymentDetails(id=" + getId() + ", userId=" + getUser().getId() + ", botId=" + getBot().getId()
+                + ", courseId=" + getCourse().getId() + ", timestamp=" + getTimestamp() + ", totalAmount=" + totalAmount
+                + ", version=" + getVersion() + ")";
+    }
 }

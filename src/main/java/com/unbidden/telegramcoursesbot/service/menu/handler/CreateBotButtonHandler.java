@@ -4,11 +4,11 @@ import com.unbidden.telegramcoursesbot.bot.BotService;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.service.session.UserOrChatRequestSessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
@@ -85,7 +85,7 @@ public class CreateBotButtonHandler implements ButtonHandler {
     @Override
     @Security(authorities = AuthorityType.BOTS_SETTINGS)
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
-        botService.checkBotFather(bot, user);
+        botService.checkBotLord(bot, user);
         switch (params[1]) {
             case CHOOSE_USER:
                 LOGGER.debug("User " + user.getId() + " wants to choose user.");
@@ -107,7 +107,7 @@ public class CreateBotButtonHandler implements ButtonHandler {
                         .build();
                 LOGGER.debug("Sending keyboard message to user " + user.getId()
                         + " in order for them to choose the target.");
-                clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+                clientManager.getBotLordClient().sendMessage(user, localizationLoader
                         .getLocalizationForUser(SERVICE_CREATE_BOT_CHOOSE_CREATOR, user),
                         markup);
                 LOGGER.debug("Keyboard message sent.");
@@ -139,7 +139,7 @@ public class CreateBotButtonHandler implements ButtonHandler {
                     createBot(user, creator, m.get(1).getText(), m.get(2).getText());
                 });
                 LOGGER.debug("Sending request message to user " + user.getId() + "...");
-                clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+                clientManager.getBotLordClient().sendMessage(user, localizationLoader
                         .getLocalizationForUser(SERVICE_CREATE_BOT_CREATOR_BY_ID_REQUEST, user));
                 LOGGER.debug("Message sent.");
                 break;
@@ -156,7 +156,7 @@ public class CreateBotButtonHandler implements ButtonHandler {
                 createBot(user, creator, m2.get(0).getText(), m2.get(1).getText());
             });
             LOGGER.debug("Sending request for bot name and token to director...");
-            clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+            clientManager.getBotLordClient().sendMessage(user, localizationLoader
                     .getLocalizationForUser(SERVICE_CREATE_BOT_NAME_TOKEN_REQUEST, user),
                     keyboardRemove);
             LOGGER.debug("Message sent.");
@@ -202,7 +202,7 @@ public class CreateBotButtonHandler implements ButtonHandler {
         LOGGER.info("New bot " + newBot.getName() + " with id " + newBot.getId()
                 + " has been created and initialized.");
         LOGGER.debug("Sending confirmation messages...");
-        clientManager.getBotFatherClient().sendMessage(director, localizationLoader
+        clientManager.getBotLordClient().sendMessage(director, localizationLoader
                 .getLocalizationForUser(SERVICE_NEW_BOT_CREATED, director));
         clientManager.getClient(newBot).sendMessage(creator, localizationLoader
                 .getLocalizationForUser(SERVICE_BOT_CREATED_CREATOR_NOTIFICATION,

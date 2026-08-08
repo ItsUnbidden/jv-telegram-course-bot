@@ -1,12 +1,12 @@
 package com.unbidden.telegramcoursesbot.service.menu.configurer;
 
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
 import com.unbidden.telegramcoursesbot.service.course.LessonService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
@@ -185,7 +185,7 @@ public class CourseSettingsMenu implements MenuConfigurer {
             final Map<String, Object> parameterMap = new HashMap<>();
             parameterMap.put(PARAM_COURSE_ID, course.getId());
             parameterMap.put(PARAM_COURSE_NAME, course.getName());
-            parameterMap.put(PARAM_NUMBER_OF_LESSONS, course.getAmountOfLessons());
+            parameterMap.put(PARAM_NUMBER_OF_LESSONS, course.getNumberOfLessons());
             parameterMap.put(PARAM_PRICE, course.getPrice());
             parameterMap.put(PARAM_REFUND_STAGE, (course.getRefundStage().equals(-1))
                 ? "Not available" : course.getRefundStage());
@@ -241,7 +241,7 @@ public class CourseSettingsMenu implements MenuConfigurer {
         fourthPage.setButtonsRowSize(2);
         fourthPage.setMenu(courseSettingsMenu);
         fourthPage.setLocalizationFunction((u, p, b) -> {
-            final Lesson lesson = lessonService.getById(Long.parseLong(p.get(2)), u, b);
+            final Lesson lesson = lessonService.getLessonById(Long.parseLong(p.get(2)), u, b);
             final Map<String, Object> parameterMap = new HashMap<>();
             parameterMap.put(PARAM_LESSON_ID, lesson.getId());
             parameterMap.put(PARAM_INDEX, lesson.getPosition());
@@ -267,7 +267,7 @@ public class CourseSettingsMenu implements MenuConfigurer {
             buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
                 BUTTON_SET_LESSON_DELAY, u).getData(), SET_LESSON_DELAY,
                 lessonDelaySettingHandler));
-            final Lesson lesson = lessonService.getById(Long.parseLong(p.get(2)), u, b);
+            final Lesson lesson = lessonService.getLessonById(Long.parseLong(p.get(2)), u, b);
             final Button homeworkButton;
             if (lesson.getHomework() == null) {
                 homeworkButton = new TerminalButton(localizationLoader.getLocalizationForUser(

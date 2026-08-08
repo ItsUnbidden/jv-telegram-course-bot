@@ -3,6 +3,7 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 import com.unbidden.telegramcoursesbot.bot.BotService;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Role;
@@ -12,7 +13,6 @@ import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.post.PostService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
@@ -64,7 +64,7 @@ private static final Logger LOGGER = LogManager.getLogger(PostButtonHandler.clas
     @Override
     @Security(authorities = {AuthorityType.MAINTENANCE, AuthorityType.POST})
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
-        botService.checkBotFather(bot, user);
+        botService.checkBotLord(bot, user);
         LOGGER.info("The director is trying to post...");
         postService.checkExecution(user);
         final List<Role> roles = new ArrayList<>();
@@ -91,7 +91,7 @@ private static final Logger LOGGER = LogManager.getLogger(PostButtonHandler.clas
                     post(user, bot, roles);
                 });
                 LOGGER.debug("Sending roles request...");
-                clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+                clientManager.getBotLordClient().sendMessage(user, localizationLoader
                         .getLocalizationForUser(SERVICE_GENERAL_POST_ROLES_REQUEST, user));
                 LOGGER.debug("Request sent.");
                 break;
@@ -112,12 +112,12 @@ private static final Logger LOGGER = LogManager.getLogger(PostButtonHandler.clas
             postService.sendMessagesThroughoutBots(user, roles, postContent);
 
             LOGGER.debug("Sending thread started message...");
-            clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+            clientManager.getBotLordClient().sendMessage(user, localizationLoader
                     .getLocalizationForUser(SERVICE_GENERAL_POST_STARTED, user));
             LOGGER.debug("Message sent.");
         });
         LOGGER.debug("Sending content request...");
-        clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+        clientManager.getBotLordClient().sendMessage(user, localizationLoader
                 .getLocalizationForUser(SERVICE_GENERAL_POST_CONTENT_REQUEST, user));
         LOGGER.debug("Request sent.");
     }

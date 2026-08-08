@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.exception;
 
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
+import com.unbidden.telegramcoursesbot.localization.Localization;
 
 public class AccessDeniedException extends LocalizedException {
     public AccessDeniedException(String msg, Localization errorLoc) {

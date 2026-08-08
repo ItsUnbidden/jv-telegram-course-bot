@@ -1,7 +1,6 @@
 package com.unbidden.telegramcoursesbot.bot;
 
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.List;
@@ -23,18 +22,16 @@ public class Initializer implements ApplicationRunner {
 
     private final UserService userService;
 
-    private final CourseService courseService;
-
     @Override
     public void run(ApplicationArguments args) {
         // Initializing director
         final UserEntity director = userService.createDummyDirector();
 
-        // Initializing botfather and its client
-        botService.initializeBotFather(botService.createBotFather(director));
+        // Initializing bot lord and its client
+        botService.initializeBotLord(botService.updateBotLord(director));
     
         // Initializing initial bot and course enities
-        courseService.createInitialCourse(botService.createInitialBot(director));
+        botService.updateInitialBot(director);
 
         // Initializing clients
         botService.initializeBots();

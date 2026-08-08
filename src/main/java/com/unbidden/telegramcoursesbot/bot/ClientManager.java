@@ -1,28 +1,129 @@
 package com.unbidden.telegramcoursesbot.bot;
 
+import com.unbidden.telegramcoursesbot.dao.CertificateDao;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
-import org.springframework.lang.NonNull;
+import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
+import com.unbidden.telegramcoursesbot.service.user.UserService;
+import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
-public interface ClientManager {
-    @NonNull
-    CustomTelegramClient getClient(@NonNull Bot bot);
+import jakarta.persistence.EntityNotFoundException;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Component;
 
-    @NonNull
-    BotFatherClient getBotFatherClient();
+@Component
+public class ClientManager {
+    private static final Logger LOGGER = LogManager.getLogger(ClientManager.class);
 
-    @NonNull
-    CustomTelegramClient addClient(@NonNull Bot bot);
+    private static final Map<Long, RegularClient> clients = new HashMap<>(); 
 
-    @NonNull
-    BotFatherClient addBotFatherClient(@NonNull Bot bot);
+    private volatile boolean isOnMaintenance;
 
-    void removeClient(@NonNull Bot bot);
+    private volatile boolean isRefreshing;
 
-    boolean toggleMaintenance();
+    private final CertificateDao dao;
 
-    boolean isOnMaintenance();
+    private final UserService userService;
 
-    boolean isRefreshing();
+    private final LocalizationLoader loader;
 
-    void setRefreshing(boolean isRefreshing);
+    private final EntityUtil entityUtil;
+
+    private final CommandHandlerManager commandHandlerManager;
+    
+    private BotLordClient botLordClient;
+
+    public ClientManager(CertificateDao dao, UserService userService,
+            LocalizationLoader loader, EntityUtil entityUtil,
+            @Lazy CommandHandlerManager commandHandlerManager) {
+        this.dao = dao;
+        this.userService = userService;
+        this.loader = loader;
+        this.entityUtil = entityUtil;
+        this.commandHandlerManager = commandHandlerManager;
+    }
+
+    @Value("${telegram.bot.authorization.bot_lord.token}")
+    private String botLordToken;
+
+    @Value("${telegram.bot.webhook.url}")
+    private String baseUrl;
+    
+    @Value("${telegram.bot.webhook.secret}")
+    private String secretToken;
+    
+    @Value("${telegram.bot.webhook.ip}")
+    private String ip;
+    
+    @Value("${telegram.bot.webhook.max_connections}")
+    private int maxConnections;
+
+    @Value("${telegram.bot.webhook.use_certificate}")
+    private boolean isCustomCertificateIncluded;
+
+    public CustomTelegramClient getClient(Bot bot) {
+        final CustomTelegramClient client = clients.get(bot.getId());
+
+        if (client == null) {
+            if (bot.getId().equals(entityUtil.getBotLord().getId())) {
+                return getBotLordClient();
+            }
+            throw new EntityNotFoundException("Bot " + bot.getId()
+                    + "'s client does not exist");
+        }
+        return client;
+    }
+
+    public CustomTelegramClient addClient(Bot bot) {
+        LOGGER.debug("Creating a new client for bot " + bot.getId() + "...");
+        final RegularClient client = new RegularClient(bot, userService, loader,
+                dao, commandHandlerManager, entityUtil, baseUrl, secretToken, ip,
+                maxConnections, isCustomCertificateIncluded);
+
+        clients.put(bot.getId(), client);
+        return client;
+    }
+
+    public BotLordClient addBotLordClient(Bot bot) {
+        LOGGER.debug("Creating a new client for bot lord...");
+        botLordClient = new BotLordClient(botLordToken, baseUrl, ip, secretToken, bot,
+                dao, userService, loader, isCustomCertificateIncluded);
+        return botLordClient;
+    }
+
+    public void removeClient(Bot bot) {
+
+        LOGGER.info("Remving client for bot " + bot.getId() + "...");
+        clients.get(bot.getId()).runDeleteWebhook();
+        clients.remove(bot.getId());
+        LOGGER.info("Client for bot " + bot.getId() + " has been removed "
+                + "and webhook has been deleted.");
+    }
+
+    public boolean toggleMaintenance() {
+        isOnMaintenance = !isOnMaintenance;
+        LOGGER.info("Maintenance has been toggled to " + isOnMaintenance + ".");
+        return isOnMaintenance;
+    }
+
+    public boolean isOnMaintenance() {
+        return isOnMaintenance;
+    }
+
+    public BotLordClient getBotLordClient() {
+        return botLordClient;
+    }
+
+    public boolean isRefreshing() {
+        return isRefreshing;
+    }
+
+    public void setRefreshing(boolean isRefreshing) {
+        this.isRefreshing = isRefreshing;
+    }
 }

@@ -3,9 +3,9 @@ package com.unbidden.telegramcoursesbot.service.command.handler;
 import com.unbidden.telegramcoursesbot.bot.BotService;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import java.util.List;
@@ -42,7 +42,7 @@ public class MaintenanceCommandHandler implements CommandHandler {
     @Security(authorities = AuthorityType.MAINTENANCE)
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
             @NonNull String[] commandParts) {
-        botService.checkBotFather(bot, user);
+        botService.checkBotLord(bot, user);
         if (clientManager.isRefreshing()) {
             throw new ForbiddenOperationException("Cannot toggle maintenance while the server "
                     + "is refreshing", localizationLoader.getLocalizationForUser(
@@ -53,7 +53,7 @@ public class MaintenanceCommandHandler implements CommandHandler {
         clientManager.toggleMaintenance();
         LOGGER.info("Maintenance is now " + getStatus(clientManager.isOnMaintenance()));
         LOGGER.debug("Sending confirmation message to director...");
-        clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+        clientManager.getBotLordClient().sendMessage(user, localizationLoader
                 .getLocalizationForUser(SERVICE_ON_MAINTENANCE_STATUS_CHANGE, user,
                 PARAM_STATUS, getStatus(user, clientManager.isOnMaintenance())));
         LOGGER.debug("Message sent.");

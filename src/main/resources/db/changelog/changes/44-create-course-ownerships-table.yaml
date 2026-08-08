@@ -1,0 +1,58 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-course_ownerships-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: course_ownerships
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_users_course_ownerships
+                    references: users(id)
+              - column:
+                  name: course_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_courses_course_ownerships
+                    references: courses(id)
+              - column:
+                  name: payment_details_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_payment_details_course_ownerships
+                    references: courses(id)
+              - column:
+                  name: last_update
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: course_ownerships
+            columnNames: user_id, course_id
+            constraintName: "uq_course_ownerships_user_course"

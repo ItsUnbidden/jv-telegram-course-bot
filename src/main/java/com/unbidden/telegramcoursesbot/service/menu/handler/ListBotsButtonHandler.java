@@ -2,11 +2,11 @@ package com.unbidden.telegramcoursesbot.service.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.BotService;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 
 import java.util.List;
@@ -38,7 +38,7 @@ public class ListBotsButtonHandler implements ButtonHandler {
     @Override
     @Security(authorities = AuthorityType.BOTS_SETTINGS)
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
-        botService.checkBotFather(bot, user);
+        botService.checkBotLord(bot, user);
         final StringBuilder builder = new StringBuilder();
         final List<Bot> bots = botService.getAllBots();
         
@@ -50,7 +50,7 @@ public class ListBotsButtonHandler implements ButtonHandler {
         }
         builder.delete(builder.length() - 1, builder.length());
         LOGGER.debug("Bot list compiled. Sending...");
-        clientManager.getBotFatherClient().sendMessage(user, localizationLoader
+        clientManager.getBotLordClient().sendMessage(user, localizationLoader
                 .getLocalizationForUser(SERVICE_LIST_BOTS, user, PARAM_BOTS, builder.toString()));
         LOGGER.debug("Message sent.");
     }

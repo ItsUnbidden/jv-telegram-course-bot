@@ -1,0 +1,41 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-roles
+      author: Unbidden
+      changes:
+        - insert:  
+            tableName: roles
+            columns:
+              - column:
+                  name: type
+                  value: DIRECTOR
+        - insert:  
+            tableName: roles
+            columns:
+              - column:
+                  name: type
+                  value: CREATOR
+        - insert:  
+            tableName: roles
+            columns:
+              - column:
+                  name: type
+                  value: SUPPORT
+        - insert:  
+            tableName: roles
+            columns:
+              - column:
+                  name: type
+                  value: MENTOR
+        - insert:  
+            tableName: roles
+            columns:
+              - column:
+                  name: type
+                  value: USER
+        - insert:  
+            tableName: roles
+            columns:
+              - column:
+                  name: type
+                  value: BANNED

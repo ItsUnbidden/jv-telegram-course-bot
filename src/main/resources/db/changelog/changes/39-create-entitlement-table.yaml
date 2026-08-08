@@ -1,0 +1,70 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-creator-payment-tokens-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: entitlements
+            columns: 
+              - column:
+                  name: id
+                  type: binary(16)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: bot_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bots_creator_payment_tokens
+                    references: bots(id)
+              - column:
+                  name: course_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_courses_creator_payment_tokens
+                    references: courses(id)
+              - column:
+                  name: token_hash
+                  type: varchar(512)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column: 
+                  name: aquired_at
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column: 
+                  name: price
+                  type: int
+                  constraints:
+                    nullable: false
+              - column: 
+                  name: currency
+                  type: varchar(3)
+                  constraints:
+                    nullable: false
+              - column: 
+                  name: external_payment_id
+                  type: text
+                  constraints:
+                    nullable: false
+              - column: 
+                  name: last_rotated_at
+                  type: datetime
+              - column:
+                  name: version
+                  type: bigint
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: entitlements
+            columnNames: bot_id, external_payment_id
+            constraintName: uq_entitlement_bot_payment

@@ -11,9 +11,16 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.lang.NonNull;
 
 public interface HomeworkTriggersRepository extends JpaRepository<HomeworkTrigger, Long> {
-    @Query("from HomeworkTrigger ht left join fetch ht.user u left join fetch ht.bot b "
-            + "left join fetch ht.progress p left join fetch p.homework h "
-            + "left join fetch h.mapping m where ht.target < :currentTime")
+    @Query("""
+        from HomeworkTrigger ht
+        left join fetch ht.progress p
+        left join fetch p.user u
+        left join fetch p.homework h
+        left join fetch h.mapping m
+        left join fetch h.lesson l
+        left join fetch l.course c
+        where ht.target < :currentTime
+    """)
     @NonNull
     List<HomeworkTrigger> findAllExpired(@NonNull LocalDateTime currentTime);
 
@@ -21,10 +28,5 @@ public interface HomeworkTriggersRepository extends JpaRepository<HomeworkTrigge
     @EntityGraph(attributePaths = {"user", "bot", "progress"})
     Optional<HomeworkTrigger> findById(@NonNull Long id);
 
-    @NonNull
-    @Query("from HomeworkTrigger ht left join fetch ht.user u left join fetch ht.bot b "
-            + "left join fetch ht.progress p left join fetch p.homework h "
-            + "where u.id = :userId and h.id = :homeworkId")
-    Optional<HomeworkTrigger> findByHomeworkAndUser(@NonNull Long userId,
-            @NonNull Long homeworkId);
+    boolean existsByUserIdAndProgressHomeworkId(@NonNull Long userId, @NonNull Long homeworkId);
 }

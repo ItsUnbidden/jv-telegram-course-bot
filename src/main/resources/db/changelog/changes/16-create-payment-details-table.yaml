@@ -11,8 +11,12 @@ databaseChangeLog:
                   type: bigint
                   autoIncrement: true
                   constraints:
-                    nullable: false
                     primaryKey: true
+              - column:
+                  name: type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
               - column:
                   name: user_id
                   type: bigint
@@ -34,32 +38,28 @@ databaseChangeLog:
                     foreignKeyName: fk_courses_payment_details
                     references: courses(id)
               - column:
+                  name: timestamp
+                  type: datetime
+                  constraints:
+                    nullable: false 
+              - column:
                   name: total_amount
                   type: int
                   constraints:
                     nullable: false
               - column:
-                  name: telegram_payment_charge_id
-                  type: varchar(255)
+                  name: currency
+                  type: varchar(3)
                   constraints:
                     nullable: false
               - column:
-                  name: timestamp
-                  type: datetime
+                  name: version
+                  type: bigint
                   constraints:
                     nullable: false
+              - column:
+                  name: telegram_payment_charge_id
+                  type: TEXT
               - column:
                   name: refunded_at
-                  type: datetime                 
-              - column:
-                  name: is_valid
-                  type: boolean
-                  defaultValueBoolean: true
-                  constraints:
-                    nullable: false
-              - column:
-                  name: is_gifted
-                  type: boolean
-                  defaultValueBoolean: false
-                  constraints:
-                    nullable: false
+                  type: datetime
