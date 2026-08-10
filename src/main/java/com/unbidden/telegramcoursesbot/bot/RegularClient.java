@@ -11,22 +11,16 @@ import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
-import java.util.ArrayList;
 import java.util.List;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.telegram.telegrambots.meta.api.methods.commands.DeleteMyCommands;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
-import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeChat;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 public class RegularClient extends CustomTelegramClient {
-    private static final List<String> COMMAND_MENU_EXCEPTIONS = new ArrayList<>();
-    
-    private static final String MENU_COMMAND_DESCRIPTION = "menu_command_%s_description";
-
     private static final String URL = "/webhook/callback/%d";
 
     private final CommandHandlerManager commandHandlerManager;
@@ -46,13 +40,6 @@ public class RegularClient extends CustomTelegramClient {
         this.commandHandlerManager = commandHandlerManager;
         this.entityUtil = entityUtil;
         this.maxConnections = maxConnections;
-
-        COMMAND_MENU_EXCEPTIONS.add("/maintenance");
-        COMMAND_MENU_EXCEPTIONS.add("/refresh");
-        COMMAND_MENU_EXCEPTIONS.add("/generalban");
-        COMMAND_MENU_EXCEPTIONS.add("/botsettings");
-        COMMAND_MENU_EXCEPTIONS.add("/generalpost");
-        COMMAND_MENU_EXCEPTIONS.add("/files");
 
         initialize();
     }
@@ -86,8 +73,9 @@ public class RegularClient extends CustomTelegramClient {
 
         for (String code : languageCodes) {
             final SetMyCommands setMyCommands = SetMyCommands.builder()
-                    .commands(parseToBotCommands(commandHandlerManager.getCommandsForRole(role),
-                        code))
+                    .commands(parseToBotCommands(commandHandlerManager.getCommandsForRole(role).stream()
+                        .filter(c -> !BOT_LORD_COMMANDS.contains(c))
+                        .toList(), code))
                     .languageCode(code)
                     .scope(BotCommandScopeChat.builder().chatId(user.getId()).build())
                     .build();
@@ -122,7 +110,9 @@ public class RegularClient extends CustomTelegramClient {
     public void setUpUserMenu(@NonNull String languageCode) {
         final SetMyCommands setMyCommands = SetMyCommands.builder()
                 .commands(parseToBotCommands(commandHandlerManager.getCommandsForRole(
-                    entityUtil.getRole(RoleType.USER)), languageCode))
+                    entityUtil.getRole(RoleType.USER)).stream()
+                        .filter(c -> !BOT_LORD_COMMANDS.contains(c))
+                        .toList(), languageCode))
                 .scope(BotCommandScopeDefault.builder().build())
                 .languageCode(languageCode)
                 .build();
@@ -132,18 +122,6 @@ public class RegularClient extends CustomTelegramClient {
             throw new TelegramException("Unable to set up " + bot.getId()
                     + " bot's default menu", null, e);
         }
-    }
-
-    private List<BotCommand> parseToBotCommands(List<String> commands, String languageCode) {
-        return commands.stream()
-                .filter(c -> !COMMAND_MENU_EXCEPTIONS.contains(c))
-                .map(c -> (BotCommand)BotCommand.builder()
-                    .command(c)
-                    .description(localizationLoader.loadLocalization(
-                        MENU_COMMAND_DESCRIPTION.formatted(c.replace("/", "")),
-                        languageCode).getData())
-                    .build())
-                .toList();
     }
 
     protected void initialize() {

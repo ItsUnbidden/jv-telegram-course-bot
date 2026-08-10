@@ -23,7 +23,9 @@ import com.unbidden.telegramcoursesbot.model.LessonTrigger;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
+import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
+import com.unbidden.telegramcoursesbot.service.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.service.timing.TimingService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
@@ -35,7 +37,6 @@ import lombok.RequiredArgsConstructor;
 public class CourseOrchestrationService {
     private static final Logger LOGGER = LogManager.getLogger(CourseOrchestrationService.class);
 
-    private static final String NEXT_STAGE_MENU = "m_crsNxtStg";
     public static final String COURSE_NAME_LESSON_INDEX_DIVIDER = "/";
     public static final String COURSE_NEXT_STAGE_MENU_TERMINATION = "course_progress_%s_next_stage";
 
@@ -250,12 +251,12 @@ public class CourseOrchestrationService {
             menuMessage = lastContent.get(0);
         }
 
-        menuService.initiateMenu(progress.getUser(), progress.getCourse().getBot(), NEXT_STAGE_MENU,
+        menuService.initiateMenu(progress.getUser(), progress.getCourse().getBot(), MenuKey.COURSE_NEXT_STAGE,
                 progress.getCourse().getId() + COURSE_NAME_LESSON_INDEX_DIVIDER + progress.getStage(),
                 menuMessage.getMessageId());
         menuService.addToMenuTerminationGroup(progress.getUser(), progress.getUser(),
                 progress.getCourse().getBot(), menuMessage.getMessageId(),
-                COURSE_NEXT_STAGE_MENU_TERMINATION.formatted(progress.getId()));
+                MenuTerminationGroupKey.COURSE_NEXT_STAGE, progress.getId());
         LOGGER.debug("Next lesson menu sent.");
     }
 

@@ -3,6 +3,7 @@ package com.unbidden.telegramcoursesbot.util;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -12,7 +13,6 @@ import com.unbidden.telegramcoursesbot.exception.AccessDeniedException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
-import com.unbidden.telegramcoursesbot.localization.Localizations.LocalizationKey;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Service;
 import com.unbidden.telegramcoursesbot.model.Authority;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
@@ -107,6 +107,19 @@ public class EntityUtil {
         
         checkBotVisibility(user, course.getBot(), bot);
         return course;
+    }
+
+    @Transactional(readOnly = true)
+    public ContentMapping getCourseTitle(UserEntity user, Bot bot, Long courseId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        final ContentMapping title = contentMappingRepository.findCourseTitle(courseId).orElseThrow(() ->
+                new EntityNotFoundException("Course " + courseId + " does not exist",
+                localizationLoader.getLocalizationForUser(Error.COURSE_NOT_FOUND, user)));
+        
+        if (!title.getContent().isEmpty()) checkBotVisibility(user, title.getContent().getFirst().getBot(), bot);
+        return title;
     }
 
     @Transactional(readOnly = true)
@@ -388,7 +401,7 @@ public class EntityUtil {
         Assert.notNull(bot, "bot cannot be null");
 
         final List<UserEntity> potentialCreator = userRepository
-                .findByRoleType(bot.getId(), RoleType.CREATOR);
+                .findByRoleType(bot.getId(), RoleType.CREATOR, Pageable.unpaged()).toList();
 
         if (potentialCreator.isEmpty()) {
             return getDiretor();
@@ -400,14 +413,14 @@ public class EntityUtil {
     public List<UserEntity> getSupport(Bot bot) {
         Assert.notNull(bot, "bot cannot be null");
 
-        return userRepository.findByRoleType(bot.getId(), RoleType.SUPPORT);
+        return userRepository.findByRoleType(bot.getId(), RoleType.SUPPORT, Pageable.unpaged()).toList();
     }
 
     @Transactional(readOnly = true)
     public List<UserEntity> getMentors(Bot bot) {
         Assert.notNull(bot, "bot cannot be null");
 
-        return userRepository.findByRoleType(bot.getId(), RoleType.MENTOR);
+        return userRepository.findByRoleType(bot.getId(), RoleType.MENTOR, Pageable.unpaged()).toList();
     }
 
     @Transactional(readOnly = true)
@@ -440,7 +453,7 @@ public class EntityUtil {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
 
-        if (bot.getId().equals(getBotLord().getId())) {
+        if (!bot.getId().equals(BOT_LORD_ID)) {
             throw new AccessDeniedException("This action is available only from the "
                     + "bot lord", localizationLoader.getLocalizationForUser(
                     Error.UNAVAILABLE_IN_REGULAR_BOT, user));
@@ -452,8 +465,8 @@ public class EntityUtil {
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(target, "target cannot be null");
 
-        return localizationLoader.getLocalizationForUser(getTitleKey(getBotRole(target, bot).getRole().getType()),
-                localizedFor).getData();
+        return localizationLoader.getGenericLocalization(Service.ROLE_TITLE, localizedFor,
+                getBotRole(target, bot).getRole().getType().toString().toLowerCase()).getData();
     }
 
     private void checkBotVisibility(UserEntity user, Bot required, Bot current) {
@@ -461,31 +474,6 @@ public class EntityUtil {
             throw new AccessDeniedException("This asset is not available for bot "
                     + current.getId(), localizationLoader.getLocalizationForUser(
                     Error.BOT_VISIBILITY_MISMATCH, user));
-        }
-    }
-
-    private LocalizationKey getTitleKey(RoleType type) {
-        final String roleStr = type.toString().toLowerCase();
-
-        switch (roleStr) {
-            case "director" -> {
-                return Service.ROLE_DIRECTOR_TITLE;
-            }
-            case "creator" -> {
-                return Service.ROLE_CREATOR_TITLE;
-            }
-            case "mentor" -> {
-                return Service.ROLE_MENTOR_TITLE;
-            }
-            case "support" -> {
-                return Service.ROLE_SUPPORT_TITLE;
-            }
-            case "banned" -> {
-                return Service.ROLE_BANNED_TITLE;
-            }
-            default -> {
-                return Service.ROLE_USER_TITLE;
-            }
         }
     }
 }

@@ -92,6 +92,6 @@ public class SecurityDataParserImpl implements SecurityDataParser {
 
         LOGGER.trace("Data successfuly parsed. User id: " + user.getId()
                 + "; bot id " + bot.getId());
-        return new SecurityDto(bot, user, authorities);
+        return new SecurityDto(bot, user, authorities, annotation.isBotLordOnly());
     }
 }

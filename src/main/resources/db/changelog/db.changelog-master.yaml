@@ -87,3 +87,5 @@ databaseChangeLog:
       file: /db/changelog/changes/43-add-primary-keys-to-join-tables.yaml
   - include:
       file: /db/changelog/changes/44-create-course-ownerships-table.yaml
+  - include:
+      file: /db/changelog/changes/45-edit-bots-add-new-content-columns.yaml

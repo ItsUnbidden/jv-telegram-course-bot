@@ -1,8 +1,11 @@
 package com.unbidden.telegramcoursesbot.bot;
 
 import com.unbidden.telegramcoursesbot.dao.CertificateDao;
+import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
@@ -35,17 +38,21 @@ public class ClientManager {
     private final EntityUtil entityUtil;
 
     private final CommandHandlerManager commandHandlerManager;
+
+    private final LocalizationLoader localizationLoader;
     
     private BotLordClient botLordClient;
 
     public ClientManager(CertificateDao dao, UserService userService,
             LocalizationLoader loader, EntityUtil entityUtil,
-            @Lazy CommandHandlerManager commandHandlerManager) {
+            @Lazy CommandHandlerManager commandHandlerManager,
+            LocalizationLoader localizationLoader) {
         this.dao = dao;
         this.userService = userService;
         this.loader = loader;
         this.entityUtil = entityUtil;
         this.commandHandlerManager = commandHandlerManager;
+        this.localizationLoader = localizationLoader;
     }
 
     @Value("${telegram.bot.authorization.bot_lord.token}")
@@ -105,9 +112,23 @@ public class ClientManager {
                 + "and webhook has been deleted.");
     }
 
-    public boolean toggleMaintenance() {
+    public boolean toggleMaintenance(UserEntity user) {
+        if (isRefreshing()) {
+            throw new ForbiddenOperationException("Cannot toggle maintenance while the server "
+                    + "is refreshing", localizationLoader.getLocalizationForUser(
+                    Localizations.Error.IS_REFRESHING, user));
+        }
+        LOGGER.info("Director is toggling maintenance... Current status is "
+                + getStatus(user) + ".");
         isOnMaintenance = !isOnMaintenance;
-        LOGGER.info("Maintenance has been toggled to " + isOnMaintenance + ".");
+        LOGGER.info("Maintenance is now " + getStatus(user));
+
+        LOGGER.debug("Sending confirmation message to director...");
+        getBotLordClient().sendMessage(user, localizationLoader
+                .getLocalizationForUser(Localizations.Service.ON_MAINTENANCE_STATUS_CHANGE, user,
+                    new Localizations.Service.OnMaintenanceStatusChangeParams(getStatus(user))));
+        LOGGER.debug("Message sent.");
+
         return isOnMaintenance;
     }
 
@@ -125,5 +146,11 @@ public class ClientManager {
 
     public void setRefreshing(boolean isRefreshing) {
         this.isRefreshing = isRefreshing;
+    }
+
+    private String getStatus(UserEntity user) {
+        return localizationLoader.getLocalizationForUser(isOnMaintenance
+                ? Localizations.Service.STATUS_ENABLED
+                : Localizations.Service.STATUS_DISABLED, user).getData();
     }
 }

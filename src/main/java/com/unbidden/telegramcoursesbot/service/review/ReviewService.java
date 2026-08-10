@@ -5,6 +5,7 @@ import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
@@ -30,17 +31,6 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 @RequiredArgsConstructor
 public class ReviewService {
     private static final Logger LOGGER = LogManager.getLogger(ReviewService.class);
-
-    private static final String PARAM_COURSE_GRADE = "${courseGrade}";
-    private static final String PARAM_PLATFORM_GRADE = "${platformGrade}";
-
-    private static final String ERROR_COMMIT_ADVANCED_REVIEW_FAILURE = "error_commit_advanced_review_failure";
-    private static final String ERROR_LEAVE_COMMENT_FAILURE = "error_leave_comment_failure";
-    private static final String ERROR_UPDATE_COMMENT_FAILURE = "error_update_comment_failure";
-    private static final String ERROR_UPDATE_COMMENT_FORBIDDEN = "error_update_comment_forbidden";
-    private static final String ERROR_SAME_NEW_COURSE_GRADE = "error_same_new_course_grade";
-    private static final String ERROR_SAME_NEW_PLATFORM_GRADE = "error_same_new_platform_grade";
-    private static final String ERROR_UPDATE_CONTENT_NOT_PRESENT = "error_update_content_not_present";
 
     private final ReviewRepository reviewRepository;
 
@@ -86,7 +76,7 @@ public class ReviewService {
             throw new ActionExpiredException("Unable to submit content for basic review "
                     + reviewId + " because it already has some content",
                     localizationLoader.getLocalizationForUser(
-                    ERROR_COMMIT_ADVANCED_REVIEW_FAILURE, review.getUser()));
+                    Error.COMMIT_ADVANCED_REVIEW_FAILURE, review.getUser()));
         }
         final LocalizedContent content = contentService.parseAndPersistContent(user, bot, messages);
 
@@ -111,7 +101,7 @@ public class ReviewService {
             throw new ActionExpiredException("Unable to submit comment content for review "
                     + review.getId() + " because this review already has a comment from user "
                     + review.getCommentedBy().getFullName(), localizationLoader.getLocalizationForUser(
-                    ERROR_LEAVE_COMMENT_FAILURE, user));
+                    Error.LEAVE_COMMENT_FAILURE, user));
         }
         
         review.setCommentContent(contentService.parseAndPersistContent(user, bot, messages));
@@ -134,13 +124,13 @@ public class ReviewService {
         if (review.getCommentContent() == null) {
             throw new ForbiddenOperationException("Review " + review.getId() + "'s comment "
                     + "cannot be updated because it has never been submitted", localizationLoader
-                    .getLocalizationForUser(ERROR_UPDATE_COMMENT_FAILURE, user));
+                    .getLocalizationForUser(Error.UPDATE_COMMENT_FAILURE, user));
         }
         if (!review.getCommentedBy().getId().equals(user.getId())) {
             throw new AccessDeniedException("Review " + review.getId() + "'s comment "
                     + "has been made by user " + review.getCommentedBy().getFullName()
                     + ". User " + user.getFullName() + " cannot edit it.", localizationLoader
-                    .getLocalizationForUser(ERROR_UPDATE_COMMENT_FORBIDDEN, user));
+                    .getLocalizationForUser(Error.UPDATE_COMMENT_FORBIDDEN, user));
         }
         
         LOGGER.info("User " + user.getId() + " wants to update comment in review "
@@ -168,8 +158,8 @@ public class ReviewService {
                 + newGrade + ".");
         if (review.getCourseGrade() == newGrade) {
             throw new InvalidDataSentException("New course grade is the same as before",
-                    localizationLoader.getLocalizationForUser(ERROR_SAME_NEW_COURSE_GRADE,
-                    review.getUser(), PARAM_COURSE_GRADE, newGrade));
+                    localizationLoader.getLocalizationForUser(Error.SAME_NEW_COURSE_GRADE,
+                    user, new Error.SameNewCourseGradeParams(newGrade)));
         }
         
         review.setCourseGrade(newGrade);
@@ -193,8 +183,8 @@ public class ReviewService {
                 + newGrade + ".");
         if (review.getPlatformGrade() == newGrade) {
             throw new InvalidDataSentException("New platform grade is the same as before",
-                    localizationLoader.getLocalizationForUser(ERROR_SAME_NEW_PLATFORM_GRADE,
-                    review.getUser(), PARAM_PLATFORM_GRADE, newGrade));
+                    localizationLoader.getLocalizationForUser(Error.SAME_NEW_PLATFORM_GRADE,
+                    user, new Error.SameNewPlatformGradeParams(newGrade)));
         }
 
         review.setPlatformGrade(newGrade);
@@ -218,7 +208,7 @@ public class ReviewService {
         if (review.getContent() == null) {
             throw new ForbiddenOperationException("Unable to update review " + reviewId
                     + "'s content because it has never been submitted", localizationLoader
-                    .getLocalizationForUser(ERROR_UPDATE_CONTENT_NOT_PRESENT, review.getUser()));
+                    .getLocalizationForUser(Error.UPDATE_CONTENT_NOT_PRESENT, user));
         }
 
         review.setContent(contentService.parseAndPersistContent(user, bot, messages));

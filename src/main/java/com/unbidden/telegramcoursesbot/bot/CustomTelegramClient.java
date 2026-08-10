@@ -4,10 +4,14 @@ import com.unbidden.telegramcoursesbot.dao.CertificateDao;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.io.InputStream;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.NonNull;
@@ -21,12 +25,22 @@ import org.telegram.telegrambots.meta.api.methods.updates.GetWebhookInfo;
 import org.telegram.telegrambots.meta.api.methods.updates.SetWebhook;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.WebhookInfo;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.menubutton.MenuButtonCommands;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 public abstract class CustomTelegramClient extends OkHttpTelegramClient {
+    protected static final List<String> BOT_LORD_COMMANDS = List.of(
+        "/maintenance",
+        "/refresh",
+        "/generalban",
+        "/botsettings",
+        "/generalpost",
+        "/files"
+    );
+
     protected final Logger logger;
 
     protected final Bot bot;
@@ -105,7 +119,22 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
             return execute(sendMessage);
         } catch (TelegramApiException e) {
             logger.error("Unable to send message.", e);
-            return new Message();
+            return new Message(); // TODO: ensure that this is a reasonable approach
+        }
+    }
+
+    /**
+     * Asynchronously sends message provided in {@link SendMessage}. Warning! Field chatId in 
+     * {@link SendMessage} must be a user id, if that is not the case, exception will be thrown.
+     * @param sendMessage Telegram message builder
+     * @return {@link CompletableFuture} of the {@link Message}
+     */
+    public CompletableFuture<Message> sendMessageAsync(@NonNull SendMessage sendMessage) {
+        try {
+            return executeAsync(sendMessage);
+        } catch (TelegramApiException e) {
+            logger.error("Unable to send message.", e);
+            return CompletableFuture.failedFuture(e);
         }
     }
 
@@ -124,8 +153,28 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
                     .entities(localization.getEntities())
                     .build());
         } catch (TelegramApiException e) {
-            logger.error("Unable to send message.", e);
-            return new Message();
+            logger.error("Unable to send message to user %s.".formatted(user.getId()), e);
+            return new Message(); // TODO: ensure that this is a reasonable approach
+        }
+    }
+
+    /**
+     * Asynchronously sends message to {@link UserEntity} using provided {@link Localization}.
+     * @param user to whom the message will be sent
+     * @param localization
+     * @return {@link CompletableFuture} of the {@link Message}
+     */
+    @NonNull
+    public CompletableFuture<Message> sendMessageAsync(@NonNull UserEntity user, @NonNull Localization localization) {
+        try {
+            return executeAsync(SendMessage.builder()
+                    .chatId(user.getId())
+                    .text(localization.getData())
+                    .entities(localization.getEntities())
+                    .build());
+        } catch (TelegramApiException e) {
+            logger.error("Unable to send message to user %s.".formatted(user.getId()), e);
+            return CompletableFuture.failedFuture(e);
         }
     }
 
@@ -148,8 +197,8 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
                     .replyMarkup(replyMarkup)
                     .build());
         } catch (TelegramApiException e) {
-            logger.error("Unable to send message.", e);
-            return new Message();
+            logger.error("Unable to send message to user %s.".formatted(user.getId()), e);
+            return new Message(); // TODO: ensure that this is a reasonable approach
         }
     }
 
@@ -198,6 +247,16 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
             }
         }
         logger.info("Bot " + bot.getId() + " has been registered.");
+    }
+
+    protected List<BotCommand> parseToBotCommands(List<String> commands, String languageCode) {
+        return commands.stream()
+                .map(c -> (BotCommand)BotCommand.builder()
+                    .command(c)
+                    .description(localizationLoader.loadGenericLocalization(Localizations.Menu.COMMAND_DESCRIPTION,
+                        languageCode, c.replace("/", "").toLowerCase()).getData())
+                    .build())
+                .toList();
     }
 
     protected void initialize(@NonNull String endpoint, @NonNull Integer maxConnections) {

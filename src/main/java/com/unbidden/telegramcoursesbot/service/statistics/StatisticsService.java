@@ -1,20 +1,66 @@
 package com.unbidden.telegramcoursesbot.service.statistics;
 
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
+import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import org.springframework.lang.NonNull;
+import com.unbidden.telegramcoursesbot.model.CourseOwnership.OwnershipSource;
+import com.unbidden.telegramcoursesbot.model.CourseOwnership.OwnershipStatus;
+import com.unbidden.telegramcoursesbot.repository.BotRoleRepository;
+import com.unbidden.telegramcoursesbot.repository.CourseOwnershipRepository;
+import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
+import com.unbidden.telegramcoursesbot.repository.CourseRepository;
+import com.unbidden.telegramcoursesbot.repository.PaymentDetailsRepository;
+import com.unbidden.telegramcoursesbot.repository.TelegramPaymentDetailsRepository;
+import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
-public interface StatisticsService {
-    void sendBotStatistics(@NonNull UserEntity user, @NonNull Bot bot);
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-    void sendBotUsers(@NonNull UserEntity user, @NonNull Bot bot);
+@Service
+@RequiredArgsConstructor
+public class StatisticsService {
+    private final PaymentDetailsRepository paymentDetailsRepository;
 
-    void sendCourseStatistics(@NonNull UserEntity user, @NonNull Course course);
+    private final TelegramPaymentDetailsRepository telegramPaymentDetailsRepository;
 
-    void sendCourseUsers(@NonNull UserEntity user, @NonNull Course course);
+    private final CourseRepository courseRepository;
 
-    void sendCourseCompletedUsers(@NonNull UserEntity user, @NonNull Course course);
+    private final BotRoleRepository botRoleRepository;
+    
+    private final CourseProgressRepository courseProgressRepository;
 
-    void sendCourseStageUsers(@NonNull UserEntity user, @NonNull Course course, int stage);
+    private final CourseOwnershipRepository courseOwnershipRepository;
+
+    private final ContentService contentService;
+
+    private final EntityUtil entityUtil;
+
+    @Transactional(readOnly = true)
+    public Localizations.Service.BotStatisticsReportParams getBotStatistics(Bot bot) {
+        return new Localizations.Service.BotStatisticsReportParams(courseRepository.countByBotId(bot.getId()),
+                paymentDetailsRepository.countByBotId(bot.getId()),
+                telegramPaymentDetailsRepository.countByBotIdAndRefundedAtIsNotNull(bot.getId()),
+                courseOwnershipRepository.countByCourseBotIdAndStatus(bot.getId(), OwnershipStatus.ACTIVE),
+                telegramPaymentDetailsRepository.getTotalStarsIncomeInBot(bot.getId()),
+                courseOwnershipRepository.countByCourseBotIdAndSourceAndStatus(bot.getId(), OwnershipSource.GIFTED, OwnershipStatus.ACTIVE),
+                botRoleRepository.countByBotIdAndRoleType(bot.getId(), RoleType.USER),
+                botRoleRepository.countByBotIdAndRoleType(bot.getId(), RoleType.BANNED));
+    }
+
+    @Transactional(readOnly = true)
+    public Localizations.Service.CourseStatisticsReportParams getCourseStatistics(UserEntity user, Bot bot, Long courseId) {
+        final Course course = entityUtil.getCourseById(user, bot, courseId);
+
+        return new Localizations.Service.CourseStatisticsReportParams(contentService.getLocalizedText(user, bot, course.getTitle().getId()),
+                paymentDetailsRepository.countByCourseId(courseId),
+                telegramPaymentDetailsRepository.countByCourseIdAndRefundedAtIsNotNull(courseId),
+                telegramPaymentDetailsRepository.getTotalStarsIncomeForCourse(courseId),
+                courseOwnershipRepository.countByCourseIdAndStatus(courseId, OwnershipStatus.ACTIVE),
+                courseProgressRepository.countByCourseIdAndNumberOfTimesCompletedGreaterThan0(courseId),
+                courseOwnershipRepository.countByCourseIdAndSourceAndStatus(courseId, OwnershipSource.GIFTED, OwnershipStatus.ACTIVE));
+    }
 }

@@ -80,6 +80,22 @@ public class LocalizationLoader {
         return setUpLocalization(localization, withInjectedParams);
     }
 
+    public Localization getGenericLocalization(LocalizationKey key, UserEntity user, Object... args) {
+        Assert.notNull(key, "key cannot be null");
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(args, "args cannot be null");
+        Assert.notEmpty(args, "args cannot be empty");
+        
+        final Localization localization = loadLocalization(key, user.getLanguageCode(), args);
+        
+        if (localization.isInjectionRequired()) {
+            LOGGER.error("Localization \"" + localization.getName() + "\" is marked for parameter injection, "
+                    + "but no parameters were supplied since the wrong method overload was called.");
+        }
+        
+        return localization;
+    }
+
     public void reloadResourses() {
         localizationRepository.clear();
         cacheLocalizationFiles();
@@ -89,8 +105,26 @@ public class LocalizationLoader {
         Assert.notNull(key, "name cannot be null");
         Assert.notNull(languageCode, "languageCode cannot be null");
 
+        return loadLocalization(key, languageCode, null);
+    }
+
+    public Localization loadGenericLocalization(LocalizationKey key, String languageCode, Object... args) {
+        Assert.notNull(key, "name cannot be null");
+        Assert.notNull(languageCode, "languageCode cannot be null");
+
+        return loadLocalization(key, languageCode, args);
+    }
+
+    public List<String> getAvailableLanguageCodes() {
+        return dao.listLocalizationDirs().stream()
+                .filter(p -> p.toFile().isDirectory())
+                .map(p -> p.getFileName().toString())
+                .toList();
+    }
+
+    private Localization loadLocalization(LocalizationKey key, String languageCode, Object[] args) {
         LOGGER.trace("Loading cached localization " + key + "...");
-        Localization localization = findAvailableLocalization(key.getLocName(), languageCode);
+        Localization localization = findAvailableLocalization((args == null ? key.getLocName() : key.getLocName().formatted(args)), languageCode);
 
         if (!localization.isInjectionRequired()) {
             return localization;
@@ -105,13 +139,6 @@ public class LocalizationLoader {
         return localization;
     }
 
-    public List<String> getAvailableLanguageCodes() {
-        return dao.listLocalizationDirs().stream()
-                .filter(p -> p.toFile().isDirectory())
-                .map(p -> p.getFileName().toString())
-                .toList();
-    }
-
     private Map<String, Object> mapValuesToParamNames(Localization loc, Object record) {
         final Class<?> clazz = record.getClass();
 
@@ -124,9 +151,15 @@ public class LocalizationLoader {
                 final Object value = component.getAccessor().invoke(record);
                 final String name = "${" + component.getName() + "}";
 
+                if (value == null) {
+                    throw new IllegalArgumentException("Localization parameters must never be null. Record: "
+                            + clazz.getSimpleName() + ", field name: " + name + ".");
+                }
+
                 if (!loc.getParams().contains(name)) {
                     LOGGER.warn("Parameter " + name + " is not present in the text of localization \"" + loc.getName() + "\".");
                 }
+
                 result.put(name, value);
             } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new RuntimeException("Failed to access argument " + component.getName()

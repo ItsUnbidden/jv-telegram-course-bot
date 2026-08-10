@@ -53,13 +53,13 @@ public class MultipageListMenu implements MenuConfigurer {
                 }));
                 factor++;
             }
-            if (meta.getPage() < meta.getAmountOfPages() - 1) {
+            if (meta.getPage() < meta.getNumberOfPages() - 1) {
                 buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
                     BUTTON_MULTIPAGE_LIST_NEXT, u).getData(), MULTIPAGE_LIST_NEXT,
                     (u1, p1, b1) -> {
                         meta.setPage(meta.getPage() + 1);
                         menuService.processMultipageListRequest(meta);
-                        if (meta.getPage() == meta.getAmountOfPages() - 1) {
+                        if (meta.getPage() == meta.getNumberOfPages() - 1) {
                             meta.setControlMenuUpdateRequired(true);
                         }
                 }));

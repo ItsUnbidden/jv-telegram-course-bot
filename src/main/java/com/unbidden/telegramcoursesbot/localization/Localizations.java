@@ -1,31 +1,42 @@
 package com.unbidden.telegramcoursesbot.localization;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import org.springframework.util.Assert;
 
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 
-public class Localizations {
-    public static LocalizationKey getKeyByName(String name) {
-        try {
-            return Menu.findKeyByName(name);
-        } catch (RuntimeException e) {
+public final class Localizations {
+    private static final Map<String, LocalizationKey> REVERSED_KEY_MAP = new HashMap<>();
+
+    static {
+        for (Menu menu : Menu.values()) {
+            REVERSED_KEY_MAP.put(menu.getLocName(), menu);
         }
-        try {
-            return Button.findKeyByName(name);
-        } catch (RuntimeException e) {
+        for (Button button : Button.values()) {
+            REVERSED_KEY_MAP.put(button.getLocName(), button);
         }
-        try {
-            return Service.findKeyByName(name);
-        } catch (RuntimeException e) {
+        for (Service service : Service.values()) {
+            REVERSED_KEY_MAP.put(service.getLocName(), service);
         }
-        try {
-            return Error.findKeyByName(name);
-        } catch (RuntimeException e) {
-            throw new RuntimeException("Unable to find localization \"" + name + "\".");
+        for (Error error : Error.values()) {
+            REVERSED_KEY_MAP.put(error.getLocName(), error);
         }
+    }
+
+    public static LocalizationKey getKeyByLocName(String locName) {
+        Assert.notNull(locName, "locName cannot be null");
+
+        final LocalizationKey key = REVERSED_KEY_MAP.get(locName);
+
+        if (key == null) throw new RuntimeException("No localization key was found for localization name " + locName + ".");
+
+        return key;
     }
 
     public static interface LocalizationKey {
@@ -33,6 +44,14 @@ public class Localizations {
     }
 
     public static enum Menu implements LocalizationKey {
+        /**
+         * This is a generic localization that is intended to be used with {@code getGenericLocalization} method in {@link LocalizationLoader}.
+         * It requires a <b>lowercase command name without the {@code /}</b> to be passed as an argument.
+         */
+        COMMAND_DESCRIPTION("menu_command_%s_description"),
+        COMMIT_CONTENT_TERMINAL_PAGE("menu_commit_content_terminal_page"),
+        COMMIT_CONTENT_RESEND_TERMINAL_PAGE("menu_commit_content_resend_terminal_page"),
+        COMMIT_CONTENT_CANCEL_TERMINAL_PAGE("menu_commit_content_cancel_terminal_page"),
         COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE("menu_commit_content_expired_terminal_page");
 
         private String locName;
@@ -44,15 +63,6 @@ public class Localizations {
         @Override
         public String getLocName() {
             return locName;
-        }
-
-        public static Menu findKeyByName(String name) {
-            if (name == null || name.isBlank()) throw new RuntimeException("Name must not be null or blank.");
-
-            for (final Menu menu : values()) {
-                if (menu.toString().equals(name)) return menu;
-            }
-            throw new RuntimeException("Unable to find menu localization \"" + name + "\".");
         }
     }
 
@@ -68,24 +78,14 @@ public class Localizations {
         public String getLocName() {
             return locName;
         }
-
-        public static Button findKeyByName(String name) {
-            if (name == null || name.isBlank()) throw new RuntimeException("Name must not be null or blank.");
-            
-            for (final Button button : values()) {
-                if (button.toString().equals(name)) return button;
-            }
-            throw new RuntimeException("Unable to find button localization \"" + name + "\".");
-        }
     }
 
     public static enum Service implements LocalizationKey {
-        ROLE_DIRECTOR_TITLE("service_role_director_title"),
-        ROLE_CREATOR_TITLE("service_role_creator_title"),
-        ROLE_MENTOR_TITLE("service_role_mentor_title"),
-        ROLE_SUPPORT_TITLE("service_role_support_title"),
-        ROLE_USER_TITLE("service_role_user_title"),
-        ROLE_BANNED_TITLE("service_role_banned_title"),
+        /**
+         * This is a generic localization that is intended to be used with {@code getGenericLocalization} method in {@link LocalizationLoader}.
+         * It requires a <b>lowercase role type</b> to be passed as an argument.
+         */
+        ROLE_TITLE("service_role_%s_title"),
         NOT_AVAILABLE("service_not_available"),
         /**
          * Possible parameters:
@@ -358,6 +358,159 @@ public class Localizations {
          * </ls>
          */
         SUPPORT_REQUEST_RESOLVED("service_support_request_resolved"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        REFUND_SUCCESS("service_refund_success"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>userFullName</li>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        USER_REFUNDED_COURSE("service_user_refunded_course"),
+        COURSE_EXTERNAL_INVOICE_MEDIA_GROUP_BYPASS("service_course_external_invoice_media_group_bypass"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        SUCCESSFUL_PAYMENT("service_successful_payment"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>userFullName</li>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        USER_BOUGHT_COURSE("service_user_bought_course"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseId</li>
+         *  <li>userId</li>
+         * </ls>
+         */
+        AUTOMATIC_REFUND_NOTIFICATION("service_automatic_refund_notification"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        AUTOMATIC_REFUND("service_automatic_refund"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>targetFullName</li>
+         *  <li>targetTitle</li>
+         * </ls>
+         */
+        COURSE_GIFTED_SUCCESSFULLY("service_course_gifted_successfully"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>senderTitle</li>
+         *  <li>senderFullName</li>
+         * </ls>
+         */
+        COURSE_GIFTED_NOTIFICATION("service_course_gifted_notification"),
+        RESEND_CONTENT("service_resend_content"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>numberOfCourses</li>
+         *  <li>coursesBought</li>
+         *  <li>coursesRefunded</li>
+         *  <li>coursesCurrentlyOwned</li>
+         *  <li>totalStarsIncome</li>
+         *  <li>coursesGifted</li>
+         *  <li>numberOfUsers</li>
+         *  <li>numberOfBannedUsers</li>
+         * </ls>
+         */
+        BOT_STATISTICS_REPORT("service_bot_statistics_report"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>timesBought</li>
+         *  <li>timesRefunded</li>
+         *  <li>totalStarsIncome</li>
+         *  <li>numberOfOwners</li>
+         *  <li>numberOfUsersWhoCompleted</li>
+         *  <li>timesGifted</li>
+         * </ls>
+         */
+        COURSE_STATISTICS_REPORT("service_course_statistics_report"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>currentPage</li>
+         *  <li>numberOfPages</li>
+         *  <li>numberOfElements</li>
+         *  <li>data</li>
+         *  <li>courseName</li>
+         *  <li>stage</li>
+         * </ls>
+         */
+        COURSE_STAGE_USERS("service_course_stage_users"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>currentPage</li>
+         *  <li>numberOfPages</li>
+         *  <li>numberOfElements</li>
+         *  <li>data</li>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        COURSE_USERS("service_course_users"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>currentPage</li>
+         *  <li>numberOfPages</li>
+         *  <li>numberOfElements</li>
+         *  <li>data</li>
+         * </ls>
+         */
+        BOT_USERS("service_bot_users"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>successes</li>
+         *  <li>failures</li>
+         * </ls>
+         */
+        POST_COMPLETED("service_post_completed"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>senderFullName</li>
+         *  <li>title</li>
+         * </ls>
+         */
+        PRIVATE_MESSAGE_INFO("service_private_message_info"),
+        NO_CREATOR_INFO("service_no_creator_info"),
+        NO_TERMS("service_no_terms"),
+        NO_START("service_no_start"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>status</li>
+         * </ls>
+         */
+        ON_MAINTENANCE_STATUS_CHANGE("service_on_maintenance_status_change"),
+        STATUS_DISABLED("service_status_disabled"),
+        STATUS_ENABLED("service_status_enabled"),
         COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS("service_course_next_stage_media_group_bypass");
 
         private String locName;
@@ -369,15 +522,6 @@ public class Localizations {
         @Override
         public String getLocName() {
             return locName;
-        }
-
-        public static Service findKeyByName(String name) {
-            if (name == null || name.isBlank()) throw new RuntimeException("Name must not be null or blank.");    
-
-            for (final Service service : values()) {
-                if (service.toString().equals(name)) return service;
-            }
-            throw new RuntimeException("Unable to find service localization \"" + name + "\".");
         }
 
         public static record CourseCompletedUsersParams(int currentPage, int numberOfPages, long numberOfElements, String data, String courseName) {}
@@ -414,6 +558,25 @@ public class Localizations {
         public static record SupportReplyInfoParams(String userFullName, String title) {}
         public static record SupportInfoParams(String userFullName, LocalDateTime timestamp, String tag) {}
         public static record SupportRequestResolvedParams(String userFullName, String title) {}
+        public static record SuccessfulPaymentParams(String courseName) {}
+        public static record UserBoughtCourseParams(String userFullName, String courseName) {}
+        public static record AutomaticRefundNotificationParams(long userId, long courseId) {}
+        public static record AutomaticRefundParams(String courseName) {}
+        public static record RefundSuccessParams(String courseName) {}
+        public static record UserRefundedCourseParams(String courseName, String userFullName) {}
+        public static record CourseGiftedSuccessfullyParams(String courseName, String targetFullName, String targetTitle) {}
+        public static record CourseGiftedNotificationParams(String courseName, String senderTitle, String senderFullName) {}
+        public static record BotStatisticsReportParams(long numberOfCourses, long coursesBought, long coursesRefunded,
+                long coursesCurrentlyOwned, long totalStarsIncome, long coursesGifted,
+                long numberOfUsers, long numberOfBannedUsers) {}
+        public static record CourseStatisticsReportParams(String courseName, long timesBought, long timesRefunded,
+                long totalStarsIncome, long numberOfOwners, long numberOfUsersWhoCompleted, long timesGifted) {}
+        public static record BotUsersParams(int currentPage, int numberOfPages, long numberOfElements, String data) {}
+        public static record CourseUsersParams(int currentPage, int numberOfPages, long numberOfElements, String data, String courseName) {}
+        public static record CourseStageUsersParams(int currentPage, int numberOfPages, long numberOfElements, String data, String courseName, int stage) {}
+        public static record PrivateMessageInfoParams(String senderFullName, String title) {}
+        public static record PostCompletedParams(int successes, int failures) {}
+        public static record OnMaintenanceStatusChangeParams(String status) {}
     }
 
     public static enum Error implements LocalizationKey {
@@ -537,6 +700,142 @@ public class Localizations {
         HOMEWORK_ALREADY_COMPLETED("error_homework_already_completed"),
         HOMEWORK_ALREADY_AWAITS_APPROVAL("error_homework_already_awaits_approval"),
         NO_SUPPORT_REQUESTS_AVAILABLE_FOR_USER("error_no_support_requests_available_for_user"),
+        SEND_INVOICE_FAILURE("error_send_invoice_failure"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>currentPrice</li>
+         * </ls>
+         */
+        PRE_CHECKOUT_PRICE_MISMATCH("error_pre_checkout_price_mismatch"),
+        PRE_CHECKOUT_CURRENCY_MISMATCH("error_pre_checkout_currency_mismatch"),
+        PRE_CHECKOUT_UNKNOWN_COURSE("error_pre_checkout_unknown_course"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        PRE_CHECKOUT_COURSE_ALREADY_OWNED("error_pre_checkout_course_already_owned"),
+        ANSWER_PRECHECKOUT_FAILURE("error_answer_precheckout_failure"),
+        PAYMENT_SUCCESS_SERVER_ON_MAINTENANCE("error_payment_success_server_on_maintenance"),
+        REFUND_FAILURE("error_refund_failure"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        AUTOMATIC_REFUND_FAILURE("error_automatic_refund_failure"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseId</li>
+         *  <li>userId</li>
+         * </ls>
+         */
+        AUTOMATIC_REFUND_FAILURE_NOTIFICATION("error_automatic_refund_failure_notification"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>targetFullName</li>
+         *  <li>targetTitle</li>
+         * </ls>
+         */
+        GIVE_COURSE_ALREADY_OWNED("error_give_course_already_owned"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>maxRefundStage</li>
+         *  <li>currentStage</li>
+         * </ls>
+         */
+        REFUND_USER_ADVANCED_TOO_FAR("error_refund_user_advanced_too_far"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        REFUND_COURSE_NOT_OWNED("error_refund_course_not_owned"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        REFUND_COURSE_WAS_GIFTED("error_refund_course_was_gifted"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        REFUND_COURSE_COMPLETED("error_refund_course_completed"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        REFUND_COURSE_UNAVAILABLE("error_refund_course_unavailable"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>maxNumberOfDays</li>
+         *  <li>currentNumberOfDays</li>
+         * </ls>
+         */
+        REFUND_PURCHASE_TOO_OLD("error_refund_purchase_too_old"),
+        SERVER_ON_MAINTENANCE("error_server_on_maintenance"),
+        BOTLORD_CALLBACK_EXCEPTION("error_botlord_callback_exception"),
+        COMMIT_ADVANCED_REVIEW_FAILURE("error_commit_advanced_review_failure"),
+        LEAVE_COMMENT_FAILURE("error_leave_comment_failure"),
+        UPDATE_COMMENT_FAILURE("error_update_comment_failure"),
+        UPDATE_COMMENT_FORBIDDEN("error_update_comment_forbidden"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseGrade</li>
+         * </ls>
+         */
+        SAME_NEW_COURSE_GRADE("error_same_new_course_grade"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>platformGrade</li>
+         * </ls>
+         */
+        SAME_NEW_PLATFORM_GRADE("error_same_new_platform_grade"),
+        UPDATE_CONTENT_NOT_PRESENT("error_update_content_not_present"),
+        SESSION_EXPIRED("error_session_expired"),
+        MIXED_SESSIONS("error_mixed_sessions"),
+        SESSION_NO_SHARED_ENTITY("error_session_no_shared_entity"),
+        MORE_THEN_ONE_SESSION("error_more_then_one_session"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>userFullName</li>
+         *  <li>title</li>
+         * </ls>
+         */
+        SUPPORT_REQUEST_ALREADY_ANSWERED("error_support_request_already_answered"),
+        SUPPORT_REQUEST_ALREADY_RESOLVED("error_support_request_already_resolved"),
+        REPLY_ALREADY_ANSWERED("error_reply_already_answered"),
+        USER_NOT_ELIGIBLE_FOR_SUPPORT("error_user_not_eligible_for_support"),
+        SUPPORT_STAFF_REQUEST("error_support_staff_request"),
+        SEND_CONTENT("error_send_content"),
+        PRIVATE_MESSAGE_USER_NOT_REGISTERED_IN_BOT("error_private_message_user_not_registered_in_bot"),
+        TOO_MANY_POST_REQUESTS("error_too_many_post_requests"),
+        POST_NO_ROLES("error_post_no_roles"),
+        LOCALIZATION_PARAMS_INVALID("error_localization_params_invalid"),
+        LOCALIZATION_DOES_NOT_EXIST("error_localization_does_not_exist"),
+        IS_REFRESHING("error_is_refreshing"),
+        PARSE_ID_FAILURE("error_parse_id_failure"),
+        INVALID_START_PARAM("error_invalid_start_param"),
         DIRECTOR_BAN("error_director_ban");
         
         private String locName;
@@ -550,23 +849,28 @@ public class Localizations {
             return locName;
         }
 
-        public static Error findKeyByName(String name) {
-            if (name == null || name.isBlank()) throw new RuntimeException("Name must not be null or blank.");
-
-            for (final Error error : values()) {
-                if (error.toString().equals(name)) return error;
-            }
-            throw new RuntimeException("Unable to find error localization \"" + name + "\".");
-        }
-
         public static record MessageTextMissingParams(int messageIndex) {}
         public static record NumberOfMessagesParams(int providedMessagesNumber, int expectedMessagesNumber) {}
         public static record NoExceptionLocalizationAvailableParams(String excMessage, String excClassName) {}
         public static record TelegramInternalParams(String excMessage) {}
         public static record UnspecifiedExceptionParams(String excMessage, String excClassName) {}
-        public static record CriticalDirectorNotificationParams(String excMessage, String excClassName, Long userId, Long botId) {}
+        public static record CriticalDirectorNotificationParams(String excMessage, String excClassName, long userId, long botId) {}
         public static record ContentMediaGroupDoesNotMatchParams(MediaType sentContentMediaType, List<MediaType> allowedMediaTypes) {}
         public static record AccessDeniedParams(List<AuthorityType> missingAuthorities) {}
         public static record AwaitingLessonParams(String timeLeft) {}
+        public static record PreCheckoutPriceMismatchParams(int currentPrice) {}
+        public static record PreCheckoutCourseAlreadyOwnedParams(String courseName) {}
+        public static record AutomaticRefundFailureParams(String courseName) {}
+        public static record AutomaticRefundFailureNotificationParams(long userId, long courseId) {}
+        public static record GiveCourseAlreadyOwnedParams(String courseName, String targetFullName, String targetTitle) {}
+        public static record RefundUserAdvancedTooFarParams(String courseName, int maxRefundStage, int currentStage) {}
+        public static record RefundCourseNotOwnedParams(String courseName) {}
+        public static record RefundCourseWasGiftedParams(String courseName) {}
+        public static record RefundCourseCompletedParams(String courseName) {}
+        public static record RefundCourseUnavailableParams(String courseName) {}
+        public static record RefundPurchaseTooOldParams(String courseName, int maxNumberOfDays, long currentNumberOfDays) {}
+        public static record SameNewCourseGradeParams(int courseGrade) {}
+        public static record SameNewPlatformGradeParams(int platformGrade) {}
+        public static record SupportRequestAlreadyAnsweredParams(String userFullName, String title) {}
     }
 }

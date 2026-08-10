@@ -27,7 +27,7 @@ public class UserEntity {
     
     private String username;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 16)
     private String languageCode;
     
     private boolean isLanguageManuallySet;

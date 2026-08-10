@@ -1,8 +1,10 @@
 package com.unbidden.telegramcoursesbot.repository;
 
+import java.util.UUID;
+
 import com.unbidden.telegramcoursesbot.service.menu.MultipageListMeta;
 
 public interface MultipageListMetaRepository
-        extends CustomGeneralRepository<Integer, MultipageListMeta> {
+        extends CustomGeneralRepository<UUID, MultipageListMeta> {
 
 }

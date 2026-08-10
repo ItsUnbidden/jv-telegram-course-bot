@@ -5,16 +5,18 @@ import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import lombok.Data;
+
+import org.springframework.data.domain.Page;
 import org.springframework.lang.NonNull;
 
 @Data
 public class MultipageListMeta {
     @NonNull
-    private Integer id;
+    private UUID id;
 
     @NonNull
     private UserEntity user;
@@ -24,9 +26,9 @@ public class MultipageListMeta {
 
     private int messageId;
 
-    private int amountOfPages;
+    private int numberOfPages;
 
-    private long amountOfElements;
+    private long numberOfElements;
 
     private int page;
 
@@ -37,14 +39,14 @@ public class MultipageListMeta {
     private Function<MultipageListParams, Localization> localizationFunction;
 
     @NonNull
-    private BiFunction<Integer, Integer, List<String>> dataFunction;
+    private BiFunction<Integer, Integer, Page<String>> dataFunction;
 
     private boolean isControlMenuUpdateRequired;
 
-    public MultipageListMeta(@NonNull Integer id, @NonNull UserEntity user,
+    public MultipageListMeta(@NonNull UUID id, @NonNull UserEntity user,
             @NonNull Bot bot, int messageId, int page,
             @NonNull Function<MultipageListParams, Localization> localizationFunction,
-            @NonNull BiFunction<Integer, Integer, List<String>> dataFunction) {
+            @NonNull BiFunction<Integer, Integer, Page<String>> dataFunction) {
         this.id = id;
         this.user = user;
         this.bot = bot;

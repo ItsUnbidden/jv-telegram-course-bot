@@ -21,7 +21,9 @@ import com.unbidden.telegramcoursesbot.model.SupportReply;
 import com.unbidden.telegramcoursesbot.model.SupportRequest;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
+import com.unbidden.telegramcoursesbot.service.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.service.support.SupportService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
@@ -31,11 +33,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SupportOrchestrationService {
     private static final Logger LOGGER = LogManager.getFormatterLogger(SupportOrchestrationService.class);
-
-    private static final String REPLY_MENU = "m_rpl";
-    private static final String REPLY_TO_REPLY_MENU = "m_rplToRpl";
-
-    private static final String SEND_REPLY_MENU_TERMINATION = "support_request_%s_reply_menus";
 
     private final SupportService supportService;
 
@@ -85,8 +82,8 @@ public class SupportOrchestrationService {
 
         LOGGER.debug("New reply from user " + user.getFullName() + " to request "
                 + reply.getRequest().getId() + " has been created. Terminating outdated menus...");
-        menuService.terminateMenuGroup(reply.getRequest().getUser(), bot, SEND_REPLY_MENU_TERMINATION
-                .formatted(reply.getRequest().getId()));
+        menuService.terminateMenuGroup(reply.getRequest().getUser(), bot,
+                MenuTerminationGroupKey.SUPPORT_REPLY, reply.getRequest().getId());
         LOGGER.debug("Reply menus removed. Sending content...");
 
         sendSupportReply(reply.getRequest().getUser(), bot, new Localizations.Service.SupportReplyInfoParams(
@@ -143,8 +140,7 @@ public class SupportOrchestrationService {
                     + "so only one message was sent.");
         }
         try {
-            menuService.terminateMenuGroup(request.getUser(), bot, SEND_REPLY_MENU_TERMINATION
-                    .formatted(request.getId()));
+            menuService.terminateMenuGroup(request.getUser(), bot, MenuTerminationGroupKey.SUPPORT_REPLY, request.getId());
             LOGGER.debug("Some reply menus were terminated.");
         } catch (EntityNotFoundException e) {
             LOGGER.debug("No menus to terminate.");
@@ -188,15 +184,7 @@ public class SupportOrchestrationService {
 
         return lastReply;
     }
-
-    public boolean checkRequestResolved(UserEntity user, Bot bot, SupportMessage message) {
-        return supportService.checkRequestResolved(user, bot, message);
-    }
-
-    public boolean checkSupportMessageAnswered(UserEntity user, Bot bot, SupportMessage message) {
-        return supportService.checkSupportMessageAnswered(user, bot, message);
-    }
-
+    
     public boolean checkifUserIsStaffMember(UserEntity user, Bot bot) {
         return supportService.checkifUserIsStaffMember(user, bot);
     }
@@ -217,11 +205,10 @@ public class SupportOrchestrationService {
             menuMessage = sendContent.get(0);
         }
 
-        menuService.initiateMenu(target, bot, REPLY_MENU, request.getId().toString(),
+        menuService.initiateMenu(target, bot, MenuKey.SUPPORT_REPLY, request.getId().toString(),
                 menuMessage.getMessageId());
         menuService.addToMenuTerminationGroup(request.getUser(), target, bot,
-                menuMessage.getMessageId(), SEND_REPLY_MENU_TERMINATION.formatted(
-                request.getId()), null);
+                menuMessage.getMessageId(), MenuTerminationGroupKey.SUPPORT_REPLY, request.getId());
     }
 
     private void sendSupportReply(UserEntity target, Bot bot, Localizations.Service.SupportReplyInfoParams params,
@@ -240,7 +227,7 @@ public class SupportOrchestrationService {
             menuMessage = sendContent.get(0);
         }
 
-        menuService.initiateMenu(target, bot, REPLY_TO_REPLY_MENU, reply.getId().toString(),
+        menuService.initiateMenu(target, bot, MenuKey.SUPPORT_REPLY_TO_REPLY, reply.getId().toString(),
                 menuMessage.getMessageId());
     }
 }

@@ -3,60 +3,54 @@ package com.unbidden.telegramcoursesbot.service.command.handler;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.course.CourseService;
+import com.unbidden.telegramcoursesbot.model.CourseOwnership.OwnershipStatus;
+import com.unbidden.telegramcoursesbot.repository.CourseOwnershipRepository;
+import com.unbidden.telegramcoursesbot.repository.CourseRepository;
+import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 @RequiredArgsConstructor
 public class CourseCommandHandler implements CommandHandler {
-    private static final String COURSES_MENU = "m_crs";
-    private static final String MY_COURSES_MENU = "m_myCrs";
-    private static final String AVAILABLE_COURSES_MENU = "m_aCrs";
-
     private static final String COMMAND = "/courses";
 
-    private final MenuService menuService;
+    private final CourseOwnershipRepository courseOwnershipRepository;
 
-    private final CourseService courseService;
+    private final CourseRepository courseRepository;
+
+    private final MenuService menuService;
 
     @Override
     @Security(authorities = {AuthorityType.BUY, AuthorityType.LAUNCH_COURSE,
             AuthorityType.LEAVE_REVIEW, AuthorityType.REFUND})
-    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
-            @NonNull String[] commandParts) {
-        final List<String> allCoursesNamesOwnedByUser = courseService.getAllOwnedByUser(user, bot)
-                .stream().map(c -> c.getName()).toList();
+    public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
+        final long numberOfOwnedCourses = courseOwnershipRepository.countByUserIdAndCourseBotIdAndStatus(
+                user.getId(), bot.getId(), OwnershipStatus.ACTIVE);
 
-        if (allCoursesNamesOwnedByUser.isEmpty()) {
-            menuService.initiateMenu(AVAILABLE_COURSES_MENU, user, bot);
+        if (numberOfOwnedCourses == 0) {
+            menuService.initiateMenu(user, bot, MenuKey.AVAILABLE_COURSES);
             return;
         }
+        final long numberOfCoursesInBot = courseRepository.countByBotId(bot.getId());
 
-        final List<Course> availableCourses = courseService.getByBot(bot).stream()
-                .filter(c -> !allCoursesNamesOwnedByUser.contains(c.getName())).toList();
-
-        if (availableCourses.isEmpty()) {
-            menuService.initiateMenu(MY_COURSES_MENU, user, bot);
+        if (numberOfCoursesInBot - numberOfOwnedCourses < 1) {
+            menuService.initiateMenu(user, bot, MenuKey.MY_COURSES);
             return;
         }
-        menuService.initiateMenu(COURSES_MENU, user, bot);
+        menuService.initiateMenu(user, bot, MenuKey.COURSES);
     }
 
     @Override
-    @NonNull
     public String getCommand() {
         return COMMAND;
     }
 
     @Override
-    @NonNull
     public List<AuthorityType> getAuthorities() {
         return List.of(AuthorityType.BUY, AuthorityType.LAUNCH_COURSE,
                 AuthorityType.LEAVE_REVIEW, AuthorityType.REFUND);

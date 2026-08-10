@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-bots-add-new-content-columns
+      author: Unbidden
+      changes:
+        - addColumn:
+            tableName: bots
+            columns:
+              - column:
+                  name: creator_info_mapping_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_creator_info_mapping_id_bots
+                    references: content_mappings(id)
+                    nullable: false
+              - column:
+                  name: terms_mapping_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_terms_mapping_id_bots
+                    references: content_mappings(id)
+              - column:
+                  name: start_mapping_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_start_mapping_id_bots
+                    references: content_mappings(id)
+        # - addForeignKeyConstraint:
+        #     baseTableName: messages
+        #     baseColumnNames: comment_id
+        #     referencedTableName: messages
+        #     referencedColumnNames: id
+        #     constraintName: fk_replies_comments

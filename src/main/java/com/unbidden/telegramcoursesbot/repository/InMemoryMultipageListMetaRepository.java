@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.logging.log4j.LogManager;
@@ -23,7 +24,7 @@ public class InMemoryMultipageListMetaRepository implements MultipageListMetaRep
     private static final Logger LOGGER = LogManager.getLogger(
             InMemoryMultipageListMetaRepository.class);
 
-    private static final ConcurrentMap<Integer, MultipageListMeta> metas =
+    private static final ConcurrentMap<UUID, MultipageListMeta> metas =
             new ConcurrentHashMap<>();
 
     private static final int INITIAL_EXPIRY_CHECK_DELAY = 10000;
@@ -47,7 +48,7 @@ public class InMemoryMultipageListMetaRepository implements MultipageListMetaRep
 
     @Override
     @NonNull
-    public Optional<MultipageListMeta> find(@NonNull Integer id) {
+    public Optional<MultipageListMeta> find(@NonNull UUID id) {
         return Optional.ofNullable(metas.get(id));
     }
 
@@ -56,9 +57,9 @@ public class InMemoryMultipageListMetaRepository implements MultipageListMetaRep
             fixedDelayString = "${telegram.bot.message.multipage.meta.schedule.delay}")
     public void removeExpired() {
         LOGGER.trace("Checking for expired sessions...");
-        final List<Integer> keysToRemove = new ArrayList<>();
+        final List<UUID> keysToRemove = new ArrayList<>();
 
-        for (Entry<Integer, MultipageListMeta> entry : metas.entrySet()) {
+        for (Entry<UUID, MultipageListMeta> entry : metas.entrySet()) {
             if (LocalDateTime.now().isAfter(entry.getValue()
                     .getCreatedAt().plusSeconds(expiration))) {
                 LOGGER.trace("Terminating multipage list control menu for meta "
@@ -75,7 +76,7 @@ public class InMemoryMultipageListMetaRepository implements MultipageListMetaRep
             return;
         }
         LOGGER.trace("Some expired multipage list metas have been found.");
-        for (Integer key : keysToRemove) {
+        for (UUID key : keysToRemove) {
             metas.remove(key);
         }
     }

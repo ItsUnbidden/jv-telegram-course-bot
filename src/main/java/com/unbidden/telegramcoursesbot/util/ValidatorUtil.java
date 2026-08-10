@@ -8,8 +8,6 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
-import com.unbidden.telegramcoursesbot.localization.params.error.ErrorMessageTextMissingParams;
-import com.unbidden.telegramcoursesbot.localization.params.error.ErrorNumberOfMessagesParams;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 
 import lombok.RequiredArgsConstructor;
@@ -25,7 +23,7 @@ public class ValidatorUtil {
                     + number + " messages. User " + user.getId()
                     + " has sent " + messages.size() + " messages though.",
                     localizationLoader.getLocalizationForUser(
-                    Error.NUMBER_OF_MESSAGES, user, new NumberOfMessagesParams(messages.size(), number)));
+                    Error.NUMBER_OF_MESSAGES, user, new Error.NumberOfMessagesParams(messages.size(), number)));
         }
         for (int i = 0; i < messages.size(); i++) {
             if (!messages.get(i).hasText()) {
@@ -33,7 +31,7 @@ public class ValidatorUtil {
                         .getMessageId() + " sent by user " + user.getId()
                         + " does not have any text.",
                         localizationLoader.getLocalizationForUser(
-                        Error.MESSAGE_TEXT_MISSING, user, new MessageTextMissingParams(i + 1)));
+                        Error.MESSAGE_TEXT_MISSING, user, new Error.MessageTextMissingParams(i + 1)));
             }
         }
     }

@@ -5,6 +5,7 @@ import com.unbidden.telegramcoursesbot.exception.CallbackQueryAnswerException;
 import com.unbidden.telegramcoursesbot.exception.ExceptionHandlerManager;
 import com.unbidden.telegramcoursesbot.exception.OnMaintenanceException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
@@ -36,9 +37,6 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 @RequestMapping("/webhook")
 public class WebhookController {
     private static final Logger LOGGER = LogManager.getLogger(WebhookController.class);
-
-    private static final String ERROR_SERVER_ON_MAINTENANCE = "error_server_on_maintenance";
-    private static final String ERROR_BOTLORD_CALLBACK_EXCEPTION = "error_botlord_callback_exception";
 
     private static final String SECRET_KEY_HEADER = "X-Telegram-Bot-Api-Secret-Token";
 
@@ -88,8 +86,7 @@ public class WebhookController {
 
                 LOGGER.debug("Update with command " + update.getMessage().getText()
                         + " triggered by user " + user.getId() + " in bot " + bot.getId() + ".");
-                commandHandlerManager.getHandler(commandParts[0]).handle(bot, user,
-                        update.getMessage(), commandParts);
+                commandHandlerManager.getHandler(commandParts[0]).handle(user, bot, update.getMessage(), commandParts);
             } else if (update.hasPreCheckoutQuery()) {
                 user = userService.initializeUserForBot(update.getPreCheckoutQuery().getFrom(),
                         bot);
@@ -134,7 +131,7 @@ public class WebhookController {
                 
                 LOGGER.debug("Update with a general message was sent by user "
                         + user.getId() + " in bot " + bot.getId() + ".");
-                sessionDistributor.callService(update.getMessage(), user, bot);
+                sessionDistributor.callService(user, bot, update.getMessage());
             }
         } catch (Exception e) { 
             if (user != null) {
@@ -188,7 +185,7 @@ public class WebhookController {
 
                 LOGGER.debug("Update with command " + update.getMessage().getText()
                         + " was sent in bot lord.");
-                commandHandlerManager.getHandler(commandParts[0]).handle(bot, user,
+                commandHandlerManager.getHandler(commandParts[0]).handle(user, bot,
                         update.getMessage(), commandParts);
             } else if (update.hasCallbackQuery()) {
                 user = userService.initializeUserForBot(update.getCallbackQuery().getFrom(), bot);
@@ -207,7 +204,7 @@ public class WebhookController {
 
                 LOGGER.debug("Update with a general message was sent by user "
                         + user.getId() + " in bot " + bot.getId() + ".");
-                sessionDistributor.callService(update.getMessage(), user, bot);
+                sessionDistributor.callService(user, bot, update.getMessage());
             }
         } catch (Exception e) { 
             if (user != null) {
@@ -223,7 +220,7 @@ public class WebhookController {
                 LOGGER.error("Callback query exception occured in bot lord. Some investigation "
                         + "might be required", e);
                 clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                        .getLocalizationForUser(ERROR_BOTLORD_CALLBACK_EXCEPTION, user));
+                        .getLocalizationForUser(Error.BOTLORD_CALLBACK_EXCEPTION, user));
             }
         }
     }
@@ -238,7 +235,7 @@ public class WebhookController {
     private void checkMaintenance(UserEntity user) {
         if (clientManager.isOnMaintenance()) {
             throw new OnMaintenanceException("Server is on maintenance", localizationLoader
-                    .getLocalizationForUser(ERROR_SERVER_ON_MAINTENANCE, user));
+                    .getLocalizationForUser(Error.SERVER_ON_MAINTENANCE, user));
         }
     }
     

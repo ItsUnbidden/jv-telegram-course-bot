@@ -37,15 +37,17 @@ public class MenuTerminationGroupService {
     @Transactional
     public MenuTerminationGroup addToMenuTerminationGroup(UserEntity user,
             UserEntity messagedUser, Bot bot, Integer messageId,
-            String key, @Nullable LocalizationKey terminalLocalizationKey) {
+            MenuTerminationGroupKey key, @Nullable LocalizationKey terminalLocalizationKey,
+            Object[] args) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(messagedUser, "messagedUser cannot be null");
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(messageId, "messageId cannot be null");
         Assert.notNull(key, "key cannot be null");
+        Assert.notNull(args, "args cannot be null");
 
         final Optional<MenuTerminationGroup> groupOpt = menuTerminationGroupRepository
-                .findByUserIdAndName(user.getId(), key);
+                .findByUserIdAndName(user.getId(), key.getName().formatted(args));
 
         final MenuTerminationGroup group;
         if (groupOpt.isPresent()) {
@@ -55,12 +57,12 @@ public class MenuTerminationGroupService {
             group.getMessages().add(messageRepository.save(new MessageEntity(messagedUser,
                     messageId)));
         } else {
-            LOGGER.debug("MTG " + user.getId() + " and key " + key + " does not exist yet.");
+            LOGGER.debug("MTG for user " + user.getId() + " and key " + key + " does not exist yet.");
             group = new MenuTerminationGroup();
             
-            group.setName(key);
+            group.setName(key.getName().formatted(args));
             group.setMessages(List.of(messageRepository.save(new MessageEntity(messagedUser, messageId))));
-            group.setTerminalLocalizationName(terminalLocalizationKey.toString());
+            group.setTerminalLocalizationName(terminalLocalizationKey != null ? terminalLocalizationKey.getLocName() : null);
             group.setUser(user);
             menuTerminationGroupRepository.save(group);
             LOGGER.debug("A new MTG " + group.getId() + " has been created.");
@@ -69,11 +71,11 @@ public class MenuTerminationGroupService {
     }
 
     @Transactional
-    public MenuTerminationGroup terminateMenuGroup(UserEntity user, String key) {
+    public MenuTerminationGroup terminateMenuGroup(UserEntity user, MenuTerminationGroupKey key, Object[] args) {
         final MenuTerminationGroup group = menuTerminationGroupRepository.findByUserIdAndName(
-                user.getId(), key).orElseThrow(() -> new EntityNotFoundException(
-                "Menu termination group for user " + user.getId() + " and key " + key
-                + " does not exist", localizationLoader.getLocalizationForUser(
+                user.getId(), key.getName().formatted(args))
+                .orElseThrow(() -> new EntityNotFoundException("Menu termination group for user "
+                + user.getId() + " and key " + key + " does not exist", localizationLoader.getLocalizationForUser(
                 Error.MTG_NOT_FOUND, user)));
             
         menuTerminationGroupRepository.delete(group);

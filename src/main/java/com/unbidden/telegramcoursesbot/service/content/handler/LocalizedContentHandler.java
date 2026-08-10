@@ -6,19 +6,22 @@ import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 
 import java.util.List;
-import org.springframework.lang.NonNull;
+import java.util.concurrent.CompletableFuture;
+
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 public interface LocalizedContentHandler<T extends LocalizedContent> {
-    default T parseAndPersist(@NonNull Bot bot, @NonNull List<Message> messages, @NonNull String languageCode) {
+    default T parseAndPersist(Bot bot, List<Message> messages, String languageCode) {
         return parseAndPersist(bot, messages, languageCode, false);
     }
 
-    T parseAndPersist(@NonNull Bot bot, @NonNull List<Message> messages, @NonNull String languageCode, boolean isProtected);
+    T parseAndPersist(Bot bot, List<Message> messages, String languageCode, boolean isProtected);
 
-    @NonNull
-    List<Message> sendContent(@NonNull UserEntity user, @NonNull Bot bot, @NonNull LocalizedContent content);
+    List<Message> sendContent(UserEntity user, Bot bot, LocalizedContent content);
 
-    @NonNull
+    CompletableFuture<List<Message>> sendContentAsync(UserEntity user, Bot bot, LocalizedContent content);
+
+    List<CompletableFuture<List<Message>>> sendContentInBulkAsync(List<Long> userIds, Bot bot, LocalizedContent content);
+
     MediaType getContentType();
 }

@@ -28,7 +28,7 @@ public class StatisticsButtonHandler implements ButtonHandler {
     public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull String[] params) {
         switch (params[params.length - 1]) {
             case GENERAL_BOT_STATISTICS:
-                statisticsService.sendBotStatistics(user, bot);
+                statisticsService.getBotStatistics(user, bot);
                 break;
             case BOT_USERS_STATISTICS:
                 statisticsService.sendBotUsers(user, bot);

@@ -16,12 +16,17 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRem
 @RequiredArgsConstructor
 public class ApplicationConfig {
     @Bean
-    public ExecutorService executorService() {
-        return Executors.newSingleThreadExecutor();
+    protected ExecutorService postWorkerThreadExecutor() {
+        return Executors.newSingleThreadExecutor(r -> {
+            final Thread thread = new Thread(r);
+
+            thread.setName("post-worker-thread");
+            return thread;
+        });
     }
 
     @Bean
-    public ReplyKeyboardRemove keyboardRemove() {
+    protected ReplyKeyboardRemove keyboardRemove() {
         return ReplyKeyboardRemove.builder()
                 .removeKeyboard(true)
                 .build();

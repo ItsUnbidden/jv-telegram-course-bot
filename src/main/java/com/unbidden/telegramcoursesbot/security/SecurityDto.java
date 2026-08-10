@@ -14,9 +14,12 @@ public class SecurityDto {
 
     private List<Authority> authorities;
 
-    public SecurityDto(Bot bot, UserEntity user, List<Authority> authorities) {
+    private boolean isBotLordOnly;
+
+    public SecurityDto(Bot bot, UserEntity user, List<Authority> authorities, boolean isBotLordOnly) {
         this.bot = bot;
         this.user = user;
         this.authorities = authorities;
+        this.isBotLordOnly = isBotLordOnly;
     }
 }

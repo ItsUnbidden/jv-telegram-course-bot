@@ -1,16 +1,16 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
-import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
+import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
@@ -19,7 +19,7 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 public class CreatorCommandHandler implements CommandHandler {
     private static final String COMMAND = "/creator";
     
-    private static final String SERVICE_ABOUT_CREATOR = "service_about_%s_creator";
+    private final ContentService contentService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -27,22 +27,21 @@ public class CreatorCommandHandler implements CommandHandler {
 
     @Override
     @Security(authorities = AuthorityType.INFO)
-    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
-            @NonNull String[] commandParts) {
-        final Localization localization = localizationLoader.getLocalizationForUser(
-                SERVICE_ABOUT_CREATOR.formatted(bot.getName()), user);
-
-        clientManager.getClient(bot).sendMessage(user, localization);
+    public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
+        if (bot.getCreatorInfo() == null) {
+            clientManager.getClient(bot).sendMessage(user, localizationLoader
+                    .getLocalizationForUser(Localizations.Service.NO_CREATOR_INFO, user));
+            return;
+        }
+        contentService.sendLocalizedContent(user, bot, bot.getCreatorInfo().getId());
     }
 
     @Override
-    @NonNull
     public String getCommand() {
         return COMMAND;
     }
 
     @Override
-    @NonNull
     public List<AuthorityType> getAuthorities() {
         return List.of(AuthorityType.INFO);
     }

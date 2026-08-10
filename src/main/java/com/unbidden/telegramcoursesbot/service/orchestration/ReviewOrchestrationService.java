@@ -34,7 +34,9 @@ import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.service.menu.MenuService;
+import com.unbidden.telegramcoursesbot.service.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.service.review.ReviewService;
 
 import lombok.RequiredArgsConstructor;
@@ -46,17 +48,9 @@ public class ReviewOrchestrationService {
 
     private static final Map<Long, ReviewSession> REVIEW_SESSION_MAP = new HashMap<>();
 
-    private static final String REVIEW_ACTIONS_MENU = "m_rwA";
-    private static final String LEAVE_ADVANCED_REVIEW_MENU = "m_laR";
-    private static final String LEAVE_BASIC_REVIEW_MENU = "m_lbR";
-
     private static final String ARCHIVE_REVIEWS_FILE_NAME = "archive_reviews_user_%s_course_%s";
     private static final String ARCHIVE_REVIEWS_FILE_FORMAT = ".txt";
     private static final String TEMP_FILE_NAME = "reviews_for_%s";
-
-    public static final String REVIEW_ACTIONS_MENU_TERMINATION = "review_%s_actions";
-    private static final String SEND_BASIC_REVIEW_TERMINATION = "course_%s_send_basic_review";
-    private static final String SEND_ADVANCED_REVIEW_TERMINATION = "review_%s_send_advanced_review";
 
     private final ArchiveReviewsDao archiveReviewsDao;
 
@@ -91,13 +85,13 @@ public class ReviewOrchestrationService {
 
         LOGGER.info("Sending basic review menu for course " + courseId + " to user "
                 + user.getFullName() + "...");
-        final Message menuMessage = menuService.initiateMenu(user, bot, LEAVE_BASIC_REVIEW_MENU, courseId.toString());
+        final Message menuMessage = menuService.initiateMenu(user, bot, MenuKey.LEAVE_BASIC_REVIEW, courseId.toString());
 
         LOGGER.debug("Menu sent. Adding menu message " + menuMessage.getMessageId()
                 + " to an MTG...");
         menuService.addToMenuTerminationGroup(user, user, bot,
-                menuMessage.getMessageId(), SEND_BASIC_REVIEW_TERMINATION.formatted(
-                courseId), Localizations.Service.BASIC_REVIEW_TERMINAL);
+                menuMessage.getMessageId(), MenuTerminationGroupKey.LEAVE_BASIC_REVIEW,
+                Localizations.Service.BASIC_REVIEW_TERMINAL, courseId);
         LOGGER.debug("Message added to the MTG.");
     }
 
@@ -128,8 +122,7 @@ public class ReviewOrchestrationService {
                     contentService.getLocalizedText(user, bot, course.getTitle().getId()))));
         LOGGER.debug("Message sent. An offer to provide an advanced review "
                 + "will be sent. All 'leave basic review' menus will be terminated.");
-        menuService.terminateMenuGroup(user, course.getBot(), SEND_BASIC_REVIEW_TERMINATION
-                .formatted(course.getId()));
+        menuService.terminateMenuGroup(user, course.getBot(), MenuTerminationGroupKey.LEAVE_BASIC_REVIEW, course.getId());
 
         initiateAdvancedReview(review, bot, confirmationMessage.getMessageId());
 
@@ -153,7 +146,7 @@ public class ReviewOrchestrationService {
         LOGGER.info("Message sent. Review " + reviewId + " has been updated to include advanced feedback. "
                 + "All advanced review menus will be terminated.");
         menuService.terminateMenuGroup(review.getUser(), bot,
-                SEND_ADVANCED_REVIEW_TERMINATION.formatted(review.getId()));
+                MenuTerminationGroupKey.LEAVE_ADVANCED_REVIEW, review.getId());
         return review;
     }
 
@@ -338,7 +331,7 @@ public class ReviewOrchestrationService {
         currentReviewSession.counter--;
 
         menuService.terminateMenuGroup(user, bot,
-                REVIEW_ACTIONS_MENU_TERMINATION.formatted(review.getId()));
+                MenuTerminationGroupKey.REVIEW_ACTIONS, review.getId());
 
         if (currentReviewSession.counter < 1) {
             if (currentReviewSession.courseId != null) {
@@ -352,12 +345,12 @@ public class ReviewOrchestrationService {
     private void initiateAdvancedReview(Review review, Bot bot, Integer messageId) {
         LOGGER.info("Sending advanced review menu for course " + review.getCourse().getId()
                 + " to user " +  review.getUser().getId() + "...");
-        menuService.initiateMenu(review.getUser(), bot, LEAVE_ADVANCED_REVIEW_MENU,
+        menuService.initiateMenu(review.getUser(), bot, MenuKey.LEAVE_ADVANCED_REVIEW,
                 review.getCourse().getId().toString(), messageId);
         LOGGER.debug("Menu sent. Adding message " + messageId + " to an MTG...");
         menuService.addToMenuTerminationGroup(review.getUser(), review.getUser(),
-                bot, messageId, SEND_ADVANCED_REVIEW_TERMINATION.formatted(review.getId()), 
-                Localizations.Service.ADVANCED_REVIEW_TERMINAL);
+                bot, messageId, MenuTerminationGroupKey.LEAVE_ADVANCED_REVIEW, 
+                Localizations.Service.ADVANCED_REVIEW_TERMINAL, review.getId());
         LOGGER.debug("Message added to the MTG.");
     }
 
@@ -416,10 +409,9 @@ public class ReviewOrchestrationService {
                             review.getUser().getFullName(), review.getBasicSubmittedTimestamp(), review.getLastUpdateTimestamp(),
                             localizedCourseName, review.getCourseGrade(), review.getPlatformGrade(), review.getUsersWhoReadAsString())));
             }
-            menuService.initiateMenu(user, bot, REVIEW_ACTIONS_MENU, review.getId().toString(), message.getMessageId());
+            menuService.initiateMenu(user, bot, MenuKey.REVIEW_ACTIONS, review.getId().toString(), message.getMessageId());
             menuService.addToMenuTerminationGroup(user, user, bot, message.getMessageId(),
-                    REVIEW_ACTIONS_MENU_TERMINATION.formatted(
-                    review.getId()), null);
+                    MenuTerminationGroupKey.REVIEW_ACTIONS, review.getId());
         }
     }
 

@@ -18,4 +18,14 @@ public interface CourseOwnershipRepository extends JpaRepository<CourseOwnership
     boolean existsByUserIdAndCourseIdAndAndStatus(Long userId, Long courseId, OwnershipStatus status);
 
     boolean existsByUserIdAndCourseIdAndAndStatusAndSource(Long userId, Long courseId, OwnershipStatus status, OwnershipSource source);
+
+    long countByUserIdAndCourseBotIdAndStatus(Long userId, Long botId, OwnershipStatus status);
+
+    long countByCourseBotIdAndStatus(Long botId, OwnershipStatus status);
+
+    long countByCourseBotIdAndSourceAndStatus(Long botId, OwnershipSource source, OwnershipStatus status);
+
+    long countByCourseIdAndStatus(Long courseId, OwnershipStatus status);
+
+    long countByCourseIdAndSourceAndStatus(Long courseId, OwnershipSource source, OwnershipStatus status);
 }

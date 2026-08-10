@@ -5,6 +5,7 @@ import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.RefundImpossibleException;
 import com.unbidden.telegramcoursesbot.exception.StaleStateException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership;
@@ -22,8 +23,7 @@ import com.unbidden.telegramcoursesbot.util.EntityUtil;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
@@ -41,20 +41,6 @@ import org.telegram.telegrambots.meta.api.objects.payments.SuccessfulPayment;
 public class PaymentService {
     private static final Logger LOGGER = LogManager.getLogger(PaymentService.class);
     
-    private static final String PARAM_MAX_STAGE_FOR_REFUND = "${maxStageForRefund}";
-    private static final String PARAM_CURRENT_STAGE = "${currentStage}";
-    private static final String PARAM_COURSE_NAME = "${courseName}";
-    private static final String PARAM_TITLE = "${targetTitle}";
-    private static final String PARAM_TARGET_FULL_NAME = "${targetFullName}";
-    
-    private static final String ERROR_GIVE_COURSE_ALREADY_OWNED = "error_give_course_already_owned";
-    private static final String ERROR_REFUND_USER_ADVANCED_TOO_FAR = "error_refund_user_advanced_too_far";
-    private static final String ERROR_REFUND_COURSE_NOT_OWNED = "error_refund_course_not_owned";
-    private static final String ERROR_REFUND_COURSE_WAS_GIFTED = "error_refund_course_was_gifted";
-    private static final String ERROR_REFUND_COURSE_COMPLETED = "error_refund_course_completed";
-    private static final String ERROR_REFUND_COURSE_UNAVAILABLE = "error_refund_course_unavailable";
-    private static final String ERROR_REFUND_PURCHASE_TOO_OLD = "error_refund_purchase_too_old";
-
     private static final int REFUND_EXPIRATION_DAYS = 21;
 
     private final PaymentDetailsRepository paymentDetailsRepository;
@@ -162,14 +148,11 @@ public class PaymentService {
         try {
             return createOrActivateOwnership(target, course, OwnershipSource.GIFTED);
         } catch (CourseIsAlreadyOwnedException e) {
-            final Map<String, Object> paramMap = new HashMap<>();
-
-            paramMap.put(PARAM_COURSE_NAME, contentService.getLocalizedText(user, bot, course.getTitle().getId()));
-            paramMap.put(PARAM_TARGET_FULL_NAME, target.getFullName());
-            paramMap.put(PARAM_TITLE, entityUtil.getLocalizedTitle(user, bot, target));
             throw new StaleStateException("Unable to gift course " + courseId + " to user "
                     + targetId + " because they already own it.", localizationLoader.getLocalizationForUser(
-                    ERROR_GIVE_COURSE_ALREADY_OWNED, user, paramMap), e);
+                    Error.GIVE_COURSE_ALREADY_OWNED, user, new Error.GiveCourseAlreadyOwnedParams(
+                        contentService.getLocalizedText(user, bot, course.getTitle().getId()), target.getFullName(),
+                        entityUtil.getLocalizedTitle(user, bot, target))), e);
         }
     }
 
@@ -188,14 +171,13 @@ public class PaymentService {
         if (course.getRefundStage() < 0) {
             throw new RefundImpossibleException("Refund for course " + courseId 
                     + " is not possible", localizationLoader.getLocalizationForUser(
-                    ERROR_REFUND_COURSE_UNAVAILABLE, user, PARAM_COURSE_NAME,
-                    courseName));
+                    Error.REFUND_COURSE_UNAVAILABLE, user, new Error.RefundCourseUnavailableParams(courseName)));
         }
         LOGGER.debug("Checking whether course " + courseId + " is owned by user " + user.getId() + "...");
         if (!isAvailable(user, courseId)) {
             throw new RefundImpossibleException("Course " + courseId
                     + " is not owned by user " + user.getId(), localizationLoader
-                    .getLocalizationForUser(ERROR_REFUND_COURSE_NOT_OWNED, user));
+                    .getLocalizationForUser(Error.REFUND_COURSE_NOT_OWNED, user, new Error.RefundCourseNotOwnedParams(courseName)));
         }
         LOGGER.debug("Checking whether course " + courseId + " was gifted to user "
                 + user.getId() + "...");
@@ -203,7 +185,7 @@ public class PaymentService {
             throw new RefundImpossibleException("Course " + courseId
                     + " was gifted to user " + user.getId()
                     + " and therefore it cannot be refunded", localizationLoader
-                    .getLocalizationForUser(ERROR_REFUND_COURSE_WAS_GIFTED, user));
+                    .getLocalizationForUser(Error.REFUND_COURSE_WAS_GIFTED, user, new Error.RefundCourseWasGiftedParams(courseName)));
         }
         final CourseOwnership ownership = entityUtil.getCourseOwnership(user, bot, courseId);
 
@@ -212,9 +194,10 @@ public class PaymentService {
         if (ownership.getLastUpdate().plusDays(REFUND_EXPIRATION_DAYS)
                 .isBefore(LocalDateTime.now())) {
             throw new RefundImpossibleException("User " + user.getId() + " cannot refund course "
-                    + courseId + " because " + REFUND_EXPIRATION_DAYS + " days have passed "
+                    + courseId + " because more than " + REFUND_EXPIRATION_DAYS + " days have passed "
                     + "since the purchase.", localizationLoader.getLocalizationForUser(
-                    ERROR_REFUND_PURCHASE_TOO_OLD, user));
+                    Error.REFUND_PURCHASE_TOO_OLD, user, new Error.RefundPurchaseTooOldParams(courseName, REFUND_EXPIRATION_DAYS,
+                        ChronoUnit.DAYS.between(ownership.getLastUpdate(), LocalDateTime.now()))));
         }
         final CourseProgress courseProgress = entityUtil.getCourseProgressForUser(user, bot, courseId);
 
@@ -223,25 +206,20 @@ public class PaymentService {
         if (courseProgress.getNumberOfTimesCompleted() > 0) {
             throw new RefundImpossibleException("User " + user.getId() + " cannot refund course "
                     + courseId + " because they have already completed it",
-                    localizationLoader.getLocalizationForUser(ERROR_REFUND_COURSE_COMPLETED,
-                    user, PARAM_COURSE_NAME, courseName));
+                    localizationLoader.getLocalizationForUser(Error.REFUND_COURSE_COMPLETED,
+                    user, new Error.RefundCourseCompletedParams(courseName)));
         }
         LOGGER.debug("Checking whether user " + user.getId() + " has advanced past stage "
                 + course.getRefundStage() + " in course " + courseId + " (current stage is "
                 + courseProgress.getStage() + ")...");
         if (courseProgress.getStage() > course.getRefundStage()) {
-            final Map<String, Object> parameterMap = new HashMap<>();
-
-            parameterMap.put(PARAM_COURSE_NAME, courseName);
-            parameterMap.put(PARAM_CURRENT_STAGE, courseProgress.getStage());
-            parameterMap.put(PARAM_MAX_STAGE_FOR_REFUND, course.getRefundStage());
-
             throw new RefundImpossibleException("User " + user.getId()
                     + " has advanced in course " + courseId + " to "
                     + courseProgress.getStage() + " lesson which is past lesson "
-                    + course.getRefundStage() + " and therefore refund is now impossible",
-                    localizationLoader.getLocalizationForUser(ERROR_REFUND_USER_ADVANCED_TOO_FAR,
-                    user, parameterMap));
+                    + course.getRefundStage() + " and therefore the refund is now impossible",
+                    localizationLoader.getLocalizationForUser(Error.REFUND_USER_ADVANCED_TOO_FAR,
+                        user, new Error.RefundUserAdvancedTooFarParams(courseName, course.getRefundStage(),
+                        courseProgress.getStage())));
         }
         LOGGER.info("User " + user.getId() + " is eligible for course "
                 + courseId + "'s refund.");

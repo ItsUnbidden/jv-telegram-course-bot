@@ -1,8 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.content.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.GraphicsContent;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.model.content.MarkerArea;
@@ -16,10 +16,10 @@ import com.unbidden.telegramcoursesbot.repository.VideoRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
+import java.util.concurrent.CompletableFuture;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -31,11 +31,9 @@ import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaVideo;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
-@RequiredArgsConstructor
-public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsContent> {
+public class GraphicsContentHandler extends AbstractContentHandler<GraphicsContent> {
     private static final Logger LOGGER = LogManager.getLogger(GraphicsContentHandler.class);
 
     private final PhotoRepository photoRepository;
@@ -45,17 +43,27 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
     private final GraphicsContentRepository graphicsContentRepository;
 
     private final MarkerAreaRepository markerAreaRepository;
-
     
     private final TextContentHandler textContentHandler;
 
     private final ClientManager clientManager;
 
-    @NonNull
+    public GraphicsContentHandler(LocalizationLoader localizationLoader, PhotoRepository photoRepository,
+            VideoRepository videoRepository, GraphicsContentRepository graphicsContentRepository,
+            MarkerAreaRepository markerAreaRepository, TextContentHandler textContentHandler,
+            ClientManager clientManager) {
+        super(localizationLoader);
+        this.photoRepository = photoRepository;
+        this.videoRepository = videoRepository;
+        this.graphicsContentRepository = graphicsContentRepository;
+        this.markerAreaRepository = markerAreaRepository;
+        this.textContentHandler = textContentHandler;
+        this.clientManager = clientManager;
+    }
+
     @Override
     @Transactional
-    public GraphicsContent parseAndPersist(@NonNull Bot bot, @NonNull List<Message> messages,
-            @NonNull String languageCode, boolean isProtected) {
+    public GraphicsContent parseAndPersist(Bot bot, List<Message> messages, String languageCode, boolean isProtected) {
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(messages, "messages cannot be null");
         Assert.notNull(languageCode, "languageCode cannot be null");
@@ -119,9 +127,10 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
     }
 
     @Override
-    @NonNull
-    public List<Message> sendContent(@NonNull UserEntity user, @NonNull Bot bot, @NonNull LocalizedContent content) {
-        Assert.notNull(user, "user cannot be null");
+    public List<CompletableFuture<List<Message>>> sendContentInBulkAsync(List<Long> userIds, Bot bot, LocalizedContent content) {
+        Assert.notNull(userIds, "userIds cannot be null");
+        Assert.notEmpty(userIds, "userIds cannot be empty");
+        Assert.noNullElements(userIds, "userIds cannot contain null");
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(content, "content cannot be null");
 
@@ -144,7 +153,7 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
             LOGGER.warn("Content " + content.getId() + " is of type " + content.getType()
                     + " but does not have any relevant content. Text content handler "
                     + "will be used instead.");
-            return textContentHandler.sendContent(user, bot, content);
+            return textContentHandler.sendContentInBulkAsync(userIds, bot, content);
         }
 
         if (content.getData() != null) {
@@ -152,58 +161,42 @@ public class GraphicsContentHandler implements LocalizedContentHandler<GraphicsC
             inputMedias.get(inputMedias.size() - 1).setCaptionEntities(markerAreaRepository.findByContentId(
                     content.getId()).stream().map(MarkerArea::toMessageEntity).toList());
         }
+        
+        final var client = clientManager.getClient(bot);
 
         if (inputMedias.size() == 1) {
             final InputMedia inputMedia = inputMedias.get(0);
+            final InputFile inputFile = new InputFile(inputMedia.getMedia());
+            
             LOGGER.debug("Graphics content " + content.getId() + " contains only one media.");
-
             if (inputMedia.getClass().equals(InputMediaPhoto.class)) {
                 LOGGER.debug("The media is a photo.");
-                try {
-                    return List.of(clientManager.getClient(bot).execute(SendPhoto.builder()
-                            .chatId(user.getId())
-                            .protectContent(content.isProtected())
-                            .photo(new InputFile(inputMedia.getMedia()))
-                            .caption(inputMedia.getCaption())
-                            .captionEntities(inputMedia.getCaptionEntities())
-                            .build()));
-                } catch (TelegramApiException e) {
-                    LOGGER.error("Unable to send photo media in content " + content.getId()
-                            + " to user " + user.getId(), e);
-                    return List.of();
-                }
-            }
-            LOGGER.debug("The media is a video.");
-            try {
-                return List.of(clientManager.getClient(bot).execute(SendVideo.builder()
-                        .chatId(user.getId())
+
+                return userIds.stream().map(id -> client.executeAsync(SendPhoto.builder()
+                        .chatId(id)
                         .protectContent(content.isProtected())
-                        .video(new InputFile(inputMedia.getMedia()))
+                        .photo(inputFile)
                         .caption(inputMedia.getCaption())
                         .captionEntities(inputMedia.getCaptionEntities())
-                        .build()));
-            } catch (TelegramApiException e) {
-                LOGGER.error("Unable to send video media in content " + content.getId()
-                        + " to user " + user.getId(), e);
-                return List.of();
+                        .build()).thenApply(r -> List.of(r))).toList();
             }
-        }
-
-        try {
-            return clientManager.getClient(bot).execute(SendMediaGroup.builder()
-                    .chatId(user.getId())
+            LOGGER.debug("The media is a video.");
+            return userIds.stream().map(id -> client.executeAsync(SendVideo.builder()
+                    .chatId(id)
                     .protectContent(content.isProtected())
-                    .medias(inputMedias)
-                    .build());
-        } catch (TelegramApiException e) {
-            LOGGER.error("Unable to send graphics media group in content " + content.getId()
-                    + " to user " + user.getId(), e);
-            return List.of();
+                    .video(inputFile)
+                    .caption(inputMedia.getCaption())
+                    .captionEntities(inputMedia.getCaptionEntities())
+                    .build()).thenApply(r -> List.of(r))).toList();
         }
+        return userIds.stream().map(id -> client.executeAsync(SendMediaGroup.builder()
+                .chatId(id)
+                .protectContent(content.isProtected())
+                .medias(inputMedias)
+                .build())).toList();
     }
 
     @Override
-    @NonNull
     public MediaType getContentType() {
         return MediaType.GRAPHICS;
     }

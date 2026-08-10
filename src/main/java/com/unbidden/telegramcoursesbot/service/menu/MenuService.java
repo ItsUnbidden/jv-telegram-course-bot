@@ -30,10 +30,9 @@ import com.unbidden.telegramcoursesbot.util.KeyboardUtil;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,7 +58,6 @@ public class MenuService {
     private static final int MENU_NAME = 0;
     private static final int PAGE_NUMBER = 1;
     private static final int NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST = 15;
-    private static final String MULTIPAGE_MENU_NAME = "m_mpl";
 
     private final MenuTerminationGroupService menuTerminationGroupService;
 
@@ -77,16 +75,16 @@ public class MenuService {
 
     private final EntityUtil entityUtil;
 
-    public Message initiateMenu(UserEntity user, Bot bot, String menuName) {
-        return initiateMenu(user, bot, menuName, "");
+    public Message initiateMenu(UserEntity user, Bot bot, MenuKey key) {
+        return initiateMenu(user, bot, key, "");
     }
 
-    public Message initiateMenu(UserEntity user, Bot bot, String menuName, String param) {
-        final Menu menu = menuRepository.find(menuName).orElseThrow(() ->
-                new EntityNotFoundException("Menu " + menuName + " was not found",
+    public Message initiateMenu(UserEntity user, Bot bot, MenuKey key, String param) {
+        final Menu menu = menuRepository.find(key.getName()).orElseThrow(() ->
+                new EntityNotFoundException("Menu " + key.getName() + " was not found",
                 localizationLoader.getLocalizationForUser(Error.MENU_NOT_FOUND, user)));
         if (menu.isAttachedToMessage()) {
-            throw new UnsupportedOperationException("Menu " + menuName + " is supposed to be "
+            throw new UnsupportedOperationException("Menu " + key.getName() + " is supposed to be "
                     + "attached to a message, but the wrong initialization method was called.");
         }
         final Page firstPage = menu.getPages().get(0);
@@ -100,24 +98,24 @@ public class MenuService {
         return message;
     }
 
-    public void initiateMenu(UserEntity user, Bot bot, String menuName, Integer messageId) {
-        initiateMenu(user, bot, menuName, "", messageId);
+    public void initiateMenu(UserEntity user, Bot bot, MenuKey key, Integer messageId) {
+        initiateMenu(user, bot, key, "", messageId);
     }
 
-    public void initiateMenu(UserEntity user, Bot bot, String menuName, String param, Integer messageId) {
-        final Menu menu = menuRepository.find(menuName).orElseThrow(() ->
-                new EntityNotFoundException("Menu " + menuName + " was not found",
+    public void initiateMenu(UserEntity user, Bot bot, MenuKey key, String param, Integer messageId) {
+        final Menu menu = menuRepository.find(key.getName()).orElseThrow(() ->
+                new EntityNotFoundException("Menu " + key.getName() + " was not found",
                 localizationLoader.getLocalizationForUser(Error.MENU_NOT_FOUND, user)));
         final Page firstPage = menu.getPages().get(0);
         
-        LOGGER.trace("Menu " + menuName + "'s markup is being compiled for message " + messageId
+        LOGGER.trace("Menu " + key + "'s markup is being compiled for message " + messageId
                 + " and user " + user.getId() + "...");
         EditMessageReplyMarkup editMessageReplyMarkup = EditMessageReplyMarkup.builder()
                 .chatId(user.getId())
                 .messageId(messageId)
                 .replyMarkup(getInitialMarkup(firstPage, param, user, bot))
                 .build();
-        LOGGER.trace("Menu " + menuName + "'s markup compiled. Sending...");
+        LOGGER.trace("Menu " + key + "'s markup compiled. Sending...");
         try {
             clientManager.getClient(bot).execute(editMessageReplyMarkup);
             LOGGER.trace("Markup sent.");
@@ -253,36 +251,37 @@ public class MenuService {
 
     public Message initiateMultipageList(UserEntity user, Bot bot,
             Function<MultipageListParams, Localization> localizationFunction,
-            BiFunction<Integer, Integer, List<String>> dataFunction,
-            Supplier<Long> totalNumberOfElementsSupplier) {
+            BiFunction<Integer, Integer, org.springframework.data.domain.Page<String>> dataFunction) {
         LOGGER.debug("Initiating a new multipage list... Applying data function...");
-        final long numberOfElements = totalNumberOfElementsSupplier.get();
+        final org.springframework.data.domain.Page<String> dataPage = dataFunction.apply(0,
+                NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST);
 
-        if (numberOfElements == 0) {
+        if (dataPage.getTotalElements() == 0) {
             throw new NoDataForMultipageListException("No data available for multipage list",
                     localizationLoader.getLocalizationForUser(Error.NO_DATA_FOR_MULTIPAGE_LIST,
                     user));
         }
-        final String data = applyMultipageListDataFunction(user, 0, dataFunction);
-        final int numberOfPages = (int)Math.ceil((double)numberOfElements
-                / NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST);
+        final String data = convertDataPageToString(dataPage);
+        
         LOGGER.debug("Data function applied and data parsed. Sending the message...");
         final Message message = clientManager.getClient(bot).sendMessage(user,
-                localizationFunction.apply(new MultipageListParams(0, numberOfPages, numberOfElements, data)));
+                localizationFunction.apply(new MultipageListParams(0, dataPage.getTotalPages(),
+                dataPage.getTotalElements(), data)));
+
         LOGGER.debug("Message has been sent.");
 
-        if (numberOfPages > 1) {
+        if (dataPage.getTotalPages() > 1) {
             LOGGER.debug("There is more than one page. Creating new multipage meta...");
-            final MultipageListMeta meta = new MultipageListMeta(ThreadLocalRandom.current()
-                    .nextInt(Integer.MIN_VALUE, Integer.MAX_VALUE), user, bot,
+            final MultipageListMeta meta = new MultipageListMeta(UUID.randomUUID(), user, bot,
                     message.getMessageId(), 0, localizationFunction, dataFunction);
-            meta.setAmountOfElements(numberOfElements);
-            meta.setAmountOfPages(numberOfPages);
+
+            meta.setNumberOfElements(dataPage.getTotalElements());
+            meta.setNumberOfPages(dataPage.getTotalPages());
             multipageListMetaRepository.save(meta);
             LOGGER.debug("Multipage meta " + meta.getId() + " has been created and persisted.");
 
             LOGGER.debug("Attaching a control menu...");
-            initiateMenu(user, bot, MULTIPAGE_MENU_NAME,meta.getId().toString(), message.getMessageId());
+            initiateMenu(user, bot, MenuKey.MULTIPAGE_LIST ,meta.getId().toString(), message.getMessageId());
             LOGGER.debug("Menu initiated.");
         }
         return message;
@@ -292,9 +291,9 @@ public class MenuService {
         LOGGER.debug("Updating multipage list message " + meta.getMessageId() + " for user "
                 + meta.getUser().getId() + "...");
         final Localization localization = meta.getLocalizationFunction().apply(
-                new MultipageListParams(meta.getPage(), meta.getAmountOfPages(), meta.getAmountOfElements(),
-                applyMultipageListDataFunction(meta.getUser(), meta.getPage(), meta.getDataFunction())));
-        final Menu menu = menuRepository.find(MULTIPAGE_MENU_NAME).get();
+                new MultipageListParams(meta.getPage(), meta.getNumberOfPages(), meta.getNumberOfElements(),
+                convertDataPageToString(meta.getDataFunction().apply(meta.getPage(), NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST))));
+        final Menu menu = menuRepository.find(MenuKey.MULTIPAGE_LIST.getName()).get();
 
         try {
             clientManager.getClient(meta.getBot()).execute(EditMessageText.builder()
@@ -313,7 +312,7 @@ public class MenuService {
         }
     }
 
-    public MultipageListMeta getMultipageListMeta(Integer id, UserEntity user) {
+    public MultipageListMeta getMultipageListMeta(UUID id, UserEntity user) {
         return multipageListMetaRepository.find(id).orElseThrow(() -> new EntityNotFoundException(
                 "Multipage list meta " + id + " does not exist. It might have expired.",
                 localizationLoader.getLocalizationForUser(Error.MULTIPAGE_LIST_META_NOT_FOUND,
@@ -324,35 +323,78 @@ public class MenuService {
         return menuRepository.save(menu);
     }
 
+    /**
+     * Adds a menu to a new menu termination group. If the group doesn't exist, it is created.
+     * @param user with whom the group is associated.
+     * @param messagedUser — the user to whom the menu was sent.
+     * @param bot
+     * @param messageId 
+     * @param key that identifies this group.
+     * @param terminalLocalizationKey — the key of the localization that will be used to replace the message's text after the menu is removed.
+     * @param args that will be used to format the MTG key.
+     * @return
+     */
     public MenuTerminationGroup addToMenuTerminationGroup(UserEntity user,
             UserEntity messagedUser, Bot bot, Integer messageId,
-            String key, @Nullable LocalizationKey terminalLocalizationKey) {
+            MenuTerminationGroupKey key, @Nullable LocalizationKey terminalLocalizationKey, Object... args) {
         return menuTerminationGroupService.addToMenuTerminationGroup(user, messagedUser,
-                bot, messageId, key, terminalLocalizationKey);
+                bot, messageId, key, terminalLocalizationKey, args);
     }
 
+    /**
+     * Adds a menu to a new menu termination group. If the group doesn't exist, it is created. There will be no terminal localization.
+     * @param user with whom the group is associated.
+     * @param messagedUser — the user to whom the menu was sent.
+     * @param bot
+     * @param messageId
+     * @param key that identifies this group.
+     * @param args that will be used to format the MTG key.
+     * @return
+     */
     public MenuTerminationGroup addToMenuTerminationGroup(UserEntity user, UserEntity messagedUser,
-            Bot bot, Integer messageId, String key) {
-        return addToMenuTerminationGroup(user, messagedUser, bot, messageId, key, null);
+            Bot bot, Integer messageId, MenuTerminationGroupKey key, Object... args) {
+        return addToMenuTerminationGroup(user, messagedUser, bot, messageId, key, null, args);
     }
 
-    public void terminateMenuGroup(UserEntity user, Bot bot, String key) {
-        terminateMenuGroup(user, bot, key, null);
+    /**
+     * Removes the menus for all messages in the specified menu termination group. If a menu cannot be removed, the exception will be ignored.
+     * @param user with whom the group is associated.
+     * @param bot
+     * @param key that identifies this group.
+     * @param args that will be used to format the MTG key.
+     */
+    public void terminateMenuGroup(UserEntity user, Bot bot, MenuTerminationGroupKey key, Object... args) {
+        terminateMenuGroup(user, bot, key, null, args);
     }
 
-    public void terminateMenuGroup(UserEntity user, Bot bot, String key,
-            @Nullable Localization terminalLocalizationOverride) {
-        final MenuTerminationGroup group = menuTerminationGroupService.terminateMenuGroup(user, key);
+    /**
+     * Removes the menus for all messages in the specified menu termination group. If a menu cannot be removed, the exception will be ignored.
+     * @param user with whom the group is associated.
+     * @param bot
+     * @param key that identifies this group.
+     * @param terminalLocalizationOverride — the key of the localization that will be used to replace the message's text after the menu is removed. If the MTG contained a {@code terminalLocalizationKey}, it will be overridden.
+     * @param args that will be used to format the MTG key.
+     */
+    public void terminateMenuGroup(UserEntity user, Bot bot, MenuTerminationGroupKey key,
+            @Nullable Localization terminalLocalizationOverride, Object... args) {
+        final MenuTerminationGroup group = menuTerminationGroupService.terminateMenuGroup(user, key, args);
             
         for (final MessageEntity message : group.getMessages()) {
             terminateMenu(message.getUser().getId(), message.getMessageId(), bot,
                     (terminalLocalizationOverride != null) ? terminalLocalizationOverride
                     : (group.getTerminalLocalizationName() != null) ? localizationLoader
-                    .getLocalizationForUser(Localizations.getKeyByName(group.getTerminalLocalizationName()),
+                    .getLocalizationForUser(Localizations.getKeyByLocName(group.getTerminalLocalizationName()),
                     message.getUser()) : null);
         }
     }
 
+    /**
+     * Removes a specific menu. 
+     * @param chatId 
+     * @param messageId
+     * @param bot
+     * @param terminalPageLocalization — the localization that will be used to replace the text of the removed menu's message.
+     */
     public void terminateMenu(Long chatId, Integer messageId, Bot bot,
             @Nullable Localization terminalPageLocalization) {
         final InlineKeyboardMarkup clearMarkup = InlineKeyboardMarkup.builder()
@@ -380,7 +422,13 @@ public class MenuService {
             // TODO: make sure ignoring this does not cause any issues
         }
     }
-
+    
+    /**
+     * Removes a specific menu. 
+     * @param chatId 
+     * @param messageId
+     * @param bot
+     */
     public void terminateMenu(Long chatId, Integer messageId, Bot bot) {
         terminateMenu(chatId, messageId, bot, null);
     }
@@ -456,18 +504,10 @@ public class MenuService {
                 .build();
     }
 
-    private String applyMultipageListDataFunction(UserEntity user, int page,
-            BiFunction<Integer, Integer, List<String>> dataFunction) {
-        final List<String> data = dataFunction.apply(page, NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST);
-
-        if (data.isEmpty()) {
-            throw new NoDataForMultipageListException("No data available for a page in a "
-                    + "multipage list", localizationLoader.getLocalizationForUser(
-                    Error.NO_DATA_FOR_MULTIPAGE_LIST, user));
-        }
+    private String convertDataPageToString(org.springframework.data.domain.Page<String> dataPage) {
         final StringBuilder builder = new StringBuilder();
 
-        for (String entry : data) {
+        for (String entry : dataPage.getContent()) {
             builder.append(entry).append('\n').append("-----").append('\n');
         }
         builder.delete(builder.length() - 7, builder.length());
