@@ -57,10 +57,10 @@ public class RefundButtonHandler implements ButtonHandler {
                 .checkRefundPossible(user, bot, params[0]);
         final Map<String, Object> confirmationPhraseParameterMap = new HashMap<>();
         confirmationPhraseParameterMap.put(PARAM_COURSE_NAME, localizationLoader
-                .getLocalizationForUser(COURSE_NAME.formatted(params[0]), user).getData());
+                .localize(COURSE_NAME.formatted(params[0]), user).getData());
         confirmationPhraseParameterMap.put(PARAM_SPENT_STARS, paymentDetails.getTotalAmount());
 
-        final String confirmationPhrase = localizationLoader.getLocalizationForUser(
+        final String confirmationPhrase = localizationLoader.localize(
                 SERVICE_REFUND_CONFIRMATION_PHRASE, user,
                 confirmationPhraseParameterMap).getData();
 
@@ -72,19 +72,19 @@ public class RefundButtonHandler implements ButtonHandler {
 
                     throw new InvalidDataSentException("One message was expected but "
                             + m.size() + " was/were sent", localizationLoader
-                            .getLocalizationForUser(ERROR_AMOUNT_OF_MESSAGES, user,
+                            .localize(ERROR_AMOUNT_OF_MESSAGES, user,
                             parameterMap));
             }
             if (!m.get(0).hasText()) {
                 throw new InvalidDataSentException("A text message was expected",
-                localizationLoader.getLocalizationForUser(ERROR_TEXT_MESSAGE_EXPECTED, user));
+                localizationLoader.localize(ERROR_TEXT_MESSAGE_EXPECTED, user));
             }
             final String providedStr = m.get(0).getText();
             LOGGER.debug("User has provided this string - " + providedStr
                     + ". Checking if this matches the confirmation phrase...");
             if (!confirmationPhrase.equals(providedStr.trim())) {
                 throw new InvalidDataSentException("Provided string does not match "
-                        + "the confirmation phrase", localizationLoader.getLocalizationForUser(
+                        + "the confirmation phrase", localizationLoader.localize(
                         ERROR_REFUND_CONFIRMATION_PHRASE_FAILURE, user));
             }
             LOGGER.debug("Confirmation aquired. Initiating refund...");

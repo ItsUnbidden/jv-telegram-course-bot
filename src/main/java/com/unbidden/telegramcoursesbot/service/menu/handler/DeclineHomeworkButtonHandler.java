@@ -42,7 +42,7 @@ public class DeclineHomeworkButtonHandler implements ButtonHandler {
         sessionService.createSession(user, bot, m ->
                 homeworkService.decline(progress, user, m));
 
-        final Localization localization = localizationLoader.getLocalizationForUser(
+        final Localization localization = localizationLoader.localize(
                         SERVICE_DECLINE_HOMEWORK_COMMENT_REQUEST, user);
         clientManager.getClient(bot).sendMessage(user, localization);
     }

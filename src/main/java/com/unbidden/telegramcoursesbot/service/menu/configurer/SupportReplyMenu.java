@@ -34,7 +34,7 @@ public class SupportReplyMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setButtonsRowSize(1);
         page.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(
-                localizationLoader.getLocalizationForUser(BUTTON_REPLY_TO_SUPPORT_REQUEST, u)
+                localizationLoader.localize(BUTTON_REPLY_TO_SUPPORT_REQUEST, u)
                 .getData(), REPLY_TO_SUPPORT_REQUEST, replyToSupportRequestHandler)));
         menu.setName(MENU_NAME);
         menu.setPages(List.of(page));

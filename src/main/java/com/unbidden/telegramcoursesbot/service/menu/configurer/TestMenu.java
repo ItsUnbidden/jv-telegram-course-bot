@@ -35,7 +35,7 @@ public class TestMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setButtonsRowSize(1);
         page.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(
-                localizationLoader.getLocalizationForUser(BUTTON_TEST_MENU, u)
+                localizationLoader.localize(BUTTON_TEST_MENU, u)
                 .getData(), TEST, (b1, u1, pa) -> {
                     clientManager.getClient(b).sendMessage(SendMessage.builder()
                         .chatId(u1.getId())

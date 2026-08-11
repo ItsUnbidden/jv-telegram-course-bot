@@ -10,9 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
-import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
-import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.localization.Localizations.LocalizationKey;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.MenuTerminationGroup;
@@ -32,7 +29,6 @@ public class MenuTerminationGroupService {
 
     private final MessageRepository messageRepository;
 
-    private final LocalizationLoader localizationLoader;
 
     @Transactional
     public MenuTerminationGroup addToMenuTerminationGroup(UserEntity user,
@@ -71,15 +67,18 @@ public class MenuTerminationGroupService {
     }
 
     @Transactional
-    public MenuTerminationGroup terminateMenuGroup(UserEntity user, MenuTerminationGroupKey key, Object[] args) {
-        final MenuTerminationGroup group = menuTerminationGroupRepository.findByUserIdAndName(
-                user.getId(), key.getName().formatted(args))
-                .orElseThrow(() -> new EntityNotFoundException("Menu termination group for user "
-                + user.getId() + " and key " + key + " does not exist", localizationLoader.getLocalizationForUser(
-                Error.MTG_NOT_FOUND, user)));
-            
+    public Optional<MenuTerminationGroup> terminateMenuGroup(UserEntity user, MenuTerminationGroupKey key, Object[] args) {
+        final Optional<MenuTerminationGroup> groupOpt = menuTerminationGroupRepository.findByUserIdAndName(user.getId(), key.getName());
+        final MenuTerminationGroup group;
+
+        if (groupOpt.isPresent()) {
+            group = groupOpt.get();
+        } else {
+            return groupOpt;
+        }
+
         menuTerminationGroupRepository.delete(group);
         
-        return group;
+        return groupOpt;
     }
 }

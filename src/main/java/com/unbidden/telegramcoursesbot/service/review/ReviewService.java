@@ -41,11 +41,10 @@ public class ReviewService {
     private final EntityUtil entityUtil;
 
     @Transactional
-    public Review createNewReview(UserEntity user, Long courseId, int courseGrade, int platformGrade) {
+    public Review createNewReview(UserEntity user, Long courseId, int courseGrade) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
         Assert.state(courseGrade > 0 && courseGrade <= 10, "courseGrade must be an int between 1 and 10");    
-        Assert.state(platformGrade > 0 && platformGrade <= 10, "platformGrade must be an int between 1 and 10");
 
         final Review review = new Review();
 
@@ -54,8 +53,6 @@ public class ReviewService {
         review.setBasicSubmittedTimestamp(LocalDateTime.now());
         review.setOriginalCourseGrade(courseGrade);
         review.setCourseGrade(courseGrade);
-        review.setOriginalPlatformGrade(platformGrade);
-        review.setPlatformGrade(platformGrade);
         review.setMarkedAsReadBy(Set.of());
 
         return reviewRepository.save(review);
@@ -75,7 +72,7 @@ public class ReviewService {
         if (review.getContent() != null) {
             throw new ActionExpiredException("Unable to submit content for basic review "
                     + reviewId + " because it already has some content",
-                    localizationLoader.getLocalizationForUser(
+                    localizationLoader.localize(
                     Error.COMMIT_ADVANCED_REVIEW_FAILURE, review.getUser()));
         }
         final LocalizedContent content = contentService.parseAndPersistContent(user, bot, messages);
@@ -100,7 +97,7 @@ public class ReviewService {
         if (review.getCommentContent() != null) {
             throw new ActionExpiredException("Unable to submit comment content for review "
                     + review.getId() + " because this review already has a comment from user "
-                    + review.getCommentedBy().getFullName(), localizationLoader.getLocalizationForUser(
+                    + review.getCommentedBy().getFullName(), localizationLoader.localize(
                     Error.LEAVE_COMMENT_FAILURE, user));
         }
         
@@ -124,13 +121,13 @@ public class ReviewService {
         if (review.getCommentContent() == null) {
             throw new ForbiddenOperationException("Review " + review.getId() + "'s comment "
                     + "cannot be updated because it has never been submitted", localizationLoader
-                    .getLocalizationForUser(Error.UPDATE_COMMENT_FAILURE, user));
+                    .localize(Error.UPDATE_COMMENT_FAILURE, user));
         }
         if (!review.getCommentedBy().getId().equals(user.getId())) {
             throw new AccessDeniedException("Review " + review.getId() + "'s comment "
                     + "has been made by user " + review.getCommentedBy().getFullName()
                     + ". User " + user.getFullName() + " cannot edit it.", localizationLoader
-                    .getLocalizationForUser(Error.UPDATE_COMMENT_FORBIDDEN, user));
+                    .localize(Error.UPDATE_COMMENT_FORBIDDEN, user));
         }
         
         LOGGER.info("User " + user.getId() + " wants to update comment in review "
@@ -158,36 +155,11 @@ public class ReviewService {
                 + newGrade + ".");
         if (review.getCourseGrade() == newGrade) {
             throw new InvalidDataSentException("New course grade is the same as before",
-                    localizationLoader.getLocalizationForUser(Error.SAME_NEW_COURSE_GRADE,
+                    localizationLoader.localize(Error.SAME_NEW_COURSE_GRADE,
                     user, new Error.SameNewCourseGradeParams(newGrade)));
         }
         
         review.setCourseGrade(newGrade);
-        review.setLastUpdateTimestamp(LocalDateTime.now());
-
-        return review;
-    }
-
-    @Transactional
-    public Review updatePlatformGrade(UserEntity user, Bot bot, Long reviewId, int newGrade) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(reviewId, "reviewId cannot be null");
-        Assert.state(newGrade > 0 && newGrade <= 10, "newGrade must be an int between 1 and 10");
-
-        final Review review = entityUtil.getReviewById(user, bot, reviewId);
-
-        LOGGER.info("User " + review.getUser().getFullName()
-                + " wants to update their grade for platform in review " + review.getId()
-                + ". Current grade is " + review.getPlatformGrade() + " and new grade is "
-                + newGrade + ".");
-        if (review.getPlatformGrade() == newGrade) {
-            throw new InvalidDataSentException("New platform grade is the same as before",
-                    localizationLoader.getLocalizationForUser(Error.SAME_NEW_PLATFORM_GRADE,
-                    user, new Error.SameNewPlatformGradeParams(newGrade)));
-        }
-
-        review.setPlatformGrade(newGrade);
         review.setLastUpdateTimestamp(LocalDateTime.now());
 
         return review;
@@ -208,7 +180,7 @@ public class ReviewService {
         if (review.getContent() == null) {
             throw new ForbiddenOperationException("Unable to update review " + reviewId
                     + "'s content because it has never been submitted", localizationLoader
-                    .getLocalizationForUser(Error.UPDATE_CONTENT_NOT_PRESENT, user));
+                    .localize(Error.UPDATE_CONTENT_NOT_PRESENT, user));
         }
 
         review.setContent(contentService.parseAndPersistContent(user, bot, messages));

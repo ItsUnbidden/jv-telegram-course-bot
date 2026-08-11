@@ -33,7 +33,7 @@ public class TelegramExceptionHandler extends GeneralLocalizedExceptionHandler {
                 + "'s session a telegram exception occured: ", exc);
 
         if (exc.getErrorLocalization() == null) {
-            final Localization errorLocalization = localizationLoader.getLocalizationForUser(
+            final Localization errorLocalization = localizationLoader.localize(
                     Error.TELEGRAM_INTERNAL, user, new TelegramInternalParams(exc.getMessage()));
             LOGGER.debug("There is no localization available for telegram error message. "
                     + "Default one will be used.");

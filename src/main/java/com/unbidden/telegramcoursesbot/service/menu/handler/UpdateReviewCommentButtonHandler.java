@@ -41,7 +41,7 @@ public class UpdateReviewCommentButtonHandler implements ButtonHandler {
             throw new ForbiddenOperationException("Review " + review.getId() + "'s comment "
                     + "content cannot be updated by user " + user.getId()
                     + " because they are not the ones who left it", localizationLoader
-                    .getLocalizationForUser(ERROR_UPDATE_COMMENT_FORBIDDEN, user));
+                    .localize(ERROR_UPDATE_COMMENT_FORBIDDEN, user));
         }
 
         sessionService.createSession(user, bot, m -> {
@@ -49,7 +49,7 @@ public class UpdateReviewCommentButtonHandler implements ButtonHandler {
                     contentService.parseAndPersistContent(bot, m));
         });
 
-        final Localization request = localizationLoader.getLocalizationForUser(
+        final Localization request = localizationLoader.localize(
                 SERVICE_UPDATE_REVIEW_COMMENT_REQUEST, user);
         
         clientManager.getClient(bot).sendMessage(user, request);      

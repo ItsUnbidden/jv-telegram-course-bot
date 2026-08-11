@@ -1,13 +1,17 @@
 package com.unbidden.telegramcoursesbot.service.menu.configurer;
 
+import com.unbidden.telegramcoursesbot.dto.CourseResponseDto;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.course.CourseService;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
+import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
+import com.unbidden.telegramcoursesbot.service.menu.handler.InitiateCourseButtonHandler;
+import com.unbidden.telegramcoursesbot.service.orchestration.CourseOrchestrationService;
+
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -15,42 +19,35 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class AvailableCoursesMenu implements MenuConfigurer {
-    private static final String MENU_NAME = "m_aCrs";
+    private final InitiateCourseButtonHandler initiateCourseButtonHandler;
 
-    private static final String COURSE_NAME = "course_%s_name";
-
-    private static final String MENU_AVAILABLE_COURSES_PAGE_0 = "menu_available_courses_page_0";
-
-    private final LocalizationLoader localizationLoader;
-
-    private final CourseService courseService;
-
-    private final MenuService menuService;
+    private final CourseOrchestrationService courseService;
+    
+    private final LocalizationLoader loader;
 
     @Override
-    public void configure() {
-        final Menu menu = new Menu();
-        final Page firstPage = new Page();
+    public Menu configure() {
+        final Menu menu = new Menu(MenuKey.AVAILABLE_COURSES);
+
+        final Page firstPage = new Page(menu);
+
         firstPage.setPageIndex(0);
-        firstPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
-            MENU_AVAILABLE_COURSES_PAGE_0, u));
+        firstPage.setLocalizationFunction((u, p, b) -> loader.localize(
+            Localizations.Menu.AVAILABLE_COURSES_PAGE_0, u));
         firstPage.setButtonsRowSize(2);
-        firstPage.setMenu(menu);
         firstPage.setButtonsFunction((u, p, b) -> {
-            final List<String> ownedCoursesNames = courseService.getAllOwnedByUser(u, b).stream()
-                    .map(c -> c.getName()).toList();
-            final List<String> allCoursesNames = courseService.getByBot(b).stream()
-                    .filter(c -> !c.isUnderMaintenance()).map(c -> c.getName()).toList();
-            return allCoursesNames.stream().filter(cn -> !ownedCoursesNames.contains(cn))
-                    .map(cn -> (Button)new TerminalButton(localizationLoader
-                    .getLocalizationForUser(COURSE_NAME.formatted(cn), u).getData(), cn,
-                    (b1, u1, pa) -> courseService.initMessage(u, b1, cn))).toList();
+            final List<CourseResponseDto> availableCourses = courseService.getAllAvailableByUser(u, b);
+            
+            return availableCourses.stream()
+                    .map(c -> (Button)new TerminalButton(c.getLocalizedTitle(), c.getId().toString(), initiateCourseButtonHandler))
+                    .toList();
         });
-        menu.setName(MENU_NAME);
+
         menu.setPages(List.of(firstPage));
         menu.setInitialParameterPresent(false);
         menu.setOneTimeMenu(false);
         menu.setAttachedToMessage(false);
-        menuService.save(menu);
+
+        return menu;
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.util.Assert;
 
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.RoleType;
+import com.unbidden.telegramcoursesbot.model.Course.PaymentType;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 
 public final class Localizations {
@@ -49,6 +50,70 @@ public final class Localizations {
          * It requires a <b>lowercase command name without the {@code /}</b> to be passed as an argument.
          */
         COMMAND_DESCRIPTION("menu_command_%s_description"),
+        ADMIN_ACTIONS_PAGE_0("menu_admin_actions_page_0"),
+        ADMIN_ACTIONS_PAGE_1("menu_admin_actions_page_1"),
+        ADMIN_ACTIONS_PAGE_2("menu_admin_actions_page_2"),
+        ADMIN_ACTIONS_PAGE_3("menu_admin_actions_page_3"),
+        AVAILABLE_COURSES_PAGE_0("menu_available_courses_page_0"),
+        COURSES_PAGE_1("menu_courses_page_1"),
+        COURSES_PAGE_0("menu_courses_page_0"),
+        BOT_PAGE_0("menu_bot_page_0"),
+        BOT_PAGE_1("menu_bot_page_1"),
+        MY_COURSES_PAGE_0("menu_my_courses_page_0"),
+        MY_COURSES_PAGE_1("menu_my_courses_page_1"),
+        MY_COURSES_PAGE_2("menu_my_courses_page_2"),
+        MY_COURSES_PAGE_3("menu_my_courses_page_3"),
+        MY_COURSES_PAGE_4("menu_my_courses_page_4"),
+        MY_COURSES_PAGE_5("menu_my_courses_page_5"),
+        MY_COURSES_PAGE_6("menu_my_courses_page_6"),
+        CONTENT_ACTIONS_PAGE_0("menu_content_actions_page_0"),
+        COURSE_SETTINGS_PAGE_0("menu_course_settings_page_0"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>id</li>
+         *  <li>localizedTitle</li>
+         *  <li>titleId</li>
+         *  <li>descriptionId</li>
+         *  <li>endMappingId</li>
+         *  <li>paymentType</li>
+         *  <li>numberOfLessons</li>
+         *  <li>price</li>
+         *  <li>refundStage</li>
+         *  <li>externalStoreUrl</li>
+         *  <li>externalInvoiceMappingId</li>
+         *  <li>isHomeworkIncluded</li>
+         *  <li>isFeedbackIncluded</li>
+         * </ls>
+         */
+        COURSE_SETTINGS_PAGE_1("menu_course_settings_page_1"),
+        COURSE_SETTINGS_PAGE_2("menu_course_settings_page_2"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>lessonId</li>
+         *  <li>index</li>
+         *  <li>homeworkId</li>
+         *  <li>delay</li>
+         *  <li>nextLessonTitleMappingId</li>
+         *  <li>mappingIds</li>
+         * </ls>
+         */
+        COURSE_SETTINGS_PAGE_3("menu_course_settings_page_3"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>homeworkId</li>
+         *  <li>lessonId</li>
+         *  <li>delay</li>
+         *  <li>homeworkMappingId</li>
+         *  <li>homeworkMediaTypes</li>
+         *  <li>homeworkFeedback</li>
+         *  <li>homeworkRepeatedCompletion</li>
+         * </ls>
+         */
+        COURSE_SETTINGS_PAGE_4("menu_course_settings_page_4"),
+        COMMIT_CONTENT_PAGE_0("menu_commit_content_page_0"),
         COMMIT_CONTENT_TERMINAL_PAGE("menu_commit_content_terminal_page"),
         COMMIT_CONTENT_RESEND_TERMINAL_PAGE("menu_commit_content_resend_terminal_page"),
         COMMIT_CONTENT_CANCEL_TERMINAL_PAGE("menu_commit_content_cancel_terminal_page"),
@@ -64,10 +129,69 @@ public final class Localizations {
         public String getLocName() {
             return locName;
         }
+
+        public static record CourseSettingsPage1(long id, String localizedTitle, long titleId, String descriptionId, String endMappingId, PaymentType paymentType,
+                int numberOfLessons, int price, String refundStage, String externalStoreUrl,
+                String externalInvoiceMappingId, boolean isHomeworkIncluded, boolean isFeedbackIncluded) {}
+        public static record CourseSettingsPage3(long lessonId, int index, String homeworkId, String delay, String nextLessonTitleMappingId, List<Long> mappingIds) {}
+        public static record CourseSettingsPage4(long homeworkId, long lessonId, String delay, long homeworkMappingId, String homeworkMediaTypes,
+                boolean homeworkFeedback, boolean homeworkRepeatedCompletion) {}
     }
 
     public static enum Button implements LocalizationKey {
-        _FDF("");
+        BAN_OPTIONS("button_ban_options"),
+        TOGGLE_RECEIVE_HOMEWORK("button_toggle_receive_homework"),
+        LIST_ADMINS("button_list_admins"),
+        ADD_OR_REMOVE_ADMIN("button_set_role"),
+        BACK("button_back"),
+        LIFT_BAN("button_lift_ban"),
+        GIVE_BAN("button_give_ban"),
+        CHOOSE_USER("button_choose_user"),
+        LIST_BOTS("button_list_bots"),
+        DISABLE_BOT("button_disable_bot"),
+        CREATE_BOT("button_create_bot"),
+        RESEND_CONTENT("button_resend_content"),
+        CONFIRM_SEND_CONTENT("button_confirm_send_content"),
+        CANCEL_SESSION("button_cancel_session"),
+        GET_CONTENT("button_get_content"),
+        UPLOAD_CONTENT("button_upload_content"),
+        GET_MAPPING("button_get_mapping"),
+        NEXT_LESSON_DEFAULT("button_next_lesson_default"),
+        COURSE_HOMEWORK_SETTING("button_course_homework_setting"),
+        COURSE_FEEDBACK_SETTING("button_course_feedback_setting"),
+        GIVE_OR_TAKE_COURSE("button_give_or_take_course"),
+        COURSE_PRICE_CHANGE("button_course_price_change"),
+        CREATE_NEW_COURSE("button_create_new_course"),
+        HOMEWORK_SETTINGS("button_homework_settings"),
+        UPDATE_HOMEWORK_CONTENT("button_update_homework_content"),
+        REMOVE_CONTENT_FROM_LESSON("button_remove_content_from_lesson"),
+        ADD_CONTENT_TO_LESSON("button_add_content_to_lesson"),
+        COURSE_LESSONS("button_course_lessons"),
+        CREATE_HOMEWORK("button_create_homework"),
+        HOMEWORK_REPEATED_COMPLETION("button_homework_repeated_completion"),
+        HOMEWORK_FEEDBACK("button_homework_feedback"),
+        UPDATE_MEDIA_TYPES("button_update_media_types"),
+        REMOVE_COURSE("button_remove_course"),
+        CHANGE_MAPPING_ORDER("button_change_mapping_order"),
+        UPDATE_REFUND_STAGE("button_update_refund_stage"),
+        CREATE_LESSON("button_create_lesson"),
+        REMOVE_LESSON("button_remove_lesson"),
+        SET_HOMEWORK_DELAY("button_set_homework_delay"),
+        SET_LESSON_DELAY("button_set_lesson_delay"),
+        TOGGLE_COURSE_MAINTENANCE("button_toggle_course_maintenance"),
+        MY_COURSES("button_my_courses"),
+        AVAILABLE_COURSES("button_available_courses"),
+        SELECT_COURSE_STAGE("button_select_course_stage"),
+        SEND_ADVANCED_REVIEW("button_send_advanced_review"),
+        UPDATE_ADVANCED_REVIEW("button_update_advanced_review"),
+        UPDATE_PLATFORM_GRADE("button_update_platform_grade"),
+        UPDATE_COURSE_GRADE("button_update_course_grade"),
+        LEAVE_REVIEW("button_leave_review"),
+        UPDATE_BASIC_REVIEW_LEAVE_ADVANCED_OPTIONS("button_update_basic_review_and_leave_advanced_options"),
+        UPDATE_REVIEW_OPTIONS("button_update_review_options"),
+        BEGIN_COURSE("button_begin_course"),
+        REFUND("button_refund"),
+        BY_ID("button_by_id");
 
         private String locName;
 
@@ -176,7 +300,6 @@ public final class Localizations {
          *  <li>lastUpdateTimestamp</li>
          *  <li>courseName</li>
          *  <li>courseGrade</li>
-         *  <li>platformGrade</li>
          *  <li>usersWhoRead</li>
          *  <li>userWhoCommented</li>
          *  <li>commentedAt</li>
@@ -193,7 +316,6 @@ public final class Localizations {
          *  <li>lastUpdateTimestamp</li>
          *  <li>courseName</li>
          *  <li>courseGrade</li>
-         *  <li>platformGrade</li>
          *  <li>usersWhoRead</li>
          *  <li>userWhoCommented</li>
          *  <li>commentedAt</li>
@@ -208,7 +330,6 @@ public final class Localizations {
          *  <li>lastUpdateTimestamp</li>
          *  <li>courseName</li>
          *  <li>courseGrade</li>
-         *  <li>platformGrade</li>
          *  <li>usersWhoRead</li>
          *  <li>contentId</li>
          *  <li>advancedTimestamp</li>
@@ -223,7 +344,6 @@ public final class Localizations {
          *  <li>lastUpdateTimestamp</li>
          *  <li>courseName</li>
          *  <li>courseGrade</li>
-         *  <li>platformGrade</li>
          *  <li>usersWhoRead</li>
          * </ls>
          */
@@ -511,6 +631,7 @@ public final class Localizations {
         ON_MAINTENANCE_STATUS_CHANGE("service_on_maintenance_status_change"),
         STATUS_DISABLED("service_status_disabled"),
         STATUS_ENABLED("service_status_enabled"),
+        MAPPING_ID_REQUEST("service_mapping_id_request"),
         COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS("service_course_next_stage_media_group_bypass");
 
         private String locName;
@@ -534,18 +655,17 @@ public final class Localizations {
         public static record GeneralBanParams(String whoBanned, String title) {}
         public static record HoursParams(int hours) {}
         public static record ReviewInfoContentCommentParams(String userFullName, LocalDateTime basicTimestamp,
-                LocalDateTime lastUpdateTimestamp, String courseName, int courseGrade, int platformGrade, String usersWhoRead,
+                LocalDateTime lastUpdateTimestamp, String courseName, int courseGrade, String usersWhoRead,
                 String userWhoCommented, LocalDateTime commentedAt, long contentId, LocalDateTime advancedTimestamp) {}
         public static record ReviewInfoContentParams(String userFullName, LocalDateTime basicTimestamp,
-                LocalDateTime lastUpdateTimestamp, String courseName, int courseGrade, int platformGrade,
+                LocalDateTime lastUpdateTimestamp, String courseName, int courseGrade,
                 String usersWhoRead, long contentId, LocalDateTime advancedTimestamp) {}
         public static record ReviewInfoCommentParams(String userFullName, LocalDateTime basicTimestamp,
-                LocalDateTime lastUpdateTimestamp, String courseName, int courseGrade, int platformGrade,
+                LocalDateTime lastUpdateTimestamp, String courseName, int courseGrade,
                 String usersWhoRead, String userWhoCommented, LocalDateTime commentedAt) {}
         public static record ReviewInfoParams(String userFullName, LocalDateTime basicTimestamp, LocalDateTime lastUpdateTimestamp,
-                String courseName, int courseGrade, int platformGrade, String usersWhoRead) {}
+                String courseName, int courseGrade, String usersWhoRead) {}
         public static record ReviewContentUpdatedParams(String courseName) {}
-        public static record ReviewPlatformGradeUpdatedParams(String courseName) {}
         public static record ReviewCourseGradeUpdatedParams(String courseName) {}
         public static record CommentSubmittedNotificationParams(String courseName, String commenterFullName, String title) {}
         public static record BasicReviewSubmittedParams(String courseName) {}
@@ -790,6 +910,7 @@ public final class Localizations {
          * </ls>
          */
         REFUND_PURCHASE_TOO_OLD("error_refund_purchase_too_old"),
+        REFUND_ENTITY_NOT_FOUND("error_refund_entity_not_found"),
         SERVER_ON_MAINTENANCE("error_server_on_maintenance"),
         BOTLORD_CALLBACK_EXCEPTION("error_botlord_callback_exception"),
         COMMIT_ADVANCED_REVIEW_FAILURE("error_commit_advanced_review_failure"),
@@ -803,13 +924,6 @@ public final class Localizations {
          * </ls>
          */
         SAME_NEW_COURSE_GRADE("error_same_new_course_grade"),
-        /**
-         * Possible parameters:
-         * <ls>
-         *  <li>platformGrade</li>
-         * </ls>
-         */
-        SAME_NEW_PLATFORM_GRADE("error_same_new_platform_grade"),
         UPDATE_CONTENT_NOT_PRESENT("error_update_content_not_present"),
         SESSION_EXPIRED("error_session_expired"),
         MIXED_SESSIONS("error_mixed_sessions"),
@@ -836,6 +950,9 @@ public final class Localizations {
         IS_REFRESHING("error_is_refreshing"),
         PARSE_ID_FAILURE("error_parse_id_failure"),
         INVALID_START_PARAM("error_invalid_start_param"),
+        AMOUNT_OF_MESSAGES("error_amount_of_messages"),
+        TEXT_MESSAGE_EXPECTED("error_text_message_expected"),
+        FAILED_ADVANCE_TO_NEXT_LESSON("error_failed_advance_to_next_lesson"),
         DIRECTOR_BAN("error_director_ban");
         
         private String locName;
@@ -870,7 +987,6 @@ public final class Localizations {
         public static record RefundCourseUnavailableParams(String courseName) {}
         public static record RefundPurchaseTooOldParams(String courseName, int maxNumberOfDays, long currentNumberOfDays) {}
         public static record SameNewCourseGradeParams(int courseGrade) {}
-        public static record SameNewPlatformGradeParams(int platformGrade) {}
         public static record SupportRequestAlreadyAnsweredParams(String userFullName, String title) {}
     }
 }

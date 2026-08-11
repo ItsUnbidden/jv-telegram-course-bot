@@ -46,24 +46,24 @@ public class GeneralBanMenu implements MenuConfigurer {
         page1.setPageIndex(0);
         page1.setPreviousPage(0);
         page1.setButtonsRowSize(1);
-        page1.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
+        page1.setLocalizationFunction((u, p, b) -> localizationLoader.localize(
             MENU_ADMIN_ACTIONS_PAGE_0, u));
         page1.setButtonsFunction((u, p, b) -> List.of(new TransitoryButton(localizationLoader
-                .getLocalizationForUser(BUTTON_GIVE_BAN, u).getData(), GIVE_BAN, 1),
-                new TransitoryButton(localizationLoader.getLocalizationForUser(BUTTON_LIFT_BAN, u)
+                .localize(BUTTON_GIVE_BAN, u).getData(), GIVE_BAN, 1),
+                new TransitoryButton(localizationLoader.localize(BUTTON_LIFT_BAN, u)
                 .getData(), LIFT_BAN, 1)));
         final Page page2 = new Page();
         page2.setMenu(menu);
         page2.setPageIndex(1);
         page2.setPreviousPage(0);
         page2.setButtonsRowSize(2);
-        page2.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
+        page2.setLocalizationFunction((u, p, b) -> localizationLoader.localize(
             MENU_ADMIN_ACTIONS_PAGE_1, u));
         page2.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(localizationLoader
-                .getLocalizationForUser(BUTTON_BY_ID, u).getData(), BY_ID, generalBanHandler),
-                new TerminalButton(localizationLoader.getLocalizationForUser(
+                .localize(BUTTON_BY_ID, u).getData(), BY_ID, generalBanHandler),
+                new TerminalButton(localizationLoader.localize(
                 BUTTON_CHOOSE_USER, u).getData(), CHOOSE_USER, generalBanHandler),
-                new BackwardButton(localizationLoader.getLocalizationForUser(BUTTON_BACK, u)
+                new BackwardButton(localizationLoader.localize(BUTTON_BACK, u)
                 .getData())));
         menu.setName(MENU_NAME);
         menu.setPages(List.of(page1, page2));

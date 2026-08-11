@@ -57,8 +57,8 @@ public class HomeworkFeedbackToggleButtonHandler implements ButtonHandler {
 
     private String getFeedbackStatus(UserEntity user, Homework homework) {
         return (homework.isFeedbackRequired()) ? localizationLoader
-                .getLocalizationForUser(SERVICE_STATUS_ENABLED, user).getData()
-                : localizationLoader.getLocalizationForUser(SERVICE_STATUS_DISABLED, user)
+                .localize(SERVICE_STATUS_ENABLED, user).getData()
+                : localizationLoader.localize(SERVICE_STATUS_DISABLED, user)
                 .getData();
     }
 

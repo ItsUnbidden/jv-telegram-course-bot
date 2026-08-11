@@ -174,11 +174,7 @@ public class TextUtil {
                 .append("User: ").append(review.getUser().getFullName()).append("\n")
                 .append("Course: ").append(localizedCourseName).append("\n")
                 .append("Course grade: ").append(review.getCourseGrade()).append("\n")
-                .append("Platform grade: ").append(review.getPlatformGrade()).append("\n")
-                .append("Original course grade: ").append(review.getOriginalCourseGrade())
-                .append("\n")
-                .append("Original platform grade: ").append(review.getOriginalPlatformGrade())
-                .append("\n")
+                .append("Original course grade: ").append(review.getOriginalCourseGrade()).append("\n")
                 .append("Basic review submitted at: ").append(
                     review.getBasicSubmittedTimestamp()).append("\n")
                 .append("Advanced review content id: ").append((review.getContent() != null)
@@ -217,13 +213,13 @@ public class TextUtil {
 
     public String formatTimeLeft(UserEntity user, LocalizationLoader loader, int hours) {
         if (hours > 1) {
-            return loader.getLocalizationForUser(Service.HOURS, user, new Service.HoursParams(hours)).getData();
+            return loader.localize(Service.HOURS, user, new Service.HoursParams(hours)).getData();
         }
         if (hours == 1) {
-            return loader.getLocalizationForUser(Service.AN_HOUR, user).getData();
+            return loader.localize(Service.AN_HOUR, user).getData();
         }
         if (hours <= 0) {
-            return loader.getLocalizationForUser(Service.LESS_THEN_AN_HOUR, user).getData();
+            return loader.localize(Service.LESS_THEN_AN_HOUR, user).getData();
         }
         return String.valueOf(hours);
     }
@@ -242,7 +238,7 @@ public class TextUtil {
         if (!possibleNames.contains(fileName)) {
             throw new InvalidDataSentException("File " + fileName + " cannot be used for "
                     + "localizations since it has an unknown name. Available names: "
-                    + possibleNames + ".", loader.getLocalizationForUser(
+                    + possibleNames + ".", loader.localize(
                     Error.FILE_NOT_LOCALIZATION, user));
         }
     }

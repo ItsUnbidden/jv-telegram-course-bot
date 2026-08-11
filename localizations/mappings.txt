@@ -8,7 +8,7 @@ button give_or_take_course
 button toggle_receive_homework
 button upload_content
 button get_content
-button course_<courseName>_lesson_<stageIndex>_next_stage
+button next_lesson_default
 button decline_homework
 button general_accept_homework
 button accept_homework
@@ -21,7 +21,6 @@ button leave_review
 button all_courses_reviews
 button send_advanced_review
 button update_advanced_review
-button update_platform_grade
 button update_course_grade@
 button update_basic_review_and_leave_advanced_options
 button update_review_options
@@ -100,9 +99,9 @@ button external_invoice_more_info
 
 
 menu course_settings_page_4 ${lessonId} ${homeworkId} ${homeworkRepeatedCompletion} ${homeworkFeedback} ${homeworkMappingId} ${homeworkMediaTypes} ${delay}
-menu course_settings_page_3 ${mappingIds} ${homeworkId} ${index} ${lessonId} ${delay}
+menu course_settings_page_3 ${mappingIds} ${homeworkId} ${index} ${nextLessonTitleMappingId} ${lessonId} ${delay}
 menu course_settings_page_2
-menu course_settings_page_1 ${id} ${name} ${numberOfLessons} ${price} ${refundStage} ${isHomeworkIncluded} ${isFeedbackIncluded}
+menu course_settings_page_1 ${id} ${titleId} ${descriptionId} ${endMappingId} ${paymentType} ${numberOfLessons} ${price} ${refundStage} ${externalStoreUrl} ${externalInvoiceMappingId} ${isHomeworkIncluded} ${isFeedbackIncluded}
 menu course_settings_page_0
 menu commit_content_page_0
 menu mapping_settings_page_0 ${mappingId} ${position} ${content}
@@ -174,10 +173,10 @@ service send_homework_media_group_bypass
 service feedback_media_group_bypass
 service mapping_id_request
 service course_next_stage_media_group_bypass
-service review_info ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseName} ${courseGrade} ${platformGrade} ${usersWhoRead}
-service review_info_comment ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseName} ${courseGrade} ${platformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt}
-service review_info_content ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseName} ${courseGrade} ${platformGrade} ${usersWhoRead} ${contentId} ${advancedTimestamp}
-service review_info_content_comment ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseName} ${courseGrade} ${platformGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt} ${contentId} ${advancedTimestamp}
+service review_info ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseName} ${courseGrade} ${usersWhoRead}
+service review_info_comment ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseName} ${courseGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt}
+service review_info_content ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseName} ${courseGrade} ${usersWhoRead} ${contentId} ${advancedTimestamp}
+service review_info_content_comment ${userFullName} ${basicTimestamp} ${lastUpdateTimestamp} ${courseName} ${courseGrade} ${usersWhoRead} ${userWhoCommented} ${commentedAt} ${contentId} ${advancedTimestamp}
 service no_new_reviews_for_user
 service review_content_updated ${courseName}
 service review_platform_grade_updated ${courseName}
@@ -379,9 +378,9 @@ error refund_user_advanced_too_far ${courseName} ${maxRefundStage} ${currentStag
 error refund_course_not_owned ${courseName}
 error refund_course_was_gifted ${courseName}
 error refund_course_completed ${courseName}
+error refund_entity_not_found
 error parse_refund_stage_failure
 error same_new_course_grade ${courseGrade}
-error same_new_platform_grade ${platformGrade}
 error update_comment_failure
 error update_comment_forbidden
 error support_request_already_answered ${userFullName} ${title}
@@ -456,3 +455,4 @@ error automatic_refund_failure_notification ${courseId} ${userId}
 error course_ownership_not_found
 error send_content
 error invalid_start_param
+error failed_advance_to_next_lesson

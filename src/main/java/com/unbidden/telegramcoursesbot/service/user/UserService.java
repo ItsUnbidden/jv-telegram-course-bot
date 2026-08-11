@@ -91,29 +91,29 @@ public class UserService {
 
         if (role.getType().equals(RoleType.DIRECTOR) || role.getType().equals(RoleType.CREATOR)) {
             throw new ForbiddenOperationException("Director and Creator roles are predefined",
-                    localizationLoader.getLocalizationForUser(Error.PREDEFINED_CHANGE_ROLES,
+                    localizationLoader.localize(Error.PREDEFINED_CHANGE_ROLES,
                     user));
         }
         if (role.getType().equals(RoleType.BANNED)) {
             throw new ForbiddenOperationException("Bans must be given through different means",
-                    localizationLoader.getLocalizationForUser(Error.CANNOT_SET_BANNED_ROLE,
+                    localizationLoader.localize(Error.CANNOT_SET_BANNED_ROLE,
                     user));
         }
         if (role.equals(botRole.getRole())) {
             throw new ForbiddenOperationException("Role is the same",
-                    localizationLoader.getLocalizationForUser(Error.SAME_ROLE, user));
+                    localizationLoader.localize(Error.SAME_ROLE, user));
         }
         if (botRole.getRole().getType().equals(RoleType.DIRECTOR)) {
             throw new ForbiddenOperationException("Director's role is permanent",
-                    localizationLoader.getLocalizationForUser(Error.DIRECTOR_CHANGE_ROLE, user));
+                    localizationLoader.localize(Error.DIRECTOR_CHANGE_ROLE, user));
         }
         if (botRole.getRole().getType().equals(RoleType.CREATOR)) {
             throw new ForbiddenOperationException("Creator's role is permanent",
-                    localizationLoader.getLocalizationForUser(Error.CREATOR_CHANGE_ROLE, user));
+                    localizationLoader.localize(Error.CREATOR_CHANGE_ROLE, user));
         }
         if (user.equals(target)) {
             throw new ForbiddenOperationException("User cannot change their own role",
-                    localizationLoader.getLocalizationForUser(Error.SELF_CHANGE_ROLE, user));
+                    localizationLoader.localize(Error.SELF_CHANGE_ROLE, user));
         }
         LOGGER.debug("Role change checks have passed. Applying...");
         botRole.setRole(role);
@@ -122,7 +122,7 @@ public class UserService {
                 + target.getId() + ".");
 
         clientManager.getClient(bot).sendMessage(target, localizationLoader
-                .getLocalizationForUser(Localizations.Service.ROLE_CHANGED, user,
+                .localize(Localizations.Service.ROLE_CHANGED, user,
                     new Localizations.Service.RoleChangedParams(user.getFullName(), role.getType(),
                     entityUtil.getLocalizedTitle(target, bot, user))));
         return botRole;
@@ -133,20 +133,20 @@ public class UserService {
 
         if (botRole.getRole().getType().equals(RoleType.BANNED)) {
             throw new ForbiddenOperationException("User is already banned", localizationLoader
-                    .getLocalizationForUser(Error.USER_ALREADY_BANNED, user));
+                    .localize(Error.USER_ALREADY_BANNED, user));
         }
         if (botRole.getRole().getType().equals(RoleType.DIRECTOR)) {
             throw new ForbiddenOperationException("Director cannot be banned", localizationLoader
-                    .getLocalizationForUser(Error.DIRECTOR_BAN, user));
+                    .localize(Error.DIRECTOR_BAN, user));
         }
         if (botRole.getRole().getType().equals(RoleType.CREATOR)) {
             throw new ForbiddenOperationException("Creator cannot be banned by a bot "
-                    + "specific ban", localizationLoader.getLocalizationForUser(
+                    + "specific ban", localizationLoader.localize(
                     Error.CREATOR_BAN, user));
         }
         if (user.equals(target)) {
             throw new ForbiddenOperationException("User cannot ban themselves", localizationLoader
-                    .getLocalizationForUser(Error.SELF_BAN, user));
+                    .localize(Error.SELF_BAN, user));
         }
         LOGGER.info("Banning user " + target.getId() + "...");
         botRole.setRole(entityUtil.getRole(RoleType.BANNED));
@@ -156,11 +156,11 @@ public class UserService {
             LOGGER.debug("Ban is temporary. Creating trigger...");
             timingService.createTrigger(target, bot, hours, false);
             clientManager.getClient(bot).sendMessage(target, localizationLoader
-                    .getLocalizationForUser(Localizations.Service.TEMPORARY_BANNED, target,
+                    .localize(Localizations.Service.TEMPORARY_BANNED, target,
                         new Localizations.Service.TemporaryBannedParams(user.getFullName(), hours, title)));
         } else {
             clientManager.getClient(bot).sendMessage(target, localizationLoader
-                    .getLocalizationForUser(Localizations.Service.BANNED, target,
+                    .localize(Localizations.Service.BANNED, target,
                         new Localizations.Service.BannedParams(user.getFullName(), title)));
         }
         botRoleRepository.save(botRole);
@@ -178,7 +178,7 @@ public class UserService {
                 return botRole;
             } else {
                 throw new ForbiddenOperationException("User is not banned", localizationLoader
-                        .getLocalizationForUser(Error.USER_IS_NOT_BANNED, user));
+                        .localize(Error.USER_IS_NOT_BANNED, user));
             }
         }
         LOGGER.debug("User " + target.getId() + " is banned. Removing ban...");
@@ -186,11 +186,11 @@ public class UserService {
         if (user == null) {
             LOGGER.debug("Ban is being lifted automatically.");
             clientManager.getClient(bot).sendMessage(target, localizationLoader
-                    .getLocalizationForUser(Localizations.Service.BAN_LIFTED_AUTO, target));
+                    .localize(Localizations.Service.BAN_LIFTED_AUTO, target));
         } else {
             LOGGER.debug("Ban lift is manual.");
             clientManager.getClient(bot).sendMessage(target, localizationLoader
-                    .getLocalizationForUser(Localizations.Service.BAN_LIFTED, target,
+                    .localize(Localizations.Service.BAN_LIFTED, target,
                         new Localizations.Service.BanLiftedParams(user.getFullName(),
                         entityUtil.getLocalizedTitle(target, bot, user))));
 
@@ -209,11 +209,11 @@ public class UserService {
             int hours) {
         if (target.isBanned()) {
             throw new ForbiddenOperationException("User is already banned", localizationLoader
-                    .getLocalizationForUser(Error.USER_ALREADY_BANNED, user));
+                    .localize(Error.USER_ALREADY_BANNED, user));
         }
         if (target.getId().equals(directorId)) {
             throw new ForbiddenOperationException("Director cannot be banned", localizationLoader
-                    .getLocalizationForUser(Error.DIRECTOR_BAN, target));
+                    .localize(Error.DIRECTOR_BAN, target));
         }
         LOGGER.debug("User " + user.getId() + " wants to ban user " + target.getId() + ".");
         final String title = entityUtil.getLocalizedTitle(target, entityUtil.getStartBot(), user);
@@ -224,11 +224,11 @@ public class UserService {
             LOGGER.debug("General ban is temporary. Creating trigger...");
             timingService.createTrigger(target, entityUtil.getStartBot(), hours, true);
             botRoleRepository.findByUserId(user.getId()).forEach(br -> clientManager.getClient(br.getBot())
-                    .sendMessage(target, localizationLoader.getLocalizationForUser(
+                    .sendMessage(target, localizationLoader.localize(
                     Localizations.Service.TEMPORARY_GENERAL_BAN, user, temporaryBanParams)));
         } else {
             botRoleRepository.findByUserId(user.getId()).forEach(br -> clientManager.getClient(br.getBot())
-                    .sendMessage(target, localizationLoader.getLocalizationForUser(
+                    .sendMessage(target, localizationLoader.localize(
                     Localizations.Service.GENERAL_BAN, user, banParams)));
         }
         target.setBanned(true);
@@ -244,7 +244,7 @@ public class UserService {
                 return target;
             } else {
                 throw new ForbiddenOperationException("User is not banned", localizationLoader
-                        .getLocalizationForUser(Error.USER_IS_NOT_BANNED, user));
+                        .localize(Error.USER_IS_NOT_BANNED, user));
             }
         }
         LOGGER.debug("User " + target.getId() + " has a general ban. Removing ban...");
@@ -253,12 +253,12 @@ public class UserService {
             LOGGER.debug("Ban is being lifted automatically.");
             botRoleRepository.findByUserId(target.getId()).forEach(br -> clientManager
                     .getClient(br.getBot()).sendMessage(target, localizationLoader
-                    .getLocalizationForUser(Localizations.Service.GENERAL_BAN_LIFTED_AUTO, target)));
+                    .localize(Localizations.Service.GENERAL_BAN_LIFTED_AUTO, target)));
         } else {
             LOGGER.debug("Ban lift is manual.");
             botRoleRepository.findByUserId(user.getId()).forEach(br -> clientManager.getClient(br.getBot())
                     .sendMessage(target, localizationLoader
-                    .getLocalizationForUser(Localizations.Service.GENERAL_BAN_LIFTED, target,
+                    .localize(Localizations.Service.GENERAL_BAN_LIFTED, target,
                         new Localizations.Service.GeneralBanLiftedParams(user.getFullName(),
                         entityUtil.getLocalizedTitle(target, entityUtil.getStartBot(), user)))));
 

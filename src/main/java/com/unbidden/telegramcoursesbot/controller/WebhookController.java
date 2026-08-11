@@ -220,7 +220,7 @@ public class WebhookController {
                 LOGGER.error("Callback query exception occured in bot lord. Some investigation "
                         + "might be required", e);
                 clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                        .getLocalizationForUser(Error.BOTLORD_CALLBACK_EXCEPTION, user));
+                        .localize(Error.BOTLORD_CALLBACK_EXCEPTION, user));
             }
         }
     }
@@ -235,7 +235,7 @@ public class WebhookController {
     private void checkMaintenance(UserEntity user) {
         if (clientManager.isOnMaintenance()) {
             throw new OnMaintenanceException("Server is on maintenance", localizationLoader
-                    .getLocalizationForUser(Error.SERVER_ON_MAINTENANCE, user));
+                    .localize(Error.SERVER_ON_MAINTENANCE, user));
         }
     }
     

@@ -48,7 +48,7 @@ public class UnknownExceptionHandler implements ExceptionHandler {
         LOGGER.error("Unspecified exception has occured during user " + user.getId()
                 + "'s session.", exc);
 
-        final Localization errorLoc = localizationLoader.getLocalizationForUser(
+        final Localization errorLoc = localizationLoader.localize(
                 Error.UNSPECIFIED_EXCEPTION, user, new UnspecifiedExceptionParams(exc.getMessage(),
                 exc.getClass().getSimpleName()));
 
@@ -68,7 +68,7 @@ public class UnknownExceptionHandler implements ExceptionHandler {
         final InputStream stream = logDao.readCurrentLogFile();
 
         final Localization criticalErrorDirectorNotification = localizationLoader
-                .getLocalizationForUser(Error.CRITICAL_DIRECTOR_NOTIFICATION, diretor,
+                .localize(Error.CRITICAL_DIRECTOR_NOTIFICATION, diretor,
                 new CriticalDirectorNotificationParams(exc.getMessage(), exc.getClass().getSimpleName(),
                     user.getId(), bot.getId()));
 

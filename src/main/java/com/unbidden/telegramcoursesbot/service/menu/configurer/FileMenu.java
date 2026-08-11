@@ -46,19 +46,19 @@ public class FileMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setButtonsRowSize(1);
         page.setLocalizationFunction((u, p, b) -> localizationLoader
-                .getLocalizationForUser(MENU_FILES_PAGE_0, u));
+                .localize(MENU_FILES_PAGE_0, u));
         page.setButtonsFunction((u, p, b) -> {
             final List<Button> buttons = new ArrayList<>();
             
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_UPLOAD_LOCALIZATION_FILE, u).getData(), UPLOAD_LOCALIZATION_FILE,
                     localizationFileUploadHandler));
 
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_UPLOAD_IMAGE_FILE, u).getData(), UPLOAD_IMAGE_FILE,
                     imageFileUploadHandler));
 
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_DELETE_INVOICE_IMAGE, u).getData(), DELETE_INVOICE_IMAGE,
                     deleteInvoiceImageHandler));
             return buttons;

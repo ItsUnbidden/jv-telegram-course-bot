@@ -38,13 +38,13 @@ public class SelectLanguageButtonHandler implements ButtonHandler {
                 userService.resetLanguageToDefault(user);
                 LOGGER.debug("Sending confirmation message...");
                 clientManager.getClient(bot).sendMessage(user, localizationLoader
-                        .getLocalizationForUser(SERVICE_LANGUAGE_RESET_TO_DEFAULT, user));
+                        .localize(SERVICE_LANGUAGE_RESET_TO_DEFAULT, user));
                 break;
             default:
                 userService.changeLanguage(user, params[0]);
                 LOGGER.debug("Sending confirmation message...");
                 clientManager.getClient(bot).sendMessage(user, localizationLoader
-                        .getLocalizationForUser(SERVICE_LANGUAGE_MANUALLY_SET, user));
+                        .localize(SERVICE_LANGUAGE_MANUALLY_SET, user));
                 break;
         }
         LOGGER.debug("Message sent.");

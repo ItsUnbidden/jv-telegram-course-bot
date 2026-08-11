@@ -54,19 +54,19 @@ public class RemoveLessonFromCourseButtonHandler implements ButtonHandler {
             LOGGER.debug("Checking whether sent string matches course name...");
             if (!m.get(0).getText().trim().equals(course.getName())) {
                 throw new InvalidDataSentException("Confirmation message does not match "
-                        + "course name", localizationLoader.getLocalizationForUser(
+                        + "course name", localizationLoader.localize(
                         ERROR_LESSON_DELETE_CONFIRMATION_FAILURE, user));
             }
             LOGGER.debug("Check passed. Deleting lesson...");
             lessonService.removeLesson(user, lesson);
             LOGGER.debug("Sending confirmation message...");
             clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_LESSON_DELETED, user));
+                    .localize(SERVICE_LESSON_DELETED, user));
             LOGGER.debug("Message sent.");
         });
         LOGGER.debug("Sending request message...");
         clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .getLocalizationForUser(SERVICE_DELETE_LESSON_REQUEST, user));
+                .localize(SERVICE_DELETE_LESSON_REQUEST, user));
         LOGGER.debug("Request sent.");
     }
 }

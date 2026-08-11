@@ -61,15 +61,15 @@ public class MappingSettingsMenu implements MenuConfigurer {
             parameterMap.put(PARAM_MAPPING_ID, mapping.getId());
             parameterMap.put(PARAM_POSITION, mapping.getPosition());
             parameterMap.put(PARAM_CONTENT, getContentString(mapping));
-            return localizationLoader.getLocalizationForUser(
+            return localizationLoader.localize(
                 MENU_MAPPING_SETTINGS_PAGE_0, u, parameterMap);
         });
         page.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(localizationLoader
-                .getLocalizationForUser(BUTTON_ADD_MAPPING_LOCALIZATION, u).getData(),
+                .localize(BUTTON_ADD_MAPPING_LOCALIZATION, u).getData(),
                     ADD_MAPPING_LOCALIZATION, addMappingLocalizationHandler), new TerminalButton(
-                localizationLoader.getLocalizationForUser(BUTTON_REMOVE_MAPPING_LOCALIZATION, u)
+                localizationLoader.localize(BUTTON_REMOVE_MAPPING_LOCALIZATION, u)
                     .getData(), REMOVE_MAPPING_LOCALIZATION, removeMappingLocalizationHandler),
-                new TerminalButton(localizationLoader.getLocalizationForUser(
+                new TerminalButton(localizationLoader.localize(
                     BUTTON_MAPPING_TEXT_TOGGLE, u).getData(), MAPPING_TEXT_TOGGLE,
                     contentMappingTextToggleHandler)));
         menu.setName(MENU_NAME);

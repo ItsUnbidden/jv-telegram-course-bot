@@ -29,7 +29,7 @@ public class TermsCommandHandler implements CommandHandler {
     @Security(authorities = AuthorityType.INFO)
     public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
         if (bot.getTerms() == null) {
-            clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
+            clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                     Localizations.Service.NO_TERMS, user));
             return;
         }

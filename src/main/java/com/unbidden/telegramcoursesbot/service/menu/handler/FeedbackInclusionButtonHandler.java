@@ -52,15 +52,15 @@ public class FeedbackInclusionButtonHandler implements ButtonHandler {
         messageParams.put(PARAM_STATUS, getStatus(user, course));
         messageParams.put(PARAM_COURSE_NAME, course.getName());
         LOGGER.info("Status has been changed to: " + getStatus(course) + ".");
-        Localization localization = localizationLoader.getLocalizationForUser(
+        Localization localization = localizationLoader.localize(
             SERVICE_COURSE_FEEDBACK_UPDATE_SUCCESS, user, messageParams);
         clientManager.getClient(bot).sendMessage(user, localization);
     }
 
     private String getStatus(UserEntity user, Course course) {
         return (course.isUnderMaintenance()) ? localizationLoader
-                .getLocalizationForUser(SERVICE_STATUS_ENABLED, user).getData()
-                : localizationLoader.getLocalizationForUser(SERVICE_STATUS_DISABLED, user)
+                .localize(SERVICE_STATUS_ENABLED, user).getData()
+                : localizationLoader.localize(SERVICE_STATUS_DISABLED, user)
                 .getData();
     }
 

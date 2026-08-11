@@ -45,19 +45,19 @@ public class RefreshMenu implements MenuConfigurer {
         page1.setMenu(menu);
         page1.setPageIndex(0);
         page1.setButtonsRowSize(1);
-        page1.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
+        page1.setLocalizationFunction((u, p, b) -> localizationLoader.localize(
                 MENU_REFRESH_PAGE_0, u));
         page1.setButtonsFunction((u, p, b) -> {
             final List<Button> buttons = new ArrayList<>();
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_LOCALIZATIONS_REFRESH, u).getData(), LOCALIZATIONS_REFRESH,
                     refreshLocalizationsHandler));
 
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_DESC_NAME_REFRESH, u).getData(), DESC_NAME_REFRESH,
                     refreshBotNameAndDescriptionsHandler));
 
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_MENUS_REFRESH, u).getData(), MENU_REFRESH, refreshUserMenusHandler));
             return buttons;
         });

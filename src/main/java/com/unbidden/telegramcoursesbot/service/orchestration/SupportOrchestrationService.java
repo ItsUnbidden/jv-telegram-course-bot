@@ -62,7 +62,7 @@ public class SupportOrchestrationService {
 
         for (final UserEntity member : staff) {
             sendSupportRequest(member, bot, new Localizations.Service.SupportInfoParams(user.getFullName(),
-                    request.getTimestamp(), (tag != null) ? tag : localizationLoader.getLocalizationForUser(
+                    request.getTimestamp(), (tag != null) ? tag : localizationLoader.localize(
                         Localizations.Service.NOT_AVAILABLE, member).getData()), request);
         }
 
@@ -124,13 +124,13 @@ public class SupportOrchestrationService {
         LOGGER.debug("Sending notification messages to both parties...");
 
         clientManager.getClient(bot).sendMessage(request.getUser(), localizationLoader
-                .getLocalizationForUser(Localizations.Service.SUPPORT_REQUEST_RESOLVED, request.getUser(),
+                .localize(Localizations.Service.SUPPORT_REQUEST_RESOLVED, request.getUser(),
                 new Localizations.Service.SupportRequestResolvedParams(user.getFullName(),
                 entityUtil.getLocalizedTitle(request.getUser(), bot, user))));
         
         if (request.getStaffMember() != null) {
             clientManager.getClient(bot).sendMessage(request.getStaffMember(), localizationLoader
-                    .getLocalizationForUser(Localizations.Service.SUPPORT_REQUEST_RESOLVED, request.getStaffMember(),
+                    .localize(Localizations.Service.SUPPORT_REQUEST_RESOLVED, request.getStaffMember(),
                     new Localizations.Service.SupportRequestResolvedParams(user.getFullName(),
                         entityUtil.getLocalizedTitle(request.getStaffMember(), bot, user))));
             LOGGER.debug("Messages sent.");
@@ -158,7 +158,7 @@ public class SupportOrchestrationService {
 
         if (requests.isEmpty()) {
             throw new ForbiddenOperationException("User does not have any unresolved support "
-                    + "requests", localizationLoader.getLocalizationForUser(
+                    + "requests", localizationLoader.localize(
                     Error.NO_SUPPORT_REQUESTS_AVAILABLE_FOR_USER, user));
         } else {
             LOGGER.warn("User " + user.getFullName() + " somehow has more than one unresolved support request. Request IDs: "
@@ -169,7 +169,7 @@ public class SupportOrchestrationService {
         if (request.getReplies().isEmpty()) {
             throw new ForbiddenOperationException("There are no replies in "
                     + "unresolved request " + request.getId() + ".",
-                    localizationLoader.getLocalizationForUser(
+                    localizationLoader.localize(
                     Error.NO_SUPPORT_REQUESTS_AVAILABLE_FOR_USER, user)); // TODO: a potentially wrong localization (requests instead of replies)
         }
         LOGGER.debug("Fetching last support message for user " + user.getFullName() + "...");
@@ -192,13 +192,13 @@ public class SupportOrchestrationService {
     private void sendSupportRequest(UserEntity target, Bot bot, Localizations.Service.SupportInfoParams params,
             SupportRequest request) {
         clientManager.getClient(bot).sendMessage(target, localizationLoader
-                .getLocalizationForUser(Localizations.Service.SUPPORT_INFO, target, params));
+                .localize(Localizations.Service.SUPPORT_INFO, target, params));
         final List<Message> sendContent = contentService.sendContent(target, bot, request.getContent().getId());
 
         final Message menuMessage;
         if (sendContent.size() > 1) {
             final Localization mediaGroupBypassMessageLoc = localizationLoader
-                    .getLocalizationForUser(Localizations.Service.SUPPORT_REQUEST_MEDIA_GROUP_BYPASS, target);
+                    .localize(Localizations.Service.SUPPORT_REQUEST_MEDIA_GROUP_BYPASS, target);
             menuMessage = clientManager.getClient(bot).sendMessage(target,
                     mediaGroupBypassMessageLoc);
         } else {
@@ -214,13 +214,13 @@ public class SupportOrchestrationService {
     private void sendSupportReply(UserEntity target, Bot bot, Localizations.Service.SupportReplyInfoParams params,
             SupportReply reply) {
         clientManager.getClient(bot).sendMessage(target, localizationLoader
-                .getLocalizationForUser(Localizations.Service.SUPPORT_REPLY_INFO, target, params));
+                .localize(Localizations.Service.SUPPORT_REPLY_INFO, target, params));
         final List<Message> sendContent = contentService.sendContent(target, bot, reply.getContent().getId());
 
         final Message menuMessage;
         if (sendContent.size() > 1) {
             final Localization mediaGroupBypassMessageLoc = localizationLoader
-                    .getLocalizationForUser(Localizations.Service.SUPPORT_REPLY_MEDIA_GROUP_BYPASS, target);
+                    .localize(Localizations.Service.SUPPORT_REPLY_MEDIA_GROUP_BYPASS, target);
             menuMessage = clientManager.getClient(bot).sendMessage(target,
                     mediaGroupBypassMessageLoc);
         } else {

@@ -71,7 +71,7 @@ public class UpdateContentPositionButtonHandler implements ButtonHandler {
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse string "
                         + m.get(0).getText() + " to the mapping id", localizationLoader
-                        .getLocalizationForUser(ERROR_PARSE_ID_FAILURE, user));
+                        .localize(ERROR_PARSE_ID_FAILURE, user));
             }
             final int index;
             try {
@@ -84,7 +84,7 @@ public class UpdateContentPositionButtonHandler implements ButtonHandler {
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse string "
                         + m.get(1).getText() + " to the new index", localizationLoader
-                        .getLocalizationForUser(ERROR_PARSE_INDEX_FAILURE, user));
+                        .localize(ERROR_PARSE_INDEX_FAILURE, user));
             }
             LOGGER.debug("User " + user.getId() + " has sent correct data. "
                     + "Changing mapping order...");
@@ -92,7 +92,7 @@ public class UpdateContentPositionButtonHandler implements ButtonHandler {
                 lessonService.moveContentToIndex(lesson.getId(), mappingId, index, user, bot);
             } catch (MoveContentException e) {
                 throw new InvalidDataSentException("Sent index is already applied",
-                        localizationLoader.getLocalizationForUser(
+                        localizationLoader.localize(
                         ERROR_SAME_CONTENT_POSITION, user));
             }
             LOGGER.info("Mapping order for lesson " + lesson.getId()
@@ -104,7 +104,7 @@ public class UpdateContentPositionButtonHandler implements ButtonHandler {
             parameterMap.put(PARAM_INDEX, index);
             
             clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_LESSON_MAPPING_ORDER_CHANGE_SUCCESS,
+                    .localize(SERVICE_LESSON_MAPPING_ORDER_CHANGE_SUCCESS,
                     user));
             LOGGER.debug("Message sent.");
         });

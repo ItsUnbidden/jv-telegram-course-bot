@@ -87,7 +87,7 @@ private static final Logger LOGGER = LogManager.getLogger(GeneralBanButtonHandle
                             .equals(GIVE_BAN))))).build();
                 final KeyboardButton button = KeyboardButton.builder()
                         .requestUser(requestUser)
-                        .text(localizationLoader.getLocalizationForUser(BUTTON_BAN_CHOOSE_USER,
+                        .text(localizationLoader.localize(BUTTON_BAN_CHOOSE_USER,
                             user).getData())
                         .build();
 
@@ -100,7 +100,7 @@ private static final Logger LOGGER = LogManager.getLogger(GeneralBanButtonHandle
                 LOGGER.debug("Sending keyboard message to user " + user.getId()
                         + " in order for them to choose the target.");
                 clientManager.getClient(bot).sendMessage(user, localizationLoader
-                        .getLocalizationForUser(SERVICE_BAN_CHOOSE_USER_REQUEST, user),
+                        .localize(SERVICE_BAN_CHOOSE_USER_REQUEST, user),
                         markup);
                 LOGGER.debug("Keyboard message sent.");
                 break;
@@ -124,7 +124,7 @@ private static final Logger LOGGER = LogManager.getLogger(GeneralBanButtonHandle
                     } catch (NumberFormatException e) {
                         throw new InvalidDataSentException("Unable to parse provided string "
                                 + m.get(0).getText().trim() + " to user id long",
-                                localizationLoader.getLocalizationForUser(ERROR_PARSE_USER_ID,
+                                localizationLoader.localize(ERROR_PARSE_USER_ID,
                                 user), e);
                     }
                     switch (params[0]) {
@@ -142,11 +142,11 @@ private static final Logger LOGGER = LogManager.getLogger(GeneralBanButtonHandle
                 switch (params[0]) {
                     case GIVE_BAN:
                         clientManager.getClient(bot).sendMessage(user, localizationLoader
-                                .getLocalizationForUser(SERVICE_BAN_USER_ID_REQUEST, user));
+                                .localize(SERVICE_BAN_USER_ID_REQUEST, user));
                         break;
                     default:
                         clientManager.getClient(bot).sendMessage(user, localizationLoader
-                                .getLocalizationForUser(SERVICE_LIFT_BAN_USER_ID_REQUEST, user));
+                                .localize(SERVICE_LIFT_BAN_USER_ID_REQUEST, user));
                         break;
                 }
                 LOGGER.debug("Message sent.");
@@ -170,7 +170,7 @@ private static final Logger LOGGER = LogManager.getLogger(GeneralBanButtonHandle
             });
             LOGGER.debug("Sending request for ban hours to user " + user.getId() + "...");
             clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_BAN_CHOOSE_USER_HOURS_REQUEST, user),
+                    .localize(SERVICE_BAN_CHOOSE_USER_HOURS_REQUEST, user),
                     keyboardRemove);
             LOGGER.debug("Message sent.");
         };
@@ -190,7 +190,7 @@ private static final Logger LOGGER = LogManager.getLogger(GeneralBanButtonHandle
         } catch (NumberFormatException e) {
             throw new InvalidDataSentException("Unable to parse provided string "
                     + message.getText() + " to hours int", localizationLoader
-                    .getLocalizationForUser(ERROR_PARSE_HOURS, user), e);
+                    .localize(ERROR_PARSE_HOURS, user), e);
         }
         return hours;
     }
@@ -201,7 +201,7 @@ private static final Logger LOGGER = LogManager.getLogger(GeneralBanButtonHandle
         userService.liftGeneralBan(user, target);
         LOGGER.debug("Sending confirmation message...");
         clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .getLocalizationForUser(SERVICE_GENERAL_BAN_LIFTED_SUCCESS, user),
+                .localize(SERVICE_GENERAL_BAN_LIFTED_SUCCESS, user),
                 keyboardRemove);
     }
 
@@ -212,6 +212,6 @@ private static final Logger LOGGER = LogManager.getLogger(GeneralBanButtonHandle
         userService.banUserGenerally(user, target, hours);
         LOGGER.debug("Sending confirmation message...");
         clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .getLocalizationForUser(SERVICE_GENERAL_BAN_SUCCESS, user));
+                .localize(SERVICE_GENERAL_BAN_SUCCESS, user));
     }
 }

@@ -73,7 +73,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
                     try {
                         menuService.terminateMenuGroup(entry.getValue().getUser(),
                                 entry.getValue().getBot(), MenuTerminationGroupKey.COMMIT_CONTENT, localizationLoader
-                                .getLocalizationForUser(Menu.COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE, entry.getValue().getUser()),
+                                .localize(Menu.COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE, entry.getValue().getUser()),
                                 entry.getValue().getId());
                         LOGGER.debug("An MTG for session " + entry.getValue().getId()
                                 + " was terminated after the session expired.");

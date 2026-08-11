@@ -92,7 +92,7 @@ private static final Logger LOGGER = LogManager.getLogger(PostButtonHandler.clas
                 });
                 LOGGER.debug("Sending roles request...");
                 clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                        .getLocalizationForUser(SERVICE_GENERAL_POST_ROLES_REQUEST, user));
+                        .localize(SERVICE_GENERAL_POST_ROLES_REQUEST, user));
                 LOGGER.debug("Request sent.");
                 break;
             default:
@@ -113,12 +113,12 @@ private static final Logger LOGGER = LogManager.getLogger(PostButtonHandler.clas
 
             LOGGER.debug("Sending thread started message...");
             clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_GENERAL_POST_STARTED, user));
+                    .localize(SERVICE_GENERAL_POST_STARTED, user));
             LOGGER.debug("Message sent.");
         });
         LOGGER.debug("Sending content request...");
         clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                .getLocalizationForUser(SERVICE_GENERAL_POST_CONTENT_REQUEST, user));
+                .localize(SERVICE_GENERAL_POST_CONTENT_REQUEST, user));
         LOGGER.debug("Request sent.");
     }
 }

@@ -45,6 +45,10 @@ public class Lesson extends BaseEntity implements Comparable<Lesson> {
     @JoinColumn(name = "homework_id")
     private Homework homework;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "next_lesson_button_mapping_id")
+    private ContentMapping nextLessonButtonTitle;
+
     /**
      * Delay before this lesson will be sent to user. Specified in minutes.
      * If less then 0 then it is interpreted as no delay.
@@ -64,6 +68,7 @@ public class Lesson extends BaseEntity implements Comparable<Lesson> {
         return "Lesson(id=" + getId() + ", position=" + position
                 + ", structure=" + (Hibernate.isInitialized(structure) ? structure.stream().map(m -> m.getId()).toList() : "LAZY")
                 + ", courseId=" + course.getId() + ", homeworkId=" + (homework != null ? homework.getId() : "NULL")
+                + ", nextLessonButtonTitle=" + (nextLessonButtonTitle != null ? nextLessonButtonTitle.getId() : "NULL")
                 + ", delay=" + delay + ", version=" + version + ")";
     }
 

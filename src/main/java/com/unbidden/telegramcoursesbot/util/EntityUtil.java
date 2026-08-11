@@ -103,7 +103,7 @@ public class EntityUtil {
 
         final Course course = courseRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Course " + id + " does not exist",
-                localizationLoader.getLocalizationForUser(Error.COURSE_NOT_FOUND, user)));
+                localizationLoader.localize(Error.COURSE_NOT_FOUND, user)));
         
         checkBotVisibility(user, course.getBot(), bot);
         return course;
@@ -116,7 +116,7 @@ public class EntityUtil {
 
         final ContentMapping title = contentMappingRepository.findCourseTitle(courseId).orElseThrow(() ->
                 new EntityNotFoundException("Course " + courseId + " does not exist",
-                localizationLoader.getLocalizationForUser(Error.COURSE_NOT_FOUND, user)));
+                localizationLoader.localize(Error.COURSE_NOT_FOUND, user)));
         
         if (!title.getContent().isEmpty()) checkBotVisibility(user, title.getContent().getFirst().getBot(), bot);
         return title;
@@ -130,7 +130,7 @@ public class EntityUtil {
 
         final Lesson lesson = lessonRepository.findById(lessonId).orElseThrow(() ->
                 new EntityNotFoundException("Lesson with id " + lessonId + " does not exist",
-                localizationLoader.getLocalizationForUser(Error.LESSON_NOT_FOUND, user)));
+                localizationLoader.localize(Error.LESSON_NOT_FOUND, user)));
 
         checkBotVisibility(user, lesson.getCourse().getBot(), bot);
         return lesson;
@@ -144,7 +144,7 @@ public class EntityUtil {
 
         final Lesson lesson = lessonRepository.findByPositionAndCourseId(position, courseId).orElseThrow(() ->
                 new EntityNotFoundException("There is no lesson at position " + position
-                + " in course " + courseId, localizationLoader.getLocalizationForUser(Error.LESSON_NOT_FOUND, user)));
+                + " in course " + courseId, localizationLoader.localize(Error.LESSON_NOT_FOUND, user)));
 
         checkBotVisibility(user, lesson.getCourse().getBot(), bot);
         return lesson;
@@ -159,7 +159,7 @@ public class EntityUtil {
         final CourseProgress progress = courseProgressRepository.findByUserIdAndCourseId(user.getId(), courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Course progress for user "
                 + user.getFullName() + " and course " + courseId + " does not exist.",
-                localizationLoader.getLocalizationForUser(Error.COURSE_PROGRESS_NOT_FOUND, user)));
+                localizationLoader.localize(Error.COURSE_PROGRESS_NOT_FOUND, user)));
         
         checkBotVisibility(user, progress.getCourse().getBot(), bot);
         return progress;
@@ -173,7 +173,7 @@ public class EntityUtil {
 
         final CourseProgress progress = courseProgressRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Course progress with id " + id + " does not exist.",
-                localizationLoader.getLocalizationForUser(Error.COURSE_PROGRESS_NOT_FOUND, user)));
+                localizationLoader.localize(Error.COURSE_PROGRESS_NOT_FOUND, user)));
 
         checkBotVisibility(user, progress.getCourse().getBot(), bot);
         return progress;
@@ -187,7 +187,7 @@ public class EntityUtil {
 
         final Homework homework = homeworkRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Homework with id " + id + " does not exist",
-                localizationLoader.getLocalizationForUser(Error.HOMEWORK_NOT_FOUND, user)));
+                localizationLoader.localize(Error.HOMEWORK_NOT_FOUND, user)));
 
         checkBotVisibility(user, homework.getLesson().getCourse().getBot(), bot);
         return homework;
@@ -201,7 +201,7 @@ public class EntityUtil {
 
         final HomeworkProgress progress = homeworkProgressRepository.findById(progressId).orElseThrow(() ->
                 new EntityNotFoundException("Homework progress with id " + progressId + " does not exist",
-                localizationLoader.getLocalizationForUser(Error.HOMEWORK_PROGRESS_NOT_FOUND, user)));
+                localizationLoader.localize(Error.HOMEWORK_PROGRESS_NOT_FOUND, user)));
 
         checkBotVisibility(user, progress.getHomework().getLesson().getCourse().getBot(), bot);
         return progress;
@@ -216,7 +216,7 @@ public class EntityUtil {
         final HomeworkProgress progress = homeworkProgressRepository.findByUserIdAndHomeworkId(
                 user.getId(), homeworkId).orElseThrow(() -> new EntityNotFoundException("Homework progress for user "
                 + user.getFullName() + " and homework " + homeworkId + " does not exist",
-                localizationLoader.getLocalizationForUser(Error.HOMEWORK_PROGRESS_NOT_FOUND, user)));
+                localizationLoader.localize(Error.HOMEWORK_PROGRESS_NOT_FOUND, user)));
 
         checkBotVisibility(user, progress.getHomework().getLesson().getCourse().getBot(), bot);
         return progress;
@@ -269,7 +269,7 @@ public class EntityUtil {
         
         final LocalizedContent content = localizedContentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Content with id " + id + " does not exist",
-                localizationLoader.getLocalizationForUser(Error.CONTENT_NOT_FOUND, user)));
+                localizationLoader.localize(Error.CONTENT_NOT_FOUND, user)));
 
         checkBotVisibility(user, content.getBot(), bot);
         return content;
@@ -283,7 +283,7 @@ public class EntityUtil {
 
         final ContentMapping mapping = contentMappingRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Content mapping with id " + id
-                + " does not exist", localizationLoader.getLocalizationForUser(
+                + " does not exist", localizationLoader.localize(
                 Error.CONTENT_MAPPING_NOT_FOUND, user)));
 
         if (!mapping.getContent().isEmpty()) checkBotVisibility(user, mapping.getContent().getFirst().getBot(), bot);
@@ -299,7 +299,7 @@ public class EntityUtil {
         final Review review = reviewRepository.findByCourseIdAndUserId(courseId, user.getId())
                 .orElseThrow(() -> new EntityNotFoundException("User " + user.getId()
                 + " has never left a review for course " + courseId, localizationLoader
-                .getLocalizationForUser(Error.REVIEW_NOT_FOUND, user)));
+                .localize(Error.REVIEW_NOT_FOUND, user)));
 
         checkBotVisibility(user, review.getCourse().getBot(), bot);
         return review;
@@ -313,7 +313,7 @@ public class EntityUtil {
 
         final Review review = reviewRepository.findById(reviewId).orElseThrow(() ->
                 new EntityNotFoundException("Review with id " + reviewId + " does not exist.",
-                localizationLoader.getLocalizationForUser(Error.REVIEW_NOT_FOUND, user)));
+                localizationLoader.localize(Error.REVIEW_NOT_FOUND, user)));
 
         checkBotVisibility(user, review.getCourse().getBot(), bot);
         return review;
@@ -327,7 +327,7 @@ public class EntityUtil {
         return botRoleRepository.findByBotIdAndUserId(bot.getId(), user.getId()).orElseThrow(() ->
                 new EntityNotFoundException("Bot role for user " + user.getId()
                 + " and bot " + bot.getId() + " does not exist", localizationLoader
-                .getLocalizationForUser(Error.BOT_ROLE_NOT_FOUND, user)));
+                .localize(Error.BOT_ROLE_NOT_FOUND, user)));
     }
 
     @Transactional(readOnly = true)
@@ -338,7 +338,7 @@ public class EntityUtil {
 
         final SupportRequest request = supportRequestRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Support request with id " + id + " does not exist",
-                localizationLoader.getLocalizationForUser(Error.SUPPORT_REQUEST_NOT_FOUND,
+                localizationLoader.localize(Error.SUPPORT_REQUEST_NOT_FOUND,
                 user)));
 
         checkBotVisibility(user, request.getBot(), bot);
@@ -353,7 +353,7 @@ public class EntityUtil {
 
         final SupportReply reply = supportReplyRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Support reply with id " + id + " does not exist",
-                localizationLoader.getLocalizationForUser(Error.SUPPORT_REPLY_NOT_FOUND,
+                localizationLoader.localize(Error.SUPPORT_REPLY_NOT_FOUND,
                 user)));
 
         checkBotVisibility(user, reply.getBot(), bot);
@@ -369,7 +369,7 @@ public class EntityUtil {
         final CourseOwnership ownership = courseOwnershipRepository.findByUserIdAndCourseId(user.getId(), courseId).orElseThrow(() ->
                 new EntityNotFoundException("Course ownership for user " + user.getId()
                 + " and course " + courseId + " does not exist.", localizationLoader
-                .getLocalizationForUser(Error.COURSE_OWNERSHIP_NOT_FOUND, user)));
+                .localize(Error.COURSE_OWNERSHIP_NOT_FOUND, user)));
 
         checkBotVisibility(user, ownership.getCourse().getBot(), bot);
         return ownership;
@@ -385,7 +385,7 @@ public class EntityUtil {
                 user.getId(), courseId, OwnershipStatus.ACTIVE).orElseThrow(() ->
                 new EntityNotFoundException("Course ownership for user " + user.getId()
                 + " and course " + courseId + " does not exist.", localizationLoader
-                .getLocalizationForUser(Error.COURSE_OWNERSHIP_NOT_FOUND, user)));
+                .localize(Error.COURSE_OWNERSHIP_NOT_FOUND, user)));
 
         checkBotVisibility(user, ownership.getCourse().getBot(), bot);
         return ownership;
@@ -455,7 +455,7 @@ public class EntityUtil {
 
         if (!bot.getId().equals(BOT_LORD_ID)) {
             throw new AccessDeniedException("This action is available only from the "
-                    + "bot lord", localizationLoader.getLocalizationForUser(
+                    + "bot lord", localizationLoader.localize(
                     Error.UNAVAILABLE_IN_REGULAR_BOT, user));
         }
     }
@@ -465,14 +465,14 @@ public class EntityUtil {
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(target, "target cannot be null");
 
-        return localizationLoader.getGenericLocalization(Service.ROLE_TITLE, localizedFor,
+        return localizationLoader.localizeGeneric(Service.ROLE_TITLE, localizedFor,
                 getBotRole(target, bot).getRole().getType().toString().toLowerCase()).getData();
     }
 
     private void checkBotVisibility(UserEntity user, Bot required, Bot current) {
         if (!required.getId().equals(current.getId()) && !getBotLord().getId().equals(current.getId())) {
             throw new AccessDeniedException("This asset is not available for bot "
-                    + current.getId(), localizationLoader.getLocalizationForUser(
+                    + current.getId(), localizationLoader.localize(
                     Error.BOT_VISIBILITY_MISMATCH, user));
         }
     }

@@ -57,8 +57,8 @@ public class ContentMappingTextToggleButtonHandler implements ButtonHandler {
 
     private String getTextStatus(UserEntity user, ContentMapping mapping) {
         return (mapping.isTextEnabled()) ? localizationLoader
-                .getLocalizationForUser(SERVICE_STATUS_ENABLED, user).getData()
-                : localizationLoader.getLocalizationForUser(SERVICE_STATUS_DISABLED, user)
+                .localize(SERVICE_STATUS_ENABLED, user).getData()
+                : localizationLoader.localize(SERVICE_STATUS_DISABLED, user)
                 .getData();
     }
 

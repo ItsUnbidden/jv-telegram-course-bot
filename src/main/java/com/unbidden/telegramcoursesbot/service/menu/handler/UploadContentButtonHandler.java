@@ -40,7 +40,7 @@ public class UploadContentButtonHandler implements ButtonHandler {
                     content.getId());
             clientManager.getClient(bot).sendMessage(user, success);
         });
-        final Localization request = localizationLoader.getLocalizationForUser(
+        final Localization request = localizationLoader.localize(
                 SERVICE_UPLOAD_CONTENT_REQUEST, user);
 
         clientManager.getClient(bot).sendMessage(user, request);

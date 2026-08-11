@@ -41,7 +41,7 @@ public class SendHomeworkButtonHandler implements ButtonHandler {
         sessionService.createSession(user, bot, m ->
                 homeworkService.commit(progress, m));
 
-        final Localization localization = localizationLoader.getLocalizationForUser(
+        final Localization localization = localizationLoader.localize(
                 SERVICE_SEND_HOMEWORK_REQUEST, user);
         
         clientManager.getClient(bot).sendMessage(user, localization);

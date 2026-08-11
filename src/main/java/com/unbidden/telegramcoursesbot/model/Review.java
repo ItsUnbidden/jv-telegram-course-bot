@@ -45,13 +45,7 @@ public class Review extends BaseEntity {
     private Integer originalCourseGrade;
 
     @Column(nullable = false)
-    private Integer originalPlatformGrade;
-
-    @Column(nullable = false)
     private Integer courseGrade;
-
-    @Column(nullable = false)
-    private Integer platformGrade;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "original_content_id")
@@ -97,7 +91,7 @@ public class Review extends BaseEntity {
         return "Review(id=" + getId() + ", userId=" + user.getId() + ", courseId=" + course.getId() + ", basicSubmittedTimestamp="
                 + basicSubmittedTimestamp + ", advancedSubmittedTimestamp=" + advancedSubmittedTimestamp
                 + ", lastUpdateTimestamp=" + lastUpdateTimestamp + ", courseGrade=" + courseGrade
-                + ", platformGrade=" + platformGrade + ", contentId=" + (content != null ? content.getId() : "NULL")
+                + ", contentId=" + (content != null ? content.getId() : "NULL")
                 + ", markedAsReadBy=" + (Hibernate.isInitialized(markedAsReadBy) ? markedAsReadBy.stream().map(u -> u.getId()) : "LAZY")
                 + ", commentContentId=" + (commentContent != null ? commentContent.getId() : "NULL") + ", commentedById="
                 + (commentedBy != null ? commentedBy.getId() : "NULL") + ", commentedAt=" + commentedAt + ", version=" + version + ")";

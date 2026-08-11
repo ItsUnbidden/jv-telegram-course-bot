@@ -57,8 +57,8 @@ public class HomeworkRepeatedCompletionToggleButtonHandler implements ButtonHand
 
     private String getRepeatedCompletionStatus(UserEntity user, Homework homework) {
         return (homework.isRepeatedCompletionAvailable()) ? localizationLoader
-                .getLocalizationForUser(SERVICE_STATUS_ENABLED, user).getData()
-                : localizationLoader.getLocalizationForUser(SERVICE_STATUS_DISABLED, user)
+                .localize(SERVICE_STATUS_ENABLED, user).getData()
+                : localizationLoader.localize(SERVICE_STATUS_DISABLED, user)
                 .getData();
     }
 

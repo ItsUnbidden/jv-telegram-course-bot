@@ -55,8 +55,8 @@ public class CourseMaintenanceToggleButtonHandler implements ButtonHandler {
 
     private String getStatus(UserEntity user, Course course) {
         return (course.isUnderMaintenance()) ? localizationLoader
-                .getLocalizationForUser(SERVICE_STATUS_ENABLED, user).getData()
-                : localizationLoader.getLocalizationForUser(SERVICE_STATUS_DISABLED, user)
+                .localize(SERVICE_STATUS_ENABLED, user).getData()
+                : localizationLoader.localize(SERVICE_STATUS_DISABLED, user)
                 .getData();
     }
 

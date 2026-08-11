@@ -56,23 +56,23 @@ public class AddLessonToCourseButtonHandler implements ButtonHandler {
                     throw new InvalidDataSentException("Position " + position + " is anvailable "
                             + "for course " + course.getName() + " because it is outside "
                             + "allowed boundaries of 0 to " + course.getNumberOfLessons(),
-                            localizationLoader.getLocalizationForUser(
+                            localizationLoader.localize(
                             ERROR_LESSON_POSITION_INVALID, user));
                 }
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse string "
                         + m.get(1).getText() + " to the new index", localizationLoader
-                        .getLocalizationForUser(ERROR_PARSE_INDEX_FAILURE, user));
+                        .localize(ERROR_PARSE_INDEX_FAILURE, user));
             }
             LOGGER.debug("New position parsed. Adding lesson...");
             lessonService.createLesson(user, course, position);
             LOGGER.debug("Sending confirmation message...");
             clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_NEW_LESSON_CREATED, user));
+                    .localize(SERVICE_NEW_LESSON_CREATED, user));
             LOGGER.debug("Message sent.");
         }, true);
         LOGGER.debug("Sending request message...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                 SERVICE_CREATE_LESSON_REQUEST, user));
         LOGGER.debug("Request sent.");
     }

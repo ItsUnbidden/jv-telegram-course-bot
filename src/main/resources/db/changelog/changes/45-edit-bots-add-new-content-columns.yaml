@@ -12,7 +12,6 @@ databaseChangeLog:
                   constraints:
                     foreignKeyName: fk_creator_info_mapping_id_bots
                     references: content_mappings(id)
-                    nullable: false
               - column:
                   name: terms_mapping_id
                   type: bigint

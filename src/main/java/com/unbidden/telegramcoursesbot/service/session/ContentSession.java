@@ -5,6 +5,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
+import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ContentSession extends Session {
@@ -14,7 +17,7 @@ public class ContentSession extends Session {
 
     private boolean isSkippingConfirmation;
 
-    public void execute() {
-        super.getFunction().accept(messages);
+    public void execute(UserEntity user, Bot bot) {
+        super.getFunction().accept(user, bot, messages);
     }
 }

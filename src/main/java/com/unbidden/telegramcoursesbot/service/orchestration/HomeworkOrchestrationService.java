@@ -10,10 +10,12 @@ import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.dto.HomeworkResponseDto;
 import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
+import com.unbidden.telegramcoursesbot.mapper.HomeworkMapper;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
@@ -44,6 +46,8 @@ public class HomeworkOrchestrationService {
 
     private final UserService userService;
 
+    private final HomeworkMapper mapper;
+
     private final LocalizationLoader localizationLoader;
 
     private final ClientManager clientManager;
@@ -54,17 +58,22 @@ public class HomeworkOrchestrationService {
 
     public HomeworkOrchestrationService(HomeworkService homeworkService, TimingService timingService,
             ContentService contentService, MenuService menuService, UserService userService,
-            LocalizationLoader localizationLoader, ClientManager clientManager, EntityUtil entityUtil,
-            @Lazy CourseOrchestrationService courseService) {
+            HomeworkMapper mapper, LocalizationLoader localizationLoader, ClientManager clientManager,
+            EntityUtil entityUtil, @Lazy CourseOrchestrationService courseService) {
         this.homeworkService = homeworkService;
         this.timingService = timingService;
         this.contentService = contentService;
         this.menuService = menuService;
         this.userService = userService;
+        this.mapper = mapper;
         this.localizationLoader = localizationLoader;
         this.clientManager = clientManager;
         this.entityUtil = entityUtil;
         this.courseService = courseService;
+    }
+
+    public HomeworkResponseDto getById(UserEntity user, Bot bot, Long homeworkId) {
+        return mapper.toDto(entityUtil.getHomeworkById(user, bot, homeworkId));
     }
 
     public void initHomework(UserEntity user, Bot bot, Long homeworkId) {
@@ -114,7 +123,7 @@ public class HomeworkOrchestrationService {
             progress = homeworkService.commit(user, bot, homeworkId, messages, Status.AWAITS_APPROVAL);
 
             clientManager.getClient(bot).sendMessage(progress.getUser(),
-                    localizationLoader.getLocalizationForUser(
+                    localizationLoader.localize(
                     Localizations.Service.FEEDBACK_FOR_HOMEWORK_WAITING, progress.getUser()));
         } else {
             progress = homeworkService.commit(user, bot, homeworkId, messages, Status.COMPLETED);
@@ -123,17 +132,18 @@ public class HomeworkOrchestrationService {
 
             for (final UserEntity mentor : mentors) {
                 clientManager.getClient(bot).sendMessage(mentor,
-                        localizationLoader.getLocalizationForUser(
+                        localizationLoader.localize(
                         Localizations.Service.HOMEWORK_SUBMITTED_NOTIFICATION, mentor,
                         new Localizations.Service.HomeworkSubmittedNotificationParams(progress.getUser().getId(),
                                 progress.getUser().getFullName(), progress.getUser().getLanguageCode())));
                 contentService.sendContent(mentor, bot, progress.getContent().getId());
             }
             clientManager.getClient(bot).sendMessage(progress.getUser(),
-                    localizationLoader.getLocalizationForUser(
+                    localizationLoader.localize(
                     Localizations.Service.HOMEWORK_ACCEPTED_AUTO, progress.getUser()));
 
-            courseService.next(user, bot, progress.getHomework().getLesson().getCourse().getId());
+            courseService.next(user, bot, progress.getHomework().getLesson().getCourse().getId(),
+                    progress.getHomework().getLesson().getId());
         }
         menuService.terminateMenuGroup(progress.getUser(), bot,
                 MenuTerminationGroupKey.SEND_HOMEWORK, progress.getId());
@@ -159,21 +169,22 @@ public class HomeworkOrchestrationService {
             final String courseName = contentService.getLocalizedText(target, bot, progress.getHomework().getLesson().getCourse().getTitle().getId());
 
             if (!adminComment.isEmpty()) {
-                clientManager.getClient(bot).sendMessage(target, localizationLoader.getLocalizationForUser(
+                clientManager.getClient(bot).sendMessage(target, localizationLoader.localize(
                     Localizations.Service.HOMEWORK_APPROVED_NOTIFICATION_PLUS_COMMENT, target,
                     new Localizations.Service.HomeworkApprovedNotificationPlusCommentParams(courseName,
                         progress.getHomework().getLesson().getPosition(), mentor.getFullName(),
                         entityUtil.getLocalizedTitle(target, bot, mentor))));
                 contentService.sendContent(target, bot, progress.getLastComment().getId());
             } else {
-                clientManager.getClient(bot).sendMessage(target, localizationLoader.getLocalizationForUser(
+                clientManager.getClient(bot).sendMessage(target, localizationLoader.localize(
                     Localizations.Service.HOMEWORK_APPROVED_NOTIFICATION, target,
                     new Localizations.Service.HomeworkApprovedNotificationParams(courseName,
                         progress.getHomework().getLesson().getPosition(), mentor.getFullName(),
                         entityUtil.getLocalizedTitle(target, bot, mentor))));
             }
 
-            courseService.next(target, bot, progress.getHomework().getLesson().getCourse().getId());
+            courseService.next(target, bot, progress.getHomework().getLesson().getCourse().getId(),
+                    progress.getHomework().getLesson().getId());
         }
     }
 
@@ -201,7 +212,7 @@ public class HomeworkOrchestrationService {
                     MenuTerminationGroupKey.REQUEST_FEEDBACK, progress.getId());
             final String courseName = contentService.getLocalizedText(target, bot, progress.getHomework().getLesson().getCourse().getTitle().getId());
 
-            clientManager.getClient(bot).sendMessage(target, localizationLoader.getLocalizationForUser(
+            clientManager.getClient(bot).sendMessage(target, localizationLoader.localize(
                     Localizations.Service.HOMEWORK_DECLINED_NOTIFICATION_PLUS_COMMENT, target,
                     new Localizations.Service.HomeworkDeclinedNotificationPlusCommentParams(courseName,
                         progress.getHomework().getLesson().getPosition(), mentor.getFullName(),
@@ -231,7 +242,7 @@ public class HomeworkOrchestrationService {
                     + "Sending approval message to them...");
 
             clientManager.getClient(bot).sendMessage(mentor,
-                    localizationLoader.getLocalizationForUser(Localizations.Service.HOMEWORK_FEEDBACK_REQUEST_NOTIFICATION,
+                    localizationLoader.localize(Localizations.Service.HOMEWORK_FEEDBACK_REQUEST_NOTIFICATION,
                     mentor, new Localizations.Service.HomeworkFeedbackRequestNotificationParams(target.getId(),
                     target.getFullName(), target.getLanguageCode(), contentService.getLocalizedText(mentor, bot,
                         course.getTitle().getId()), progress.getHomework().getLesson().getPosition())));
@@ -248,7 +259,7 @@ public class HomeworkOrchestrationService {
                         + "additional message will be sent to user " + mentor.getId()
                         + " to attach the feedback menu to.");
                 menuMessage = clientManager.getClient(bot).sendMessage(mentor, localizationLoader
-                        .getLocalizationForUser(Localizations.Service.FEEDBACK_MEDIA_GROUP_BYPASS, mentor));
+                        .localize(Localizations.Service.FEEDBACK_MEDIA_GROUP_BYPASS, mentor));
                 LOGGER.debug("Additional message for menu has been sent.");
             } else {
                 LOGGER.debug("Homework progress " + progress.getId() + "'s content "
@@ -273,7 +284,7 @@ public class HomeworkOrchestrationService {
             case AWAITS_APPROVAL:
                 LOGGER.debug("User " + user.getId() + " is currently awaiting feedback for "
                         + "homework " + homework.getId() + ".");
-                clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
+                clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                         Error.HOMEWORK_ALREADY_AWAITS_APPROVAL, user));
                 
                 return true;
@@ -294,18 +305,17 @@ public class HomeworkOrchestrationService {
                 if (courseProgress.getStage().equals(course.getNumberOfLessons() - 1)) {
                     LOGGER.info("User " + user.getId() + " has completed course "
                             + course.getId() + ". Commencing ending sequence...");
-                    courseService.next(user, bot, course.getId());
+                    courseService.next(user, bot, course.getId(), homework.getLesson().getId());
 
                     return true;
                 }
                 LOGGER.debug( "Triggering next stage menu...");
 
                 final Message message = clientManager.getClient(bot).sendMessage(user,
-                        localizationLoader.getLocalizationForUser(Error.HOMEWORK_ALREADY_COMPLETED, user));
+                        localizationLoader.localize(Error.HOMEWORK_ALREADY_COMPLETED, user));
 
-                menuService.initiateMenu(user, bot, MenuKey.COURSE_NEXT_STAGE, course.getId()
-                        + CourseOrchestrationService.COURSE_NAME_LESSON_INDEX_DIVIDER + courseProgress.getStage(),
-                        message.getMessageId());
+                menuService.initiateMenu(user, bot, MenuKey.COURSE_NEXT_STAGE,
+                        homework.getLesson().getId().toString(), message.getMessageId());
                 menuService.addToMenuTerminationGroup(user, user, bot, message.getMessageId(),
                         MenuTerminationGroupKey.COURSE_NEXT_STAGE, courseProgress.getId());
                 return true;
@@ -324,7 +334,7 @@ public class HomeworkOrchestrationService {
                     + "It is a recomendation to avoid such cases since it requires an "
                     + "additional message to be sent for menu.");
             final Localization mediaGroupBypassMessageLoc = localizationLoader
-                    .getLocalizationForUser(Localizations.Service.SEND_HOMEWORK_MEDIA_GROUP_BYPASS, user);
+                    .localize(Localizations.Service.SEND_HOMEWORK_MEDIA_GROUP_BYPASS, user);
             menuMessage = clientManager.getClient(bot).sendMessage(user, mediaGroupBypassMessageLoc);
             LOGGER.debug("Additional message for menu has been sent.");
         } else {

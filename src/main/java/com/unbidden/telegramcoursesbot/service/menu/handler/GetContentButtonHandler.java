@@ -50,7 +50,7 @@ public class GetContentButtonHandler implements ButtonHandler {
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse provided string "
                         + providedNumberStr + " to content id long", localizationLoader
-                        .getLocalizationForUser(ERROR_PARSE_ID_FAILURE, user), e);
+                        .localize(ERROR_PARSE_ID_FAILURE, user), e);
             }
             final Localization success = localizationLoader.getLocalizationForUser(
                     SERVICE_GET_CONTENT_SUCCESS, user, PARAM_CONTENT_ID,
@@ -58,7 +58,7 @@ public class GetContentButtonHandler implements ButtonHandler {
             contentService.sendContent(contentService.getById(contentId, user, bot), user, bot);
             clientManager.getClient(bot).sendMessage(user, success);
         }, true);
-        final Localization request = localizationLoader.getLocalizationForUser(
+        final Localization request = localizationLoader.localize(
                 SERVICE_GET_CONTENT_REQUEST, user);
 
         clientManager.getClient(bot).sendMessage(user, request);

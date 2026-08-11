@@ -57,12 +57,12 @@ public class RemoveCourseButtonHandler implements ButtonHandler {
                 + course.getName() + ".");
         if (course.getId().equals(TEST_COURSE_ID)) {
             throw new ForbiddenOperationException("Test course cannot be deleted",
-                    localizationLoader.getLocalizationForUser(
+                    localizationLoader.localize(
                     ERROR_DELETE_TEST_COURSE_FAILURE, user));
         }
         if (!courseService.isDeletable(course)) {
             throw new ForbiddenOperationException("Cannot delete a course which has been "
-                    + "bought by users before", localizationLoader.getLocalizationForUser(
+                    + "bought by users before", localizationLoader.localize(
                     ERROR_CANNOT_DELETE_BOUGHT_COURSE, user));
         }
         sessionService.createSession(user, bot, m -> {
@@ -72,7 +72,7 @@ public class RemoveCourseButtonHandler implements ButtonHandler {
                     + ". Checking if this matches " + course.getName() + "...");
             if (!course.getName().equals(providedStr)) {
                 throw new InvalidDataSentException("Provided string does not match "
-                        + "course name", localizationLoader.getLocalizationForUser(
+                        + "course name", localizationLoader.localize(
                         ERROR_COURSE_REMOVE_CONFIRMATION_FAILURE, user));
             }
             LOGGER.debug("Course name confirmed. Deleting course "

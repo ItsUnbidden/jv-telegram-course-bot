@@ -115,7 +115,7 @@ public class PaymentOrchestrationService {
         Localization errorLoc = null;
         switch (response.result()) {
             case ALREADY_OWNED -> {
-                errorLoc = localizationLoader.getLocalizationForUser(
+                errorLoc = localizationLoader.localize(
                         Error.PRE_CHECKOUT_COURSE_ALREADY_OWNED, user,
                         new Localizations.Error.PreCheckoutCourseAlreadyOwnedParams(
                             contentService.getLocalizedText(user, bot, response.course().getTitle().getId())));
@@ -124,21 +124,21 @@ public class PaymentOrchestrationService {
                         + " already has course " + response.course().getId());
             }
             case COURSE_NOT_FOUND -> {
-                errorLoc = localizationLoader.getLocalizationForUser(
+                errorLoc = localizationLoader.localize(
                         Error.PRE_CHECKOUT_UNKNOWN_COURSE, user);
 
                 LOGGER.info("Precheckout query payload contained unknown course ID: "
                         + preCheckoutQuery.getInvoicePayload() + ". User: " + user.getId());
             }
             case CURRENCY_MISMATCH -> {
-                errorLoc = localizationLoader.getLocalizationForUser(
+                errorLoc = localizationLoader.localize(
                         Error.PRE_CHECKOUT_CURRENCY_MISMATCH, user);
                         
                 LOGGER.error("Precheckout failed: currency mismatch. Investigation required. "
                         + "User: " + user.getId() + ", course: " + response.course().getId());
             }
             case PRICE_MISMATCH -> {
-                errorLoc = localizationLoader.getLocalizationForUser(
+                errorLoc = localizationLoader.localize(
                         Error.PRE_CHECKOUT_PRICE_MISMATCH, user,
                         new Localizations.Error.PreCheckoutPriceMismatchParams(response.course().getPrice()));
 
@@ -164,7 +164,7 @@ public class PaymentOrchestrationService {
                     + " and user " + user.getId() + ".");
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to answer precheckout query",
-                    localizationLoader.getLocalizationForUser(Error.ANSWER_PRECHECKOUT_FAILURE, user), e);
+                    localizationLoader.localize(Error.ANSWER_PRECHECKOUT_FAILURE, user), e);
         }
     }
 
@@ -182,16 +182,16 @@ public class PaymentOrchestrationService {
         
             final ContentMapping courseTitleMapping = entityUtil.getMappingById(user, bot, paymentDetails.getCourse().getTitle().getId());
 
-            clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
+            clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                     Localizations.Service.SUCCESSFUL_PAYMENT, user, new Localizations.Service.SuccessfulPaymentParams(
                         contentService.getLocalizedText(user, bot, courseTitleMapping))));
-            clientManager.getClient(bot).sendMessage(creator, localizationLoader.getLocalizationForUser(
+            clientManager.getClient(bot).sendMessage(creator, localizationLoader.localize(
                     Localizations.Service.USER_BOUGHT_COURSE, creator, new Localizations.Service.UserBoughtCourseParams(user.getFullName(),
                     contentService.getLocalizedText(creator, bot, courseTitleMapping))));
             LOGGER.debug("Messages sent.");
             if (clientManager.isOnMaintenance()) {
                 throw new OnMaintenanceException("Unable to send course because server is on "
-                        + "maintenance", localizationLoader.getLocalizationForUser(
+                        + "maintenance", localizationLoader.localize(
                         Error.PAYMENT_SUCCESS_SERVER_ON_MAINTENANCE, user));
             }
             LOGGER.debug("Initiating course " + payment.getInvoicePayload() + " for user " + user.getId() + "...");
@@ -211,20 +211,20 @@ public class PaymentOrchestrationService {
             try {
                 LOGGER.debug("Executing automatic refund...");
                 clientManager.getClient(bot).execute(refundStarPayment);
-                clientManager.getClient(bot).sendMessage(creator, localizationLoader.getLocalizationForUser(
+                clientManager.getClient(bot).sendMessage(creator, localizationLoader.localize(
                         Localizations.Service.AUTOMATIC_REFUND_NOTIFICATION, creator,
                         new Localizations.Service.AutomaticRefundNotificationParams(user.getId(), course.getId())));
-                clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
+                clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                         Localizations.Service.AUTOMATIC_REFUND, user,
                         new Localizations.Service.AutomaticRefundParams(courseName)));
                 LOGGER.info("Automatic refund has been successful and a notification has been sent to the Creator.");
             } catch (TelegramApiException e2) {
-                clientManager.getClient(bot).sendMessage(creator, localizationLoader.getLocalizationForUser(
+                clientManager.getClient(bot).sendMessage(creator, localizationLoader.localize(
                         Error.AUTOMATIC_REFUND_FAILURE_NOTIFICATION, creator,
                             new Error.AutomaticRefundFailureNotificationParams(user.getId(), course.getId())));
                 throw new TelegramException("Failed to automatically refund user " + user.getId()
                         + " after a successfull Telegram payment failed due to the course already being owned.",
-                        localizationLoader.getLocalizationForUser(Error.AUTOMATIC_REFUND_FAILURE, user,
+                        localizationLoader.localize(Error.AUTOMATIC_REFUND_FAILURE, user,
                             new Error.AutomaticRefundFailureParams(courseName)), e2);
             }
         }
@@ -255,7 +255,7 @@ public class PaymentOrchestrationService {
         } catch (TelegramApiException e) {
             throw new TelegramException("Failed to send a refund request to user "
                     + user.getId() + ".", localizationLoader
-                    .getLocalizationForUser(Error.REFUND_FAILURE, user), e);
+                    .localize(Error.REFUND_FAILURE, user), e);
         }
         LOGGER.debug("Invalidating ownership for course " + courseId
                 + " and user " + user.getId() + "..."); 
@@ -266,10 +266,10 @@ public class PaymentOrchestrationService {
                 user, bot, courseId).getTitle().getId());
 
         clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .getLocalizationForUser(Localizations.Service.REFUND_SUCCESS, user,
+                .localize(Localizations.Service.REFUND_SUCCESS, user,
                     new Localizations.Service.RefundSuccessParams(courseName)));
         clientManager.getClient(bot).sendMessage(entityUtil.getCreator(bot),
-                localizationLoader.getLocalizationForUser(Localizations.Service.USER_REFUNDED_COURSE,
+                localizationLoader.localize(Localizations.Service.USER_REFUNDED_COURSE,
                 user, new Localizations.Service.UserRefundedCourseParams(courseName, user.getFullName())));
         LOGGER.debug("Messages sent.");
     }
@@ -287,11 +287,11 @@ public class PaymentOrchestrationService {
         final ContentMapping courseTitleMapping = entityUtil.getMappingById(user, bot, ownership.getCourse().getTitle().getId());
 
         LOGGER.debug("Sending confirmation messages...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                 Localizations.Service.COURSE_GIFTED_SUCCESSFULLY, user, new Localizations.Service.CourseGiftedSuccessfullyParams(
                     contentService.getLocalizedText(user, bot, courseTitleMapping), ownership.getUser().getFullName(),
                     entityUtil.getLocalizedTitle(user, bot, ownership.getUser()))));
-        clientManager.getClient(bot).sendMessage(ownership.getUser(), localizationLoader.getLocalizationForUser(
+        clientManager.getClient(bot).sendMessage(ownership.getUser(), localizationLoader.localize(
                 Localizations.Service.COURSE_GIFTED_NOTIFICATION, ownership.getUser(), new Localizations.Service.CourseGiftedNotificationParams(
                     contentService.getLocalizedText(ownership.getUser(), bot, courseTitleMapping), user.getFullName(),
                     entityUtil.getLocalizedTitle(ownership.getUser(), bot, user))));
@@ -331,7 +331,7 @@ public class PaymentOrchestrationService {
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to send invoice for "
                     + course.getId() + " to user " + user.getId(), localizationLoader
-                    .getLocalizationForUser(Error.SEND_INVOICE_FAILURE, user), e);
+                    .localize(Error.SEND_INVOICE_FAILURE, user), e);
         }
     }
 
@@ -346,7 +346,7 @@ public class PaymentOrchestrationService {
             LOGGER.debug("The content for course " + course.getId() + "'s external invoice is a media group.");
 
             menuMessage = clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .getLocalizationForUser(Localizations.Service.COURSE_EXTERNAL_INVOICE_MEDIA_GROUP_BYPASS, user));
+                    .localize(Localizations.Service.COURSE_EXTERNAL_INVOICE_MEDIA_GROUP_BYPASS, user));
             LOGGER.debug("Additional message for the menu has been sent.");
         } else {
             LOGGER.debug("The content for course " + course.getId() + "'s invoice is not a media group. "

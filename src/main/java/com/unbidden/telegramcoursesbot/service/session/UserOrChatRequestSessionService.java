@@ -7,8 +7,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
+
+import org.apache.commons.lang3.function.TriConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,7 @@ public class UserOrChatRequestSessionService implements SessionService {
     private final SessionRepository sessionRepository;
 
     @Override
-    public UUID createSession(UserEntity user, Bot bot, Consumer<List<Message>> function) {
+    public UUID createSession(UserEntity user, Bot bot, TriConsumer<UserEntity, Bot, List<Message>> function) {
         sessionRepository.removeContentSessionsForUserInBot(user.getId(), bot);
 
         LOGGER.debug("Creating new user or chat request session for user "
@@ -47,8 +48,8 @@ public class UserOrChatRequestSessionService implements SessionService {
     }
 
     @Override
-    public void processResponse(Session session, Message message) {
-        removeSessionsForUserInBot(session.getUser(), session.getBot());
-        session.getFunction().accept(List.of(message));
+    public void processResponse(UserEntity user, Bot bot, Session session, Message message) {
+        removeSessionsForUserInBot(user, bot);
+        session.getFunction().accept(user, bot, List.of(message));
     }
 }

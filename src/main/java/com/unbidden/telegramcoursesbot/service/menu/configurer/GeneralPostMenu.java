@@ -38,7 +38,7 @@ public class GeneralPostMenu implements MenuConfigurer {
         page1.setMenu(menu);
         page1.setPageIndex(0);
         page1.setButtonsRowSize(3);
-        page1.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
+        page1.setLocalizationFunction((u, p, b) -> localizationLoader.localize(
                 MENU_GENERAL_POST_PAGE_0, u));
         page1.setButtonsFunction((u, p, b) -> {
             final List<Button> buttons = new ArrayList<>();
@@ -46,7 +46,7 @@ public class GeneralPostMenu implements MenuConfigurer {
                 buttons.add(new TerminalButton(roleType.toString(), roleType.toString(),
                         generalPostHandler));
             }
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_POST_CUSTOM_ROLE_SET, u).getData(),
                     POST_CUSTOM_ROLE_SET, generalPostHandler));
             return buttons;

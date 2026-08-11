@@ -80,22 +80,11 @@ public class MenuService {
     }
 
     public Message initiateMenu(UserEntity user, Bot bot, MenuKey key, String param) {
-        final Menu menu = menuRepository.find(key.getName()).orElseThrow(() ->
-                new EntityNotFoundException("Menu " + key.getName() + " was not found",
-                localizationLoader.getLocalizationForUser(Error.MENU_NOT_FOUND, user)));
-        if (menu.isAttachedToMessage()) {
-            throw new UnsupportedOperationException("Menu " + key.getName() + " is supposed to be "
-                    + "attached to a message, but the wrong initialization method was called.");
-        }
-        final Page firstPage = menu.getPages().get(0);
-        final Localization localization = firstPage.getLocalizationFunction()
-                .apply(user, List.of(param), bot);
+        return initiateMenu0(user, bot, key, 0, param, null);
+    }
 
-        LOGGER.trace("Sending menu " + menu.getName() + " to user " + user.getId() + "...");
-        final Message message = clientManager.getClient(bot).sendMessage(user, localization,
-                getInitialMarkup(firstPage, param, user, bot));
-        LOGGER.trace("Message sent.");
-        return message;
+    public Message initiateMenu(UserEntity user, Bot bot, MenuKey key, int initialPage, String param) {
+        return initiateMenu0(user, bot, key, initialPage, param, null);
     }
 
     public void initiateMenu(UserEntity user, Bot bot, MenuKey key, Integer messageId) {
@@ -103,34 +92,20 @@ public class MenuService {
     }
 
     public void initiateMenu(UserEntity user, Bot bot, MenuKey key, String param, Integer messageId) {
-        final Menu menu = menuRepository.find(key.getName()).orElseThrow(() ->
-                new EntityNotFoundException("Menu " + key.getName() + " was not found",
-                localizationLoader.getLocalizationForUser(Error.MENU_NOT_FOUND, user)));
-        final Page firstPage = menu.getPages().get(0);
-        
-        LOGGER.trace("Menu " + key + "'s markup is being compiled for message " + messageId
-                + " and user " + user.getId() + "...");
-        EditMessageReplyMarkup editMessageReplyMarkup = EditMessageReplyMarkup.builder()
-                .chatId(user.getId())
-                .messageId(messageId)
-                .replyMarkup(getInitialMarkup(firstPage, param, user, bot))
-                .build();
-        LOGGER.trace("Menu " + key + "'s markup compiled. Sending...");
-        try {
-            clientManager.getClient(bot).execute(editMessageReplyMarkup);
-            LOGGER.trace("Markup sent.");
-        } catch (TelegramApiException e) {
-            LOGGER.error("Unable to update markup for message " + messageId + " for user "
-                    + user.getId(), e);
-        }
+        initiateMenu0(user, bot, key, 0, param, messageId);
     }
 
     public void processCallbackQuery(CallbackQuery query, Bot bot) {
         final UserEntity user = entityUtil.getUser(query.getFrom());
         final String[] data = query.getData().split(DIVIDER);
-        final Menu menu = menuRepository.find(data[MENU_NAME]).orElseThrow(() ->
-                new EntityNotFoundException("Menu " + data[MENU_NAME] + " was not found",
-                localizationLoader.getLocalizationForUser(Error.MENU_NOT_FOUND, user)));
+        final Menu menu;
+        try {
+           menu = menuRepository.find(MenuKey.getKeyByLocName(data[MENU_NAME])).orElseThrow(() -> new RuntimeException());
+        } catch (RuntimeException e) {
+            throw new EntityNotFoundException("Menu " + data[MENU_NAME] + " was not found",
+                localizationLoader.localize(Error.MENU_NOT_FOUND, user));
+        }
+         
                 
         LOGGER.trace("Saving callback querry...");
         callbackQueryRepository.save(query, user, bot);
@@ -153,7 +128,7 @@ public class MenuService {
             button = page.getButtonByData(user, bot, data[data.length - 1], paramsOnly);
         } catch (MenuExpiredException e) {
             throw new ActionExpiredException("Menu has changed and user " + user.getId()
-                    + "'s request is unprocessable", localizationLoader.getLocalizationForUser(
+                    + "'s request is unprocessable", localizationLoader.localize(
                     Error.MENU_BUTTON_ISSUE, user));
         }
         switch (button.getType()) {
@@ -225,7 +200,7 @@ public class MenuService {
                 
                 final TerminalButton terminalButton = (TerminalButton)button;
                 LOGGER.trace("Button parsed to terminal button. Activating handler...");
-                terminalButton.getHandler().handle(bot, user, paramsOnly);
+                terminalButton.getHandler().handle(user, bot, paramsOnly);
                 break;
         }
 
@@ -258,7 +233,7 @@ public class MenuService {
 
         if (dataPage.getTotalElements() == 0) {
             throw new NoDataForMultipageListException("No data available for multipage list",
-                    localizationLoader.getLocalizationForUser(Error.NO_DATA_FOR_MULTIPAGE_LIST,
+                    localizationLoader.localize(Error.NO_DATA_FOR_MULTIPAGE_LIST,
                     user));
         }
         final String data = convertDataPageToString(dataPage);
@@ -293,7 +268,7 @@ public class MenuService {
         final Localization localization = meta.getLocalizationFunction().apply(
                 new MultipageListParams(meta.getPage(), meta.getNumberOfPages(), meta.getNumberOfElements(),
                 convertDataPageToString(meta.getDataFunction().apply(meta.getPage(), NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST))));
-        final Menu menu = menuRepository.find(MenuKey.MULTIPAGE_LIST.getName()).get();
+        final Menu menu = menuRepository.find(MenuKey.MULTIPAGE_LIST).get();
 
         try {
             clientManager.getClient(meta.getBot()).execute(EditMessageText.builder()
@@ -307,7 +282,7 @@ public class MenuService {
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to update a multipage list message "
                     + meta.getMessageId() + " for user " + meta.getUser().getId(),
-                    localizationLoader.getLocalizationForUser(Error.UPDATE_MESSAGE_FAILURE,
+                    localizationLoader.localize(Error.UPDATE_MESSAGE_FAILURE,
                     meta.getUser()), e);
         }
     }
@@ -315,7 +290,7 @@ public class MenuService {
     public MultipageListMeta getMultipageListMeta(UUID id, UserEntity user) {
         return multipageListMetaRepository.find(id).orElseThrow(() -> new EntityNotFoundException(
                 "Multipage list meta " + id + " does not exist. It might have expired.",
-                localizationLoader.getLocalizationForUser(Error.MULTIPAGE_LIST_META_NOT_FOUND,
+                localizationLoader.localize(Error.MULTIPAGE_LIST_META_NOT_FOUND,
                 user)));
     }
 
@@ -377,14 +352,18 @@ public class MenuService {
      */
     public void terminateMenuGroup(UserEntity user, Bot bot, MenuTerminationGroupKey key,
             @Nullable Localization terminalLocalizationOverride, Object... args) {
-        final MenuTerminationGroup group = menuTerminationGroupService.terminateMenuGroup(user, key, args);
+        final Optional<MenuTerminationGroup> groupOpt = menuTerminationGroupService.terminateMenuGroup(user, key, args);
             
-        for (final MessageEntity message : group.getMessages()) {
-            terminateMenu(message.getUser().getId(), message.getMessageId(), bot,
-                    (terminalLocalizationOverride != null) ? terminalLocalizationOverride
-                    : (group.getTerminalLocalizationName() != null) ? localizationLoader
-                    .getLocalizationForUser(Localizations.getKeyByLocName(group.getTerminalLocalizationName()),
-                    message.getUser()) : null);
+        if (groupOpt.isPresent()) {
+            final MenuTerminationGroup group = groupOpt.get();
+            
+            for (final MessageEntity message : group.getMessages()) {
+                terminateMenu(message.getUser().getId(), message.getMessageId(), bot,
+                        (terminalLocalizationOverride != null) ? terminalLocalizationOverride
+                        : (group.getTerminalLocalizationName() != null) ? localizationLoader
+                        .localize(Localizations.getKeyByLocName(group.getTerminalLocalizationName()),
+                        message.getUser()) : null);
+            }
         }
     }
 
@@ -450,6 +429,44 @@ public class MenuService {
         }
     }
 
+    private Message initiateMenu0(UserEntity user, Bot bot, MenuKey key, int initialPage, String param, Integer messageId) {
+        final Menu menu = menuRepository.find(key).orElseThrow(() ->
+                new EntityNotFoundException("Menu " + key + " was not found",
+                localizationLoader.localize(Error.MENU_NOT_FOUND, user)));
+        final Page firstPage = menu.getPages().get(initialPage);
+
+        if (messageId == null) {
+            if (menu.isAttachedToMessage()) {
+                throw new UnsupportedOperationException("Menu " + key + " is supposed to be "
+                        + "attached to a message, but the wrong initialization method was called.");
+            }
+            final Localization localization = firstPage.getLocalizationFunction().apply(user, List.of(param), bot);
+
+            LOGGER.trace("Sending menu " + menu.getKey() + " to user " + user.getId() + "...");
+            final Message message = clientManager.getClient(bot).sendMessage(user, localization,
+                    getInitialMarkup(firstPage, param, user, bot));
+            LOGGER.trace("Message sent.");
+
+            return message;
+        }
+        LOGGER.trace("Menu " + key + "'s markup is being compiled for message " + messageId
+                + " and user " + user.getId() + "...");
+        final var editMessageReplyMarkup = EditMessageReplyMarkup.builder()
+                .chatId(user.getId())
+                .messageId(messageId)
+                .replyMarkup(getInitialMarkup(firstPage, param, user, bot))
+                .build();
+        LOGGER.trace("Menu " + key + "'s markup compiled. Sending...");
+        try {
+            clientManager.getClient(bot).execute(editMessageReplyMarkup);
+            LOGGER.trace("Markup sent.");
+        } catch (TelegramApiException e) {
+            LOGGER.error("Unable to update markup for message " + messageId + " for user "
+                    + user.getId(), e);
+        }
+        return null;
+    }
+
     private void buildMessage(EditMessageTextBuilder<?, ?> editMessageBuilder,
             EditMessageReplyMarkupBuilder editMarkupBuilder, InlineKeyboardMarkup markup,
             Localization localization, boolean isAttachedToMessage) {
@@ -465,7 +482,7 @@ public class MenuService {
 
     private InlineKeyboardMarkup getInitialMarkup(Page menuPage, String param,
             UserEntity user, Bot bot) {
-        final String callbackData = menuPage.getMenu().getName() + DIVIDER
+        final String callbackData = menuPage.getMenu().getKey().getName() + DIVIDER
                 + menuPage.getPageIndex() + DIVIDER + ((param == "") ? param : param + DIVIDER);
         List<InlineKeyboardButton> buttons = menuPage.getButtonsFunction()
                 .apply(user, List.of(param), bot)
@@ -484,7 +501,7 @@ public class MenuService {
 
     private InlineKeyboardMarkup getTransitoryMarkup(Page menuPage, String[] data,
             UserEntity user, Bot bot) {
-        final StringBuilder builder = new StringBuilder().append(menuPage.getMenu().getName())
+        final StringBuilder builder = new StringBuilder().append(menuPage.getMenu().getKey().getName())
                 .append(DIVIDER).append(menuPage.getPageIndex()).append(DIVIDER);
         for (String param : data) {
             builder.append(param).append(DIVIDER);

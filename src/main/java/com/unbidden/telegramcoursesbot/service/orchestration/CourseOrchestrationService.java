@@ -10,11 +10,14 @@ import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.dto.CourseResponseDto;
+import com.unbidden.telegramcoursesbot.dto.internal.CourseMenuDto;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
+import com.unbidden.telegramcoursesbot.mapper.CourseMapper;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
@@ -37,9 +40,6 @@ import lombok.RequiredArgsConstructor;
 public class CourseOrchestrationService {
     private static final Logger LOGGER = LogManager.getLogger(CourseOrchestrationService.class);
 
-    public static final String COURSE_NAME_LESSON_INDEX_DIVIDER = "/";
-    public static final String COURSE_NEXT_STAGE_MENU_TERMINATION = "course_progress_%s_next_stage";
-
     private final CourseService courseService;
 
     private final HomeworkOrchestrationService homeworkService;
@@ -54,6 +54,8 @@ public class CourseOrchestrationService {
 
     private final ReviewOrchestrationService reviewService;
 
+    private final CourseMapper mapper;
+
     private final LocalizationLoader localizationLoader;
 
     private final ClientManager clientManager;
@@ -61,6 +63,58 @@ public class CourseOrchestrationService {
     private final TextUtil textUtil;
 
     private final EntityUtil entityUtil;
+
+    public CourseResponseDto getById(UserEntity user, Bot bot, Long courseId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        final Course course = entityUtil.getCourseById(user, bot, courseId);
+
+        return mapper.toDto(course, contentService.getLocalizedText(user, bot, course.getTitle()));
+    }
+
+    public List<CourseResponseDto> getByBot(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
+        return courseService.getByBot(bot).stream()
+                .map(c -> mapper.toDto(c, contentService.getLocalizedText(user, bot, c.getTitle())))
+                .toList();
+    }
+
+    public List<CourseResponseDto> getAllOwnedByUser(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
+        return courseService.getAllOwnedByUser(user, bot).stream()
+                .map(c -> mapper.toDto(c, contentService.getLocalizedText(user, bot, c.getTitle())))
+                .toList();
+    }
+
+    public List<CourseResponseDto> getAllAvailableByUser(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        
+        return courseService.getAllAvailableByUser(user, bot).stream()
+                .map(c -> mapper.toDto(c, contentService.getLocalizedText(user, bot, c.getTitle())))
+                .toList();
+    }
+
+    public List<CourseMenuDto> getCourseMenuDtosForOwnedCourses(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
+        return courseService.getCourseMenuDtosForOwnedCourses(user, bot);
+    }
+
+    public CourseMenuDto getCourseMenuDtoForCourse(UserEntity user, Bot bot, Long courseId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        return courseService.getCourseMenuDtoForCourse(user, bot, courseId);
+    }
 
     public void initCourse(UserEntity user, Bot bot, Long courseId) {
         Assert.notNull(user, "user cannot be null");
@@ -81,16 +135,19 @@ public class CourseOrchestrationService {
         current(entityUtil.getCourseProgressForUser(user, bot, courseId));
     }
 
-    public void next(UserEntity user, Bot bot, Long courseId) {
+    public void next(UserEntity user, Bot bot, Long courseId, Long currentLessonId) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
+        Assert.notNull(currentLessonId, "currentLessonId cannot be null");
 
         courseService.checkCourseIsNotUnderMaintenance(user, courseId);
         if (!checkWhetherCourseIsAvailable(user, bot, courseId)) return;
 
-        final CourseProgress progress = courseService.incrementStage(user, bot, courseId);
+        final CourseProgress progress = courseService.incrementStage(user, bot, courseId, currentLessonId);
         LOGGER.debug("Course stage incremented and progress saved.");
+
+        menuService.terminateMenuGroup(user, bot, MenuTerminationGroupKey.COURSE_NEXT_STAGE, progress.getId());
 
         if (progress.getStage() >= progress.getCourse().getNumberOfLessons()) {
             LOGGER.info("User " + user.getId() + " has completed course " + courseId
@@ -118,7 +175,7 @@ public class CourseOrchestrationService {
         if (progress.getNumberOfTimesCompleted() < 1) {
             throw new ForbiddenOperationException("User " + user.getId() + " must complete "
                     + "course " + courseId + " before they can choose lessons",
-                    localizationLoader.getLocalizationForUser(
+                    localizationLoader.localize(
                     Error.SELECT_LESSON_COURSE_NOT_COMPLETED, user));
         }
         
@@ -150,7 +207,7 @@ public class CourseOrchestrationService {
         LOGGER.debug("Lesson " + lesson.getId() + " or the course does not have any homework."
                 + " Checking, if this is the last lesson...");
         if (progress.getStage() >= course.getNumberOfLessons() - 1) {
-            next(user, course.getBot(), course.getId());
+            next(user, course.getBot(), course.getId(), lesson.getId());
             return;
         }
 
@@ -161,13 +218,13 @@ public class CourseOrchestrationService {
         if (nextLesson.getDelay() > 0 && progress.getNumberOfTimesCompleted() == 0) {
             LOGGER.debug("Lesson " + nextLesson.getId() + " has a delay. "
                     + "No next lesson button will be created.");
-            next(user, course.getBot(), course.getId());
+            next(user, course.getBot(), course.getId(), lesson.getId());
             return;
         }
 
         LOGGER.debug("Next lesson does not have a delay. "
                 + "Initializing next lesson menu button...");
-        sendNextLessonMenu(nextLesson, lastContent, progress);
+        sendNextLessonMenu(lesson, lastContent, progress);
     }
 
     private void end(UserEntity user, CourseProgress courseProgress) {
@@ -200,7 +257,7 @@ public class CourseOrchestrationService {
                     + progress.getStage() + " in course " + progress.getCourse().getId()
                     + ". Sending error message...");
             clientManager.getClient(progress.getCourse().getBot()).sendMessage(progress.getUser(),
-                    localizationLoader.getLocalizationForUser(Error.AWAITING_LESSON, progress.getUser(),
+                    localizationLoader.localize(Error.AWAITING_LESSON, progress.getUser(),
                     new Error.AwaitingLessonParams(textUtil.formatTimeLeft(progress.getUser(), localizationLoader,
                         timingService.getTimeLeft(potentialTrigger.get())))));
             LOGGER.debug("Message sent.");
@@ -212,7 +269,7 @@ public class CourseOrchestrationService {
     private void checkLessonHasContent(Lesson lesson, UserEntity user) {
         if (lesson.getStructure().isEmpty()) {
             throw new ForbiddenOperationException("Lesson " + lesson.getId() + " does not have "
-                    + "any content", localizationLoader.getLocalizationForUser(
+                    + "any content", localizationLoader.localize(
                     Error.NO_CONTENT_IN_LESSON, user));
         }
     }
@@ -240,7 +297,7 @@ public class CourseOrchestrationService {
                     + "It is a recomendation to avoid such cases since it requires an "
                     + "additional message to be sent for the menu.");
             final Localization mediaGroupBypassMessageLoc = localizationLoader
-                    .getLocalizationForUser(Localizations.Service.COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS, progress.getUser());
+                    .localize(Localizations.Service.COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS, progress.getUser());
 
             menuMessage = clientManager.getClient(progress.getCourse().getBot())
                     .sendMessage(progress.getUser(), mediaGroupBypassMessageLoc);
@@ -252,8 +309,7 @@ public class CourseOrchestrationService {
         }
 
         menuService.initiateMenu(progress.getUser(), progress.getCourse().getBot(), MenuKey.COURSE_NEXT_STAGE,
-                progress.getCourse().getId() + COURSE_NAME_LESSON_INDEX_DIVIDER + progress.getStage(),
-                menuMessage.getMessageId());
+                lesson.getId().toString(), menuMessage.getMessageId());
         menuService.addToMenuTerminationGroup(progress.getUser(), progress.getUser(),
                 progress.getCourse().getBot(), menuMessage.getMessageId(),
                 MenuTerminationGroupKey.COURSE_NEXT_STAGE, progress.getId());

@@ -45,7 +45,7 @@ public class AcceptHomeworkButtonHandler implements ButtonHandler {
                 sessionService.createSession(user, bot, m -> homeworkService.approve(
                         progress, user, m));
                         
-                final Localization localization = localizationLoader.getLocalizationForUser(
+                final Localization localization = localizationLoader.localize(
                         SERVICE_APPROVE_HOMEWORK_COMMENT_REQUEST, user);
                 clientManager.getClient(bot).sendMessage(user, localization);
                 break;

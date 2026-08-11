@@ -84,7 +84,7 @@ public class BanButtonHandler implements ButtonHandler {
                             .equals(GIVE_BAN))))).build();
                 final KeyboardButton button = KeyboardButton.builder()
                         .requestUser(requestUser)
-                        .text(localizationLoader.getLocalizationForUser(BUTTON_BAN_CHOOSE_USER,
+                        .text(localizationLoader.localize(BUTTON_BAN_CHOOSE_USER,
                             user).getData())
                         .build();
 
@@ -97,7 +97,7 @@ public class BanButtonHandler implements ButtonHandler {
                 LOGGER.debug("Sending keyboard message to user " + user.getId()
                         + " in order for them to choose the target.");
                 clientManager.getClient(bot).sendMessage(user, localizationLoader
-                        .getLocalizationForUser(SERVICE_BAN_CHOOSE_USER_REQUEST, user),
+                        .localize(SERVICE_BAN_CHOOSE_USER_REQUEST, user),
                         markup);
                 LOGGER.debug("Keyboard message sent.");
                 break;
@@ -121,7 +121,7 @@ public class BanButtonHandler implements ButtonHandler {
                     } catch (NumberFormatException e) {
                         throw new InvalidDataSentException("Unable to parse provided string "
                                 + m.get(0).getText().trim() + " to user id long",
-                                localizationLoader.getLocalizationForUser(ERROR_PARSE_USER_ID,
+                                localizationLoader.localize(ERROR_PARSE_USER_ID,
                                 user), e);
                     }
                     switch (params[1]) {
@@ -139,11 +139,11 @@ public class BanButtonHandler implements ButtonHandler {
                 switch (params[1]) {
                     case GIVE_BAN:
                         clientManager.getClient(bot).sendMessage(user, localizationLoader
-                                .getLocalizationForUser(SERVICE_BAN_USER_ID_REQUEST, user));
+                                .localize(SERVICE_BAN_USER_ID_REQUEST, user));
                         break;
                     default:
                         clientManager.getClient(bot).sendMessage(user, localizationLoader
-                                .getLocalizationForUser(SERVICE_LIFT_BAN_USER_ID_REQUEST, user));
+                                .localize(SERVICE_LIFT_BAN_USER_ID_REQUEST, user));
                         break;
                 }
                 LOGGER.debug("Message sent.");
@@ -167,7 +167,7 @@ public class BanButtonHandler implements ButtonHandler {
             });
             LOGGER.debug("Sending request for ban hours to user " + user.getId() + "...");
             clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_BAN_CHOOSE_USER_HOURS_REQUEST, user),
+                    .localize(SERVICE_BAN_CHOOSE_USER_HOURS_REQUEST, user),
                     keyboardRemove);
             LOGGER.debug("Message sent.");
         };
@@ -187,7 +187,7 @@ public class BanButtonHandler implements ButtonHandler {
         } catch (NumberFormatException e) {
             throw new InvalidDataSentException("Unable to parse provided string "
                     + message.getText() + " to hours int", localizationLoader
-                    .getLocalizationForUser(ERROR_PARSE_HOURS, user), e);
+                    .localize(ERROR_PARSE_HOURS, user), e);
         }
         return hours;
     }
@@ -198,7 +198,7 @@ public class BanButtonHandler implements ButtonHandler {
         userService.liftBanInBot(user, target, bot);
         LOGGER.debug("Sending confirmation message...");
         clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .getLocalizationForUser(SERVICE_BAN_LIFTED_SUCCESS, user), keyboardRemove);
+                .localize(SERVICE_BAN_LIFTED_SUCCESS, user), keyboardRemove);
     }
 
     private void giveBan(UserEntity user, UserEntity target, Bot bot, int hours) {
@@ -208,6 +208,6 @@ public class BanButtonHandler implements ButtonHandler {
         userService.banUserInBot(user, target, bot, hours);
         LOGGER.debug("Sending confirmation message...");
         clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .getLocalizationForUser(SERVICE_BAN_SUCCESS, user));
+                .localize(SERVICE_BAN_SUCCESS, user));
     }
 }

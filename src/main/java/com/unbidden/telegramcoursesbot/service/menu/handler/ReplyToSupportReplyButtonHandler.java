@@ -55,11 +55,11 @@ private static final Logger LOGGER = LogManager.getLogger(
             supportService.replyToReply(user, bot, reply, content);
             LOGGER.debug("Sending confirmation message...");
             clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_SUPPORT_REPLY_REPLY_SENT, user));
+                    .localize(SERVICE_SUPPORT_REPLY_REPLY_SENT, user));
             LOGGER.debug("Message sent.");
         });
         LOGGER.debug("Sending support content request message...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                 SERVICE_SUPPORT_REPLY_REPLY_REQUEST, user));
         LOGGER.debug("Message sent.");
     }

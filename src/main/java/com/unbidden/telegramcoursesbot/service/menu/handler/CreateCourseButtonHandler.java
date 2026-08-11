@@ -74,18 +74,18 @@ public class CreateCourseButtonHandler implements ButtonHandler {
                     || courseName.length() > MAX_COURSE_NAME_LENGTH) {
                 throw new InvalidDataSentException("Course name length cannot be shorter "
                         + "than " + MIN_COURSE_NAME_LENGTH + " and longer than "
-                        + MAX_COURSE_NAME_LENGTH, localizationLoader.getLocalizationForUser(
+                        + MAX_COURSE_NAME_LENGTH, localizationLoader.localize(
                         ERROR_COURSE_NAME_LENGTH, user));
             }
             if (!COURSE_NAME_PATTERN.matcher(courseName).matches()) {
                 throw new InvalidDataSentException("Course name " + courseName
                         + " does not match the course name pattern", localizationLoader
-                        .getLocalizationForUser(ERROR_COURSE_NAME_PATTERN_MISMATCH, user));
+                        .localize(ERROR_COURSE_NAME_PATTERN_MISMATCH, user));
             }
             try {
                 final Course course = courseService.getCourseByName(courseName, user, bot);
                 throw new InvalidDataSentException("Course " + courseName + " already exists "
-                        + "under id " + course.getId(), localizationLoader.getLocalizationForUser(
+                        + "under id " + course.getId(), localizationLoader.localize(
                         ERROR_COURSE_ALREADY_EXISTS, user));
             } catch (EntityNotFoundException e) {
                 LOGGER.debug("Course " + courseName + " does not exist. Proceeding...");
@@ -105,7 +105,7 @@ public class CreateCourseButtonHandler implements ButtonHandler {
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse provided string "
                         + m.get(1).getText() + " to amount of lessons int", localizationLoader
-                        .getLocalizationForUser(ERROR_PARSE_AMOUNT_OF_LESSONS, user), e);
+                        .localize(ERROR_PARSE_AMOUNT_OF_LESSONS, user), e);
             }
 
             final int price;
@@ -121,7 +121,7 @@ public class CreateCourseButtonHandler implements ButtonHandler {
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse provided string "
                         + m.get(2).getText() + " to new price int", localizationLoader
-                        .getLocalizationForUser(ERROR_PARSE_PRICE_FAILURE, user), e);
+                        .localize(ERROR_PARSE_PRICE_FAILURE, user), e);
             }
 
             courseService.createCourse(bot, courseName, price, amountOfLessons);
@@ -134,7 +134,7 @@ public class CreateCourseButtonHandler implements ButtonHandler {
             LOGGER.debug("Message sent.");
         });
         LOGGER.debug("Sending content request message...");
-        final Localization request = localizationLoader.getLocalizationForUser(
+        final Localization request = localizationLoader.localize(
                 SERVICE_NEW_COURSE_REQUEST, user);
         clientManager.getClient(bot).sendMessage(user, request);
         LOGGER.debug("Message sent.");

@@ -43,7 +43,7 @@ public class StartCommandHandler implements CommandHandler {
         LOGGER.info("User " + user.getId() + " triggered the /start command.");
         if (bot.getStart() == null) {
             LOGGER.info("There is no custom start message for bot " + bot.getId() + ". A default localization will be sent.");
-            clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
+            clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                     Localizations.Service.NO_START, user));
         } else {
             LOGGER.debug("Sending /start message to user " + user.getId() + "...");
@@ -64,7 +64,7 @@ public class StartCommandHandler implements CommandHandler {
                         } catch (NumberFormatException e) {
                             throw new InvalidDataSentException("Failed to parse course id in a command sent by user "
                                     + user.getId() + ". Supplied value: " + commandParts[2], localizationLoader
-                                    .getLocalizationForUser(Localizations.Error.PARSE_ID_FAILURE, user));
+                                    .localize(Localizations.Error.PARSE_ID_FAILURE, user));
                         }
                     }
                 }
@@ -74,7 +74,7 @@ public class StartCommandHandler implements CommandHandler {
                 default -> {
                     throw new InvalidDataSentException("Unknown command parameter was sent: "
                             + commandParts[1] + " by user " + user.getId() + ".", localizationLoader
-                            .getLocalizationForUser(Localizations.Error.INVALID_START_PARAM, user));
+                            .localize(Localizations.Error.INVALID_START_PARAM, user));
                 }
             }
         }

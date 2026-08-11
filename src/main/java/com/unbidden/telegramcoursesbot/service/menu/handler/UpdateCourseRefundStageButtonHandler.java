@@ -79,7 +79,7 @@ public class UpdateCourseRefundStageButtonHandler implements ButtonHandler {
                 }
                 if (newRefundStage.equals(course.getRefundStage())) {
                     throw new InvalidDataSentException("New refund stage is the same as before",
-                            localizationLoader.getLocalizationForUser(
+                            localizationLoader.localize(
                             ERROR_SAME_NEW_REFUND_STAGE, user));
                 }
                 LOGGER.debug("New refund stage seems ligit. Setting...");
@@ -94,13 +94,13 @@ public class UpdateCourseRefundStageButtonHandler implements ButtonHandler {
                         ? "Not available" : course.getRefundStage());
 
                 clientManager.getClient(bot).sendMessage(user, localizationLoader
-                        .getLocalizationForUser(SERVICE_NEW_REFUND_STAGE_SUCCESS,
+                        .localize(SERVICE_NEW_REFUND_STAGE_SUCCESS,
                         user, parameterMap));
                 LOGGER.debug("Message sent.");
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse string "
                         + m.get(0).getText() + " to new refund stage", localizationLoader
-                        .getLocalizationForUser(ERROR_PARSE_REFUND_STAGE_FAILURE, user));
+                        .localize(ERROR_PARSE_REFUND_STAGE_FAILURE, user));
             }
         }, true);
         LOGGER.debug("Sending new refund stage message request...");

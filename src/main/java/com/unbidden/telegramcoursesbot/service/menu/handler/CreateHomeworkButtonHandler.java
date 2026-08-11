@@ -69,7 +69,7 @@ public class CreateHomeworkButtonHandler implements ButtonHandler {
                         || lastMessage.getText().length() < 2) {
                     throw new InvalidDataSentException("Language code must be "
                             + "between 2 and 3 characters", localizationLoader
-                            .getLocalizationForUser(ERROR_LANGUAGE_CODE_LENGTH, user));
+                            .localize(ERROR_LANGUAGE_CODE_LENGTH, user));
                 }
                 LOGGER.debug("Language code for new content will be "
                         + lastMessage.getText() + ".");

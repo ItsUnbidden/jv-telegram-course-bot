@@ -68,20 +68,20 @@ public class StatisticsMenu implements MenuConfigurer {
         page1.setPageIndex(0);
         page1.setButtonsRowSize(1);
         page1.setLocalizationFunction((u, p, b) -> localizationLoader
-                .getLocalizationForUser(MENU_STATISTICS_PAGE_0, u));
+                .localize(MENU_STATISTICS_PAGE_0, u));
         page1.setButtonsFunction((u, p, b) -> {
             final List<Button> buttons = new ArrayList<>();
             buttons.addAll(courseService.getByBot(b).stream()
                 .map(c -> (Button)new TransitoryButton(localizationLoader
-                    .getLocalizationForUser(COURSE_NAME.formatted(c.getName()), u).getData(),
+                    .localize(COURSE_NAME.formatted(c.getName()), u).getData(),
                     c.getName(), 1))
                 .toList());
 
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                 BUTTON_GENERAL_BOT_STATISTICS, u).getData(), GENERAL_BOT_STATISTICS,
                 statisticsHandler));
                 
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                 BUTTON_BOT_USERS_STATISTICS, u).getData(), BOT_USERS_STATISTICS,
                 statisticsHandler));
             return buttons;
@@ -93,19 +93,19 @@ public class StatisticsMenu implements MenuConfigurer {
         page2.setButtonsRowSize(1);
         page2.setPreviousPage(0);
         page2.setLocalizationFunction((u, p, b) -> localizationLoader
-                .getLocalizationForUser(MENU_STATISTICS_PAGE_1, u));
+                .localize(MENU_STATISTICS_PAGE_1, u));
         page2.setButtonsFunction((u, p, b) -> {
             final List<Button> buttons = new ArrayList<>();
             
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_COURSE_STATISTICS, u).getData(), COURSE_STATISTICS,
                     statisticsHandler));
 
-            buttons.add(new TransitoryButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TransitoryButton(localizationLoader.localize(
                     BUTTON_COURSE_USERS_STATISTICS, u).getData(), COURSE_USERS_STATISTICS,
                     2));
 
-            buttons.add(new BackwardButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new BackwardButton(localizationLoader.localize(
                     BUTTON_BACK, u).getData()));
             return buttons;
         });
@@ -116,22 +116,22 @@ public class StatisticsMenu implements MenuConfigurer {
         page3.setButtonsRowSize(2);
         page3.setPreviousPage(1);
         page3.setLocalizationFunction((u, p, b) -> localizationLoader
-                .getLocalizationForUser(MENU_STATISTICS_PAGE_2, u));
+                .localize(MENU_STATISTICS_PAGE_2, u));
         page3.setButtonsFunction((u, p, b) -> {
             final List<Button> buttons = new ArrayList<>();
             
-            buttons.add(new TransitoryButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TransitoryButton(localizationLoader.localize(
                     BUTTON_COURSE_USERS_BY_STAGE, u).getData(), COURSE_USERS_BY_STAGE, 3));
 
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_COURSE_COMPLETED_USERS, u).getData(), COURSE_COMPLETED_USERS,
                     statisticsHandler));
 
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_COURSE_ALL_USERS, u).getData(), COURSE_ALL_USERS,
                     statisticsHandler));
 
-            buttons.add(new BackwardButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new BackwardButton(localizationLoader.localize(
                     BUTTON_BACK, u).getData()));
             return buttons;
         });
@@ -165,7 +165,7 @@ public class StatisticsMenu implements MenuConfigurer {
                         l.getPosition().toString(), statisticsHandler))
                     .toList());
 
-            buttons.add(new BackwardButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new BackwardButton(localizationLoader.localize(
                     BUTTON_BACK, u).getData()));
             return buttons;
         });

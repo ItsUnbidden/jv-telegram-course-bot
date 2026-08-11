@@ -77,7 +77,7 @@ public class ImageFileUploadButtonHandler implements ButtonHandler {
                 parameterMap.put(EXPECTED_MESSAGES_AMOUNT, EXPECTED_MESSAGES);
                 throw new InvalidDataSentException("2 messages were expected, where the first is "
                         + "the image and the second one is the course name", localizationLoader
-                        .getLocalizationForUser(ERROR_AMOUNT_OF_MESSAGES, user, parameterMap));
+                        .localize(ERROR_AMOUNT_OF_MESSAGES, user, parameterMap));
             }
 
             final Message lastMessage = m.getLast();
@@ -88,7 +88,7 @@ public class ImageFileUploadButtonHandler implements ButtonHandler {
             } else {
                 throw new InvalidDataSentException("There must be a course name to identify the "
                         + "course for the invoice of which the image will be used.",
-                        localizationLoader.getLocalizationForUser(ERROR_NO_COURSE_NAME, user));
+                        localizationLoader.localize(ERROR_NO_COURSE_NAME, user));
             }
 
             final DocumentContent content = (DocumentContent)contentService
@@ -106,7 +106,7 @@ public class ImageFileUploadButtonHandler implements ButtonHandler {
                 LOGGER.info("Invoice image file " + path.toString() + " has been updated.");
             } catch (TelegramApiException e) {
                 throw new TelegramException("Unable to download file " + document.getId(),
-                        localizationLoader.getLocalizationForUser(ERROR_DOWNLOAD_FILE,
+                        localizationLoader.localize(ERROR_DOWNLOAD_FILE,
                         user), e);
             }
             
@@ -114,12 +114,12 @@ public class ImageFileUploadButtonHandler implements ButtonHandler {
                     + " has been updated.");
             LOGGER.debug("Sending confirmation message...");
             clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_INVOICE_IMAGE_UPDATED, user));
+                    .localize(SERVICE_INVOICE_IMAGE_UPDATED, user));
             LOGGER.debug("Message sent.");
         });
         LOGGER.debug("Sending request message...");
         clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                .getLocalizationForUser(SERVICE_INVOICE_IMAGE_REQUEST, user));
+                .localize(SERVICE_INVOICE_IMAGE_REQUEST, user));
         LOGGER.debug("Message sent.");
     }
 }

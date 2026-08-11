@@ -42,7 +42,7 @@ public class MultipageListMenu implements MenuConfigurer {
             int factor = 0;
 
             if (meta.getPage() > 0) {
-                buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+                buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_MULTIPAGE_LIST_BACK, u).getData(), MULTIPAGE_LIST_BACK,
                     (u1, p1, b1) -> {
                         meta.setPage(meta.getPage() - 1);
@@ -54,7 +54,7 @@ public class MultipageListMenu implements MenuConfigurer {
                 factor++;
             }
             if (meta.getPage() < meta.getNumberOfPages() - 1) {
-                buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+                buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_MULTIPAGE_LIST_NEXT, u).getData(), MULTIPAGE_LIST_NEXT,
                     (u1, p1, b1) -> {
                         meta.setPage(meta.getPage() + 1);

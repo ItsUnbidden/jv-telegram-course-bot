@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
+import com.unbidden.telegramcoursesbot.mapper.HomeworkMapper;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress;
@@ -51,7 +52,7 @@ public class HomeworkService {
 
         final HomeworkProgress progress = entityUtil.getHomeworkProgressByHomeworkId(user, bot, homeworkId);
         final LocalizedContent content = contentService.parseAndPersistContent(user, bot, messages,
-                contentService.parseMediaTypes((progress.getHomework().getAllowedMediaTypes())));
+                HomeworkMapper.parseMediaTypes((progress.getHomework().getAllowedMediaTypes())));
 
         progress.setContent(content);
         updateStatus0(progress, newStatus);

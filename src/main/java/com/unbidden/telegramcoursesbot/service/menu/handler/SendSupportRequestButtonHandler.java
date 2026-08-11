@@ -55,7 +55,7 @@ public class SendSupportRequestButtonHandler implements ButtonHandler {
         if (!supportService.isUserEligibleForSupport(user, bot)) {
             throw new ForbiddenOperationException("User " + user.getId() + " cannot send another "
                     + "support request without resolving previous one.", localizationLoader
-                    .getLocalizationForUser(ERROR_USER_NOT_ELIGIBLE_FOR_SUPPORT, user));
+                    .localize(ERROR_USER_NOT_ELIGIBLE_FOR_SUPPORT, user));
         }
         sessionService.createSession(user, bot, m -> {
             final LocalizedContent content = contentService.parseAndPersistContent(bot, m);
@@ -77,11 +77,11 @@ public class SendSupportRequestButtonHandler implements ButtonHandler {
             }
             LOGGER.debug("Sending confirmation message...");
             clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_SUPPORT_REQUEST_SENT, user));
+                    .localize(SERVICE_SUPPORT_REQUEST_SENT, user));
             LOGGER.debug("Message sent.");
         });
         LOGGER.debug("Sending support content request message...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                 SERVICE_SUPPORT_REQUEST_CONTENT_REQUEST, user));
         LOGGER.debug("Message sent.");
     }

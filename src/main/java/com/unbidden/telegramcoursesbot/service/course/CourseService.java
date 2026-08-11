@@ -1,25 +1,34 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
+import com.unbidden.telegramcoursesbot.dto.internal.CourseMenuDto;
 import com.unbidden.telegramcoursesbot.exception.OnMaintenanceException;
+import com.unbidden.telegramcoursesbot.exception.RefundImpossibleException;
+import com.unbidden.telegramcoursesbot.exception.StaleStateException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
+import com.unbidden.telegramcoursesbot.model.CourseOwnership;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
+import com.unbidden.telegramcoursesbot.model.Lesson;
+import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.repository.ContentMappingRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
+import com.unbidden.telegramcoursesbot.repository.ReviewRepository;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -35,15 +44,93 @@ public class CourseService {
 
     private final CourseProgressRepository courseProgressRepository;
 
+    private final ContentMappingRepository contentMappingRepository;
+
+    private final ReviewRepository reviewRepository;
+
     private final ContentService contentService;
 
-    private final ContentMappingRepository contentMappingRepository;
+    private final PaymentService paymentService;
 
     private final LocalizationLoader localizationLoader;
 
     private final EntityUtil entityUtil;
 
-    @NonNull
+    @Transactional(readOnly = true)
+    public List<Course> getByBot(Bot bot) {
+        Assert.notNull(bot, "bot cannot be null");
+
+        return courseRepository.findByBotId(bot.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Course> getAllOwnedByUser(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
+        return courseRepository.findAllOwnedByUser(user.getId(), bot.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Course> getAllAvailableByUser(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        
+        return courseRepository.findAllAvailableToUser(user.getId(), bot.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<CourseMenuDto> getCourseMenuDtosForOwnedCourses(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
+        final List<CourseOwnership> ownerships = paymentService.getActiveOwnershipsForUserInBot(user, bot);
+        final List<Long> courseIds = ownerships.stream().map(co -> co.getCourse().getId()).toList();
+        final List<CourseProgress> progresses = courseProgressRepository.findByUserIdAndCourseIdIn(user.getId(), courseIds);
+        final List<Review> reviews = reviewRepository.findByUserIdAndCourseIdIn(user.getId(), courseIds);
+        final List<CourseMenuDto> dtos = new ArrayList<>();
+
+        for (final var ownership : ownerships) {
+            final Optional<CourseProgress> progressOpt = progresses.stream()
+                    .filter(p -> p.getCourse().getId().equals(ownership.getCourse().getId()))
+                    .findAny();
+            final Optional<Review> reviewOpt = reviews.stream()
+                    .filter(r -> r.getCourse().getId().equals(ownership.getCourse().getId()))
+                    .findAny();
+
+            dtos.add(getCourseMenuDto(user, bot, ownership, progressOpt, reviewOpt));
+        }
+
+        return dtos;
+    }
+
+    @Transactional(readOnly = true)
+    public CourseMenuDto getCourseMenuDtoForCourse(UserEntity user, Bot bot, Long courseId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        final CourseOwnership ownership = entityUtil.getActiveCourseOwnership(user, bot, courseId);
+        final Optional<CourseProgress> progressOpt = courseProgressRepository.findByUserIdAndCourseId(user.getId(), courseId);
+        final Optional<Review> reviewOpt = reviewRepository.findByCourseIdAndUserId(courseId, user.getId());
+
+        return getCourseMenuDto(user, bot, ownership, progressOpt, reviewOpt);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasCourseBeenCompleted(UserEntity user, Long courseId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        final Optional<CourseProgress> progressOpt = courseProgressRepository
+                .findByUserIdAndCourseId(user.getId(), courseId);
+
+        if (progressOpt.isPresent()) {
+            return progressOpt.get().getNumberOfTimesCompleted() > 0;
+        }
+        return false;
+    }
+
     @Transactional
     public CourseProgress createOrLoadProgress(UserEntity user, Bot bot, Long courseId) {
         Assert.notNull(courseId, "courseId cannot be null");
@@ -73,38 +160,6 @@ public class CourseService {
         }
     }
 
-    @NonNull
-    @Transactional(readOnly = true)
-    public List<Course> getByBot(Bot bot) {
-        Assert.notNull(bot, "bot cannot be null");
-
-        return courseRepository.findByBotId(bot.getId());
-    }
-
-    @NonNull
-    @Transactional(readOnly = true)
-    public List<Course> getAllOwnedByUser(UserEntity user, Bot bot) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-
-        return courseRepository.findAllOwnedByUser(user.getId(), bot.getId());
-    }
-
-    @Transactional(readOnly = true)
-    public boolean hasCourseBeenCompleted(UserEntity user, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(courseId, "courseId cannot be null");
-
-        final Optional<CourseProgress> progressOpt = courseProgressRepository
-                .findByUserIdAndCourseId(user.getId(), courseId);
-
-        if (progressOpt.isPresent()) {
-            return progressOpt.get().getNumberOfTimesCompleted() > 0;
-        }
-        return false;
-    }
-
-    @NonNull
     @Transactional
     public Course createCourse(UserEntity user, Bot bot, List<Message> titleMessages) {
         Assert.notNull(bot, "bot cannot be null");
@@ -138,18 +193,24 @@ public class CourseService {
 
         if (courseRepository.existsByIdAndIsUnderMaintenanceTrue(courseId)) {
             throw new OnMaintenanceException("Course " + courseId + " is currently "
-                    + "marked as under maintenance", localizationLoader.getLocalizationForUser(
+                    + "marked as under maintenance", localizationLoader.localize(
                     Error.COURSE_UNDER_MAINTENANCE, user));
         }
     }
 
     @Transactional
-    public CourseProgress incrementStage(UserEntity user, Bot bot, Long courseId) {
+    public CourseProgress incrementStage(UserEntity user, Bot bot, Long courseId, Long currentLessonId) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
         final CourseProgress progress = entityUtil.getCourseProgressForUser(user, bot, courseId);
+        final Lesson currentLesson = entityUtil.getLessonById(user, bot, currentLessonId);
+
+        if (!progress.getStage().equals(currentLesson.getPosition())) {
+            throw new StaleStateException("Cannot advance to the next lesson because the sent request is stale.",
+                    localizationLoader.localize(Localizations.Error.FAILED_ADVANCE_TO_NEXT_LESSON, user));
+        }
 
         LOGGER.debug("Current stage in course " + courseId + " for user " + user.getId() + " is "
                 + progress.getStage() + ". Incrementing by 1...");
@@ -185,5 +246,44 @@ public class CourseService {
         progress.setStage(0);
 
         return progress;
+    }
+
+    private CourseMenuDto getCourseMenuDto(UserEntity user, Bot bot, CourseOwnership ownership,
+            Optional<CourseProgress> progressOpt, Optional<Review> reviewOpt) {
+        final boolean isCompleted = progressOpt.isPresent() ? progressOpt.get().getNumberOfTimesCompleted() > 0 : false;
+
+        boolean isRefundable = false;
+        if (!isCompleted) {
+            if (progressOpt.isPresent()) {
+                try {
+                    paymentService.checkRefundPossible(user, bot, ownership.getCourse(), ownership, progressOpt.get());
+                    isRefundable = true;
+                } catch (RefundImpossibleException e) {
+                    isRefundable = false;
+                }
+            } else {
+                isRefundable = ownership.getCourse().getRefundStage() >= 0;
+            }
+        }
+
+        final boolean isBasicReviewPresent;
+        final boolean isAdvancedReviewPresent;
+        if (reviewOpt.isPresent()) {
+            final Review review = reviewOpt.get();
+
+            isBasicReviewPresent = true;
+            isAdvancedReviewPresent = review.getContent() != null;
+        } else {
+            isBasicReviewPresent = false;
+            isAdvancedReviewPresent = false;
+        }
+        
+        return new CourseMenuDto(
+                ownership.getCourse().getId(),
+                contentService.getLocalizedText(user, bot, ownership.getCourse().getTitle()),
+                isCompleted,
+                isRefundable,
+                isBasicReviewPresent,
+                isAdvancedReviewPresent);
     }
 }

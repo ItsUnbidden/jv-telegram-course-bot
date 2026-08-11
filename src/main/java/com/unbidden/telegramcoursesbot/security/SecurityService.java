@@ -57,11 +57,11 @@ public class SecurityService {
             final BotRole botRole = botRoleRepository.findByBotIdAndUserId(bot.getId(),
                 user.getId()).orElseThrow(() -> new AccessDeniedException("User " + user.getId()
                 + " has no role in bot " + bot.getId(), localizationLoader
-                .getLocalizationForUser(Error.USER_NOT_REGISTRED, user)));
+                .localize(Error.USER_NOT_REGISTRED, user)));
 
             if (botRole.getRole().getType() == RoleType.BANNED) {
                 throw new AccessDeniedException("User " + user.getId() + " is banned in bot "
-                        + bot.getId(), localizationLoader.getLocalizationForUser(
+                        + bot.getId(), localizationLoader.localize(
                         Error.USER_IS_BANNED_IN_BOT, user));
             }
             final List<Authority> localAuthorities = new ArrayList<>(authorities);
@@ -74,7 +74,7 @@ public class SecurityService {
                 throw new AccessDeniedException("User " + user.getId() + " does not have "
                         + "required authority in bot " + bot.getId() + ". Missing authorities: "
                         + missingAuthorityTypes + ".",
-                        localizationLoader.getLocalizationForUser(Error.ACCESS_DENIED, user,
+                        localizationLoader.localize(Error.ACCESS_DENIED, user,
                             new AccessDeniedParams(missingAuthorityTypes)));
             }
         } catch (AccessDeniedException e) {

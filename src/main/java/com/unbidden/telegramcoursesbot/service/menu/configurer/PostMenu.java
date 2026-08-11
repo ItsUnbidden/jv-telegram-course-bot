@@ -49,15 +49,15 @@ public class PostMenu implements MenuConfigurer {
         page1.setMenu(menu);
         page1.setPageIndex(0);
         page1.setButtonsRowSize(3);
-        page1.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
+        page1.setLocalizationFunction((u, p, b) -> localizationLoader.localize(
                 MENU_POST_PAGE_0, u));
         page1.setButtonsFunction((u, p, b) -> {
             final List<Button> buttons = new ArrayList<>();
 
-            buttons.add(new TransitoryButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TransitoryButton(localizationLoader.localize(
                     BUTTON_POST_OPTIONS, u).getData(), POST_OPTIONS, 1));
 
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                 BUTTON_SEND_PRIVATE_MESSAGE, u).getData(), SEND_PRIVATE_MESSAGE,
                 sendMessageToUserByIdHandler));
             return buttons;
@@ -68,7 +68,7 @@ public class PostMenu implements MenuConfigurer {
         page2.setPageIndex(1);
         page2.setPreviousPage(0);
         page2.setButtonsRowSize(3);
-        page2.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
+        page2.setLocalizationFunction((u, p, b) -> localizationLoader.localize(
                 MENU_POST_PAGE_1, u));
         page2.setButtonsFunction((u, p, b) -> {
             final List<Button> buttons = new ArrayList<>();
@@ -76,10 +76,10 @@ public class PostMenu implements MenuConfigurer {
                 buttons.add(new TerminalButton(roleType.toString(), roleType.toString(),
                         postButtonHandler));
             }
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_POST_CUSTOM_ROLE_SET, u).getData(),
                     POST_CUSTOM_ROLE_SET, postButtonHandler));
-            buttons.add(new BackwardButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new BackwardButton(localizationLoader.localize(
                     BUTTON_BACK, u).getData()));
             return buttons;
         });

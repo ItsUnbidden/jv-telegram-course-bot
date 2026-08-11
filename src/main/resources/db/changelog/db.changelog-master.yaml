@@ -89,3 +89,5 @@ databaseChangeLog:
       file: /db/changelog/changes/44-create-course-ownerships-table.yaml
   - include:
       file: /db/changelog/changes/45-edit-bots-add-new-content-columns.yaml
+  - include:
+      file: /db/changelog/changes/46-edit-lessons-add-next-lesson-mapping-column.yaml

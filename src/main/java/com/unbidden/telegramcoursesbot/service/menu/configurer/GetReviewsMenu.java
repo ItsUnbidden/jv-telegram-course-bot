@@ -51,17 +51,17 @@ public class GetReviewsMenu implements MenuConfigurer {
 
         final Page firstPage = new Page();
         firstPage.setPageIndex(0);
-        firstPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
+        firstPage.setLocalizationFunction((u, p, b) -> localizationLoader.localize(
             MENU_GET_REVIEWS_PAGE_0, u));
         firstPage.setButtonsRowSize(1);
         firstPage.setMenu(menu);
         firstPage.setButtonsFunction((u, p, b) -> {
             final List<Button> buttons = new ArrayList<>();
             buttons.addAll(courseService.getByBot(b).stream().map(c ->
-                    (Button)new TransitoryButton(localizationLoader.getLocalizationForUser(
+                    (Button)new TransitoryButton(localizationLoader.localize(
                     COURSE_NAME.formatted(c.getName()), u).getData(), c.getId().toString(), 1))
                     .toList());
-            buttons.add(new TransitoryButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TransitoryButton(localizationLoader.localize(
                     BUTTON_ALL_COURSES_REVIEWS, u).getData(), ALL_COURSES, 1));
             return buttons;
         });
@@ -69,16 +69,16 @@ public class GetReviewsMenu implements MenuConfigurer {
         final Page secondPage = new Page();
         secondPage.setPageIndex(1);
         secondPage.setPreviousPage(0);
-        secondPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
+        secondPage.setLocalizationFunction((u, p, b) -> localizationLoader.localize(
             MENU_GET_REVIEWS_PAGE_1, u));
         secondPage.setButtonsRowSize(2);
         secondPage.setMenu(menu);
         secondPage.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(localizationLoader
-                .getLocalizationForUser(BUTTON_GET_NEW_REVIEWS, u).getData(), GET_NEW_REVIEWS,
+                .localize(BUTTON_GET_NEW_REVIEWS, u).getData(), GET_NEW_REVIEWS,
                 getNewReviewsHandler), new TerminalButton(localizationLoader
-                .getLocalizationForUser(BUTTON_GET_ARCHIVE_REVIEWS, u).getData(),
+                .localize(BUTTON_GET_ARCHIVE_REVIEWS, u).getData(),
                 GET_ARCHIVE_REVIEWS, getArchiveReviewsHandler), new BackwardButton(
-                localizationLoader.getLocalizationForUser(BUTTON_BACK, u).getData())));
+                localizationLoader.localize(BUTTON_BACK, u).getData())));
         menu.setName(MENU_NAME);
         menu.setPages(List.of(firstPage, secondPage));
         menu.setInitialParameterPresent(false);

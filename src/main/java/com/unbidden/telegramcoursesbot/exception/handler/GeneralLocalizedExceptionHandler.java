@@ -33,7 +33,7 @@ public class GeneralLocalizedExceptionHandler implements LocalizedExceptionHandl
         LOGGER.debug("User " + user.getId() + " has triggered an exception: ", exc);
 
         if (exc.getErrorLocalization() == null) {
-            final Localization errorLocalization = localizationLoader.getLocalizationForUser(
+            final Localization errorLocalization = localizationLoader.localize(
                     Error.NO_EXCEPTION_LOCALIZATION_AVAILABLE, user, new NoExceptionLocalizationAvailableParams(
                         exc.getMessage(), exc.getClass().getSimpleName()));
             LOGGER.debug("There is no localization available for error message. "

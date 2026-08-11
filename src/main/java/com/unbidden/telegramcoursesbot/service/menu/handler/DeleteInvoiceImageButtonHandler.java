@@ -55,7 +55,7 @@ public class DeleteInvoiceImageButtonHandler implements ButtonHandler {
             final String courseName = m.get(0).getText();
             if (!imageDao.exists(courseName)) {
                 throw new InvalidDataSentException("Invoice image does not exist for course "
-                        + courseName, localizationLoader.getLocalizationForUser(
+                        + courseName, localizationLoader.localize(
                         ERROR_INVOICE_IMAGE_DOES_NOT_EXIST, user));
             }
 
@@ -64,12 +64,12 @@ public class DeleteInvoiceImageButtonHandler implements ButtonHandler {
             LOGGER.info("Image deleted.");
             LOGGER.debug("Sending confirmation message...");
             clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_INVOICE_IMAGE_DELETED, user));
+                    .localize(SERVICE_INVOICE_IMAGE_DELETED, user));
             LOGGER.debug("Message sent.");
         }, true);
         LOGGER.debug("Sending request message...");
         clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                .getLocalizationForUser(SERVICE_INVOICE_IMAGE_DELETE_REQUEST, user));
+                .localize(SERVICE_INVOICE_IMAGE_DELETE_REQUEST, user));
         LOGGER.debug("Message sent.");
     }
 }

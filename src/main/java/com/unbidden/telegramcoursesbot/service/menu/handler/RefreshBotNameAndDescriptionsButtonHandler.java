@@ -52,7 +52,7 @@ public class RefreshBotNameAndDescriptionsButtonHandler implements ButtonHandler
         LOGGER.info("Names and descriptions have been refreshed.");
         LOGGER.debug("Sending confirmation message...");
         clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                .getLocalizationForUser(SERVICE_NAMES_DESCRIPTIONS_REFRESH_SUCCESS, user));
+                .localize(SERVICE_NAMES_DESCRIPTIONS_REFRESH_SUCCESS, user));
         LOGGER.debug("Message sent.");
     }
 }

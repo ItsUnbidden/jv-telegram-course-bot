@@ -78,7 +78,7 @@ public class PostService {
                         LOGGER.info("Post request for user " + currentRequest.user.getId() + " and bot " + currentRequest.bot.getId()
                                 + " has been completed. Sent messages: " + successes + ", failures: " + failures + ".");
                         clientManager.getClient(currentRequest.bot).sendMessage(currentRequest.user, localizationLoader
-                                .getLocalizationForUser(Localizations.Service.POST_COMPLETED, currentRequest.user,
+                                .localize(Localizations.Service.POST_COMPLETED, currentRequest.user,
                                     new Localizations.Service.PostCompletedParams(successes, failures))); // TODO: if exceptions are reintroduced for sendMessage(), this will become a problem
                     } catch (ExecutionException e) {
                         LOGGER.error("An error has occured while waiting for a post request to complete.", e);
@@ -116,7 +116,7 @@ public class PostService {
     private void checkExecution(UserEntity user, Bot bot) {
         if (currentRequest.bot.getId().equals(bot.getId()) || requestQueue.stream().anyMatch(r -> r.bot.getId().equals(bot.getId()))) {
             throw new ForbiddenOperationException("A request is already being executed. "
-                    + "Only one is allowed per bot at a time.", localizationLoader.getLocalizationForUser(
+                    + "Only one is allowed per bot at a time.", localizationLoader.localize(
                     Error.TOO_MANY_POST_REQUESTS, user));
         }
     }
@@ -124,7 +124,7 @@ public class PostService {
     private void checkRoles(List<Role> roles, UserEntity user) {
         if (roles.isEmpty()) {
             throw new ForbiddenOperationException("At least one role must be specified for post",
-                    localizationLoader.getLocalizationForUser(Error.POST_NO_ROLES, user));
+                    localizationLoader.localize(Error.POST_NO_ROLES, user));
         }
     }
 
@@ -135,7 +135,7 @@ public class PostService {
         checkUserIsInBot(user, bot, target);
 
         clientManager.getClient(bot).sendMessage(target, localizationLoader
-                .getLocalizationForUser(Localizations.Service.PRIVATE_MESSAGE_INFO, target,
+                .localize(Localizations.Service.PRIVATE_MESSAGE_INFO, target,
                     new Localizations.Service.PrivateMessageInfoParams(user.getFullName(),
                     entityUtil.getLocalizedTitle(target, bot, user))));
         LOGGER.debug("Info message sent.");
@@ -153,7 +153,7 @@ public class PostService {
         if (!botRoleRepository.existsByBotIdAndUserId(bot.getId(), target.getId())) {
             throw new ForbiddenOperationException("User " + target.getId()
                     + " is not registered in bot " + bot.getId(), localizationLoader
-                    .getLocalizationForUser(Error.PRIVATE_MESSAGE_USER_NOT_REGISTERED_IN_BOT, user));
+                    .localize(Error.PRIVATE_MESSAGE_USER_NOT_REGISTERED_IN_BOT, user));
         }
     }
 

@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.repository;
 
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
+import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,18 +11,18 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class InMemoryMenuRepository implements MenuRepository {
-    private static final ConcurrentMap<String, Menu> menus = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<MenuKey, Menu> menus = new ConcurrentHashMap<>();
 
     @NonNull
     @Override
     public Menu save(@NonNull Menu menu) {
-        menus.put(menu.getName(), menu);
+        menus.put(menu.getKey(), menu);
         return menu;
     }
 
     @NonNull
     @Override
-    public Optional<Menu> find(@NonNull String menuName) {
-        return Optional.ofNullable(menus.get(menuName));
+    public Optional<Menu> find(MenuKey key) {
+        return Optional.ofNullable(menus.get(key));
     }
 }

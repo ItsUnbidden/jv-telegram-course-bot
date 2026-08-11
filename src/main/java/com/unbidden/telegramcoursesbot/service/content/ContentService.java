@@ -14,7 +14,6 @@ import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.service.content.handler.LocalizedContentHandler;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +23,6 @@ import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -34,8 +32,6 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 @RequiredArgsConstructor
 public class ContentService {
     private static final Logger LOGGER = LogManager.getLogger(ContentService.class);
-
-    private static final String MEDIA_TYPES_DIVIDER = " ";
 
     private final LocalizedContentRepository localizedContentRepository;
 
@@ -108,7 +104,7 @@ public class ContentService {
             return handler.sendContent(user, bot, content);
         } catch (NoImplementationException e) {
             throw new LocalizedException("Unknown media type", localizationLoader
-                    .getLocalizationForUser(Error.UNKNOWN_MEDIA_TYPE, user));
+                    .localize(Error.UNKNOWN_MEDIA_TYPE, user));
         }
     }
 
@@ -132,7 +128,7 @@ public class ContentService {
             return handler.sendContentAsync(user, bot, content);
         } catch (NoImplementationException e) {
             throw new LocalizedException("Unknown media type", localizationLoader
-                    .getLocalizationForUser(Error.UNKNOWN_MEDIA_TYPE, user));
+                    .localize(Error.UNKNOWN_MEDIA_TYPE, user));
         }
     }
 
@@ -159,7 +155,7 @@ public class ContentService {
             return handler.sendContentInBulkAsync(targetIds, bot, content);
         } catch (NoImplementationException e) {
             throw new LocalizedException("Unknown media type", localizationLoader
-                    .getLocalizationForUser(Error.UNKNOWN_MEDIA_TYPE, sender));
+                    .localize(Error.UNKNOWN_MEDIA_TYPE, sender));
         }
     }
 
@@ -198,20 +194,6 @@ public class ContentService {
         final LocalizedContent content = getLocalizedContentFromMapping(user, bot, mapping);
 
         return content.getData();
-    }
-
-    public List<MediaType> parseMediaTypes(@Nullable String mediaTypesStr) {
-        final List<MediaType> mediaTypes = new ArrayList<>();
-
-        if (mediaTypesStr == null || mediaTypesStr.isBlank()) return mediaTypes;
-
-        final String[] mediaTypesStrArray = mediaTypesStr.split(MEDIA_TYPES_DIVIDER);
-
-        for (final String mediaTypeStr : mediaTypesStrArray) {
-            mediaTypes.add(MediaType.valueOf(mediaTypeStr));
-        }
-        
-        return mediaTypes;
     }
 
     @Transactional
@@ -258,7 +240,7 @@ public class ContentService {
             LOGGER.debug("Localized content in group " + mapping.getId()
                     + " for user " + user.getId() + "'s prefered code " + user.getLanguageCode()
                     + " is available.");
-            return entityUtil.getLocalizedContentById(user, bot, contentMap.get(user.getLanguageCode()).getId());
+            return contentMap.get(user.getLanguageCode());
         }
         LOGGER.debug("Localized content in group " + mapping.getId() + " for user "
                 + user.getId() + "'s prefered code " + user.getLanguageCode()
@@ -270,7 +252,7 @@ public class ContentService {
                 if (contentMap.containsKey(code)) {
                     LOGGER.debug("Localized content in group " + mapping.getId()
                             + " has been found for language code " + code + ".");
-                    return entityUtil.getLocalizedContentById(user, bot, contentMap.get(code).getId());
+                    return contentMap.get(code);
                 }
             }
         }
@@ -279,7 +261,7 @@ public class ContentService {
                 + " for any of the priority language codes. First content in the list (Id: "
                 + firstAvailableContent.getId() + ") will be used instead.");
 
-        return entityUtil.getLocalizedContentById(user, bot, mapping.getContent().get(0).getId());
+        return mapping.getContent().get(0);
     }
 
     private LocalizedContent parseAndPersistContent0(UserEntity user, Bot bot, List<Message> messages,
@@ -294,7 +276,7 @@ public class ContentService {
                 throw new InvalidDataSentException("Allowed content types are "
                         + allowedContentTypes + " but user sent messages of type "
                         + messagesContentType, localizationLoader
-                        .getLocalizationForUser(Error.CONTENT_MEDIA_GROUP_DOES_NOT_MATCH, user,
+                        .localize(Error.CONTENT_MEDIA_GROUP_DOES_NOT_MATCH, user,
                             new Error.ContentMediaGroupDoesNotMatchParams(messagesContentType, allowedContentTypes)));
             }
         }
@@ -306,7 +288,7 @@ public class ContentService {
         return handler.parseAndPersist(bot, messages, languageCode);
         } catch (NoImplementationException e) {
             throw new InvalidDataSentException("Unknown media type", localizationLoader
-                    .getLocalizationForUser(Error.UNKNOWN_MEDIA_TYPE, user));
+                    .localize(Error.UNKNOWN_MEDIA_TYPE, user));
         }
     }
 
@@ -339,19 +321,19 @@ public class ContentService {
 
         if (numberOfText != 0 && isCaptionPresent) {
             throw new InvalidDataSentException("Captions and text in the "
-                    + "same content are not supported", localizationLoader.getLocalizationForUser(
+                    + "same content are not supported", localizationLoader.localize(
                     Error.CONTENT_TEXT_AND_CAPTIONS, user));
         }
         if (numberOfText > 1) { // TODO: there is a limit on how large a single Telegram message can be. If a user sends a message that is too large, Telegram will cut it in two or more pieces. Make sure this behavior is accomodated for.
             throw new InvalidDataSentException("Several text messages are not supported",
-                    localizationLoader.getLocalizationForUser(Error.CONTENT_SEVERAL_TEXT, user));
+                    localizationLoader.localize(Error.CONTENT_SEVERAL_TEXT, user));
         }
 
         if (numberOfAudio != 0) {
             if (messages.size() != numberOfAudio + numberOfText) {
                 throw new InvalidDataSentException("Audio files can only be "
                         + "grouped with other audio files and text", localizationLoader
-                        .getLocalizationForUser(Error.CONTENT_AUDIO_GROUP_FAILURE, user));
+                        .localize(Error.CONTENT_AUDIO_GROUP_FAILURE, user));
             }
             LOGGER.debug("Content type is audio.");
             return MediaType.AUDIO;
@@ -361,7 +343,7 @@ public class ContentService {
             if (messages.size() != numberOfDocuments + numberOfText) {
                 throw new InvalidDataSentException("Documents can only be "
                         + "grouped with other documents and text", localizationLoader
-                        .getLocalizationForUser(Error.CONTENT_DOCUMENT_GROUP_FAILURE, user));
+                        .localize(Error.CONTENT_DOCUMENT_GROUP_FAILURE, user));
             }
             LOGGER.debug("Content type is document.");
             return MediaType.DOCUMENT;
@@ -371,7 +353,7 @@ public class ContentService {
             if (messages.size() != numberOfGraphics + numberOfText) {
                 throw new InvalidDataSentException("Videos and photos cannot be grouped "
                         + "with other media types", localizationLoader
-                        .getLocalizationForUser(Error.CONTENT_GRAPHICS_GROUP_FAILURE, user));
+                        .localize(Error.CONTENT_GRAPHICS_GROUP_FAILURE, user));
             }
             LOGGER.debug("Content type is graphics.");
             return MediaType.GRAPHICS;

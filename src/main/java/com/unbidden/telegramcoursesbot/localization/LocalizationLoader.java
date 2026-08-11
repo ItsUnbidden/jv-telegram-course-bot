@@ -49,7 +49,7 @@ public class LocalizationLoader {
         cacheLocalizationFiles();
     }
 
-    public Localization getLocalizationForUser(LocalizationKey key, UserEntity user) {
+    public Localization localize(LocalizationKey key, UserEntity user) {
         Assert.notNull(key, "key cannot be null");
         Assert.notNull(user, "user cannot be null");
         
@@ -63,7 +63,7 @@ public class LocalizationLoader {
         return localization;
     }
 
-    public Localization getLocalizationForUser(LocalizationKey key, UserEntity user, Object paramRecord) {
+    public Localization localize(LocalizationKey key, UserEntity user, Object paramRecord) {
         Assert.notNull(key, "key cannot be null");
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(paramRecord, "paramRecord cannot be null");
@@ -80,7 +80,7 @@ public class LocalizationLoader {
         return setUpLocalization(localization, withInjectedParams);
     }
 
-    public Localization getGenericLocalization(LocalizationKey key, UserEntity user, Object... args) {
+    public Localization localizeGeneric(LocalizationKey key, UserEntity user, Object... args) {
         Assert.notNull(key, "key cannot be null");
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(args, "args cannot be null");

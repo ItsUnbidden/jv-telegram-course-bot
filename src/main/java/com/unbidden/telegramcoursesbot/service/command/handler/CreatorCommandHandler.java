@@ -30,7 +30,7 @@ public class CreatorCommandHandler implements CommandHandler {
     public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
         if (bot.getCreatorInfo() == null) {
             clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .getLocalizationForUser(Localizations.Service.NO_CREATOR_INFO, user));
+                    .localize(Localizations.Service.NO_CREATOR_INFO, user));
             return;
         }
         contentService.sendLocalizedContent(user, bot, bot.getCreatorInfo().getId());

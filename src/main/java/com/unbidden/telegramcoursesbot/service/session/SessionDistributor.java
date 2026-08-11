@@ -45,12 +45,12 @@ public class SessionDistributor {
             LOGGER.debug("There are no user or chat request sessions.");
             if (userSessions.size() != 1) {
                 throw new SessionException("There is supposed to be only one content "
-                        + "session", localizationLoader.getLocalizationForUser(
+                        + "session", localizationLoader.localize(
                         Error.MORE_THEN_ONE_SESSION, user));
             }
             LOGGER.debug("Calling " + contentSessionService.getClass().getSimpleName()
                     + " to process message...");
-            contentSessionService.processResponse(userSessions.get(0), message);
+            contentSessionService.processResponse(user, bot, userSessions.get(0), message);
         } else {
             if (numberOfUserOrChatRequestSessions == userSessions.size()) {
                 final List<UserOrChatRequestSession> userOrChatRequestSessions =
@@ -66,12 +66,12 @@ public class SessionDistributor {
                         throw new SessionException("There is supposed to be only one users "
                                 + "request session with id " + message.getUsersShared()
                                 .getRequestId() + ". Collision might have occured",
-                                localizationLoader.getLocalizationForUser(
+                                localizationLoader.localize(
                                 Error.MORE_THEN_ONE_SESSION, user));
                     }
                     LOGGER.debug("Calling " + userOrChatRequestSessionService.getClass()
                             .getSimpleName() + " to process message...");
-                    userOrChatRequestSessionService.processResponse(userSharedSession.get(0),
+                    userOrChatRequestSessionService.processResponse(user, bot, userSharedSession.get(0),
                             message);
                 } else if (message.getChatShared() != null) {
                     LOGGER.debug("Sessions are of chat request type.");
@@ -83,23 +83,23 @@ public class SessionDistributor {
                         throw new SessionException("There is supposed to be only one chat "
                                 + "request session with id " + message.getChatShared()
                                 .getRequestId() + ". Collision might have occured",
-                                localizationLoader.getLocalizationForUser(
+                                localizationLoader.localize(
                                 Error.MORE_THEN_ONE_SESSION, user));
                     }
                     LOGGER.debug("Calling " + userOrChatRequestSessionService.getClass()
                             .getSimpleName() + " to process message...");
-                    userOrChatRequestSessionService.processResponse(chatSharedSession.get(0),
+                    userOrChatRequestSessionService.processResponse(user, bot, chatSharedSession.get(0),
                             message);
                 } else {
                     throw new SessionException("Sessions for user are of user or chat request "
                             + "type, but message does not contain any shared entity",
-                            localizationLoader.getLocalizationForUser(
+                            localizationLoader.localize(
                             Error.SESSION_NO_SHARED_ENTITY, user));
                 }
             } else {
                 throw new SessionException("User has user or chat request sessions mixed with "
                         + "content request sessions. This is not allowed", localizationLoader
-                        .getLocalizationForUser(Error.MIXED_SESSIONS, user));
+                        .localize(Error.MIXED_SESSIONS, user));
             }
         }
     }

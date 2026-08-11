@@ -62,7 +62,7 @@ public class RemoveMappingLocalizationButtonHandler implements ButtonHandler {
             if (languageCode.length() > 3 || languageCode.length() < 2) {
                 throw new InvalidDataSentException("Language code must be "
                         + "between 2 and 3 characters", localizationLoader
-                        .getLocalizationForUser(ERROR_LANGUAGE_CODE_LENGTH, user));
+                        .localize(ERROR_LANGUAGE_CODE_LENGTH, user));
             }
             if (contentService.removeLocalization(mapping, languageCode)) {
                 LOGGER.info("Localization with code " + languageCode
@@ -74,7 +74,7 @@ public class RemoveMappingLocalizationButtonHandler implements ButtonHandler {
                 parameterMap.put(PARAM_LANGUAGE_CODE, languageCode);
 
                 clientManager.getClient(bot).sendMessage(user, localizationLoader
-                        .getLocalizationForUser(
+                        .localize(
                         SERVICE_REMOVE_LOCALIZATION_FROM_MAPPING_SUCCESS, user,
                         parameterMap));
                 LOGGER.debug("Message sent.");
@@ -82,7 +82,7 @@ public class RemoveMappingLocalizationButtonHandler implements ButtonHandler {
             }
             throw new InvalidDataSentException("No elements were deleted since there is no "
                     + "localization with language code " + languageCode, localizationLoader
-                    .getLocalizationForUser(ERROR_NO_LOCALIZATIONS_DELETED, user));
+                    .localize(ERROR_NO_LOCALIZATIONS_DELETED, user));
         });
         LOGGER.debug("Sending language code request message...");
         clientManager.getClient(bot).sendMessage(user, localizationLoader

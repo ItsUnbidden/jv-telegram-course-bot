@@ -20,4 +20,6 @@ public interface CourseProgressRepository extends JpaRepository<CourseProgress, 
     @EntityGraph(attributePaths = {"user"})
     List<CourseProgress> findByCourseIdAndStageAndNumberOfTimesCompleted(Long courseId, Integer stage,
             Integer numberOfTimesCompleted, Pageable pageable);
+
+    List<CourseProgress> findByUserIdAndCourseIdIn(Long userId, List<Long> courseIds);
 }

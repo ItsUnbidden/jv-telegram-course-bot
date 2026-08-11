@@ -44,7 +44,7 @@ public class StatisticsOrchestrationService {
 
         LOGGER.debug("All data fetched for statistics report on bot " + bot.getId()
                 + " for user " + user.getId() + ". Sending...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                 Localizations.Service.BOT_STATISTICS_REPORT, user, params));
         LOGGER.debug("Report sent.");
     }
@@ -52,7 +52,7 @@ public class StatisticsOrchestrationService {
     public void sendBotUsers(UserEntity user, Bot bot) {
         menuService.initiateMultipageList(user, bot,
             p -> {
-                return localizationLoader.getLocalizationForUser(Localizations.Service.BOT_USERS, user,
+                return localizationLoader.localize(Localizations.Service.BOT_USERS, user,
                         new Localizations.Service.BotUsersParams(p.currentPage(), p.numberOfPages(), p.numberOfElements(), p.data()));
             },
             (p, q) -> userRepository.findByRoleType(bot.getId(), RoleType.USER, PageRequest.of(p, q)).map(u -> u.getFullUserInfo())
@@ -65,14 +65,14 @@ public class StatisticsOrchestrationService {
         LOGGER.debug("All data fetched for statistics report on course " + courseId
                 + " for user " + user.getId() + ". Sending...");
         clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .getLocalizationForUser(Localizations.Service.COURSE_STATISTICS_REPORT, user, params));
+                .localize(Localizations.Service.COURSE_STATISTICS_REPORT, user, params));
         LOGGER.debug("Report sent.");
     }
 
     public void sendCourseUsers(UserEntity user, Bot bot, Long courseId) {
         menuService.initiateMultipageList(user, bot,
             p -> {
-                return localizationLoader.getLocalizationForUser(Localizations.Service.COURSE_USERS,
+                return localizationLoader.localize(Localizations.Service.COURSE_USERS,
                     user, new Localizations.Service.CourseUsersParams(p.currentPage(), p.numberOfPages(), p.numberOfElements(), p.data(),
                     contentService.getLocalizedText(user, bot, entityUtil.getCourseTitle(user, bot, courseId))));
             },
@@ -83,7 +83,7 @@ public class StatisticsOrchestrationService {
     public void sendCourseCompletedUsers(UserEntity user, Bot bot, Long courseId) {
         menuService.initiateMultipageList(user, bot,
             p -> {
-                return localizationLoader.getLocalizationForUser(
+                return localizationLoader.localize(
                     Localizations.Service.COURSE_COMPLETED_USERS, user,
                         new Localizations.Service.CourseCompletedUsersParams(p.currentPage(), p.numberOfPages(),
                         p.numberOfElements(), p.data(), contentService.getLocalizedText(user, bot,
@@ -96,7 +96,7 @@ public class StatisticsOrchestrationService {
     public void sendCourseStageUsers(UserEntity user, Bot bot, Long courseId, int stage) {
         menuService.initiateMultipageList(user, bot,
             p -> {
-                return localizationLoader.getLocalizationForUser(Localizations.Service.COURSE_STAGE_USERS, user,
+                return localizationLoader.localize(Localizations.Service.COURSE_STAGE_USERS, user,
                     new Localizations.Service.CourseStageUsersParams(p.currentPage(), p.numberOfPages(),
                     p.numberOfElements(), p.data(), contentService.getLocalizedText(user, bot,
                         entityUtil.getCourseTitle(user, bot, courseId)), stage));

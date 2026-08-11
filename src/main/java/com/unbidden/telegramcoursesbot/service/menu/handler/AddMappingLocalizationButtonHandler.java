@@ -64,7 +64,7 @@ public class AddMappingLocalizationButtonHandler implements ButtonHandler {
                         || lastMessage.getText().length() < 2) {
                     throw new InvalidDataSentException("Language code must be "
                             + "between 2 and 3 characters", localizationLoader
-                            .getLocalizationForUser(ERROR_LANGUAGE_CODE_LENGTH, user));
+                            .localize(ERROR_LANGUAGE_CODE_LENGTH, user));
                 }
                 LOGGER.debug("Language code for new content will be "
                         + lastMessage.getText() + ".");
@@ -83,7 +83,7 @@ public class AddMappingLocalizationButtonHandler implements ButtonHandler {
 
                 throw new InvalidDataSentException("Localization with language code "
                         + languageCode + " is already present in mapping " + mapping.getId(),
-                        localizationLoader.getLocalizationForUser(
+                        localizationLoader.localize(
                         ERROR_LOCALIZED_CONTENT_IS_ALREADY_PRESENT, user, parameterMap));
             }
             final LocalizedContent newContent = contentService.parseAndPersistContent(bot, m,
@@ -98,7 +98,7 @@ public class AddMappingLocalizationButtonHandler implements ButtonHandler {
             parameterMap.put(PARAM_CONTENT_ID, newContent.getId());
 
             clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_ADD_NEW_LOCALIZATION_SUCCESS,
+                    .localize(SERVICE_ADD_NEW_LOCALIZATION_SUCCESS,
                     user, parameterMap));
             LOGGER.debug("Message sent.");
         });

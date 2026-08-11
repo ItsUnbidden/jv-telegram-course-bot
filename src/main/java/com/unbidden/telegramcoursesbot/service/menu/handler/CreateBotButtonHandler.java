@@ -95,7 +95,7 @@ public class CreateBotButtonHandler implements ButtonHandler {
                             .createSession(user, bot, getCreateBotFunction(user, bot)))).build();
                 final KeyboardButton button = KeyboardButton.builder()
                         .requestUser(requestUser)
-                        .text(localizationLoader.getLocalizationForUser(BUTTON_CHOOSE_USER,
+                        .text(localizationLoader.localize(BUTTON_CHOOSE_USER,
                             user).getData())
                         .build();
 
@@ -108,7 +108,7 @@ public class CreateBotButtonHandler implements ButtonHandler {
                 LOGGER.debug("Sending keyboard message to user " + user.getId()
                         + " in order for them to choose the target.");
                 clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                        .getLocalizationForUser(SERVICE_CREATE_BOT_CHOOSE_CREATOR, user),
+                        .localize(SERVICE_CREATE_BOT_CHOOSE_CREATOR, user),
                         markup);
                 LOGGER.debug("Keyboard message sent.");
                 break;
@@ -132,7 +132,7 @@ public class CreateBotButtonHandler implements ButtonHandler {
                     } catch (NumberFormatException e) {
                         throw new InvalidDataSentException("Unable to parse provided string "
                                 + m.get(0).getText().trim() + " to user id long",
-                                localizationLoader.getLocalizationForUser(ERROR_PARSE_USER_ID,
+                                localizationLoader.localize(ERROR_PARSE_USER_ID,
                                 user), e);
                     }
                     
@@ -140,7 +140,7 @@ public class CreateBotButtonHandler implements ButtonHandler {
                 });
                 LOGGER.debug("Sending request message to user " + user.getId() + "...");
                 clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                        .getLocalizationForUser(SERVICE_CREATE_BOT_CREATOR_BY_ID_REQUEST, user));
+                        .localize(SERVICE_CREATE_BOT_CREATOR_BY_ID_REQUEST, user));
                 LOGGER.debug("Message sent.");
                 break;
         }
@@ -157,7 +157,7 @@ public class CreateBotButtonHandler implements ButtonHandler {
             });
             LOGGER.debug("Sending request for bot name and token to director...");
             clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_CREATE_BOT_NAME_TOKEN_REQUEST, user),
+                    .localize(SERVICE_CREATE_BOT_NAME_TOKEN_REQUEST, user),
                     keyboardRemove);
             LOGGER.debug("Message sent.");
         };
@@ -170,18 +170,18 @@ public class CreateBotButtonHandler implements ButtonHandler {
                 || botName.length() > MAX_BOT_NAME_LENGTH) {
             throw new InvalidDataSentException("Bot name length cannot be shorter "
                     + "than " + MIN_BOT_NAME_LENGTH + " and longer than "
-                    + MAX_BOT_NAME_LENGTH, localizationLoader.getLocalizationForUser(
+                    + MAX_BOT_NAME_LENGTH, localizationLoader.localize(
                     ERROR_BOT_NAME_LENGTH, director));
         }
         if (!BOT_NAME_PATTERN.matcher(botName).matches()) {
             throw new InvalidDataSentException("Bot name " + botName
                     + " does not match the bot name pattern", localizationLoader
-                    .getLocalizationForUser(ERROR_BOT_NAME_PATTERN_MISMATCH, director));
+                    .localize(ERROR_BOT_NAME_PATTERN_MISMATCH, director));
         }
         try {
             final Bot bot = botService.getBot(botName);
             throw new InvalidDataSentException("Bot " + botName + " already exists under id "
-                    + bot.getId(), localizationLoader.getLocalizationForUser(
+                    + bot.getId(), localizationLoader.localize(
                     ERROR_BOT_ALREADY_EXISTS, director));
         } catch (EntityNotFoundException e) {
             LOGGER.debug("Bot " + botName + " does not exist yet. Proceeding...");
@@ -192,7 +192,7 @@ public class CreateBotButtonHandler implements ButtonHandler {
         if (!BOT_TOKEN_PATTERN.matcher(botToken).matches()) {
             throw new InvalidDataSentException("Bot token " + botToken
                     + " does not match the bot token  pattern", localizationLoader
-                    .getLocalizationForUser(ERROR_BOT_TOKEN_PATTERN_MISMATCH, director));
+                    .localize(ERROR_BOT_TOKEN_PATTERN_MISMATCH, director));
         }
         LOGGER.debug("Bot token has been parsed.");
 
@@ -203,9 +203,9 @@ public class CreateBotButtonHandler implements ButtonHandler {
                 + " has been created and initialized.");
         LOGGER.debug("Sending confirmation messages...");
         clientManager.getBotLordClient().sendMessage(director, localizationLoader
-                .getLocalizationForUser(SERVICE_NEW_BOT_CREATED, director));
+                .localize(SERVICE_NEW_BOT_CREATED, director));
         clientManager.getClient(newBot).sendMessage(creator, localizationLoader
-                .getLocalizationForUser(SERVICE_BOT_CREATED_CREATOR_NOTIFICATION,
+                .localize(SERVICE_BOT_CREATED_CREATOR_NOTIFICATION,
                 director));
     }
 }

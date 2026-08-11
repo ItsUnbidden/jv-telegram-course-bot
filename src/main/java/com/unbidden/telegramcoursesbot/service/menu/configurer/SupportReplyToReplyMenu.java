@@ -39,9 +39,9 @@ public class SupportReplyToReplyMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setButtonsRowSize(1);
         page.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(
-                localizationLoader.getLocalizationForUser(BUTTON_REPLY_TO_SUPPORT_REPLY, u)
+                localizationLoader.localize(BUTTON_REPLY_TO_SUPPORT_REPLY, u)
                 .getData(), REPLY_TO_SUPPORT_REPLY, replyToSupportReplyHandler),
-                new TerminalButton(localizationLoader.getLocalizationForUser(
+                new TerminalButton(localizationLoader.localize(
                 BUTTON_RESOLVE_SUPPORT_REQUEST, u).getData(), MARK_AS_RESOLVED,
                 (b1, u1, pa) -> supportService.markAsResolved(u1, b1, supportService.getSupportReplyById(
                     Long.parseLong(pa[0]), u1, b1).getRequest()))));

@@ -81,6 +81,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     @EntityGraph(attributePaths = {"user", "course", "markedAsReadBy"})
     Optional<Review> findByCourseIdAndUserId(Long courseId, Long userId);
 
+    List<Review> findByUserIdAndCourseIdIn(Long userId, List<Long> courseIds);
+
     boolean existsByCourseIdAndUserId(Long courseId, Long userId);
 
     boolean existsByCourseIdAndUserIdAndContentIsNotNull(Long courseId, Long userId);

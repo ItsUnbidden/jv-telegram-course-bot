@@ -22,7 +22,7 @@ public class ValidatorUtil {
             throw new InvalidDataSentException("There are supposed to be "
                     + number + " messages. User " + user.getId()
                     + " has sent " + messages.size() + " messages though.",
-                    localizationLoader.getLocalizationForUser(
+                    localizationLoader.localize(
                     Error.NUMBER_OF_MESSAGES, user, new Error.NumberOfMessagesParams(messages.size(), number)));
         }
         for (int i = 0; i < messages.size(); i++) {
@@ -30,9 +30,18 @@ public class ValidatorUtil {
                 throw new InvalidDataSentException("Message " + messages.get(i)
                         .getMessageId() + " sent by user " + user.getId()
                         + " does not have any text.",
-                        localizationLoader.getLocalizationForUser(
+                        localizationLoader.localize(
                         Error.MESSAGE_TEXT_MISSING, user, new Error.MessageTextMissingParams(i + 1)));
             }
+        }
+    }
+
+    public Long parseId(UserEntity user, Message message) {
+        try {
+            return Long.parseLong(message.getText());
+        } catch (NumberFormatException e) {
+            throw new InvalidDataSentException("Unable to parse string " + message.getText()
+                    + " to the mapping id", localizationLoader.localize(Error.PARSE_ID_FAILURE, user));
         }
     }
 }

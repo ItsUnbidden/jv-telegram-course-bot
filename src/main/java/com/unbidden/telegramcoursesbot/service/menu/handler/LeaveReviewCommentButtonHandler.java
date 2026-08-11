@@ -41,7 +41,7 @@ public class LeaveReviewCommentButtonHandler implements ButtonHandler {
                     contentService.parseAndPersistContent(bot, m));
         });
 
-        final Localization request = localizationLoader.getLocalizationForUser(
+        final Localization request = localizationLoader.localize(
                 SERVICE_REVIEW_COMMENT_REQUEST, user);
         
         clientManager.getClient(bot).sendMessage(user, request);

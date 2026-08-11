@@ -38,6 +38,11 @@ public class LessonService {
 
     private final EntityUtil entityUtil;
 
+    @Transactional(readOnly = true)
+    public List<Lesson> getCourseLessons(Long courseId) {
+        return lessonRepository.findByCourseIdOrderByPosition(courseId);
+    }
+
     @Transactional
     public Lesson addContent(UserEntity user, Bot bot, Long lessonId, List<Message> messages) {
         Assert.notNull(lessonId, "lessonId cannot be null");
@@ -81,7 +86,7 @@ public class LessonService {
         if (potentialMapping.size() == 0) {
             throw new EntityNotFoundException("Mapping " + mappingId
                     + " does not belong to lesson " + lessonId, localizationLoader
-                    .getLocalizationForUser(Error.MAPPING_NOT_IN_LESSON, user));
+                    .localize(Error.MAPPING_NOT_IN_LESSON, user));
         }
         final ContentMapping mapping = potentialMapping.get(0);
 

@@ -31,7 +31,7 @@ public abstract class AbstractContentHandler<T extends LocalizedContent> impleme
             return sendContentAsync(user, bot, content).join();
         } catch (CompletionException e) {
             throw new SendContentException("Failed to send content " + content.getId() + ".",
-                    localizationLoader.getLocalizationForUser(Localizations.Error.SEND_CONTENT, user), e.getCause());
+                    localizationLoader.localize(Localizations.Error.SEND_CONTENT, user), e.getCause());
         }
     }
 

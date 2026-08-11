@@ -40,7 +40,7 @@ public class SendAdvancedReviewButtonHandler implements ButtonHandler {
                     courseService.getCourseByName(params[0], user, bot)).getId(), user,
                     contentService.parseAndPersistContent(bot, m));
         });
-        final Localization request = localizationLoader.getLocalizationForUser(
+        final Localization request = localizationLoader.localize(
                 SERVICE_REVIEW_CONTENT_REQUEST, user);
         clientManager.getClient(bot).sendMessage(user, request);
     }

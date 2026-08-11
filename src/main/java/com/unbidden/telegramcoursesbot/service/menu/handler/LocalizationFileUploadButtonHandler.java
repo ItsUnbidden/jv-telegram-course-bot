@@ -75,7 +75,7 @@ public class LocalizationFileUploadButtonHandler implements ButtonHandler {
                         || lastMessage.getText().length() < 2) {
                     throw new InvalidDataSentException("Language code must be "
                             + "between 2 and 3 characters", localizationLoader
-                            .getLocalizationForUser(ERROR_LANGUAGE_CODE_LENGTH, user));
+                            .localize(ERROR_LANGUAGE_CODE_LENGTH, user));
                 }
                 languageCode = lastMessage.getText();
                 LOGGER.debug("Localization files will be added for language code "
@@ -83,7 +83,7 @@ public class LocalizationFileUploadButtonHandler implements ButtonHandler {
             } else {
                 throw new InvalidDataSentException("Threre must be a language code for which the "
                         + "localization files will be applied", localizationLoader
-                        .getLocalizationForUser(ERROR_NO_LANGUAGE_CODE, user));
+                        .localize(ERROR_NO_LANGUAGE_CODE, user));
             }
 
             final DocumentContent content = (DocumentContent)contentService
@@ -104,7 +104,7 @@ public class LocalizationFileUploadButtonHandler implements ButtonHandler {
                     LOGGER.info("Localization file " + path.toString() + " has been updated.");
                 } catch (TelegramApiException e) {
                     throw new TelegramException("Unable to download file " + document.getId(),
-                            localizationLoader.getLocalizationForUser(ERROR_DOWNLOAD_FILE,
+                            localizationLoader.localize(ERROR_DOWNLOAD_FILE,
                             user), e);
                 }
             }
@@ -117,7 +117,7 @@ public class LocalizationFileUploadButtonHandler implements ButtonHandler {
         });
         LOGGER.debug("Sending request message...");
         clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                .getLocalizationForUser(SERVICE_LOCALIZATION_FILES_REQUEST, user));
+                .localize(SERVICE_LOCALIZATION_FILES_REQUEST, user));
         LOGGER.debug("Message sent.");
     }
 }

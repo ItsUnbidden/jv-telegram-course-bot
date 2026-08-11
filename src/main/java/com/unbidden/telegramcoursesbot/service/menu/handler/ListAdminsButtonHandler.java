@@ -63,7 +63,7 @@ public class ListAdminsButtonHandler implements ButtonHandler {
                     .toString();
             builder.delete(0, builder.length());
         } else {
-            supportStr = localizationLoader.getLocalizationForUser(ERROR_NO_SUPPORT_STAFF, user)
+            supportStr = localizationLoader.localize(ERROR_NO_SUPPORT_STAFF, user)
                     .getData();
         }
 
@@ -77,7 +77,7 @@ public class ListAdminsButtonHandler implements ButtonHandler {
                 .toString();
             builder.delete(0, builder.length());
         } else {
-            mentorsStr = localizationLoader.getLocalizationForUser(ERROR_NO_MENTORS, user)
+            mentorsStr = localizationLoader.localize(ERROR_NO_MENTORS, user)
                     .getData();
         }
         builder.delete(0, builder.length());
@@ -88,7 +88,7 @@ public class ListAdminsButtonHandler implements ButtonHandler {
         parameterMap.put(PARAM_SUPPORT_INFO, supportStr);
         parameterMap.put(PARAM_MENTORS_INFO, mentorsStr);
 
-        final Localization localization = localizationLoader.getLocalizationForUser(
+        final Localization localization = localizationLoader.localize(
                 SERVICE_GET_ADMIN_LIST, user, parameterMap);
 
         clientManager.getClient(bot).sendMessage(user, localization);

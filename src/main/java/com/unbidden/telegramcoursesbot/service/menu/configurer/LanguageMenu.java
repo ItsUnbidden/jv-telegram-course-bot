@@ -44,15 +44,15 @@ public class LanguageMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setButtonsRowSize(1);
         page.setLocalizationFunction((u, p, b) -> localizationLoader
-                .getLocalizationForUser(MENU_LANGUAGE_PAGE_0, u));
+                .localize(MENU_LANGUAGE_PAGE_0, u));
         page.setButtonsFunction((u, p, b) -> {
             final List<Button> buttons = new ArrayList<>();
             
             buttons.addAll(Arrays.stream(textUtil.getLanguagePriority())
-                    .map(c -> new TerminalButton(localizationLoader.getLocalizationForUser(
+                    .map(c -> new TerminalButton(localizationLoader.localize(
                         SERVICE_LANGUAGE_CODE.formatted(c), u).getData(),
                         c, selectLanguageButtonHandler)).toList());
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_DEFAULT_LANGUAGE_CODE, u).getData(), DEFAULT_LANGUAGE_CODE,
                     selectLanguageButtonHandler));
             return buttons;

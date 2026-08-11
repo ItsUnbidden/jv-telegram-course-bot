@@ -24,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
@@ -52,6 +53,11 @@ public class PaymentService {
     private final LocalizationLoader localizationLoader;
 
     private final EntityUtil entityUtil;
+
+    @Transactional(readOnly = true)
+    public List<CourseOwnership> getActiveOwnershipsForUserInBot(UserEntity user, Bot bot) {
+        return courseOwnershipRepository.findByUserIdAndCourseBotIdAndStatus(user.getId(), bot.getId(), OwnershipStatus.ACTIVE);
+    }
 
     @Transactional(readOnly = true)
     public boolean isAvailable(UserEntity user, Long courseId) {
@@ -149,7 +155,7 @@ public class PaymentService {
             return createOrActivateOwnership(target, course, OwnershipSource.GIFTED);
         } catch (CourseIsAlreadyOwnedException e) {
             throw new StaleStateException("Unable to gift course " + courseId + " to user "
-                    + targetId + " because they already own it.", localizationLoader.getLocalizationForUser(
+                    + targetId + " because they already own it.", localizationLoader.localize(
                     Error.GIVE_COURSE_ALREADY_OWNED, user, new Error.GiveCourseAlreadyOwnedParams(
                         contentService.getLocalizedText(user, bot, course.getTitle().getId()), target.getFullName(),
                         entityUtil.getLocalizedTitle(user, bot, target))), e);
@@ -162,68 +168,19 @@ public class PaymentService {
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        final Course course = entityUtil.getCourseById(user, bot, courseId);
-        final String courseName = contentService.getLocalizedText(user, bot, courseId);
+        return checkRefundPossible0(user, bot, courseId, null, null, null);
+    }
 
-        LOGGER.info("Performing checks for refund of course " + courseId
-                + " for user " + user.getId() + "...");
-        LOGGER.debug("Checking whether course " + courseId + " supports refund...");
-        if (course.getRefundStage() < 0) {
-            throw new RefundImpossibleException("Refund for course " + courseId 
-                    + " is not possible", localizationLoader.getLocalizationForUser(
-                    Error.REFUND_COURSE_UNAVAILABLE, user, new Error.RefundCourseUnavailableParams(courseName)));
-        }
-        LOGGER.debug("Checking whether course " + courseId + " is owned by user " + user.getId() + "...");
-        if (!isAvailable(user, courseId)) {
-            throw new RefundImpossibleException("Course " + courseId
-                    + " is not owned by user " + user.getId(), localizationLoader
-                    .getLocalizationForUser(Error.REFUND_COURSE_NOT_OWNED, user, new Error.RefundCourseNotOwnedParams(courseName)));
-        }
-        LOGGER.debug("Checking whether course " + courseId + " was gifted to user "
-                + user.getId() + "...");
-        if (isAvailableAndGifted(user, courseId)) {
-            throw new RefundImpossibleException("Course " + courseId
-                    + " was gifted to user " + user.getId()
-                    + " and therefore it cannot be refunded", localizationLoader
-                    .getLocalizationForUser(Error.REFUND_COURSE_WAS_GIFTED, user, new Error.RefundCourseWasGiftedParams(courseName)));
-        }
-        final CourseOwnership ownership = entityUtil.getCourseOwnership(user, bot, courseId);
-
-        LOGGER.debug("Checking whether the refund expiration period is over for user "
-                + user.getId() + "'s ownership for course " + courseId + "...");
-        if (ownership.getLastUpdate().plusDays(REFUND_EXPIRATION_DAYS)
-                .isBefore(LocalDateTime.now())) {
-            throw new RefundImpossibleException("User " + user.getId() + " cannot refund course "
-                    + courseId + " because more than " + REFUND_EXPIRATION_DAYS + " days have passed "
-                    + "since the purchase.", localizationLoader.getLocalizationForUser(
-                    Error.REFUND_PURCHASE_TOO_OLD, user, new Error.RefundPurchaseTooOldParams(courseName, REFUND_EXPIRATION_DAYS,
-                        ChronoUnit.DAYS.between(ownership.getLastUpdate(), LocalDateTime.now()))));
-        }
-        final CourseProgress courseProgress = entityUtil.getCourseProgressForUser(user, bot, courseId);
-
-        LOGGER.debug("Checking whether course " + courseId + " has been completed by user "
-                + user.getId() + "..."); 
-        if (courseProgress.getNumberOfTimesCompleted() > 0) {
-            throw new RefundImpossibleException("User " + user.getId() + " cannot refund course "
-                    + courseId + " because they have already completed it",
-                    localizationLoader.getLocalizationForUser(Error.REFUND_COURSE_COMPLETED,
-                    user, new Error.RefundCourseCompletedParams(courseName)));
-        }
-        LOGGER.debug("Checking whether user " + user.getId() + " has advanced past stage "
-                + course.getRefundStage() + " in course " + courseId + " (current stage is "
-                + courseProgress.getStage() + ")...");
-        if (courseProgress.getStage() > course.getRefundStage()) {
-            throw new RefundImpossibleException("User " + user.getId()
-                    + " has advanced in course " + courseId + " to "
-                    + courseProgress.getStage() + " lesson which is past lesson "
-                    + course.getRefundStage() + " and therefore the refund is now impossible",
-                    localizationLoader.getLocalizationForUser(Error.REFUND_USER_ADVANCED_TOO_FAR,
-                        user, new Error.RefundUserAdvancedTooFarParams(courseName, course.getRefundStage(),
-                        courseProgress.getStage())));
-        }
-        LOGGER.info("User " + user.getId() + " is eligible for course "
-                + courseId + "'s refund.");
-        return ownership;
+    @Transactional(readOnly = true)
+    public CourseOwnership checkRefundPossible(UserEntity user, Bot bot, Course course,
+            CourseOwnership ownership, CourseProgress progress) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(course, "course cannot be null");
+        Assert.notNull(ownership, "ownership cannot be null");
+        Assert.notNull(progress, "progress cannot be null");
+        
+        return checkRefundPossible0(user, bot, course.getId(), course, ownership, progress);
     }
 
     @Transactional
@@ -238,6 +195,90 @@ public class PaymentService {
         paymentDetails.setRefundedAt(LocalDateTime.now());
 
         return ownership;
+    }
+
+    private CourseOwnership checkRefundPossible0(UserEntity user, Bot bot, Long courseId, Course course,
+            CourseOwnership ownership, CourseProgress progress) {
+        try {
+            if (course == null) {
+                course = entityUtil.getCourseById(user, bot, courseId);
+            }
+            final String courseName = contentService.getLocalizedText(user, bot, course.getTitle());
+
+            LOGGER.info("Performing checks for refund of course " + courseId
+                    + " for user " + user.getId() + "...");
+            LOGGER.debug("Checking whether course " + courseId + " supports refund...");
+            if (course.getRefundStage() < 0) {
+                throw new RefundImpossibleException("Refund for course " + courseId 
+                        + " is not possible", localizationLoader.localize(
+                        Error.REFUND_COURSE_UNAVAILABLE, user, new Error.RefundCourseUnavailableParams(courseName)));
+            }
+            LOGGER.debug("Checking whether course " + courseId + " is owned by user " + user.getId() + "...");
+            if (!isAvailable(user, courseId)) {
+                throw new RefundImpossibleException("Course " + courseId
+                        + " is not owned by user " + user.getId(), localizationLoader
+                        .localize(Error.REFUND_COURSE_NOT_OWNED, user, new Error.RefundCourseNotOwnedParams(courseName)));
+            }
+            LOGGER.debug("Checking whether course " + courseId + " was gifted to user "
+                    + user.getId() + "...");
+            if (isAvailableAndGifted(user, courseId)) {
+                throw new RefundImpossibleException("Course " + courseId
+                        + " was gifted to user " + user.getId()
+                        + " and therefore it cannot be refunded", localizationLoader
+                        .localize(Error.REFUND_COURSE_WAS_GIFTED, user, new Error.RefundCourseWasGiftedParams(courseName)));
+            }
+
+            if (ownership == null) {
+                ownership = entityUtil.getCourseOwnership(user, bot, courseId);
+            }
+            LOGGER.debug("Checking whether the refund expiration period is over for user "
+                    + user.getId() + "'s ownership for course " + courseId + "...");
+            if (ownership.getLastUpdate().plusDays(REFUND_EXPIRATION_DAYS)
+                    .isBefore(LocalDateTime.now())) {
+                throw new RefundImpossibleException("User " + user.getId() + " cannot refund course "
+                        + courseId + " because more than " + REFUND_EXPIRATION_DAYS + " days have passed "
+                        + "since the purchase.", localizationLoader.localize(
+                        Error.REFUND_PURCHASE_TOO_OLD, user, new Error.RefundPurchaseTooOldParams(courseName, REFUND_EXPIRATION_DAYS,
+                            ChronoUnit.DAYS.between(ownership.getLastUpdate(), LocalDateTime.now()))));
+            }
+            if (progress == null) {
+                try {
+                    progress = entityUtil.getCourseProgressForUser(user, bot, courseId);
+                } catch (EntityNotFoundException e) {
+                    LOGGER.info("User " + user.getId() + " is eligible for a refund of course "
+                            + courseId + " because they haven't started it yet.");
+                    return ownership;
+                }
+            }
+            
+            LOGGER.debug("Checking whether course " + courseId + " has been completed by user "
+                    + user.getId() + "..."); 
+            if (progress.getNumberOfTimesCompleted() > 0) {
+                throw new RefundImpossibleException("User " + user.getId() + " cannot refund course "
+                        + courseId + " because they have already completed it",
+                        localizationLoader.localize(Error.REFUND_COURSE_COMPLETED,
+                        user, new Error.RefundCourseCompletedParams(courseName)));
+            }
+            LOGGER.debug("Checking whether user " + user.getId() + " has advanced past stage "
+                    + course.getRefundStage() + " in course " + courseId + " (current stage is "
+                    + progress.getStage() + ")...");
+            if (progress.getStage() > course.getRefundStage()) {
+                throw new RefundImpossibleException("User " + user.getId()
+                        + " has advanced in course " + courseId + " to "
+                        + progress.getStage() + " lesson which is past lesson "
+                        + course.getRefundStage() + " and therefore the refund is now impossible",
+                        localizationLoader.localize(Error.REFUND_USER_ADVANCED_TOO_FAR,
+                            user, new Error.RefundUserAdvancedTooFarParams(courseName, course.getRefundStage(),
+                            progress.getStage())));
+            }
+            LOGGER.info("User " + user.getId() + " is eligible for course "
+                    + courseId + "'s refund.");
+
+            return ownership;
+        } catch (EntityNotFoundException e) {
+            throw new RefundImpossibleException("Some entity was not found during a refund check. "
+                    + "This might be due to a stale request.", localizationLoader.localize(Error.REFUND_ENTITY_NOT_FOUND, user));
+        }
     }
 
     private boolean isAvailable0(UserEntity user, Long courseId) {

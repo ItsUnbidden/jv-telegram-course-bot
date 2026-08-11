@@ -39,7 +39,7 @@ public class RefreshLocalizationsButtonHandler implements ButtonHandler {
         botService.checkBotLord(bot, user);
         if (!clientManager.isOnMaintenance()) {
             throw new ForbiddenOperationException("Unable to refresh because server is not on "
-                    + "maintenance", localizationLoader.getLocalizationForUser(
+                    + "maintenance", localizationLoader.localize(
                     ERROR_MAINTENANCE_IN_NOT_ENABLED, user));
         }
         LOGGER.info("The director is trying to refresh localizations...");
@@ -51,7 +51,7 @@ public class RefreshLocalizationsButtonHandler implements ButtonHandler {
         LOGGER.info("Localizations refresh has been completed.");
         LOGGER.debug("Sending confirmation message...");
         clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                .getLocalizationForUser(SERVICE_LOCALIZATIONS_REFRESH_SUCCESS, user));
+                .localize(SERVICE_LOCALIZATIONS_REFRESH_SUCCESS, user));
         LOGGER.debug("Message sent.");
     }
 }

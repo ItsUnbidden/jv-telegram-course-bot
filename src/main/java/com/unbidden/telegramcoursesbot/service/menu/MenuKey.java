@@ -1,5 +1,10 @@
 package com.unbidden.telegramcoursesbot.service.menu;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.util.Assert;
+
 public enum MenuKey {
     AVAILABLE_COURSES("m_aCrs"),
     ADMIN_ACTIONS("m_admAct"),
@@ -31,6 +36,24 @@ public enum MenuKey {
     TEST("m_tst"),
     COMMIT_CONTENT("m_cmtCnt");
 
+    private static final Map<String, MenuKey> REVERSED_KEY_MAP = new HashMap<>();
+
+    static {
+        for (MenuKey key : values()) {
+            REVERSED_KEY_MAP.put(key.getName(), key);
+        }
+    }
+
+    public static MenuKey getKeyByLocName(String name) {
+        Assert.notNull(name, "name cannot be null");
+
+        final MenuKey key = REVERSED_KEY_MAP.get(name);
+
+        if (key == null) throw new RuntimeException("No menu key was found for menu name " + name + ".");
+
+        return key;
+    }
+    
     private String name;
 
     MenuKey(String name) {

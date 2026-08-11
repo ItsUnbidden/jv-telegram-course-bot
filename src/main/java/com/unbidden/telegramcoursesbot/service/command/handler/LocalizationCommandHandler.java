@@ -35,12 +35,12 @@ public class LocalizationCommandHandler implements CommandHandler {
                 clientManager.getClient(bot).sendMessage(user, localization);
             } catch (RuntimeException e) {
                 throw new InvalidDataSentException("Localization " + commandParts[1] + " for language code " + commandParts[2]
-                        + " does not exist.", localizationLoader.getLocalizationForUser(Localizations.Error.LOCALIZATION_DOES_NOT_EXIST, user));
+                        + " does not exist.", localizationLoader.localize(Localizations.Error.LOCALIZATION_DOES_NOT_EXIST, user));
             }
         } else {
             throw new InvalidDataSentException("Localization command requires at least two "
                     + "params: 1. Localization name, 2. Language code (en, ru, etc.)",
-                    localizationLoader.getLocalizationForUser(Localizations.Error.LOCALIZATION_PARAMS_INVALID,
+                    localizationLoader.localize(Localizations.Error.LOCALIZATION_PARAMS_INVALID,
                     user));
         }
     }

@@ -1,13 +1,17 @@
 package com.unbidden.telegramcoursesbot.service.menu.configurer;
 
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.model.CourseProgress;
-import com.unbidden.telegramcoursesbot.service.course.CourseService;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
+import com.unbidden.telegramcoursesbot.model.Lesson;
+import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.menu.Menu;
 import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
+import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.service.menu.Menu.Page.TerminalButton;
+import com.unbidden.telegramcoursesbot.service.menu.handler.CourseNextStageButtonHandler;
+import com.unbidden.telegramcoursesbot.util.EntityUtil;
+
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -15,53 +19,39 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class CourseNextStageMenu implements MenuConfigurer {
-    private static final String MENU_NAME = "m_crsNxtStg";
+    private final CourseNextStageButtonHandler courseNextStageHandler;
 
-    private static final String NEXT_STAGE = "ns";
+    private final ContentService contentService;
 
-    private static final String BUTTON_COURSE_NEXT_STAGE =
-            "button_course_%s_lesson_%s_next_stage";
+    private final LocalizationLoader loader;
 
-    private final CourseService courseService;
+    private final EntityUtil entityUtil;
 
-    private final LocalizationLoader localizationLoader;
-
-    private final MenuService menuService;
-    
     @Override
-    public void configure() {
-        final Menu courseNextStageMenu = new Menu();
-        final Page page = new Page();
-        page.setMenu(courseNextStageMenu);
+    public Menu configure() {
+        final Menu menu = new Menu(MenuKey.COURSE_NEXT_STAGE);
+
+        final Page page = new Page(menu);
+        
         page.setPageIndex(0);
         page.setButtonsRowSize(1);
-        page.setButtonsFunction((u, p, b) ->  {
-            final String[] courseNameAndCurrentLesson = p.get(0).split(
-                    CourseService.COURSE_NAME_LESSON_INDEX_DIVIDER);
-            final CourseProgress courseProgress = courseService
-                    .getCourseProgressForUser(u.getId(),
-                    courseNameAndCurrentLesson[0]);
-            return List.of(new TerminalButton(
-                localizationLoader.getLocalizationForUser(BUTTON_COURSE_NEXT_STAGE.formatted(
-                    courseProgress.getCourse().getName(), courseProgress.getStage()), u)
-                .getData(), NEXT_STAGE, (b1, u1, pa) -> {
-                    courseService.checkCourseIsNotUnderMaintenance(courseProgress.getCourse(), u);
-                    if (courseProgress.getStage().equals(Integer.parseInt(
-                            courseNameAndCurrentLesson[1]))) {
-                        menuService.terminateMenuGroup(u1, b1, CourseService
-                                .COURSE_NEXT_STAGE_MENU_TERMINATION.formatted(
-                                courseProgress.getId()));
-                        courseService.next(u, courseNameAndCurrentLesson[0]);
-                    }
-            }));
+        page.setButtonsFunction((u, p, b) -> {
+            final Lesson lesson = entityUtil.getLessonById(u, b, Long.parseLong(p.get(0)));
+            final String buttonName = lesson.getNextLessonButtonTitle() == null
+                    ? loader.localize(Localizations.Button.NEXT_LESSON_DEFAULT, u).getData()
+                    : contentService.getLocalizedText(u, b, lesson.getNextLessonButtonTitle().getId());
+
+            return List.of(new TerminalButton(buttonName, lesson.getCourse().getId().toString(), courseNextStageHandler));
         });
-        final Page terminalPage = new Page();
-        terminalPage.setMenu(courseNextStageMenu);
+
+        final Page terminalPage = new Page(menu);
+
         terminalPage.setPageIndex(1);
-        courseNextStageMenu.setName(MENU_NAME);
-        courseNextStageMenu.setPages(List.of(page, terminalPage));
-        courseNextStageMenu.setInitialParameterPresent(true);
-        courseNextStageMenu.setAttachedToMessage(true);
-        menuService.save(courseNextStageMenu);
+
+        menu.setPages(List.of(page, terminalPage));
+        menu.setInitialParameterPresent(true);
+        menu.setAttachedToMessage(true);
+
+        return menu;
     }
 }

@@ -62,7 +62,7 @@ public class LeaveBasicReviewMenu implements MenuConfigurer {
         final Page firstPage = new Page();
         firstPage.setPageIndex(0);
         firstPage.setButtonsRowSize(5);
-        firstPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
+        firstPage.setLocalizationFunction((u, p, b) -> localizationLoader.localize(
             MENU_LEAVE_BASIC_REVIEW_PAGE_0, u));
         firstPage.setMenu(menu);
         firstPage.setButtonsFunction((u, p, b) -> COURSE_GRADE_BUTTONS);
@@ -70,13 +70,13 @@ public class LeaveBasicReviewMenu implements MenuConfigurer {
         final Page secondPage = new Page();
         secondPage.setPageIndex(1);
         secondPage.setButtonsRowSize(5);
-        secondPage.setLocalizationFunction((u, p, b) -> localizationLoader.getLocalizationForUser(
+        secondPage.setLocalizationFunction((u, p, b) -> localizationLoader.localize(
             MENU_LEAVE_BASIC_REVIEW_PAGE_1, u));
         secondPage.setMenu(menu);
         secondPage.setButtonsFunction((u, p, b) -> {
             final List<Button> buttons = new ArrayList<>();
             buttons.addAll(PLATFORM_GRADE_BUTTONS);
-            buttons.add(new BackwardButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new BackwardButton(localizationLoader.localize(
                     BUTTON_BACK, u).getData()));
             return buttons;
         });

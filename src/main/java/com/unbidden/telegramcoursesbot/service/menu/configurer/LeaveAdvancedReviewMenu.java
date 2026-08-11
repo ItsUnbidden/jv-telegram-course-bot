@@ -34,7 +34,7 @@ public class LeaveAdvancedReviewMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setButtonsRowSize(1);
         page.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(
-                localizationLoader.getLocalizationForUser(BUTTON_SEND_ADVANCED_REVIEW, u)
+                localizationLoader.localize(BUTTON_SEND_ADVANCED_REVIEW, u)
                 .getData(), SEND_ADVANCED_REVIEW, sendAdvancedReviewHandler)));
         menu.setName(MENU_NAME);
         menu.setPages(List.of(page));

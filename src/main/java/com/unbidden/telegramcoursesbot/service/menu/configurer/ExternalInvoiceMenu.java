@@ -33,7 +33,7 @@ public class ExternalInvoiceMenu implements MenuConfigurer {
         firstPage.setButtonsRowSize(1);
         firstPage.setMenu(menu);
         firstPage.setButtonsFunction((u, p, b) -> List.of(new LinkButton(localizationLoader
-            .getLocalizationForUser(BUTTON_EXTERNAL_INVOICE_MORE_INFO, u).getData(), p.get(0))));
+            .localize(BUTTON_EXTERNAL_INVOICE_MORE_INFO, u).getData(), p.get(0))));
 
         menu.setName(MENU_NAME);
         menu.setPages(List.of(firstPage));

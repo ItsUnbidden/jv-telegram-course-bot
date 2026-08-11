@@ -46,9 +46,9 @@ public class RequestFeedbackMenu implements MenuConfigurer {
         page1.setPageIndex(0);
         page1.setButtonsRowSize(1);
         page1.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(
-                localizationLoader.getLocalizationForUser(BUTTON_DECLINE_HOMEWORK, u)
+                localizationLoader.localize(BUTTON_DECLINE_HOMEWORK, u)
                 .getData(), DECLINE, declineHandler), new TransitoryButton(
-                localizationLoader.getLocalizationForUser(BUTTON_GENERAL_ACCEPT_HOMEWORK, u)
+                localizationLoader.localize(BUTTON_GENERAL_ACCEPT_HOMEWORK, u)
                 .getData(), GENERAL_ACCEPT, 1)));
         final Page page2 = new Page();
         page2.setMenu(menu);
@@ -56,11 +56,11 @@ public class RequestFeedbackMenu implements MenuConfigurer {
         page2.setPreviousPage(0);
         page2.setButtonsRowSize(1);
         page2.setButtonsFunction((u, p, b) -> List.of(new TerminalButton(
-                localizationLoader.getLocalizationForUser(BUTTON_ACCEPT_HOMEWORK, u)
+                localizationLoader.localize(BUTTON_ACCEPT_HOMEWORK, u)
                 .getData(), ACCEPT, acceptHandler), new TerminalButton(
-                localizationLoader.getLocalizationForUser(BUTTON_ACCEPT_HOMEWORK_WITH_COMMENT, u)
+                localizationLoader.localize(BUTTON_ACCEPT_HOMEWORK_WITH_COMMENT, u)
                 .getData(), ACCEPT_WITH_COMMENT, acceptHandler), new BackwardButton(
-                localizationLoader.getLocalizationForUser(BUTTON_BACK, u).getData())));
+                localizationLoader.localize(BUTTON_BACK, u).getData())));
         menu.setName(MENU_NAME);
         menu.setPages(List.of(page1, page2));
         menu.setInitialParameterPresent(true);

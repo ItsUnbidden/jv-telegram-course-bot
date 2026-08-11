@@ -79,17 +79,17 @@ public class CoursePriceChangeButtonHandler implements ButtonHandler {
                 courseService.save(course);
                 LOGGER.info("New price saved.");
                 messageParams.put(PARAM_CURRENT_PRICE, course.getPrice());
-                final Localization response = localizationLoader.getLocalizationForUser(
+                final Localization response = localizationLoader.localize(
                         SERVICE_COURSE_PRICE_UPDATE_SUCCESS, user, messageParams);
 
                 clientManager.getClient(bot).sendMessage(user, response);
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse provided string "
                         + providedStr + " to new price int", localizationLoader
-                        .getLocalizationForUser(ERROR_PARSE_PRICE_FAILURE, user), e);
+                        .localize(ERROR_PARSE_PRICE_FAILURE, user), e);
             }
         }, true);
-        Localization updateRequestLocalization = localizationLoader.getLocalizationForUser(
+        Localization updateRequestLocalization = localizationLoader.localize(
                 SERVICE_COURSE_PRICE_UPDATE_REQUEST, user, messageParams);
         clientManager.getClient(bot).sendMessage(user, updateRequestLocalization);
     }

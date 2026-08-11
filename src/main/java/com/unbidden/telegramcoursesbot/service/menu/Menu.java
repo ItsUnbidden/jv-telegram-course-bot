@@ -16,7 +16,7 @@ public class Menu {
     private static final String BACK_DATA = "back";
     private static final String LINK_DATA = "link";
 
-    private String name;
+    private final MenuKey key;
 
     private List<Page> pages;
 
@@ -28,19 +28,27 @@ public class Menu {
 
     private boolean isAttachedToMessage;
 
+    public Menu(MenuKey key) {
+        this.key = key;
+    }
+
     @Data
     public static class Page {
+        private final Menu menu;
+
         private int pageIndex;
 
         private int previousPage;
-
-        private Menu menu;
 
         private int buttonsRowSize;
 
         private TriFunction<UserEntity, List<String>, Bot, Localization> localizationFunction;
 
         private TriFunction<UserEntity, List<String>, Bot, List<Button>> buttonsFunction;
+
+        public Page(Menu menu) {
+            this.menu = menu;
+        }
 
         public Button getButtonByData(UserEntity user, Bot bot, String currentButtonData,
                 String[] params) throws MenuExpiredException {
@@ -68,6 +76,11 @@ public class Menu {
                 super(name, data, Type.TERMINAL);
                 this.handler = handler;
             }
+
+            public TerminalButton(String name, String id, String param, ButtonHandler handler) {
+                super(name, id + Button.ID_PARAM_SEPARATOR + param, Type.TERMINAL);
+                this.handler = handler;
+            }
         }
 
         @Data()
@@ -90,6 +103,11 @@ public class Menu {
                 super(name, data, Type.TRANSITORY);
                 this.pagePointer = pagePointer;
             }
+
+            public TransitoryButton(String name, String id, String param, int pagePointer) {
+                super(name, id + Button.ID_PARAM_SEPARATOR + param, Type.TRANSITORY);
+                this.pagePointer = pagePointer;
+            }
         }
 
         @Data
@@ -102,6 +120,8 @@ public class Menu {
 
         @Data
         public abstract static class Button {
+            public static final String ID_PARAM_SEPARATOR = "~";
+
             private String name;
 
             private String data;

@@ -68,18 +68,18 @@ public class RemoveContentFromLessonButtonHandler implements ButtonHandler {
                 final Map<String, Object> parameterMap = new HashMap<>();
                 parameterMap.put(PARAM_LESSON_ID, lessonId);
                 parameterMap.put(PARAM_CONTENT_ID, contentId);
-                final Localization success = localizationLoader.getLocalizationForUser(
+                final Localization success = localizationLoader.localize(
                         SERVICE_LESSON_CONTENT_REMOVED, user, parameterMap);
                 clientManager.getClient(bot).sendMessage(user, success);
                 LOGGER.debug("Message sent.");
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse provided string "
                         + m.get(0).getText() + " to new price int", localizationLoader
-                        .getLocalizationForUser(ERROR_PARSE_CONTENT_ID_FAILURE, user), e);
+                        .localize(ERROR_PARSE_CONTENT_ID_FAILURE, user), e);
             }
         }, true);
         LOGGER.debug("Sending content request message...");
-        final Localization request = localizationLoader.getLocalizationForUser(
+        final Localization request = localizationLoader.localize(
                 SERVICE_REMOVE_LESSON_CONTENT_REQUEST, user);
         clientManager.getClient(bot).sendMessage(user, request);
         LOGGER.debug("Message sent.");

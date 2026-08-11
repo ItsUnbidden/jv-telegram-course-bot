@@ -62,7 +62,7 @@ public class SetRoleButtonHandler implements ButtonHandler {
                     getSetRoleFunction(user, bot, newRole)))).build();
         final KeyboardButton addButton = KeyboardButton.builder()
                 .requestUser(requestUserSetRole)
-                .text(localizationLoader.getLocalizationForUser(BUTTON_SET_ROLE_CHOOSE_USER, user)
+                .text(localizationLoader.localize(BUTTON_SET_ROLE_CHOOSE_USER, user)
                     .getData())
                 .build();
 
@@ -74,7 +74,7 @@ public class SetRoleButtonHandler implements ButtonHandler {
                 .build();
         LOGGER.debug("Sending keyboard message to user " + user.getId()
                 + " in order for them to choose the target.");
-        final Localization localization = localizationLoader.getLocalizationForUser(
+        final Localization localization = localizationLoader.localize(
                 SERVICE_SET_ROLE_USER_REQUEST, user);
         clientManager.getClient(bot).sendMessage(user, localization, markup);
         LOGGER.debug("Keyboard message sent.");
@@ -93,7 +93,7 @@ public class SetRoleButtonHandler implements ButtonHandler {
             parameterMap.put(PARAM_TARGET_FULL_NAME, target.getFullName());
             parameterMap.put(PARAM_NEW_ROLE_TYPE, role.getType());
 
-            client.sendMessage(user, localizationLoader.getLocalizationForUser(
+            client.sendMessage(user, localizationLoader.localize(
                     SERVICE_SET_ROLE_SUCCESS, user, parameterMap));
             LOGGER.info("Message sent. Setting new menus for user " + target.getId() + "...");
             client.removeMenuForUser(target);

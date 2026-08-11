@@ -40,6 +40,9 @@ public class Bot extends BaseEntity {
 
     @Override
     public String toString() {
-        return "Bot(id=" + getId() + ", isDisabled=" + isDisabled + ")";
+        return "Bot(id=" + getId() + ", creatorInfoMappingId=" + (creatorInfo != null ? creatorInfo.getId() : "NULL")
+                + ", termsMappingId=" + (terms != null ? terms.getId() : "NULL")
+                + ", startMappingId=" + (start != null ? start.getId() : "NULL")
+                + ", isDisabled=" + isDisabled + ")";
     }
 }

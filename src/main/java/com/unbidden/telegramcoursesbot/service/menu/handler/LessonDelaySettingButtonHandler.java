@@ -68,7 +68,7 @@ public class LessonDelaySettingButtonHandler implements ButtonHandler {
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse provided string "
                         + m.get(0).getText() + " to new delay int", localizationLoader
-                        .getLocalizationForUser(ERROR_PARSE_DELAY_FAILURE, user), e);
+                        .localize(ERROR_PARSE_DELAY_FAILURE, user), e);
             }
             LOGGER.debug("New delay parsed successfully. Current delay: "
                     + lesson.getDelay() + ".");
@@ -77,7 +77,7 @@ public class LessonDelaySettingButtonHandler implements ButtonHandler {
             LOGGER.info("Lesson " + lesson.getId() + "'s delay is now " + newDelay + ".");
             LOGGER.debug("Sending confirmation message...");
             clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_NEW_DELAY_SET_SUCCESS, user));
+                    .localize(SERVICE_NEW_DELAY_SET_SUCCESS, user));
             LOGGER.debug("Message sent.");
         }, true);
         LOGGER.debug("Sending new delay request...");

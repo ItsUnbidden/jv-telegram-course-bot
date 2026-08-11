@@ -79,12 +79,12 @@ public class SendMessageToUserByIdButtonHandler implements ButtonHandler {
             } catch (NumberFormatException e) {
                 throw new InvalidDataSentException("Unable to parse provided string "
                         + m.get(0).getText().trim() + " to user id long",
-                        localizationLoader.getLocalizationForUser(ERROR_PARSE_USER_ID,
+                        localizationLoader.localize(ERROR_PARSE_USER_ID,
                         user), e);
             }
         }, true);
         LOGGER.debug("Sending target user request message...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                 SERVICE_PRIVATE_MESSAGE_USER_REQUEST, user));
         LOGGER.debug("Request sent.");
     }
@@ -104,11 +104,11 @@ public class SendMessageToUserByIdButtonHandler implements ButtonHandler {
                     + bot.getName() + " has been sent.");
             LOGGER.debug("Sending confirmation message...");
             clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_PRIVATE_MESSAGE_SENT, user, parameterMap));
+                    .localize(SERVICE_PRIVATE_MESSAGE_SENT, user, parameterMap));
             LOGGER.debug("Message sent.");
         });
         LOGGER.debug("Sending content request...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                 SERVICE_PRIVATE_MESSAGE_CONTENT_REQUEST, user, parameterMap));
         LOGGER.debug("Request sent.");
     }

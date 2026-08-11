@@ -58,7 +58,7 @@ public class ReviewActionsMenu implements MenuConfigurer {
             final Review review = reviewService.getReviewById(Long.parseLong(p.get(0)), u, b);
             final List<Button> buttons = new ArrayList<>();
 
-            buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+            buttons.add(new TerminalButton(localizationLoader.localize(
                 BUTTON_MARK_REVIEW_AS_READ, u).getData(), MARK_REVIEW_AS_READ, (b1, u1, pa) -> {
                     if (securityService.grantAccess(b, u, AuthorityType.SEE_REVIEWS)) {
                         reviewService.markReviewAsRead(review, u1);
@@ -66,19 +66,19 @@ public class ReviewActionsMenu implements MenuConfigurer {
                 }));
             
             if (review.getCommentContent() != null) {
-                buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+                buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_GET_REVIEW_COMMENT, u).getData(), GET_REVIEW_COMMENT, (b1, u1, pa) -> {
                         if (securityService.grantAccess(b, u, AuthorityType.SEE_REVIEWS)) {
                             contentService.sendContent(review.getCommentContent(), u1, b1);
                         }
                     }));
                 if (review.getCommentedBy().getId().equals(u.getId())) {
-                    buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+                    buttons.add(new TerminalButton(localizationLoader.localize(
                         BUTTON_UPDATE_COMMENT, u).getData(), UPDATE_REVIEW_COMMENT,
                         updateReviewCommentHandler));
                 }
             } else {
-                buttons.add(new TerminalButton(localizationLoader.getLocalizationForUser(
+                buttons.add(new TerminalButton(localizationLoader.localize(
                     BUTTON_LEAVE_REVIEW_COMMENT, u).getData(), LEAVE_COMMENT,
                     leaveReviewCommentHandler));
             }

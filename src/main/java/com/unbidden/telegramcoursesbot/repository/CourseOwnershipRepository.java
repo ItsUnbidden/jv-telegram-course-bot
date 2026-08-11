@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -14,6 +15,9 @@ public interface CourseOwnershipRepository extends JpaRepository<CourseOwnership
     Optional<CourseOwnership> findByUserIdAndCourseId(Long userId, Long courseId);
 
     Optional<CourseOwnership> findByUserIdAndCourseIdAndStatus(Long userId, Long courseId, OwnershipStatus status);
+
+    @EntityGraph(attributePaths = {"course", "course.title", "course.title.content"})
+    List<CourseOwnership> findByUserIdAndCourseBotIdAndStatus(Long userId, Long botId, OwnershipStatus status);
 
     boolean existsByUserIdAndCourseIdAndAndStatus(Long userId, Long courseId, OwnershipStatus status);
 

@@ -50,7 +50,7 @@ public class SupportService {
         if (!isUserEligibleForSupport(user, bot)) {
             throw new ForbiddenOperationException("User " + user.getId() + " cannot send another "
                     + "support request without resolving the previous one.", localizationLoader
-                    .getLocalizationForUser(Error.USER_NOT_ELIGIBLE_FOR_SUPPORT, user));
+                    .localize(Error.USER_NOT_ELIGIBLE_FOR_SUPPORT, user));
         }
 
         final SupportRequest supportRequest = new SupportRequest();
@@ -174,7 +174,7 @@ public class SupportService {
         }
         if (request.isResolved()) {
             throw new ActionExpiredException("Request " + request.getId()
-                    + " has already been resoved", localizationLoader.getLocalizationForUser(
+                    + " has already been resoved", localizationLoader.localize(
                     Error.SUPPORT_REQUEST_ALREADY_RESOLVED, user));
         }
         return true;
@@ -185,7 +185,7 @@ public class SupportService {
             if (request.getStaffMember() != null) {
                 throw new ActionExpiredException("This support request has already been "
                         + "answered by user " + request.getStaffMember().getId(),
-                        localizationLoader.getLocalizationForUser(
+                        localizationLoader.localize(
                         Error.SUPPORT_REQUEST_ALREADY_ANSWERED, user, new Error.SupportRequestAlreadyAnsweredParams(
                             request.getStaffMember().getFullName(), entityUtil.getLocalizedTitle(user, bot, request.getStaffMember()))));
             }
@@ -194,7 +194,7 @@ public class SupportService {
 
             if (reply.getReply() != null) {
                 throw new ActionExpiredException("This reply has already been answered",
-                        localizationLoader.getLocalizationForUser(Error.REPLY_ALREADY_ANSWERED,
+                        localizationLoader.localize(Error.REPLY_ALREADY_ANSWERED,
                         user));
             }
         }
@@ -211,7 +211,7 @@ public class SupportService {
         if (uneligibleUsers.contains(user)) {
             throw new ForbiddenOperationException("User " + user.getId() + " is a part of the "
                     + "staff, they are uneligible for support", localizationLoader
-                    .getLocalizationForUser(Error.SUPPORT_STAFF_REQUEST, user));
+                    .localize(Error.SUPPORT_STAFF_REQUEST, user));
         }
         return true;
     }

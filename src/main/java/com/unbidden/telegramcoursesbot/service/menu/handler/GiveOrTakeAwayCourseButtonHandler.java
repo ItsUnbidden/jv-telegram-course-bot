@@ -104,12 +104,12 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
 
             KeyboardButton giveButton = KeyboardButton.builder()
                     .requestUser(requestUserGiveCourse)
-                    .text(localizationLoader.getLocalizationForUser(BUTTON_GIVE_COURSE,
+                    .text(localizationLoader.localize(BUTTON_GIVE_COURSE,
                         user).getData())
                     .build();
             KeyboardButton takeButton = KeyboardButton.builder()
                     .requestUser(requestUserTakeCourse)
-                    .text(localizationLoader.getLocalizationForUser(BUTTON_TAKE_COURSE,
+                    .text(localizationLoader.localize(BUTTON_TAKE_COURSE,
                         user).getData())
                     .build();
             KeyboardRow row = new KeyboardRow();
@@ -121,12 +121,12 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
                     .build();
             localization = localizationLoader.getLocalizationForUser(
                     SERVICE_GIVE_TAKE_COURSE_CHOOSE_ACTION, user,
-                    PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
+                    PARAM_COURSE_NAME, localizationLoader.localize(
                     COURSE_NAME.formatted(params[0]), user).getData());
         } catch (EntityNotFoundException e) {
             localization = localizationLoader.getLocalizationForUser(
                 ERROR_GIVE_TAKE_COURSE_NO_LONGER_AVAILABLE, user,
-                PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
+                PARAM_COURSE_NAME, localizationLoader.localize(
                 COURSE_NAME.formatted(params[0]), user).getData());
         }
         
@@ -138,7 +138,7 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
         return m -> {
             final UserShared sharedUser = m.get(0).getUserShared();
             final Map<String, Object> parametersMap = new HashMap<>();
-            parametersMap.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
+            parametersMap.put(PARAM_COURSE_NAME, localizationLoader.localize(
                     COURSE_NAME.formatted(course.getName()), sender).getData());
             parametersMap.put(PARAM_TARGET_ID, sharedUser.getUserId());
             parametersMap.put(PARAM_SENDER_FULL_NAME, sender.getFullName());
@@ -170,12 +170,12 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
                         newOwner, bot));
                 parametersMap.put(PARAM_TARGET_TITLE, userService.getLocalizedTitle(newOwner,
                         sender, bot));
-                success = localizationLoader.getLocalizationForUser(
+                success = localizationLoader.localize(
                         SERVICE_COURSE_GIFTED_SUCCESSFULY, sender, parametersMap);
-                notification = localizationLoader.getLocalizationForUser(
+                notification = localizationLoader.localize(
                 SERVICE_COURSE_GIFTED_NOTIFICATION, newOwner, parametersMap);
             } catch (EntityNotFoundException e1) {
-                error = localizationLoader.getLocalizationForUser(
+                error = localizationLoader.localize(
                         ERROR_GIVE_COURSE_USER_NOT_FOUND, sender, parametersMap);
             } catch (CourseIsAlreadyOwnedException e2) {
                 final UserEntity supposedUser = userService.getUser(sharedUser.getUserId(),
@@ -184,7 +184,7 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
                 parametersMap.put(PARAM_TARGET_FULL_NAME, supposedUser.getFirstName());
                 parametersMap.put(PARAM_TARGET_TITLE, userService.getLocalizedTitle(newOwner,
                         sender, bot));
-                error = localizationLoader.getLocalizationForUser(ERROR_GIVE_COURSE_ALREADY_OWNED,
+                error = localizationLoader.localize(ERROR_GIVE_COURSE_ALREADY_OWNED,
                         sender, parametersMap);
             }
             sendMessages(sender, newOwner, error, success, notification, bot);
@@ -196,7 +196,7 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
         return m -> {
             final UserShared sharedUser = m.get(0).getUserShared();
             final Map<String, Object> parametersMap = new HashMap<>();
-            parametersMap.put(PARAM_COURSE_NAME, localizationLoader.getLocalizationForUser(
+            parametersMap.put(PARAM_COURSE_NAME, localizationLoader.localize(
                     COURSE_NAME.formatted(course.getName()), sender).getData());
             parametersMap.put(PARAM_TARGET_ID, sharedUser.getUserId());
             parametersMap.put(PARAM_SENDER_FULL_NAME, sender.getFullName());
@@ -220,12 +220,12 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
                         sender, bot));
                 parametersMap.put(PARAM_SENDER_TITLE, userService.getLocalizedTitle(sender,
                         pastOwner, bot));
-                success = localizationLoader.getLocalizationForUser(
+                success = localizationLoader.localize(
                         SERVICE_COURSE_TAKEN_SUCCESSFULY, sender, parametersMap);
-                notification = localizationLoader.getLocalizationForUser(
+                notification = localizationLoader.localize(
                         SERVICE_COURSE_TAKEN_NOTIFICATION, pastOwner, parametersMap);
             } catch (EntityNotFoundException e1) {
-                error = localizationLoader.getLocalizationForUser(
+                error = localizationLoader.localize(
                         ERROR_TAKE_COURSE_USER_NOT_FOUND, sender, parametersMap);
             } catch (CourseBoughtException e2) {
                 final UserEntity supposedUser = userService.getUser(sharedUser.getUserId(),
@@ -234,7 +234,7 @@ public class GiveOrTakeAwayCourseButtonHandler implements ButtonHandler {
                 parametersMap.put(PARAM_TARGET_FULL_NAME, supposedUser.getFullName());
                 parametersMap.put(PARAM_TARGET_TITLE, userService.getLocalizedTitle(
                         supposedUser, sender, bot));
-                error = localizationLoader.getLocalizationForUser(
+                error = localizationLoader.localize(
                         ERROR_TAKE_COURSE_BOUGHT_OR_MISSING, sender, parametersMap);
             }
             sendMessages(sender, pastOwner, error, success, notification, bot);

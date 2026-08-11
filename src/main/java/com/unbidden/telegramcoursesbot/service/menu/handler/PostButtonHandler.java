@@ -87,7 +87,7 @@ public class PostButtonHandler implements ButtonHandler {
                 });
                 LOGGER.debug("Sending roles request...");
                 clientManager.getClient(bot).sendMessage(user, localizationLoader
-                        .getLocalizationForUser(SERVICE_POST_ROLES_REQUEST, user));
+                        .localize(SERVICE_POST_ROLES_REQUEST, user));
                 LOGGER.debug("Request sent.");
                 break;
             default:
@@ -110,11 +110,11 @@ public class PostButtonHandler implements ButtonHandler {
 
             LOGGER.debug("Sending thread started message...");
             clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .getLocalizationForUser(SERVICE_POST_STARTED, user));
+                    .localize(SERVICE_POST_STARTED, user));
             LOGGER.debug("Message sent.");
         });
         LOGGER.debug("Sending content request...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.getLocalizationForUser(
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                 SERVICE_POST_CONTENT_REQUEST, user));
         LOGGER.debug("Request sent.");
     }

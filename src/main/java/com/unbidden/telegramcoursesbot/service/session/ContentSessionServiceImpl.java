@@ -20,8 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
+
+import org.apache.commons.lang3.function.TriConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
@@ -42,12 +43,13 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     private final ClientManager clientManager;
 
     @Override
-    public UUID createSession(UserEntity user, Bot bot, Consumer<List<Message>> function) {
+    public UUID createSession(UserEntity user, Bot bot, TriConsumer<UserEntity, Bot, List<Message>> function) {
         return createSession(user, bot, function, false);
     }
 
     @Override
-    public UUID createSession(UserEntity user, Bot bot, Consumer<List<Message>> function, boolean isSkippingConfirmation) {
+    public UUID createSession(UserEntity user, Bot bot, TriConsumer<UserEntity, Bot, List<Message>> function,
+            boolean isSkippingConfirmation) {
         sessionRepository.removeUserOrChatRequestSessionsForUserInBot(user.getId(), bot);
         final List<Session> sessions = sessionRepository.findForUserInBot(user.getId(), bot);
 
@@ -87,63 +89,62 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     }
 
     @Override
-    public void processResponse(Session session, Message message) {
+    public void processResponse(UserEntity user, Bot bot, Session session, Message message) {
         final ContentSession contentSession = (ContentSession)session;
         
         contentSession.getMessages().add(message);
         LOGGER.trace("Adding new message to the confirmation list...");
         if (contentSession.isSkippingConfirmation()) {
             LOGGER.trace("Only one message is expected, no confirmation message will be sent.");
-            commit(session.getId(), session.getUser());
+            commit(user, bot, session.getId());
         } else if (!contentSession.isMenuInitialized()) {
             LOGGER.trace("Sending confirmation menu...");
-            final Message menuMessage = menuService.initiateMenu(contentSession.getUser(), session.getBot(),
+            final Message menuMessage = menuService.initiateMenu(user, bot,
                     MenuKey.COMMIT_CONTENT, contentSession.getId().toString());
             
-            menuService.addToMenuTerminationGroup(session.getUser(), session.getUser(),
-                    session.getBot(), menuMessage.getMessageId(), MenuTerminationGroupKey.COMMIT_CONTENT,
+            menuService.addToMenuTerminationGroup(user, user,
+                    bot, menuMessage.getMessageId(), MenuTerminationGroupKey.COMMIT_CONTENT,
                     Menu.COMMIT_CONTENT_TERMINAL_PAGE, session.getId());
             contentSession.setMenuInitialized(true);
         }
-        LOGGER.trace("Session response of user " + contentSession.getUser().getId()
-                + " has been processed.");
+        LOGGER.trace("Session response of user " + user.getId() + " has been processed.");
     }
 
     @Override
-    public void commit(UUID sessionId, UserEntity user) {
+    public void commit(UserEntity user, Bot bot, UUID sessionId) {
         final ContentSession session = (ContentSession)getSession(sessionId, user);
 
-        LOGGER.trace("Removing sessions for user " + session.getUser().getId() + "...");
+        LOGGER.trace("Removing sessions for user " + user.getId() + "...");
         if (!session.isSkippingConfirmation()) {
-            menuService.terminateMenuGroup(user, session.getBot(),
+            menuService.terminateMenuGroup(user, bot,
             MenuTerminationGroupKey.COMMIT_CONTENT, session.getId());
         }
-        removeSessionsForUserInBot(session.getUser(), session.getBot());
+        removeSessionsForUserInBot(user, bot);
         LOGGER.trace("All sessions have been removed for user. Executing content session "
-                + sessionId + "'s function for user " + session.getUser().getId() + "...");
-        session.execute();
+                + sessionId + "'s function for user " + user.getId() + "...");
+        session.execute(user, bot);
         LOGGER.trace("Content session " + sessionId + "'s function has been executed.");
     }
 
     @Override
-    public void resend(UUID sessionId, UserEntity user) {
+    public void resend(UserEntity user, Bot bot, UUID sessionId) {
         final ContentSession session = (ContentSession)getSession(sessionId, user);
 
-        LOGGER.trace("Removing sessions for user " + session.getUser().getId()
+        LOGGER.trace("Removing sessions for user " + user.getId()
                 + " and recreating session...");
         if (!session.isSkippingConfirmation()) {
-            menuService.terminateMenuGroup(user, session.getBot(), MenuTerminationGroupKey.COMMIT_CONTENT,
-                    localizationLoader.getLocalizationForUser(Menu.COMMIT_CONTENT_RESEND_TERMINAL_PAGE, user), session.getId());
+            menuService.terminateMenuGroup(user, bot, MenuTerminationGroupKey.COMMIT_CONTENT,
+                    localizationLoader.localize(Menu.COMMIT_CONTENT_RESEND_TERMINAL_PAGE, user), session.getId());
         }
-        removeSessionsForUserInBot(session.getUser(), session.getBot());
-        createSession(session.getUser(), session.getBot(), session.getFunction());
+        removeSessionsForUserInBot(user, bot);
+        createSession(user, bot, session.getFunction());
         LOGGER.trace("All sessions have been removed for user and new session has been created. "
                 + "Sending resend message...");
 
-        final Localization resendLoc = localizationLoader.getLocalizationForUser(
-                Localizations.Service.RESEND_CONTENT, session.getUser());
-        clientManager.getClient(session.getBot()).sendMessage(SendMessage.builder()
-                .chatId(session.getUser().getId())
+        final Localization resendLoc = localizationLoader.localize(
+                Localizations.Service.RESEND_CONTENT, user);
+        clientManager.getClient(bot).sendMessage(SendMessage.builder()
+                .chatId(user.getId())
                 .text(resendLoc.getData())
                 .entities(resendLoc.getEntities())
                 .build());
@@ -151,14 +152,14 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     }
 
     @Override
-    public void cancel(UUID sessionId, UserEntity user) {
+    public void cancel(UserEntity user, Bot bot, UUID sessionId) {
         final ContentSession session = (ContentSession)getSession(sessionId, user);
 
         if (!session.isSkippingConfirmation()) {
-            menuService.terminateMenuGroup(user, session.getBot(), MenuTerminationGroupKey.COMMIT_CONTENT,
-                    localizationLoader.getLocalizationForUser(Menu.COMMIT_CONTENT_CANCEL_TERMINAL_PAGE, user), session.getId());
+            menuService.terminateMenuGroup(user, bot, MenuTerminationGroupKey.COMMIT_CONTENT,
+                    localizationLoader.localize(Menu.COMMIT_CONTENT_CANCEL_TERMINAL_PAGE, user), session.getId());
         }
-        removeSessionsForUserInBot(session.getUser(), session.getBot());
+        removeSessionsForUserInBot(user, bot);
     }
 
     private Session getSession(UUID sessionId, UserEntity user) {
@@ -166,7 +167,7 @@ public class ContentSessionServiceImpl implements ContentSessionService {
 
         if (potentialSession.isEmpty()) {
             throw new ActionExpiredException("There is no session with id " + sessionId
-                    + ". It might have expired.", localizationLoader.getLocalizationForUser(
+                    + ". It might have expired.", localizationLoader.localize(
                     Error.SESSION_EXPIRED, user));
         }
         return potentialSession.get();

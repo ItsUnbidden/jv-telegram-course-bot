@@ -69,7 +69,7 @@ public class UpdateHomeworkContentButtonHandler implements ButtonHandler {
                         || lastMessage.getText().length() < 2) {
                     throw new InvalidDataSentException("Language code must be "
                             + "between 2 and 3 characters", localizationLoader
-                            .getLocalizationForUser(ERROR_LANGUAGE_CODE_LENGTH, user));
+                            .localize(ERROR_LANGUAGE_CODE_LENGTH, user));
                 }
                 LOGGER.debug("Language code for new content will be "
                         + lastMessage.getText() + ".");
@@ -91,7 +91,7 @@ public class UpdateHomeworkContentButtonHandler implements ButtonHandler {
             parameterMap.put(PARAM_HOMEWORK_ID, homework.getId());
             parameterMap.put(PARAM_MAPPING_ID, newMapping.getId());
 
-            final Localization success = localizationLoader.getLocalizationForUser(
+            final Localization success = localizationLoader.localize(
                     SERVICE_HOMEWORK_CONTENT_UPDATED, user, parameterMap);
             clientManager.getClient(bot).sendMessage(user, success);
             LOGGER.debug("Message sent.");

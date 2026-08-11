@@ -115,7 +115,7 @@ public class ClientManager {
     public boolean toggleMaintenance(UserEntity user) {
         if (isRefreshing()) {
             throw new ForbiddenOperationException("Cannot toggle maintenance while the server "
-                    + "is refreshing", localizationLoader.getLocalizationForUser(
+                    + "is refreshing", localizationLoader.localize(
                     Localizations.Error.IS_REFRESHING, user));
         }
         LOGGER.info("Director is toggling maintenance... Current status is "
@@ -125,7 +125,7 @@ public class ClientManager {
 
         LOGGER.debug("Sending confirmation message to director...");
         getBotLordClient().sendMessage(user, localizationLoader
-                .getLocalizationForUser(Localizations.Service.ON_MAINTENANCE_STATUS_CHANGE, user,
+                .localize(Localizations.Service.ON_MAINTENANCE_STATUS_CHANGE, user,
                     new Localizations.Service.OnMaintenanceStatusChangeParams(getStatus(user))));
         LOGGER.debug("Message sent.");
 
@@ -149,7 +149,7 @@ public class ClientManager {
     }
 
     private String getStatus(UserEntity user) {
-        return localizationLoader.getLocalizationForUser(isOnMaintenance
+        return localizationLoader.localize(isOnMaintenance
                 ? Localizations.Service.STATUS_ENABLED
                 : Localizations.Service.STATUS_DISABLED, user).getData();
     }
