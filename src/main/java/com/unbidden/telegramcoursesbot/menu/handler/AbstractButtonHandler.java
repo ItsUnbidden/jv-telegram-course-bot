@@ -1,0 +1,23 @@
+package com.unbidden.telegramcoursesbot.menu.handler;
+
+import java.util.Map;
+
+import org.springframework.beans.factory.BeanNameAware;
+
+import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
+
+public abstract class AbstractButtonHandler implements BeanNameAware {
+    private String beanName;
+
+    @Override
+    public void setBeanName(String name) {
+        beanName = name;
+    }
+
+    public String getBeanName() {
+        return beanName;
+    }
+
+    public abstract void handle(UserEntity user, Bot bot, Map<String, String> params);
+}

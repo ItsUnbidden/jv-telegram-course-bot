@@ -1,15 +1,18 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
+import com.unbidden.telegramcoursesbot.dto.internal.SessionParamsDto;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import java.util.List;
 import java.util.UUID;
-
-import org.apache.commons.lang3.function.TriConsumer;
-import org.telegram.telegrambots.meta.api.objects.message.Message;
+import java.util.function.Consumer;
 
 public interface ContentSessionService extends SessionService {
-    UUID createSession(UserEntity user, Bot bot, TriConsumer<UserEntity, Bot, List<Message>> function,
+    @Override
+    default UUID createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function) {
+        return createSession(user, bot, function, false);
+    }
+
+    UUID createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function,
             boolean isSkippingConfirmation);
     
     void removeSessionsWithoutConfirmationForUser(UserEntity user, Bot bot);

@@ -27,6 +27,8 @@ import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
+import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership;
@@ -36,8 +38,6 @@ import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.model.Course.PaymentType;
 import com.unbidden.telegramcoursesbot.model.TelegramPaymentDetails;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
-import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService.PreCheckoutResponse;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
@@ -48,6 +48,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PaymentOrchestrationService {
     private static final Logger LOGGER = LogManager.getFormatterLogger(PaymentOrchestrationService.class);
+
+    private static final String COURSE_ID_PARAM = "courseId";
 
     private static final String INVOICE_IMAGES_ENDPOINT = "/invoiceimages";
     private static final String PROVIDER_TOKEN = "foo";
@@ -60,7 +62,7 @@ public class PaymentOrchestrationService {
 
     private final CourseOrchestrationService courseService;
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -354,9 +356,8 @@ public class PaymentOrchestrationService {
             menuMessage = sentMessages.getFirst();
         }
 
-        menuService.initiateMenu(user, bot, MenuKey.EXTERNAL_INVOICE,
-                course.getExternalInvoice().getExternalStorePageUrl(),
-                menuMessage.getMessageId());
+        menuService.initiateMenu(user, bot, MenuKey.EXTERNAL_INVOICE, COURSE_ID_PARAM,
+                course.getId().toString(), menuMessage.getMessageId());
         LOGGER.debug("External invoice menu has been sent.");
     }
 }

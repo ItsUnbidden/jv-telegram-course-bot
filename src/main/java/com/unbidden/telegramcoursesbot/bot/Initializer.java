@@ -1,8 +1,8 @@
 package com.unbidden.telegramcoursesbot.bot;
 
+import com.unbidden.telegramcoursesbot.menu.MenuConfigurer;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ public class Initializer implements ApplicationRunner {
 
     private final UserService userService;
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     @Override
     public void run(ApplicationArguments args) {

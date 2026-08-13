@@ -1,7 +1,5 @@
 package com.unbidden.telegramcoursesbot.repository;
 
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
-import com.unbidden.telegramcoursesbot.service.menu.MultipageListMeta;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +16,9 @@ import org.springframework.lang.NonNull;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Repository;
 
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
+import com.unbidden.telegramcoursesbot.menu.MultipageListMeta;
+
 @Repository
 public class InMemoryMultipageListMetaRepository implements MultipageListMetaRepository,
         AutoClearable {
@@ -29,11 +30,11 @@ public class InMemoryMultipageListMetaRepository implements MultipageListMetaRep
 
     private static final int INITIAL_EXPIRY_CHECK_DELAY = 10000;
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     private final Integer expiration;
 
-    public InMemoryMultipageListMetaRepository(@Lazy MenuService menuService,
+    public InMemoryMultipageListMetaRepository(@Lazy MenuOrchestrationService menuService,
             @Value("${telegram.bot.message.multipage.meta.expiration}") Integer expiration) {
         this.menuService = menuService;
         this.expiration = expiration;

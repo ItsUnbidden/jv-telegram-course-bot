@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.dto.internal.SessionParamsDto;
 import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.SessionException;
 import com.unbidden.telegramcoursesbot.localization.Localization;
@@ -8,21 +9,22 @@ import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Menu;
+import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
+import com.unbidden.telegramcoursesbot.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.SessionRepository;
-import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
-import com.unbidden.telegramcoursesbot.service.menu.MenuTerminationGroupKey;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
+
 import lombok.RequiredArgsConstructor;
 
-import org.apache.commons.lang3.function.TriConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
@@ -34,21 +36,18 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 public class ContentSessionServiceImpl implements ContentSessionService {
     private static final Logger LOGGER = LogManager.getLogger(ContentSessionServiceImpl.class);
 
+    private static final String SESSION_ID_PARAM = "sessionId";
+
     private final SessionRepository sessionRepository;
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     private final LocalizationLoader localizationLoader;
 
     private final ClientManager clientManager;
 
     @Override
-    public UUID createSession(UserEntity user, Bot bot, TriConsumer<UserEntity, Bot, List<Message>> function) {
-        return createSession(user, bot, function, false);
-    }
-
-    @Override
-    public UUID createSession(UserEntity user, Bot bot, TriConsumer<UserEntity, Bot, List<Message>> function,
+    public UUID createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function,
             boolean isSkippingConfirmation) {
         sessionRepository.removeUserOrChatRequestSessionsForUserInBot(user.getId(), bot);
         final List<Session> sessions = sessionRepository.findForUserInBot(user.getId(), bot);
@@ -99,12 +98,10 @@ public class ContentSessionServiceImpl implements ContentSessionService {
             commit(user, bot, session.getId());
         } else if (!contentSession.isMenuInitialized()) {
             LOGGER.trace("Sending confirmation menu...");
-            final Message menuMessage = menuService.initiateMenu(user, bot,
-                    MenuKey.COMMIT_CONTENT, contentSession.getId().toString());
+            menuService.initiateMenu(user, bot, MenuKey.COMMIT_CONTENT,
+                    SESSION_ID_PARAM, contentSession.getId().toString(), MenuTerminationGroupKey.COMMIT_CONTENT,
+                    session.getId());
             
-            menuService.addToMenuTerminationGroup(user, user,
-                    bot, menuMessage.getMessageId(), MenuTerminationGroupKey.COMMIT_CONTENT,
-                    Menu.COMMIT_CONTENT_TERMINAL_PAGE, session.getId());
             contentSession.setMenuInitialized(true);
         }
         LOGGER.trace("Session response of user " + user.getId() + " has been processed.");
@@ -116,8 +113,7 @@ public class ContentSessionServiceImpl implements ContentSessionService {
 
         LOGGER.trace("Removing sessions for user " + user.getId() + "...");
         if (!session.isSkippingConfirmation()) {
-            menuService.terminateMenuGroup(user, bot,
-            MenuTerminationGroupKey.COMMIT_CONTENT, session.getId());
+            menuService.terminateMenuGroup(MenuTerminationGroupKey.COMMIT_CONTENT, session.getId());
         }
         removeSessionsForUserInBot(user, bot);
         LOGGER.trace("All sessions have been removed for user. Executing content session "
@@ -133,7 +129,7 @@ public class ContentSessionServiceImpl implements ContentSessionService {
         LOGGER.trace("Removing sessions for user " + user.getId()
                 + " and recreating session...");
         if (!session.isSkippingConfirmation()) {
-            menuService.terminateMenuGroup(user, bot, MenuTerminationGroupKey.COMMIT_CONTENT,
+            menuService.terminateMenuGroup(MenuTerminationGroupKey.COMMIT_CONTENT,
                     localizationLoader.localize(Menu.COMMIT_CONTENT_RESEND_TERMINAL_PAGE, user), session.getId());
         }
         removeSessionsForUserInBot(user, bot);
@@ -156,7 +152,7 @@ public class ContentSessionServiceImpl implements ContentSessionService {
         final ContentSession session = (ContentSession)getSession(sessionId, user);
 
         if (!session.isSkippingConfirmation()) {
-            menuService.terminateMenuGroup(user, bot, MenuTerminationGroupKey.COMMIT_CONTENT,
+            menuService.terminateMenuGroup(MenuTerminationGroupKey.COMMIT_CONTENT,
                     localizationLoader.localize(Menu.COMMIT_CONTENT_CANCEL_TERMINAL_PAGE, user), session.getId());
         }
         removeSessionsForUserInBot(user, bot);

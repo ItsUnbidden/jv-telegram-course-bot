@@ -11,11 +11,11 @@ import org.springframework.stereotype.Service;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.repository.UserRepository;
 import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.statistics.StatisticsService;
 
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ public class StatisticsOrchestrationService {
 
     private final StatisticsService statisticsService;
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     private final ContentService contentService;
 

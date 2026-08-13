@@ -20,7 +20,6 @@ import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -150,7 +149,7 @@ public class SupportService {
     }
 
     @Transactional(readOnly = true)
-    public boolean isUserEligibleForSupport(@NonNull UserEntity user, @NonNull Bot bot) {
+    public boolean isUserEligibleForSupport(UserEntity user, Bot bot) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
 

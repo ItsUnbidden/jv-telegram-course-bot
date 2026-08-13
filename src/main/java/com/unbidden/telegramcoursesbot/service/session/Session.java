@@ -1,14 +1,13 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
+import com.unbidden.telegramcoursesbot.dto.internal.SessionParamsDto;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
-import lombok.Data;
+import java.util.function.Consumer;
 
-import org.apache.commons.lang3.function.TriConsumer;
-import org.telegram.telegrambots.meta.api.objects.message.Message;
+import lombok.Data;
 
 @Data
 public abstract class Session {
@@ -20,5 +19,5 @@ public abstract class Session {
 
     private LocalDateTime timestamp;
 
-    private TriConsumer<UserEntity, Bot, List<Message>> function;
+    private Consumer<SessionParamsDto> function;
 }

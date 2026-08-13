@@ -43,6 +43,11 @@ public class LessonService {
         return lessonRepository.findByCourseIdOrderByPosition(courseId);
     }
 
+    @Transactional(readOnly = true)
+    public long countByCourse(Long courseId) {
+        return lessonRepository.countByCourseId(courseId);
+    }
+
     @Transactional
     public Lesson addContent(UserEntity user, Bot bot, Long lessonId, List<Message> messages) {
         Assert.notNull(lessonId, "lessonId cannot be null");

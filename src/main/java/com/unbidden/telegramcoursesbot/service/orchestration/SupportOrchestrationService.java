@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.orchestration;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,15 +16,15 @@ import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
+import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
+import com.unbidden.telegramcoursesbot.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.SupportMessage;
 import com.unbidden.telegramcoursesbot.model.SupportReply;
 import com.unbidden.telegramcoursesbot.model.SupportRequest;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
-import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
-import com.unbidden.telegramcoursesbot.service.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.service.support.SupportService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
@@ -34,9 +35,12 @@ import lombok.RequiredArgsConstructor;
 public class SupportOrchestrationService {
     private static final Logger LOGGER = LogManager.getFormatterLogger(SupportOrchestrationService.class);
 
+    private static final String REQUEST_ID_PARAM = "requestId";
+    private static final String REPLY_ID_PARAM = "replyId";
+
     private final SupportService supportService;
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     private final ContentService contentService;
 
@@ -82,8 +86,7 @@ public class SupportOrchestrationService {
 
         LOGGER.debug("New reply from user " + user.getFullName() + " to request "
                 + reply.getRequest().getId() + " has been created. Terminating outdated menus...");
-        menuService.terminateMenuGroup(reply.getRequest().getUser(), bot,
-                MenuTerminationGroupKey.SUPPORT_REPLY, reply.getRequest().getId());
+        menuService.terminateMenuGroup(MenuTerminationGroupKey.SUPPORT_REPLY, reply.getRequest().getId());
         LOGGER.debug("Reply menus removed. Sending content...");
 
         sendSupportReply(reply.getRequest().getUser(), bot, new Localizations.Service.SupportReplyInfoParams(
@@ -140,7 +143,7 @@ public class SupportOrchestrationService {
                     + "so only one message was sent.");
         }
         try {
-            menuService.terminateMenuGroup(request.getUser(), bot, MenuTerminationGroupKey.SUPPORT_REPLY, request.getId());
+            menuService.terminateMenuGroup(MenuTerminationGroupKey.SUPPORT_REPLY, request.getId());
             LOGGER.debug("Some reply menus were terminated.");
         } catch (EntityNotFoundException e) {
             LOGGER.debug("No menus to terminate.");
@@ -154,6 +157,9 @@ public class SupportOrchestrationService {
      * TODO: figure out what the purpose of this is.
      */
     public SupportMessage getLastReplyForUser(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        
         final List<SupportRequest> requests = supportService.getUnresolvedRequestsForUserInBot(user, bot);
 
         if (requests.isEmpty()) {
@@ -186,7 +192,24 @@ public class SupportOrchestrationService {
     }
     
     public boolean checkifUserIsStaffMember(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
         return supportService.checkifUserIsStaffMember(user, bot);
+    }
+
+    public boolean isUserEligibleForSupport(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
+        return supportService.isUserEligibleForSupport(user, bot);
+    }
+
+    public List<SupportRequest> getUnresolvedRequestsForUserInBot(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        
+        return supportService.getUnresolvedRequestsForUserInBot(user, bot);
     }
 
     private void sendSupportRequest(UserEntity target, Bot bot, Localizations.Service.SupportInfoParams params,
@@ -205,10 +228,8 @@ public class SupportOrchestrationService {
             menuMessage = sendContent.get(0);
         }
 
-        menuService.initiateMenu(target, bot, MenuKey.SUPPORT_REPLY, request.getId().toString(),
+        menuService.initiateMenu(target, bot, MenuKey.SUPPORT_REPLY, REQUEST_ID_PARAM, request.getId().toString(),
                 menuMessage.getMessageId());
-        menuService.addToMenuTerminationGroup(request.getUser(), target, bot,
-                menuMessage.getMessageId(), MenuTerminationGroupKey.SUPPORT_REPLY, request.getId());
     }
 
     private void sendSupportReply(UserEntity target, Bot bot, Localizations.Service.SupportReplyInfoParams params,
@@ -227,7 +248,10 @@ public class SupportOrchestrationService {
             menuMessage = sendContent.get(0);
         }
 
-        menuService.initiateMenu(target, bot, MenuKey.SUPPORT_REPLY_TO_REPLY, reply.getId().toString(),
-                menuMessage.getMessageId());
+        menuService.initiateMenu(target, bot, MenuKey.SUPPORT_REPLY_TO_REPLY, 0,
+                Map.of(
+                    REPLY_ID_PARAM, reply.getId().toString(),
+                    REQUEST_ID_PARAM, reply.getRequest().getId().toString()
+                ), menuMessage.getMessageId());
     }
 }

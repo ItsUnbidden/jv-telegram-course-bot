@@ -42,7 +42,6 @@ button remove_content_from_lesson
 button update_homework_content
 button homework_settings
 button create_new_course
-button mapping_text_toggle
 button add_mapping_localization
 button remove_mapping_localization
 button resend_content

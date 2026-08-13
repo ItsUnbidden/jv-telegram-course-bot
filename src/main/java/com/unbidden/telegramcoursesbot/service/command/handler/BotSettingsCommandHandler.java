@@ -1,10 +1,10 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
+import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import java.util.List;
@@ -17,7 +17,7 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 public class BotSettingsCommandHandler implements CommandHandler {
     private static final String COMMAND = "/botsettings";
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     private final EntityUtil entityUtil;
 

@@ -3,10 +3,10 @@ package com.unbidden.telegramcoursesbot.repository;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Menu;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
+import com.unbidden.telegramcoursesbot.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
-import com.unbidden.telegramcoursesbot.service.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.service.session.ContentSession;
 import com.unbidden.telegramcoursesbot.service.session.Session;
 import com.unbidden.telegramcoursesbot.service.session.UserOrChatRequestSession;
@@ -38,7 +38,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     private static final ConcurrentMap<Long, List<Session>> sessionsIndexedByUser =
             new ConcurrentHashMap<>();
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -71,14 +71,13 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
                     .getTimestamp().plusSeconds(expiration))) {
                 if (entry.getValue() instanceof ContentSession) {
                     try {
-                        menuService.terminateMenuGroup(entry.getValue().getUser(),
-                                entry.getValue().getBot(), MenuTerminationGroupKey.COMMIT_CONTENT, localizationLoader
+                        menuService.terminateMenuGroup(MenuTerminationGroupKey.COMMIT_CONTENT, localizationLoader
                                 .localize(Menu.COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE, entry.getValue().getUser()),
                                 entry.getValue().getId());
-                        LOGGER.debug("An MTG for session " + entry.getValue().getId()
-                                + " was terminated after the session expired.");
+                        LOGGER.debug("An menu group for session " + entry.getValue().getId()
+                                + " has been terminated after the session expired.");
                     } catch (EntityNotFoundException e) {
-                        LOGGER.debug("There is no MTG for session "
+                        LOGGER.debug("There is no menu group for session "
                                 + entry.getValue().getId() + ".");
                     }
                 }

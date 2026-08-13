@@ -7,6 +7,7 @@ import com.unbidden.telegramcoursesbot.exception.ExceptionHandlerManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error.AccessDeniedParams;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.Authority;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
@@ -14,7 +15,6 @@ import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.BotRoleRepository;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import java.util.ArrayList;
@@ -34,7 +34,7 @@ public class SecurityService {
 
     private final ExceptionHandlerManager exceptionHandlerManager;
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     private final LocalizationLoader localizationLoader;
 

@@ -16,6 +16,9 @@ import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.mapper.HomeworkMapper;
+import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
+import com.unbidden.telegramcoursesbot.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
@@ -25,9 +28,6 @@ import com.unbidden.telegramcoursesbot.model.HomeworkProgress.Status;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
-import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
-import com.unbidden.telegramcoursesbot.service.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.service.timing.TimingService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
@@ -36,13 +36,16 @@ import com.unbidden.telegramcoursesbot.util.EntityUtil;
 public class HomeworkOrchestrationService {
     private static final Logger LOGGER = LogManager.getFormatterLogger(HomeworkOrchestrationService.class);
 
+    private static final String PROGRESS_ID_PARAM = "progressId";
+    private static final String LESSON_ID_PARAM = "lessonId";
+
     private final HomeworkService homeworkService;
 
     private final TimingService timingService;
 
     private final ContentService contentService;
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     private final UserService userService;
 
@@ -57,7 +60,7 @@ public class HomeworkOrchestrationService {
     private final CourseOrchestrationService courseService;
 
     public HomeworkOrchestrationService(HomeworkService homeworkService, TimingService timingService,
-            ContentService contentService, MenuService menuService, UserService userService,
+            ContentService contentService, MenuOrchestrationService menuService, UserService userService,
             HomeworkMapper mapper, LocalizationLoader localizationLoader, ClientManager clientManager,
             EntityUtil entityUtil, @Lazy CourseOrchestrationService courseService) {
         this.homeworkService = homeworkService;
@@ -145,8 +148,7 @@ public class HomeworkOrchestrationService {
             courseService.next(user, bot, progress.getHomework().getLesson().getCourse().getId(),
                     progress.getHomework().getLesson().getId());
         }
-        menuService.terminateMenuGroup(progress.getUser(), bot,
-                MenuTerminationGroupKey.SEND_HOMEWORK, progress.getId());
+        menuService.terminateMenuGroup(MenuTerminationGroupKey.SEND_HOMEWORK, progress.getId());
     }
 
     public void approve(UserEntity mentor, Bot bot, UserEntity target,
@@ -164,9 +166,9 @@ public class HomeworkOrchestrationService {
 
             progress = homeworkService.approve(mentor, bot, target, homeworkId, adminComment);
 
-            menuService.terminateMenuGroup(progress.getUser(), bot,
-                    MenuTerminationGroupKey.REQUEST_FEEDBACK, progress.getId());
-            final String courseName = contentService.getLocalizedText(target, bot, progress.getHomework().getLesson().getCourse().getTitle().getId());
+            menuService.terminateMenuGroup(MenuTerminationGroupKey.REQUEST_FEEDBACK, progress.getId());
+            final String courseName = contentService.getLocalizedText(target, bot,
+                    progress.getHomework().getLesson().getCourse().getTitle().getId());
 
             if (!adminComment.isEmpty()) {
                 clientManager.getClient(bot).sendMessage(target, localizationLoader.localize(
@@ -208,8 +210,7 @@ public class HomeworkOrchestrationService {
 
             progress = homeworkService.decline(mentor, bot, target, homeworkId, adminComment);
 
-            menuService.terminateMenuGroup(progress.getUser(), bot,
-                    MenuTerminationGroupKey.REQUEST_FEEDBACK, progress.getId());
+            menuService.terminateMenuGroup(MenuTerminationGroupKey.REQUEST_FEEDBACK, progress.getId());
             final String courseName = contentService.getLocalizedText(target, bot, progress.getHomework().getLesson().getCourse().getTitle().getId());
 
             clientManager.getClient(bot).sendMessage(target, localizationLoader.localize(
@@ -266,10 +267,8 @@ public class HomeworkOrchestrationService {
                         + "is not a media group. Menu will be attached to it.");    
                 menuMessage = sentContent.get(0);
             }
-            menuService.initiateMenu(mentor, bot, MenuKey.REQUEST_FEEDBACK, progress.getId().toString(),
-                    menuMessage.getMessageId());
-            menuService.addToMenuTerminationGroup(progress.getUser(), mentor, bot,
-                    menuMessage.getMessageId(), MenuTerminationGroupKey.REQUEST_FEEDBACK, progress.getId());
+            menuService.initiateMenu(mentor, bot, MenuKey.REQUEST_FEEDBACK, PROGRESS_ID_PARAM,
+                    progress.getId().toString(), menuMessage.getMessageId(), MenuTerminationGroupKey.REQUEST_FEEDBACK, progress.getId());
             LOGGER.debug("Feedback menu has been initialized for user " + mentor.getId() + ".");
         }
         return true;
@@ -314,10 +313,10 @@ public class HomeworkOrchestrationService {
                 final Message message = clientManager.getClient(bot).sendMessage(user,
                         localizationLoader.localize(Error.HOMEWORK_ALREADY_COMPLETED, user));
 
-                menuService.initiateMenu(user, bot, MenuKey.COURSE_NEXT_STAGE,
-                        homework.getLesson().getId().toString(), message.getMessageId());
-                menuService.addToMenuTerminationGroup(user, user, bot, message.getMessageId(),
+                menuService.initiateMenu(user, bot, MenuKey.COURSE_NEXT_STAGE, LESSON_ID_PARAM,
+                        homework.getLesson().getId().toString(), message.getMessageId(),
                         MenuTerminationGroupKey.COURSE_NEXT_STAGE, courseProgress.getId());
+                
                 return true;
             default:
                 return false;
@@ -342,9 +341,7 @@ public class HomeworkOrchestrationService {
                     + "Menu will be attached to it.");    
             menuMessage = sentContent.get(0);
         }
-        menuService.initiateMenu(user, bot, MenuKey.SEND_HOMEWORK, progress.getId().toString(),
-                menuMessage.getMessageId());
-        menuService.addToMenuTerminationGroup(user, user, bot, menuMessage.getMessageId(),
-                MenuTerminationGroupKey.SEND_HOMEWORK, progress.getId());
+        menuService.initiateMenu(user, bot, MenuKey.SEND_HOMEWORK, PROGRESS_ID_PARAM,
+                progress.getId().toString(), menuMessage.getMessageId(), MenuTerminationGroupKey.SEND_HOMEWORK, progress.getId());
     }
 }

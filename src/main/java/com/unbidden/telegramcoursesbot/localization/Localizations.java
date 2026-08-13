@@ -46,7 +46,7 @@ public final class Localizations {
 
     public static enum Menu implements LocalizationKey {
         /**
-         * This is a generic localization that is intended to be used with {@code getGenericLocalization} method in {@link LocalizationLoader}.
+         * This is a generic localization that is intended to be used with {@code localizeGeneric} method in {@link LocalizationLoader}.
          * It requires a <b>lowercase command name without the {@code /}</b> to be passed as an argument.
          */
         COMMAND_DESCRIPTION("menu_command_%s_description"),
@@ -54,11 +54,11 @@ public final class Localizations {
         ADMIN_ACTIONS_PAGE_1("menu_admin_actions_page_1"),
         ADMIN_ACTIONS_PAGE_2("menu_admin_actions_page_2"),
         ADMIN_ACTIONS_PAGE_3("menu_admin_actions_page_3"),
-        AVAILABLE_COURSES_PAGE_0("menu_available_courses_page_0"),
-        COURSES_PAGE_1("menu_courses_page_1"),
         COURSES_PAGE_0("menu_courses_page_0"),
+        COURSES_PAGE_1("menu_courses_page_1"),
         BOT_PAGE_0("menu_bot_page_0"),
         BOT_PAGE_1("menu_bot_page_1"),
+        LANGUAGE_PAGE_0("menu_language_page_0"),
         MY_COURSES_PAGE_0("menu_my_courses_page_0"),
         MY_COURSES_PAGE_1("menu_my_courses_page_1"),
         MY_COURSES_PAGE_2("menu_my_courses_page_2"),
@@ -66,6 +66,47 @@ public final class Localizations {
         MY_COURSES_PAGE_4("menu_my_courses_page_4"),
         MY_COURSES_PAGE_5("menu_my_courses_page_5"),
         MY_COURSES_PAGE_6("menu_my_courses_page_6"),
+        MY_COURSES_PAGE_7("menu_my_courses_page_7"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>mappingId</li>
+         *  <li>position</li>
+         *  <li>content</li>
+         * </ls>
+         */
+        MAPPING_SETTINGS_PAGE_0("menu_mapping_settings_page_0"),
+        STATISTICS_PAGE_0("menu_statistics_page_0"),
+        STATISTICS_PAGE_1("menu_statistics_page_1"),
+        STATISTICS_PAGE_2("menu_statistics_page_2"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>usersOnStage</li>
+         * </ls>
+         */
+        STATISTICS_PAGE_3("menu_statistics_page_3"),
+        LEAVE_BASIC_REVIEW_PAGE_0("menu_leave_basic_review_page_0"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        LEAVE_BASIC_REVIEW_TERMINAL_PAGE("menu_leave_basic_review_terminal_page"),
+        GENERAL_BAN_PAGE_0("menu_general_ban_page_0"),
+        GENERAL_BAN_PAGE_1("menu_general_ban_page_1"),
+        GENERAL_POST_PAGE_0("menu_general_post_page_0"),
+        FILES_PAGE_0("menu_files_page_0"),
+        GET_REVIEWS_PAGE_0("menu_get_reviews_page_0"),
+        GET_REVIEWS_PAGE_1("menu_get_reviews_page_1"),
+        POST_PAGE_0("menu_post_page_0"),
+        POST_PAGE_1("menu_post_page_1"),
+        REFRESH_PAGE_0("menu_refresh_page_0"),
+        SUPPORT_REQUEST_PAGE_0("menu_support_request_page_0"),
+        SUPPORT_REQUEST_PAGE_1("menu_support_request_page_1"),
+        SUPPORT_REQUEST_TERMINAL_PAGE("menu_support_request_terminal_page"),
+        RESOLVE_LAST_SUPPORT_REQUEST("button_resolve_last_support_request"),
         CONTENT_ACTIONS_PAGE_0("menu_content_actions_page_0"),
         COURSE_SETTINGS_PAGE_0("menu_course_settings_page_0"),
         /**
@@ -130,15 +171,23 @@ public final class Localizations {
             return locName;
         }
 
-        public static record CourseSettingsPage1(long id, String localizedTitle, long titleId, String descriptionId, String endMappingId, PaymentType paymentType,
+        public static record CourseSettingsPage1Params(long id, String localizedTitle, long titleId, String descriptionId, String endMappingId, PaymentType paymentType,
                 int numberOfLessons, int price, String refundStage, String externalStoreUrl,
                 String externalInvoiceMappingId, boolean isHomeworkIncluded, boolean isFeedbackIncluded) {}
-        public static record CourseSettingsPage3(long lessonId, int index, String homeworkId, String delay, String nextLessonTitleMappingId, List<Long> mappingIds) {}
-        public static record CourseSettingsPage4(long homeworkId, long lessonId, String delay, long homeworkMappingId, String homeworkMediaTypes,
+        public static record CourseSettingsPage3Params(long lessonId, int index, String homeworkId, String delay, String nextLessonTitleMappingId, List<Long> mappingIds) {}
+        public static record CourseSettingsPage4Params(long homeworkId, long lessonId, String delay, long homeworkMappingId, String homeworkMediaTypes,
                 boolean homeworkFeedback, boolean homeworkRepeatedCompletion) {}
+        public static record LeaveBasicReviewTerminalPageParams(String courseName) {}
+        public static record MappingSettingsPage0Params(long mappingId, int position, String content) {}
+        public static record StatisticsPage3Params(String usersOnStage) {}
     }
 
     public static enum Button implements LocalizationKey {
+        /**
+         * This is a generic localization that is intended to be used with {@code localizeGeneric} method in {@link LocalizationLoader}.
+         * It requires a <b>lowercase language code</b> to be passed as an argument.
+         */
+        LANGUAGE_CODE("service_language_code_%s"),
         BAN_OPTIONS("button_ban_options"),
         TOGGLE_RECEIVE_HOMEWORK("button_toggle_receive_homework"),
         LIST_ADMINS("button_list_admins"),
@@ -187,10 +236,49 @@ public final class Localizations {
         UPDATE_PLATFORM_GRADE("button_update_platform_grade"),
         UPDATE_COURSE_GRADE("button_update_course_grade"),
         LEAVE_REVIEW("button_leave_review"),
-        UPDATE_BASIC_REVIEW_LEAVE_ADVANCED_OPTIONS("button_update_basic_review_and_leave_advanced_options"),
         UPDATE_REVIEW_OPTIONS("button_update_review_options"),
         BEGIN_COURSE("button_begin_course"),
         REFUND("button_refund"),
+        EXTERNAL_INVOICE_MORE_INFO("button_external_invoice_more_info"),
+        DELETE_INVOICE_IMAGE("button_delete_invoice_image"),
+        UPLOAD_IMAGE_FILE("button_upload_image_file"),
+        UPLOAD_LOCALIZATION_FILE("button_upload_localization_file"),
+        POST_CUSTOM_ROLE_SET("button_post_custom_role_set"),
+        GET_ARCHIVE_REVIEWS("button_get_archive_reviews"),
+        GET_NEW_REVIEWS("button_get_new_reviews"),
+        ALL_COURSES_REVIEWS("button_all_courses_reviews"),
+        DEFAULT_LANGUAGE_CODE("button_default_language_code"),
+        REMOVE_MAPPING_LOCALIZATION("button_remove_mapping_localization"),
+        ADD_MAPPING_LOCALIZATION("button_add_mapping_localization"),
+        SEND_PRIVATE_MESSAGE("button_send_private_message"),
+        POST_OPTIONS("button_post_options"),
+        MENUS_REFRESH("button_menus_refresh"),
+        DESC_NAME_REFRESH("button_desc_name_refresh"),
+        LOCALIZATIONS_REFRESH("button_localizations_refresh"),
+        ACCEPT_HOMEWORK_WITH_COMMENT("button_accept_homework_with_comment"),
+        ACCEPT_HOMEWORK("button_accept_homework"),
+        GENERAL_ACCEPT_HOMEWORK("button_general_accept_homework"),
+        DECLINE_HOMEWORK("button_decline_homework"),
+        LEAVE_REVIEW_COMMENT("button_leave_review_comment"),
+        GET_REVIEW_COMMENT("button_get_review_comment"),
+        MARK_REVIEW_AS_READ("button_mark_review_as_read"),
+        UPDATE_COMMENT("button_update_comment"),
+        SEND_HOMEWORK("button_send_homework"),
+        COURSE_STATISTICS("button_course_statistics"),
+        BOT_USERS_STATISTICS("button_bot_users_statistics"),
+        COURSE_USERS_STATISTICS("button_course_users_statistics"),
+        GENERAL_BOT_STATISTICS("button_general_bot_statistics"),
+        COURSE_USERS_BY_STAGE("button_course_users_by_stage"),
+        COURSE_COMPLETED_USERS("button_course_completed_users"),
+        COURSE_ALL_USERS("button_course_all_users"),
+        REPLY_TO_SUPPORT_REQUEST("button_reply_to_support_request"),
+        REPLY_TO_SUPPORT_REPLY("button_reply_to_support_reply"),
+        RESOLVE_SUPPORT_REQUEST("button_resolve_support_request"),
+        RESOLVE_LAST_SUPPORT_REQUEST("button_resolve_last_support_request"),
+        /**
+         * A test localization. Is not used in any production systems.
+         */
+        TEST_MENU("button_test_menu"),
         BY_ID("button_by_id");
 
         private String locName;
@@ -206,7 +294,7 @@ public final class Localizations {
 
     public static enum Service implements LocalizationKey {
         /**
-         * This is a generic localization that is intended to be used with {@code getGenericLocalization} method in {@link LocalizationLoader}.
+         * This is a generic localization that is intended to be used with {@code localizeGeneric} method in {@link LocalizationLoader}.
          * It requires a <b>lowercase role type</b> to be passed as an argument.
          */
         ROLE_TITLE("service_role_%s_title"),
@@ -953,6 +1041,7 @@ public final class Localizations {
         AMOUNT_OF_MESSAGES("error_amount_of_messages"),
         TEXT_MESSAGE_EXPECTED("error_text_message_expected"),
         FAILED_ADVANCE_TO_NEXT_LESSON("error_failed_advance_to_next_lesson"),
+        STALE_MENU("error_stale_menu"),
         DIRECTOR_BAN("error_director_ban");
         
         private String locName;

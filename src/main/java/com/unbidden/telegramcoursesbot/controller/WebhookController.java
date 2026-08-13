@@ -6,10 +6,10 @@ import com.unbidden.telegramcoursesbot.exception.ExceptionHandlerManager;
 import com.unbidden.telegramcoursesbot.exception.OnMaintenanceException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
 import com.unbidden.telegramcoursesbot.service.orchestration.PaymentOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.session.SessionDistributor;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
@@ -46,7 +46,7 @@ public class WebhookController {
 
     private final PaymentOrchestrationService paymentService;
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     private final SessionDistributor sessionDistributor;
 
@@ -121,7 +121,7 @@ public class WebhookController {
                 LOGGER.debug("Update with a callback query triggered by user "
                         + user.getId() + " in bot " + bot.getId() + ". Button "
                         + update.getCallbackQuery().getData() + ".");
-                menuService.processCallbackQuery(update.getCallbackQuery(), bot);
+                menuService.processCallbackQuery(user, bot, update.getCallbackQuery());
             } else if (update.hasMessage()) {
                 user = userService.initializeUserForBot(update.getMessage().getFrom(), bot);
                 if (user.isBanned()) {
@@ -195,7 +195,7 @@ public class WebhookController {
 
                 LOGGER.debug("Update with callback query was sent in bot lord. Button "
                         + update.getCallbackQuery().getData() + ".");
-                menuService.processCallbackQuery(update.getCallbackQuery(), bot);
+                menuService.processCallbackQuery(user, bot, update.getCallbackQuery());
             } else if (update.hasMessage()) {
                 user = userService.initializeUserForBot(update.getMessage().getFrom(), bot);
                 if (!isDirector(user)) {

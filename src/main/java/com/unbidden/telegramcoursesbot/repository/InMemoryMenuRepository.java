@@ -1,13 +1,13 @@
 package com.unbidden.telegramcoursesbot.repository;
 
-import com.unbidden.telegramcoursesbot.service.menu.Menu;
-import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
-
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
+
+import com.unbidden.telegramcoursesbot.menu.Menu;
+import com.unbidden.telegramcoursesbot.menu.MenuKey;
 
 @Repository
 public class InMemoryMenuRepository implements MenuRepository {

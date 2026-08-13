@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
 import com.unbidden.telegramcoursesbot.dto.internal.CourseMenuDto;
+import com.unbidden.telegramcoursesbot.dto.internal.UsersByCourseStageCountDto;
 import com.unbidden.telegramcoursesbot.exception.OnMaintenanceException;
 import com.unbidden.telegramcoursesbot.exception.RefundImpossibleException;
 import com.unbidden.telegramcoursesbot.exception.StaleStateException;
@@ -129,6 +130,11 @@ public class CourseService {
             return progressOpt.get().getNumberOfTimesCompleted() > 0;
         }
         return false;
+    }
+
+    @Transactional(readOnly = true)
+    public List<UsersByCourseStageCountDto> countAndGroupByCourseStage(Long courseId) {
+        return courseProgressRepository.countAndGroupByCourseStage(courseId);
     }
 
     @Transactional

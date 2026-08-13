@@ -29,4 +29,8 @@ public class LessonOrchestrationService {
     public List<LessonResponseDto> getCourseLessons(Long courseId) {
         return lessonService.getCourseLessons(courseId).stream().map(mapper::toDto).toList();
     }
+
+    public long countByCourse(Long courseId) {
+        return lessonService.countByCourse(courseId);
+    }
 }

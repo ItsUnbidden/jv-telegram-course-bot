@@ -1,11 +1,12 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
+import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
+
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
@@ -17,7 +18,7 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 public class FilesCommandHandler implements CommandHandler {
     private static final String COMMAND = "/files";
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     @Override
     @Security(authorities = AuthorityType.MAINTENANCE, isBotLordOnly = true)

@@ -12,12 +12,16 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dto.CourseResponseDto;
 import com.unbidden.telegramcoursesbot.dto.internal.CourseMenuDto;
+import com.unbidden.telegramcoursesbot.dto.internal.UsersByCourseStageCountDto;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.mapper.CourseMapper;
+import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
+import com.unbidden.telegramcoursesbot.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
@@ -26,9 +30,6 @@ import com.unbidden.telegramcoursesbot.model.LessonTrigger;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
-import com.unbidden.telegramcoursesbot.service.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.service.timing.TimingService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
@@ -39,6 +40,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CourseOrchestrationService {
     private static final Logger LOGGER = LogManager.getLogger(CourseOrchestrationService.class);
+    
+    private static final String LESSON_ID_PARAM = "lessonId";
 
     private final CourseService courseService;
 
@@ -50,7 +53,7 @@ public class CourseOrchestrationService {
 
     private final ContentService contentService;
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     private final ReviewOrchestrationService reviewService;
 
@@ -116,6 +119,10 @@ public class CourseOrchestrationService {
         return courseService.getCourseMenuDtoForCourse(user, bot, courseId);
     }
 
+    public List<UsersByCourseStageCountDto> countAndGroupByCourseStage(Long courseId) {
+        return courseService.countAndGroupByCourseStage(courseId);
+    }
+
     public void initCourse(UserEntity user, Bot bot, Long courseId) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
@@ -147,7 +154,7 @@ public class CourseOrchestrationService {
         final CourseProgress progress = courseService.incrementStage(user, bot, courseId, currentLessonId);
         LOGGER.debug("Course stage incremented and progress saved.");
 
-        menuService.terminateMenuGroup(user, bot, MenuTerminationGroupKey.COURSE_NEXT_STAGE, progress.getId());
+        menuService.terminateMenuGroup(MenuTerminationGroupKey.COURSE_NEXT_STAGE, progress.getId());
 
         if (progress.getStage() >= progress.getCourse().getNumberOfLessons()) {
             LOGGER.info("User " + user.getId() + " has completed course " + courseId
@@ -309,9 +316,7 @@ public class CourseOrchestrationService {
         }
 
         menuService.initiateMenu(progress.getUser(), progress.getCourse().getBot(), MenuKey.COURSE_NEXT_STAGE,
-                lesson.getId().toString(), menuMessage.getMessageId());
-        menuService.addToMenuTerminationGroup(progress.getUser(), progress.getUser(),
-                progress.getCourse().getBot(), menuMessage.getMessageId(),
+                LESSON_ID_PARAM, lesson.getId().toString(), menuMessage.getMessageId(),
                 MenuTerminationGroupKey.COURSE_NEXT_STAGE, progress.getId());
         LOGGER.debug("Next lesson menu sent.");
     }

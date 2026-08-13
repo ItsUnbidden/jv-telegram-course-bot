@@ -15,4 +15,6 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     @EntityGraph(attributePaths = {"course", "structure", "homework"})
     Optional<Lesson> findById(Long id);
+
+    long countByCourseId(Long courseId);
 }

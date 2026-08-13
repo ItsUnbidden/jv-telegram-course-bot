@@ -1,5 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
+import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.model.Bot;
@@ -7,9 +9,10 @@ import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership.OwnershipStatus;
 import com.unbidden.telegramcoursesbot.repository.CourseOwnershipRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
-import com.unbidden.telegramcoursesbot.service.menu.MenuKey;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
+
 import java.util.List;
+import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
@@ -23,7 +26,7 @@ public class CourseCommandHandler implements CommandHandler {
 
     private final CourseRepository courseRepository;
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     @Override
     @Security(authorities = {AuthorityType.BUY, AuthorityType.LAUNCH_COURSE,
@@ -33,13 +36,13 @@ public class CourseCommandHandler implements CommandHandler {
                 user.getId(), bot.getId(), OwnershipStatus.ACTIVE);
 
         if (numberOfOwnedCourses == 0) {
-            menuService.initiateMenu(user, bot, MenuKey.AVAILABLE_COURSES);
+            menuService.initiateMenu(user, bot, MenuKey.COURSES, 1, Map.of());
             return;
         }
         final long numberOfCoursesInBot = courseRepository.countByBotId(bot.getId());
 
         if (numberOfCoursesInBot - numberOfOwnedCourses < 1) {
-            menuService.initiateMenu(user, bot, MenuKey.MY_COURSES);
+            menuService.initiateMenu(user, bot, MenuKey.COURSES, 2, Map.of());
             return;
         }
         menuService.initiateMenu(user, bot, MenuKey.COURSES);

@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
+import com.unbidden.telegramcoursesbot.dto.internal.SessionParamsDto;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.SessionRepository;
@@ -7,9 +8,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
+
 import lombok.RequiredArgsConstructor;
 
-import org.apache.commons.lang3.function.TriConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
@@ -24,7 +26,7 @@ public class UserOrChatRequestSessionService implements SessionService {
     private final SessionRepository sessionRepository;
 
     @Override
-    public UUID createSession(UserEntity user, Bot bot, TriConsumer<UserEntity, Bot, List<Message>> function) {
+    public UUID createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function) {
         sessionRepository.removeContentSessionsForUserInBot(user.getId(), bot);
 
         LOGGER.debug("Creating new user or chat request session for user "
@@ -50,6 +52,6 @@ public class UserOrChatRequestSessionService implements SessionService {
     @Override
     public void processResponse(UserEntity user, Bot bot, Session session, Message message) {
         removeSessionsForUserInBot(user, bot);
-        session.getFunction().accept(user, bot, List.of(message));
+        session.getFunction().accept(new SessionParamsDto(user, bot, List.of(message)));
     }
 }
