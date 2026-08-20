@@ -1,40 +1,35 @@
 package com.unbidden.telegramcoursesbot.service.user;
 
-import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
-import com.unbidden.telegramcoursesbot.model.BanTrigger;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.BotRole;
-import com.unbidden.telegramcoursesbot.model.Role;
 import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.BotRoleRepository;
 import com.unbidden.telegramcoursesbot.repository.UserRepository;
 import com.unbidden.telegramcoursesbot.service.timing.TimingService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
+import com.unbidden.telegramcoursesbot.util.TextUtil;
 
 import java.util.List;
 import java.util.Optional;
+
 import lombok.RequiredArgsConstructor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.objects.User;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
     private static final Logger LOGGER = LogManager.getLogger(UserService.class);
-
-    private static final String LANGUAGE_PRIORITY_DIVIDER = ",";
 
     private final UserRepository userRepository;
 
@@ -46,18 +41,21 @@ public class UserService {
 
     private final EntityUtil entityUtil;
 
-    @Autowired
-    @Lazy
-    private ClientManager clientManager;
+    private final TextUtil textUtil;
 
     @Value("${telegram.bot.authorization.director.id}")
     private Long directorId;
 
-    @Value("${telegram.bot.message.language.priority}")
-    private String languagePriorityStr;
+    @Transactional(readOnly = true)
+    public List<UserEntity> getHomeworkReceivingUsers(Bot bot) {
+        return userRepository.findByReceivingHomeworkInBot(bot.getId());
+    }
 
     @Transactional
     public UserEntity initializeUserForBot(User rawUser, Bot bot) {
+        Assert.notNull(rawUser, "rawUser cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
         final UserEntity user = updateUser(rawUser);
 
         if (botRoleRepository.existsByBotIdAndUserId(bot.getId(), user.getId())) {
@@ -67,69 +65,80 @@ public class UserService {
         LOGGER.debug("New user " + user.getId() + " is being registered in bot " + bot.getId() + "...");
         botRoleRepository.save(new BotRole(bot, user, entityUtil.getRole(RoleType.USER), false));
         LOGGER.debug("User " + user.getId() + " has been registered in bot " + bot.getId() + ".");
+        
         return user;
     }
 
+    @Transactional
     public UserEntity createDummyDirector() {
         final Optional<UserEntity> potentialDirector = userRepository.findById(directorId);
+
         if (potentialDirector.isPresent()) {
             return potentialDirector.get();
         }
         LOGGER.info("Creating dummy director for the time being...");
         final UserEntity director = new UserEntity();
+
         director.setId(directorId);
         director.setFirstName("director");
         director.setLanguageCode("en");
         director.setBanned(false);
+
         userRepository.save(director);
         LOGGER.info("Temporary director dummy created with id " + directorId);
+
         return director;
     }
 
-    public BotRole setRole(UserEntity user, UserEntity target, Bot bot, Role role) {
-        final BotRole botRole = entityUtil.getBotRole(target, bot);
+    @Transactional
+    public BotRole setRole(UserEntity user, Bot bot, Long targetId, RoleType roleType) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+        Assert.notNull(roleType, "roleType cannot be null");
 
-        if (role.getType().equals(RoleType.DIRECTOR) || role.getType().equals(RoleType.CREATOR)) {
+        final BotRole botRole = entityUtil.getBotRole(user, bot, targetId);
+
+        if (roleType == RoleType.DIRECTOR || roleType == RoleType.CREATOR) {
             throw new ForbiddenOperationException("Director and Creator roles are predefined",
                     localizationLoader.localize(Error.PREDEFINED_CHANGE_ROLES,
                     user));
         }
-        if (role.getType().equals(RoleType.BANNED)) {
+        if (roleType == RoleType.BANNED) {
             throw new ForbiddenOperationException("Bans must be given through different means",
                     localizationLoader.localize(Error.CANNOT_SET_BANNED_ROLE,
                     user));
         }
-        if (role.equals(botRole.getRole())) {
+        if (roleType == botRole.getRole().getType()) {
             throw new ForbiddenOperationException("Role is the same",
                     localizationLoader.localize(Error.SAME_ROLE, user));
         }
-        if (botRole.getRole().getType().equals(RoleType.DIRECTOR)) {
+        if (botRole.getRole().getType() == RoleType.DIRECTOR) {
             throw new ForbiddenOperationException("Director's role is permanent",
                     localizationLoader.localize(Error.DIRECTOR_CHANGE_ROLE, user));
         }
-        if (botRole.getRole().getType().equals(RoleType.CREATOR)) {
+        if (botRole.getRole().getType() == RoleType.CREATOR) {
             throw new ForbiddenOperationException("Creator's role is permanent",
                     localizationLoader.localize(Error.CREATOR_CHANGE_ROLE, user));
         }
-        if (user.equals(target)) {
+        if (user.getId().equals(targetId)) {
             throw new ForbiddenOperationException("User cannot change their own role",
                     localizationLoader.localize(Error.SELF_CHANGE_ROLE, user));
         }
-        LOGGER.debug("Role change checks have passed. Applying...");
-        botRole.setRole(role);
-        botRoleRepository.save(botRole);
-        LOGGER.debug("New bot role " + role.getType() + " persisted for user "
-                + target.getId() + ".");
+        LOGGER.info("Changing the role of user " + targetId + " in bot " + bot.getId() + " to " + roleType + "...");
 
-        clientManager.getClient(bot).sendMessage(target, localizationLoader
-                .localize(Localizations.Service.ROLE_CHANGED, user,
-                    new Localizations.Service.RoleChangedParams(user.getFullName(), role.getType(),
-                    entityUtil.getLocalizedTitle(target, bot, user))));
+        botRole.setRole(entityUtil.getRole(roleType));
+
         return botRole;
     }
 
-    public BotRole banUserInBot(UserEntity user, UserEntity target, Bot bot, int hours) {
-        final BotRole botRole = entityUtil.getBotRole(target, bot);
+    @Transactional
+    public BotRole banUserInBot(UserEntity user, Bot bot, Long targetId, int hours) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+        
+        final BotRole botRole = entityUtil.getBotRole(user, bot, targetId);
 
         if (botRole.getRole().getType().equals(RoleType.BANNED)) {
             throw new ForbiddenOperationException("User is already banned", localizationLoader
@@ -144,220 +153,199 @@ public class UserService {
                     + "specific ban", localizationLoader.localize(
                     Error.CREATOR_BAN, user));
         }
-        if (user.equals(target)) {
+        if (user.getId().equals(targetId)) {
             throw new ForbiddenOperationException("User cannot ban themselves", localizationLoader
                     .localize(Error.SELF_BAN, user));
         }
-        LOGGER.info("Banning user " + target.getId() + "...");
+        LOGGER.info("Banning user " + targetId + " in bot " + bot.getId() + "...");
+        
         botRole.setRole(entityUtil.getRole(RoleType.BANNED));
-        final String title = entityUtil.getLocalizedTitle(target, bot, user);
 
         if (hours > 0) {
             LOGGER.debug("Ban is temporary. Creating trigger...");
-            timingService.createTrigger(target, bot, hours, false);
-            clientManager.getClient(bot).sendMessage(target, localizationLoader
-                    .localize(Localizations.Service.TEMPORARY_BANNED, target,
-                        new Localizations.Service.TemporaryBannedParams(user.getFullName(), hours, title)));
-        } else {
-            clientManager.getClient(bot).sendMessage(target, localizationLoader
-                    .localize(Localizations.Service.BANNED, target,
-                        new Localizations.Service.BannedParams(user.getFullName(), title)));
+            timingService.createBanTrigger(botRole.getUser(), bot, hours, false);
         }
-        botRoleRepository.save(botRole);
-        LOGGER.info("User " + target.getId() + " has been banned in bot " + bot.getId() + ".");
+
         return botRole;
     }
 
-    public BotRole liftBanInBot(@Nullable UserEntity user, UserEntity target,
-            Bot bot) {
-        final BotRole botRole = entityUtil.getBotRole(target, bot);
+    @Transactional
+    public BotRole liftBanInBot(Bot bot, UserEntity target) {
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(target, "target cannot be null");
 
-        if (!botRole.getRole().getType().equals(RoleType.BANNED)) {
+        return liftBanInBot0(null, bot, target);
+    }
+
+    @Transactional
+    public BotRole liftBanInBot(UserEntity user, Bot bot, Long targetId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+
+        return liftBanInBot0(user, bot, entityUtil.getUser(targetId, user.getLanguageCode()));
+    }
+
+    @Transactional
+    public List<BotRole> banUserGenerally(UserEntity director, Long targetId, int hours) {
+        Assert.notNull(director, "director cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+
+        final UserEntity target = entityUtil.getUser(targetId, director.getLanguageCode());
+
+        if (target.isBanned()) {
+            throw new ForbiddenOperationException("User " + targetId + " is already banned.", localizationLoader
+                    .localize(Error.USER_ALREADY_BANNED, director));
+        }
+        if (targetId.equals(directorId)) {
+            throw new ForbiddenOperationException("Director cannot be banned.", localizationLoader
+                    .localize(Error.DIRECTOR_BAN, target));
+        }
+        LOGGER.debug("Director " + director.getId() + " wants to give a general ban to user " + targetId + ".");
+
+        if (hours > 0) {
+            LOGGER.debug("General ban is temporary. Creating trigger...");
+            timingService.createBanTrigger(target, entityUtil.getBotLord(), hours, true);
+        }
+
+        target.setBanned(true);
+
+        return botRoleRepository.findByUserId(targetId);
+    }
+
+    @Transactional
+    public List<BotRole> liftGeneralBan(UserEntity director, Long targetId) {
+        Assert.notNull(director, "director cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+
+        return liftGeneralBan0(director, targetId);
+    }
+
+    @Transactional
+    public List<BotRole> liftGeneralBan(Long targetId) {
+        Assert.notNull(targetId, "targetId cannot be null");
+
+        return liftGeneralBan0(null, targetId);
+    }
+
+    /**
+     * Creates or updates user entity if anything's changed. Returns the user.
+     */
+    @Transactional
+    public UserEntity updateUser(User user) {
+        LOGGER.trace("Checking if user " + user.getId() + "' data is up to date...");
+
+        final UserEntity userFromDb;
+        final Optional<UserEntity> potentialUser = userRepository.findById(user.getId());
+
+        if (potentialUser.isEmpty()) {
+            userFromDb = new UserEntity(user);
+        } else {
+            userFromDb = potentialUser.get();
+        }
+
+        userFromDb.setFirstName(user.getFirstName());
+        userFromDb.setLastName(user.getLastName());
+        userFromDb.setUsername(user.getUserName());
+        
+        if (!userFromDb.isLanguageManuallySet()) {
+            if (user.getLanguageCode() != null) {
+                userFromDb.setLanguageCode(user.getLanguageCode());
+            } else {
+                userFromDb.setLanguageCode(textUtil.getLanguagePriority().getFirst());
+                LOGGER.debug("Language code is unavailable. Setting to " + userFromDb.getLanguageCode() + "...");
+            }
+        }
+        
+        return userRepository.save(userFromDb);
+    }
+
+    @Transactional
+    public BotRole toggleReceiveHomework(UserEntity user, Bot bot) {
+        final BotRole botRole = entityUtil.getBotRole(user, bot);
+        
+        botRole.setReceivingHomework(!botRole.isReceivingHomework());
+
+        LOGGER.info("Receive homework for user " + user.getId() + " in bot " + bot.getId()
+                + " is now " + getStatus(botRole.isReceivingHomework()) + ".");
+
+        return botRoleRepository.save(botRole);
+    }
+
+    @Transactional
+    public UserEntity changeLanguage(UserEntity user, String newCode) {
+        final UserEntity userFromDb = entityUtil.getUser(user.getId(), user.getLanguageCode());
+
+        LOGGER.info("Changning language for user " + userFromDb.getId() + " to " + newCode + "...");
+
+        userFromDb.setLanguageCode(newCode);
+        userFromDb.setLanguageManuallySet(true);
+
+        return userFromDb;
+    }
+
+    @Transactional
+    public UserEntity resetLanguageToDefault(UserEntity user) {
+        final UserEntity userFromDb = entityUtil.getUser(user.getId(), user.getLanguageCode());
+
+        LOGGER.info("Resetting language code to default for user " + userFromDb.getId() + "...");
+
+        userFromDb.setLanguageManuallySet(false);
+
+        return userFromDb;
+    }
+
+    private String getStatus(boolean status) {
+        return status ? "ENABLED" : "DISABLED";
+    }
+
+    private BotRole liftBanInBot0(UserEntity user, Bot bot, UserEntity target) {
+        final BotRole botRole = entityUtil.getBotRole(user, bot, target.getId());
+
+        if (botRole.getRole().getType() != RoleType.BANNED) {
             if (user == null) {
-                LOGGER.debug("User does not have a ban. Ignoring.");
+                LOGGER.debug("User " + target.getId() + " does not have a ban. The timed trigger request will be ignored.");
                 return botRole;
             } else {
                 throw new ForbiddenOperationException("User is not banned", localizationLoader
                         .localize(Error.USER_IS_NOT_BANNED, user));
             }
         }
-        LOGGER.debug("User " + target.getId() + " is banned. Removing ban...");
-        botRole.setRole(entityUtil.getRole(RoleType.USER));
-        if (user == null) {
-            LOGGER.debug("Ban is being lifted automatically.");
-            clientManager.getClient(bot).sendMessage(target, localizationLoader
-                    .localize(Localizations.Service.BAN_LIFTED_AUTO, target));
-        } else {
-            LOGGER.debug("Ban lift is manual.");
-            clientManager.getClient(bot).sendMessage(target, localizationLoader
-                    .localize(Localizations.Service.BAN_LIFTED, target,
-                        new Localizations.Service.BanLiftedParams(user.getFullName(),
-                        entityUtil.getLocalizedTitle(target, bot, user))));
+        LOGGER.info("User " + target.getId() + " is banned. Removing ban...");
 
-            final Optional<BanTrigger> potentialTrigger = timingService.findBanTrigger(user, bot);
-            if (potentialTrigger.isPresent()) {
-                LOGGER.debug("There is a trigger. Removing...");
-                timingService.removeTrigger(potentialTrigger.get());
-            }
+        botRole.setRole(entityUtil.getRole(RoleType.USER));
+
+        if (user != null) {
+            final int triggersRemoved = timingService.removeBanTriggerIfPresent(target.getId(), bot.getId());
+            
+            LOGGER.debug(triggersRemoved + " ban triggers have been removed for user " + target.getId() + " in bot " + bot.getId() + ".");
         }
-        botRoleRepository.save(botRole);
-        LOGGER.info("Ban for user " + target.getId() + " in bot " + bot.getId() + " has been lifted.");
+
         return botRole;
     }
 
-    public UserEntity banUserGenerally(UserEntity user, UserEntity target,
-            int hours) {
-        if (target.isBanned()) {
-            throw new ForbiddenOperationException("User is already banned", localizationLoader
-                    .localize(Error.USER_ALREADY_BANNED, user));
-        }
-        if (target.getId().equals(directorId)) {
-            throw new ForbiddenOperationException("Director cannot be banned", localizationLoader
-                    .localize(Error.DIRECTOR_BAN, target));
-        }
-        LOGGER.debug("User " + user.getId() + " wants to ban user " + target.getId() + ".");
-        final String title = entityUtil.getLocalizedTitle(target, entityUtil.getStartBot(), user);
-        final var temporaryBanParams = new Localizations.Service.TemporaryGeneralBanParams(user.getFullName(), hours, title);
-        final var banParams = new Localizations.Service.GeneralBanParams(user.getFullName(), title);
+    private List<BotRole> liftGeneralBan0(UserEntity director, Long targetId) {
+        final UserEntity target = entityUtil.getUser(targetId, entityUtil.getDiretor().getLanguageCode());
 
-        if (hours > 0) {
-            LOGGER.debug("General ban is temporary. Creating trigger...");
-            timingService.createTrigger(target, entityUtil.getStartBot(), hours, true);
-            botRoleRepository.findByUserId(user.getId()).forEach(br -> clientManager.getClient(br.getBot())
-                    .sendMessage(target, localizationLoader.localize(
-                    Localizations.Service.TEMPORARY_GENERAL_BAN, user, temporaryBanParams)));
-        } else {
-            botRoleRepository.findByUserId(user.getId()).forEach(br -> clientManager.getClient(br.getBot())
-                    .sendMessage(target, localizationLoader.localize(
-                    Localizations.Service.GENERAL_BAN, user, banParams)));
-        }
-        target.setBanned(true);
-        userRepository.save(target);
-        LOGGER.info("User " + target.getId() + " has been completely banned.");
-        return target;
-    }
-
-    public UserEntity liftGeneralBan(@Nullable UserEntity user, UserEntity target) {
         if (!target.isBanned()) {
-            if (user == null) {
-                LOGGER.debug("User does not have a ban. Ignoring.");
-                return target;
+            if (director == null) {
+                LOGGER.debug("User " + target.getId() + " does not have a ban. The timed trigger request will be ignored.");
+                return List.of();
             } else {
                 throw new ForbiddenOperationException("User is not banned", localizationLoader
-                        .localize(Error.USER_IS_NOT_BANNED, user));
+                        .localize(Error.USER_IS_NOT_BANNED, director));
             }
         }
         LOGGER.debug("User " + target.getId() + " has a general ban. Removing ban...");
+
         target.setBanned(false);
-        if (user == null) {
-            LOGGER.debug("Ban is being lifted automatically.");
-            botRoleRepository.findByUserId(target.getId()).forEach(br -> clientManager
-                    .getClient(br.getBot()).sendMessage(target, localizationLoader
-                    .localize(Localizations.Service.GENERAL_BAN_LIFTED_AUTO, target)));
-        } else {
-            LOGGER.debug("Ban lift is manual.");
-            botRoleRepository.findByUserId(user.getId()).forEach(br -> clientManager.getClient(br.getBot())
-                    .sendMessage(target, localizationLoader
-                    .localize(Localizations.Service.GENERAL_BAN_LIFTED, target,
-                        new Localizations.Service.GeneralBanLiftedParams(user.getFullName(),
-                        entityUtil.getLocalizedTitle(target, entityUtil.getStartBot(), user)))));
 
-            final Optional<BanTrigger> potentialTrigger = timingService.findBanTrigger(target,
-                    entityUtil.getStartBot());
-            if (potentialTrigger.isPresent()) {
-                LOGGER.debug("There is a trigger. Removing...");
-                timingService.removeTrigger(potentialTrigger.get());
-            }
+        if (director != null) {        
+            final int triggersRemoved = timingService.removeBanTriggerIfPresent(target.getId(), entityUtil.getBotLord().getId());
+            
+            LOGGER.debug(triggersRemoved + " general ban triggers have been removed for user " + target.getId());
         }
-        userRepository.save(target);
-        LOGGER.info("General ban for user " + target.getId() + " has been lifted.");
-        return target;
-    }
 
-    /**
-     * Creates or updates user entity if anything changed. Returns the user.
-     */
-    public UserEntity updateUser(User user) {
-        LOGGER.trace("Checking if user " + user.getId() + "' data is up to date...");
-        final UserEntity userFromDb;
-        final Optional<UserEntity> potentialUser = userRepository.findById(user.getId());
-        boolean hasChanged = false;
-        if (potentialUser.isEmpty()) {
-            userFromDb = new UserEntity(user);
-            hasChanged = true;
-        } else {
-            userFromDb = potentialUser.get();
-        }
-        if (!user.getFirstName().equals(userFromDb.getFirstName())) {
-            userFromDb.setFirstName(user.getFirstName());
-            hasChanged = true;
-            LOGGER.trace("First name is " + user.getFirstName() + ". Setting...");
-        }
-        if (!userFromDb.isLanguageManuallySet()) {
-            if (user.getLanguageCode() != null) {
-                if (!user.getLanguageCode().equals(
-                        userFromDb.getLanguageCode())) {
-                    userFromDb.setLanguageCode(user.getLanguageCode());
-                    hasChanged = true;
-                    LOGGER.trace("Language code is " + user.getLanguageCode() + ". Setting...");
-                }
-            } else {
-                final String theMostPreferedLanguage = languagePriorityStr
-                        .split(LANGUAGE_PRIORITY_DIVIDER)[0].trim();
-                userFromDb.setLanguageCode(theMostPreferedLanguage);
-                hasChanged = true;
-                LOGGER.trace("Language code is unavailable. Setting to "
-                        + theMostPreferedLanguage + "...");
-            }
-        }
-        if (user.getLastName() != null && !user.getLastName()
-                .equals(userFromDb.getLastName())) {
-            userFromDb.setLastName(user.getLastName());
-            hasChanged = true;
-            LOGGER.trace("Last name is " + user.getLastName() + ". Setting...");
-        }
-        if (user.getUserName() != null && !user.getUserName()
-                .equals(userFromDb.getUsername())) {
-            userFromDb.setUsername(user.getUserName());
-            hasChanged = true;
-            LOGGER.trace("Username is " + user.getUserName() + ". Setting...");
-        }
-        if (hasChanged) {
-            LOGGER.trace("Stuff has changed for user " + user.getId() + ". Persisting...");
-            userRepository.save(userFromDb);
-            LOGGER.trace("Persist is successful.");
-        } else {
-            LOGGER.trace("User data is up to date with telegram servers.");
-        }
-        return userFromDb;
-    }
-
-    public BotRole toggleReceiveHomework(UserEntity user, Bot bot) {
-        final BotRole botRole = entityUtil.getBotRole(user, bot);
-        
-        botRole.setReceivingHomework(!botRole.isReceivingHomework());
-        return botRoleRepository.save(botRole);
-    }
-
-    public List<UserEntity> getHomeworkReceivingUsers(Bot bot) {
-        return userRepository.findByReceivingHomeworkInBot(bot.getId());
-    }
-
-    public UserEntity changeLanguage(UserEntity user, String newCode) {
-        LOGGER.info("Changning language for user " + user.getId() + " to " + newCode + "...");
-        user.setLanguageCode(newCode);
-        user.setLanguageManuallySet(true);
-        userRepository.save(user);
-        LOGGER.info("Language code for user " + user.getId() + " has been changed to "
-                + newCode + ".");
-        return user;
-    }
-
-    public UserEntity resetLanguageToDefault(UserEntity user) {
-        LOGGER.info("Resetting language code to default for user " + user.getId() + "...");
-        user.setLanguageManuallySet(false);
-        userRepository.save(user);
-        LOGGER.info("Language code for user " + user.getId() + " is now automatically set.");
-        return user;
+        return botRoleRepository.findByUserId(targetId);
     }
 }

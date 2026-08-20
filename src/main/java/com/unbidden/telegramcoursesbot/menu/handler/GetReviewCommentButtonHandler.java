@@ -8,7 +8,7 @@ import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 public class GetReviewCommentButtonHandler extends AbstractButtonHandler {
     private static final String CONTENT_ID_PARAM = "terminal";
 
-    private final ContentService contentService;
+    private final ContentOrchestrationService contentService;
 
     @Override
     @Security(authorities = AuthorityType.SEE_REVIEWS)

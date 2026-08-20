@@ -1,55 +1,35 @@
 package com.unbidden.telegramcoursesbot.menu.handler;
 
-import com.unbidden.telegramcoursesbot.bot.ClientManager;
-import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
+import com.unbidden.telegramcoursesbot.service.orchestration.UserOrchestrationService;
+
 import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class SelectLanguageButtonHandler extends AbstractButtonHandler {
-    private static final Logger LOGGER = LogManager.getLogger(SelectLanguageButtonHandler.class);
+    private static final String LANGUAGE_CODE_PARAM = "terminal";
 
-    private static final String SERVICE_LANGUAGE_MANUALLY_SET = "service_language_manually_set";
-    private static final String SERVICE_LANGUAGE_RESET_TO_DEFAULT =
-            "service_language_reset_to_default";
-
-    private static final String DEFAULT_LANGUAGE_CODE = "dlc";
-
-    private final UserService userService;
-
-    private final LocalizationLoader localizationLoader;
-
-    private final ClientManager clientManager;
+    private final UserOrchestrationService userService;
 
     @Override
     @Security(authorities = AuthorityType.INFO)
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        switch (params[0]) {
-            case DEFAULT_LANGUAGE_CODE:
-                userService.resetLanguageToDefault(user);
-                LOGGER.debug("Sending confirmation message...");
-                clientManager.getClient(bot).sendMessage(user, localizationLoader
-                        .localize(SERVICE_LANGUAGE_RESET_TO_DEFAULT, user));
-                break;
-            default:
-                userService.changeLanguage(user, params[0]);
-                LOGGER.debug("Sending confirmation message...");
-                clientManager.getClient(bot).sendMessage(user, localizationLoader
-                        .localize(SERVICE_LANGUAGE_MANUALLY_SET, user));
-                break;
+        final String potentialCode = params.get(LANGUAGE_CODE_PARAM);
+
+        if (potentialCode == null) {
+            userService.resetLanguageToDefault(user, bot);
+            
+        } else {
+            userService.changeLanguage(user, bot, potentialCode);
+            
         }
-        LOGGER.debug("Message sent.");
     }
 }

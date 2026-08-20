@@ -1,13 +1,10 @@
 package com.unbidden.telegramcoursesbot.util;
 
-import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Service;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.model.content.Document;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,18 +36,10 @@ public class TextUtil {
     private static final String LANGUAGE_PRIORITY_DIVIDER = ",";
     private static final String PARAM_NAME_REGEX = "\\$\\{[a-zA-Z0-9_]+\\}";
 
-    private static final String MENU = "menu";
-    private static final String ERROR = "error";
-    private static final String BUTTON = "button";
-    private static final String COURSE = "course";
-    private static final String SERVICE = "service";
-
     private final String languagePriorityStr;
-    private final String fileFormat;
     private final Pattern paramNamePattern;
 
-    public TextUtil(@Value("${telegram.bot.message.language.priority}") String languagePriorityStr,
-            @Value("${telegram.bot.message.text.format}") String fileFormat) {
+    public TextUtil(@Value("${telegram.bot.message.language.priority}") String languagePriorityStr) {
         MARKERS.put("**", "bold");
         MARKERS.put("__", "italic");
         MARKERS.put("--", "underline");
@@ -58,7 +47,6 @@ public class TextUtil {
         MARKERS.put("^^", "spoiler");
 
         this.languagePriorityStr = languagePriorityStr;
-        this.fileFormat = fileFormat;
         this.paramNamePattern = Pattern.compile(PARAM_NAME_REGEX);
     }
 
@@ -222,25 +210,6 @@ public class TextUtil {
             return loader.localize(Service.LESS_THEN_AN_HOUR, user).getData();
         }
         return String.valueOf(hours);
-    }
-
-    public void checkIfDocumentIsALocalization(Document document,
-            UserEntity user, LocalizationLoader loader) {
-        final String fileName = document.getFileName();
-
-        final List<String> possibleNames = new ArrayList<>();
-        possibleNames.add(SERVICE + fileFormat);
-        possibleNames.add(COURSE + fileFormat);
-        possibleNames.add(BUTTON + fileFormat);
-        possibleNames.add(ERROR + fileFormat);
-        possibleNames.add(MENU + fileFormat);
-
-        if (!possibleNames.contains(fileName)) {
-            throw new InvalidDataSentException("File " + fileName + " cannot be used for "
-                    + "localizations since it has an unknown name. Available names: "
-                    + possibleNames + ".", loader.localize(
-                    Error.FILE_NOT_LOCALIZATION, user));
-        }
     }
 
     private int extractEntities(MarkerDataDto markerData, List<MessageEntity> entities) {

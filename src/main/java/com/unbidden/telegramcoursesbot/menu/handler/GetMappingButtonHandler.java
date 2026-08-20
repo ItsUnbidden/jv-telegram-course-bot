@@ -21,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 @Component
 @RequiredArgsConstructor
 public class GetMappingButtonHandler extends AbstractButtonHandler {
+    private static final String MAPPING_ID_PARAM = "mappingId";
+
     private final ContentSessionService sessionService;
 
     private final MenuOrchestrationService menuService;
@@ -34,11 +36,13 @@ public class GetMappingButtonHandler extends AbstractButtonHandler {
     @Override
     @Security(authorities = AuthorityType.CONTENT_SETTINGS)
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        sessionService.createSession(user, bot, (u, b, m) -> {
-            validatorUtil.checkExpectedMessages(u, m, 1);
+        sessionService.createSession(user, bot, p -> {
+            validatorUtil.checkExactExpectedMessages(p.user(), p.messages(), 1);
 
-            menuService.initiateMenu(u, b, MenuKey.MAPPING_SETTINGS, validatorUtil.parseId(u, m.get(0)).toString());
+            menuService.initiateMenu(p.user(), p.bot(), MenuKey.MAPPING_SETTINGS, MAPPING_ID_PARAM,
+                    validatorUtil.parseId(p.user(), p.messages().getFirst()).toString());
         }, true);
+        
         clientManager.getClient(bot).sendMessage(user, loader.localize(Localizations.Service.MAPPING_ID_REQUEST, user));
     }
 }

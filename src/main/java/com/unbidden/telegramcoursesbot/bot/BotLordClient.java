@@ -4,7 +4,6 @@ import com.unbidden.telegramcoursesbot.dao.CertificateDao;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
@@ -19,9 +18,9 @@ public class BotLordClient extends CustomTelegramClient {
 
     public BotLordClient(@NonNull String token, @NonNull String baseUrl,
             @Nullable String ip, @NonNull String secretToken, @NonNull Bot bot,
-            @NonNull CertificateDao certificateDao, @NonNull UserService userService,
-            @NonNull LocalizationLoader localizationLoader, boolean isCustomCertificateIncluded) {
-        super(bot, userService, localizationLoader, certificateDao,
+            @NonNull CertificateDao certificateDao, @NonNull LocalizationLoader localizationLoader,
+            boolean isCustomCertificateIncluded) {
+        super(bot, localizationLoader, certificateDao,
                 baseUrl, secretToken, ip, isCustomCertificateIncluded);
         initialize();
     }

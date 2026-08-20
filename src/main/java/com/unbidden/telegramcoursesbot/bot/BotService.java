@@ -28,23 +28,30 @@ public class BotService {
 
     private final EntityUtil entityUtil;
 
-    private final ClientManager clientManager;
-
     @Value("${telegram.bot.authorization.start_bot.token}")
     private String initialBotToken;
 
     @Value("${telegram.bot.authorization.bot_lord.token}")
     private String botLordToken;
 
+    @Transactional(readOnly = true)
+    public List<Bot> getRegularBots() {
+        return botRepository.findAllRegularBots();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BotRole> getAllCreatorRoles() {
+        return botRoleRepository.findAllCreatorRoles();
+    }
+
     @Transactional
-    public Bot createBot(UserEntity creator, String token) {
-        LOGGER.info("Creating new bot...");
+    public Bot createBot(UserEntity director, UserEntity creator, String token) {
+        LOGGER.info("Creating a new bot...");
         final Bot bot = new Bot();
 
         bot.setToken(token);
 
         final List<BotRole> botRoles = new ArrayList<>();
-        final UserEntity director = entityUtil.getDiretor();
 
         if (director.getId().equals(creator.getId())) {
             LOGGER.warn("Bot Creator is Director. No Creator role will be added.");
@@ -56,12 +63,11 @@ public class BotService {
         
         botRepository.save(bot);
         botRoleRepository.saveAll(botRoles);
-        LOGGER.debug("New bot " + bot.getId() + " has been created. Initializing...");
-        clientManager.addClient(bot); // TODO: performs HTTP requests, so it might be a potential problem if it remains inside a transaction.
-        LOGGER.info("Client initialized for the new bot " + bot.getId() + ".");
+
         return bot;
     }
 
+    @Transactional
     public Bot updateInitialBot(UserEntity director) {
         LOGGER.info("Updating start bot token...");
 
@@ -115,26 +121,5 @@ public class BotService {
         LOGGER.info("Bot lord has been updated.");
 
         return botLord;
-    }
-
-    public List<Bot> initializeBots() {
-        final List<Bot> bots = botRepository.findAllRegularBots();
-
-        bots.forEach(b -> clientManager.addClient(b));
-        return bots;
-    }
-
-    public void removeBot(Bot bot) {
-        botRepository.delete(bot);
-    }
-
-    public Bot initializeBotLord(Bot bot) {
-        clientManager.addBotLordClient(bot);
-
-        return bot;
-    }
-
-    public List<Bot> getAllBots() {
-        return botRepository.findAllRegularBots();
     }
 }

@@ -41,7 +41,7 @@ public class TimingService {
     private final EntityUtil entityUtil;
 
     @Transactional
-    public Optional<TimedTrigger> createLessonTriggerIfNeeded(UserEntity user, Bot bot, Long courseId) {
+    public Optional<LessonTrigger> createLessonTriggerIfNeeded(UserEntity user, Bot bot, Long courseId) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
@@ -72,7 +72,7 @@ public class TimingService {
     }
 
     @Transactional
-    public Optional<TimedTrigger> createHomeworkTriggerIfNeeded(UserEntity user, Bot bot, Long homeworkId) {
+    public Optional<HomeworkTrigger> createHomeworkTriggerIfNeeded(UserEntity user, Bot bot, Long homeworkId) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(homeworkId, "homeworkId cannot be null");
@@ -101,21 +101,25 @@ public class TimingService {
         return Optional.empty();
     }
 
-    public TimedTrigger createTrigger(UserEntity target, Bot bot, int hours, boolean isGeneral) {
-        LOGGER.debug("Creating timed trigger for user " + target.getId()
-                + "'s ban in bot " + bot + "...");
+    @Transactional
+    public BanTrigger createBanTrigger(UserEntity target, Bot bot, int hours, boolean isGeneral) {
+        Assert.notNull(target, "target cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.state(hours > 0, "hours must be greater than 0");
+
+        LOGGER.debug("Creating timed trigger for user " + target.getId() + "'s ban in bot " + bot + "...");
         final BanTrigger trigger = new BanTrigger();
 
         trigger.setBot(bot);
         trigger.setUser(target);
         trigger.setCreatedAt(LocalDateTime.now());
         trigger.setGeneral(isGeneral);
-
         trigger.setTarget(LocalDateTime.now().plusHours(hours));
+
         LOGGER.debug("New trigger's target will be " + trigger.getTarget() + ".");
         banTriggersRepository.save(trigger);
-        LOGGER.debug("Timed trigger for user " + target.getId()
-                + " has been created and persisted.");  
+        LOGGER.debug("Timed trigger for user " + target.getId() + " has been created and persisted.");  
+
         return trigger;
     }
 
@@ -129,9 +133,9 @@ public class TimingService {
         return homeworkTriggersRepository.existsByUserIdAndProgressHomeworkId(userId, homeworkId);
     }
 
-    @Transactional(readOnly = true)
-    public Optional<BanTrigger> findBanTrigger(UserEntity user, Bot bot) {
-        return banTriggersRepository.findByBotAndUser(bot, user);
+    @Transactional
+    public int removeBanTriggerIfPresent(Long userId, Long botId) {
+        return banTriggersRepository.deleteByUserIdAndBotId(userId, botId);
     }
 
     /**
@@ -141,11 +145,6 @@ public class TimingService {
     
     public int getTimeLeft(TimedTrigger trigger) {
         return (int)trigger.getTarget().until(LocalDateTime.now(), ChronoUnit.HOURS);
-    }
-
-    @Transactional
-    public void removeTrigger(BanTrigger banTrigger) {
-        banTriggersRepository.delete(banTrigger);
     }
 
     @Transactional

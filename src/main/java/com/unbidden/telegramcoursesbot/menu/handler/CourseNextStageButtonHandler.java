@@ -4,8 +4,10 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.orchestration.CourseOrchestrationService;
 
 import lombok.RequiredArgsConstructor;
@@ -13,10 +15,15 @@ import lombok.RequiredArgsConstructor;
 @Component
 @RequiredArgsConstructor
 public class CourseNextStageButtonHandler extends AbstractButtonHandler {
+    private static final String LESSON_ID_PARAM = "lessonId";
+    private static final String COURSE_ID_PARAM = "terminal";
+
     private final CourseOrchestrationService courseService;
 
     @Override
+    @Security(authorities = AuthorityType.LAUNCH_COURSE)
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        courseService.next(user, bot, Long.parseLong(params[1]), Long.parseLong(params[0]));
+        courseService.next(user, bot, Long.parseLong(params.get(COURSE_ID_PARAM)),
+                Long.parseLong(params.get(LESSON_ID_PARAM)));
     }
 }

@@ -24,7 +24,7 @@ import com.unbidden.telegramcoursesbot.model.SupportMessage;
 import com.unbidden.telegramcoursesbot.model.SupportReply;
 import com.unbidden.telegramcoursesbot.model.SupportRequest;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.support.SupportService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
@@ -42,7 +42,7 @@ public class SupportOrchestrationService {
 
     private final MenuOrchestrationService menuService;
 
-    private final ContentService contentService;
+    private final ContentOrchestrationService contentService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -74,7 +74,7 @@ public class SupportOrchestrationService {
         return request;
     }
 
-    public SupportReply replyToSupportRequest(UserEntity user, Bot bot, Long requestId, List<Message> messages) {
+    public void replyToSupportRequest(UserEntity user, Bot bot, Long requestId, List<Message> messages) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(requestId, "requestId cannot be null");
@@ -93,10 +93,14 @@ public class SupportOrchestrationService {
                 user.getFullName(), entityUtil.getLocalizedTitle(reply.getRequest().getUser(), bot, user)), reply);
 
         LOGGER.info("A new reply " + reply.getId() + " has been created.");
-        return reply;
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader
+                .localize(Localizations.Service.SUPPORT_REQUEST_REPLY_SENT, user));
+        LOGGER.debug("Message sent.");
     }
 
-    public SupportReply replyToReply(UserEntity user, Bot bot, Long replyId, List<Message> messages) {
+    public void replyToReply(UserEntity user, Bot bot, Long replyId, List<Message> messages) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(replyId, "replyId cannot be null");
@@ -112,7 +116,11 @@ public class SupportOrchestrationService {
                 user.getFullName(), entityUtil.getLocalizedTitle(reply.getUser(), bot, user)), reply);
 
         LOGGER.info("A new reply " + reply.getId() + " has been created.");
-        return reply;
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader
+                .localize(Localizations.Service.SUPPORT_REPLY_REPLY_SENT, user));
+        LOGGER.debug("Message sent.");
     }
 
     public SupportRequest markAsResolved(UserEntity user, Bot bot, Long requestId) {

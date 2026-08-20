@@ -1,6 +1,10 @@
 package com.unbidden.telegramcoursesbot.service.orchestration;
 
+import com.unbidden.telegramcoursesbot.util.ValidatorUtil;
+
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,6 +15,8 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dto.HomeworkResponseDto;
+import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.exception.MediaTypeParseException;
 import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
@@ -25,8 +31,9 @@ import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress.Status;
+import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
 import com.unbidden.telegramcoursesbot.service.timing.TimingService;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
@@ -39,11 +46,15 @@ public class HomeworkOrchestrationService {
     private static final String PROGRESS_ID_PARAM = "progressId";
     private static final String LESSON_ID_PARAM = "lessonId";
 
+    public static final int MAX_HOMEWORK_DELAY = 720;
+
     private final HomeworkService homeworkService;
 
     private final TimingService timingService;
 
-    private final ContentService contentService;
+    private final ContentOrchestrationService contentService;
+
+    private final CourseOrchestrationService courseService;
 
     private final MenuOrchestrationService menuService;
 
@@ -57,12 +68,12 @@ public class HomeworkOrchestrationService {
 
     private final EntityUtil entityUtil;
 
-    private final CourseOrchestrationService courseService;
+    private final ValidatorUtil validatorUtil;
 
     public HomeworkOrchestrationService(HomeworkService homeworkService, TimingService timingService,
-            ContentService contentService, MenuOrchestrationService menuService, UserService userService,
+            ContentOrchestrationService contentService, MenuOrchestrationService menuService, UserService userService,
             HomeworkMapper mapper, LocalizationLoader localizationLoader, ClientManager clientManager,
-            EntityUtil entityUtil, @Lazy CourseOrchestrationService courseService) {
+            EntityUtil entityUtil, @Lazy CourseOrchestrationService courseService, ValidatorUtil validatorUtil) {
         this.homeworkService = homeworkService;
         this.timingService = timingService;
         this.contentService = contentService;
@@ -73,6 +84,7 @@ public class HomeworkOrchestrationService {
         this.clientManager = clientManager;
         this.entityUtil = entityUtil;
         this.courseService = courseService;
+        this.validatorUtil = validatorUtil;
     }
 
     public HomeworkResponseDto getById(UserEntity user, Bot bot, Long homeworkId) {
@@ -92,6 +104,120 @@ public class HomeworkOrchestrationService {
         }
         
         sendHomework(progress);
+    }
+
+    public void createHomework(UserEntity user, Bot bot, Long lessonId, List<Message> messages) {
+        LOGGER.info("User " + user.getId() + " want to add a new homework to lesson " + lessonId + ".");
+
+        validatorUtil.checkAtLeastExpectedMessages(user, messages, 1);
+
+        String languageCode = user.getLanguageCode();
+        if (messages.size() > 1 && validatorUtil.checkLanguageCode(user, messages.getLast())) {
+            languageCode = messages.getLast().getText();
+            messages.removeLast();
+        }
+
+        final Homework homework = homeworkService.createHomework(user, bot, lessonId, languageCode, messages);
+
+        LOGGER.info("New Homework " + homework.getId() + " has been created for lesson " + lessonId + ".");
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(Localizations.Service.NEW_HOMEWORK_CREATED,
+                user, new Localizations.Service.NewHomeworkCreatedParams(homework.getId())));
+        LOGGER.debug("Message sent.");
+    }
+
+    public void updateDelay(UserEntity user, Bot bot, Long homeworkId, List<Message> messages) {
+        validatorUtil.checkExactExpectedMessages(user, messages, 1);
+        LOGGER.info("User " + user.getId() + " is trying to update delay for homework " + homeworkId + "...");
+            
+        final int newDelay = Math.clamp(validatorUtil.parseIntInBounds(user, messages.getFirst(),
+                Integer.MIN_VALUE, MAX_HOMEWORK_DELAY), 0, MAX_HOMEWORK_DELAY);
+        final Homework homework = homeworkService.updateDelay(user, bot, homeworkId, newDelay);
+
+        LOGGER.info("Homework " + homework.getId() + " now has a delay of " + homework.getDelay() + ".");
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader
+                .localize(Localizations.Service.NEW_DELAY_SET_SUCCESS, user));
+        LOGGER.debug("Message sent.");
+    }
+
+    public void updateContent(UserEntity user, Bot bot, Long homeworkId, List<Message> messages) {
+        validatorUtil.checkAtLeastExpectedMessages(user, messages, 2);
+        LOGGER.info("User " + user.getId() + " is trying to update homework " + homeworkId + "...");  
+
+        final String languageCode = validatorUtil.checkLanguageCode(user, messages.getLast())
+                ? messages.getLast().getText().trim()
+                : user.getLanguageCode();
+
+        final Homework homework = homeworkService.updateContent(user, bot, homeworkId, languageCode, messages);
+        LOGGER.info("Homework " + homework.getId() + " content has been updated.");
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
+                Localizations.Service.HOMEWORK_CONTENT_UPDATED, user,
+                new Localizations.Service.HomeworkContentUpdatedParams(homeworkId, homework.getMapping().getId())));
+        LOGGER.debug("Message sent.");
+    }
+
+    public void toggleFeedbackInclusion(UserEntity user, Bot bot, Long homeworkId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(homeworkId, "homeworkId cannot be null");
+
+        final Homework homework = homeworkService.toggleFeedbackInclusion(user, bot, homeworkId);
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
+                Localizations.Service.HOMEWORK_FEEDBACK_UPDATE_SUCCESS, user,
+                new Localizations.Service.HomeworkFeedbackUpdateSuccessParams(getStatus(user, homework.isFeedbackRequired()))));
+        LOGGER.debug("Message sent.");
+    }
+
+    public void toggleRepeatedCompletion(UserEntity user, Bot bot, Long homeworkId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(homeworkId, "homeworkId cannot be null");
+
+        final Homework homework = homeworkService.toggleRepeatedCompletion(user, bot, homeworkId);
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
+                Localizations.Service.REPEATED_COMPLETION_UPDATE_SUCCESS, user,
+                new Localizations.Service.RepeatedCompletionUpdateSuccessParams(getStatus(user, homework.isRepeatedCompletionAvailable()))));
+        LOGGER.debug("Message sent.");
+    }
+
+    public void updateAllowedMediaTypes(UserEntity user, Bot bot, Long homeworkId, List<Message> messages) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(homeworkId, "homeworkId cannot be null");
+        Assert.notNull(messages, "messages cannot be null");
+
+        validatorUtil.checkExactExpectedMessages(user, messages, 1);
+
+        LOGGER.info("User " + user.getId() + " is trying to update allowed media types for homework " + homeworkId + ".");
+        final String potentialMediaTypes = messages.getFirst().getText().trim().toUpperCase();
+
+        try {
+            final Homework homework = homeworkService.updateAllowedMediaTypes(user, bot, homeworkId,
+                    HomeworkMapper.parseMediaTypes(potentialMediaTypes));
+
+            LOGGER.info("Media types updated to " + homework.getAllowedMediaTypes() + " for homework " + homework.getId() + ".");
+
+            LOGGER.debug("Sending confirmation message...");
+            clientManager.getClient(bot).sendMessage(user, localizationLoader
+                    .localize(Localizations.Service.MEDIA_TYPES_UPDATE_SUCCESS, user,
+                        new Localizations.Service.MediaTypesUpdateSuccessParams(homework.getAllowedMediaTypes())));
+            LOGGER.debug("Message sent.");
+        } catch (MediaTypeParseException e) {
+            throw new InvalidDataSentException("Unable to parse provided media types: " + potentialMediaTypes + ".",
+                    localizationLoader.localize(Localizations.Error.PARSE_MEDIA_TYPES_FAILURE, user,
+                        new Localizations.Error.ParseMediaTypesFailureParams(Arrays.stream(MediaType.values())
+                            .map(t -> t.toString())
+                            .collect(Collectors.joining(" ")))));
+        }
     }
 
     public void sendHomework(HomeworkProgress progress) {
@@ -151,75 +277,74 @@ public class HomeworkOrchestrationService {
         menuService.terminateMenuGroup(MenuTerminationGroupKey.SEND_HOMEWORK, progress.getId());
     }
 
-    public void approve(UserEntity mentor, Bot bot, UserEntity target,
-            Long homeworkId, List<Message> adminComment) {
+    public void approve(UserEntity mentor, Bot bot, Long progressId, List<Message> adminComment) {
         Assert.notNull(mentor, "mentor cannot be null");
         Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(target, "target cannot be null");
-        Assert.notNull(homeworkId, "homeworkId cannot be null");
+        Assert.notNull(progressId, "progressId cannot be null");
         Assert.notNull(adminComment, "adminComment cannot be null");
 
-        HomeworkProgress progress = entityUtil.getHomeworkProgressByHomeworkId(target, bot, homeworkId);
+        HomeworkProgress progress = entityUtil.getHomeworkProgressById(mentor, bot, progressId);
 
-        if (!progress.getStatus().equals(Status.COMPLETED) &&
-                !progress.getStatus().equals(Status.DECLINED)) {
+        if (!progress.getStatus().equals(Status.COMPLETED) && !progress.getStatus().equals(Status.DECLINED)) {
 
-            progress = homeworkService.approve(mentor, bot, target, homeworkId, adminComment);
+            progress = homeworkService.approve(mentor, bot, progressId, adminComment);
 
             menuService.terminateMenuGroup(MenuTerminationGroupKey.REQUEST_FEEDBACK, progress.getId());
-            final String courseName = contentService.getLocalizedText(target, bot,
+            final String courseName = contentService.getLocalizedText(progress.getUser(), bot,
                     progress.getHomework().getLesson().getCourse().getTitle().getId());
 
             if (!adminComment.isEmpty()) {
-                clientManager.getClient(bot).sendMessage(target, localizationLoader.localize(
-                    Localizations.Service.HOMEWORK_APPROVED_NOTIFICATION_PLUS_COMMENT, target,
+                clientManager.getClient(bot).sendMessage(progress.getUser(), localizationLoader.localize(
+                    Localizations.Service.HOMEWORK_APPROVED_NOTIFICATION_PLUS_COMMENT, progress.getUser(),
                     new Localizations.Service.HomeworkApprovedNotificationPlusCommentParams(courseName,
                         progress.getHomework().getLesson().getPosition(), mentor.getFullName(),
-                        entityUtil.getLocalizedTitle(target, bot, mentor))));
-                contentService.sendContent(target, bot, progress.getLastComment().getId());
+                        entityUtil.getLocalizedTitle(progress.getUser(), bot, mentor))));
+                contentService.sendContent(progress.getUser(), bot, progress.getLastComment().getId());
             } else {
-                clientManager.getClient(bot).sendMessage(target, localizationLoader.localize(
-                    Localizations.Service.HOMEWORK_APPROVED_NOTIFICATION, target,
+                clientManager.getClient(bot).sendMessage(progress.getUser(), localizationLoader.localize(
+                    Localizations.Service.HOMEWORK_APPROVED_NOTIFICATION, progress.getUser(),
                     new Localizations.Service.HomeworkApprovedNotificationParams(courseName,
                         progress.getHomework().getLesson().getPosition(), mentor.getFullName(),
-                        entityUtil.getLocalizedTitle(target, bot, mentor))));
+                        entityUtil.getLocalizedTitle(progress.getUser(), bot, mentor))));
             }
 
-            courseService.next(target, bot, progress.getHomework().getLesson().getCourse().getId(),
+            courseService.next(progress.getUser(), bot, progress.getHomework().getLesson().getCourse().getId(),
                     progress.getHomework().getLesson().getId());
         }
     }
 
-    public void approve(UserEntity mentor, Bot bot, UserEntity target,
-            Long homeworkId) {
-        approve(mentor, bot, target, homeworkId, List.of());
+    public void approve(UserEntity mentor, Bot bot, Long progressId) {
+        approve(mentor, bot, progressId, List.of());
     }
 
-    public void decline(UserEntity mentor, Bot bot, UserEntity target,
-            Long homeworkId, List<Message> adminComment) {
+    public void decline(UserEntity mentor, Bot bot, Long progressId, List<Message> adminComment) {
         Assert.notNull(mentor, "mentor cannot be null");
         Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(target, "target cannot be null");
-        Assert.notNull(homeworkId, "homeworkId cannot be null");
-        Assert.notNull(adminComment, "adminComment cannot be null");
+        Assert.notNull(progressId, "progressId cannot be null");
+        Assert.notEmpty(adminComment, "adminComment cannot be empty or null");
 
-        HomeworkProgress progress = entityUtil.getHomeworkProgressByHomeworkId(target, bot, homeworkId);
+        HomeworkProgress progress = entityUtil.getHomeworkProgressById(mentor, bot, progressId);
 
-        if (!progress.getStatus().equals(Status.COMPLETED) &&
-                !progress.getStatus().equals(Status.DECLINED)) {
+        if (!progress.getStatus().equals(Status.COMPLETED) && !progress.getStatus().equals(Status.DECLINED)) {
 
-            progress = homeworkService.decline(mentor, bot, target, homeworkId, adminComment);
+            progress = homeworkService.decline(mentor, bot, progressId, adminComment);
 
             menuService.terminateMenuGroup(MenuTerminationGroupKey.REQUEST_FEEDBACK, progress.getId());
-            final String courseName = contentService.getLocalizedText(target, bot, progress.getHomework().getLesson().getCourse().getTitle().getId());
+            final String courseName = contentService.getLocalizedText(progress.getUser(), bot, progress.getHomework().getLesson()
+                    .getCourse().getTitle().getId());
 
-            clientManager.getClient(bot).sendMessage(target, localizationLoader.localize(
-                    Localizations.Service.HOMEWORK_DECLINED_NOTIFICATION_PLUS_COMMENT, target,
+            clientManager.getClient(bot).sendMessage(progress.getUser(), localizationLoader.localize(
+                    Localizations.Service.HOMEWORK_DECLINED_NOTIFICATION_PLUS_COMMENT, progress.getUser(),
                     new Localizations.Service.HomeworkDeclinedNotificationPlusCommentParams(courseName,
                         progress.getHomework().getLesson().getPosition(), mentor.getFullName(),
-                        entityUtil.getLocalizedTitle(target, bot, mentor))));
-            contentService.sendContent(target, bot, progress.getLastComment().getId());
+                        entityUtil.getLocalizedTitle(progress.getUser(), bot, mentor))));
+            contentService.sendContent(progress.getUser(), bot, progress.getLastComment().getId());
         }
+    }
+    
+    private String getStatus(UserEntity user, boolean status) {
+        return status ? localizationLoader.localize(Localizations.Service.STATUS_ENABLED, user).getData()
+                : localizationLoader.localize(Localizations.Service.STATUS_DISABLED, user).getData();
     }
 
     private boolean requestFeedback(HomeworkProgress progress) {
@@ -301,7 +426,7 @@ public class HomeworkOrchestrationService {
                 final Course course = homework.getLesson().getCourse();
                 final CourseProgress courseProgress = entityUtil.getCourseProgressForUser(user, bot, course.getId());
 
-                if (courseProgress.getStage().equals(course.getNumberOfLessons() - 1)) {
+                if (courseProgress.getStage() >= course.getLessons().size() - 1) {
                     LOGGER.info("User " + user.getId() + " has completed course "
                             + course.getId() + ". Commencing ending sequence...");
                     courseService.next(user, bot, course.getId(), homework.getLesson().getId());

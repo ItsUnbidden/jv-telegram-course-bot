@@ -1,9 +1,9 @@
 package com.unbidden.telegramcoursesbot.service.content;
 
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
-import com.unbidden.telegramcoursesbot.exception.LocalizedException;
 import com.unbidden.telegramcoursesbot.exception.NoImplementationException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
@@ -13,11 +13,8 @@ import com.unbidden.telegramcoursesbot.repository.LocalizedContentRepository;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.service.content.handler.LocalizedContentHandler;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
-import com.unbidden.telegramcoursesbot.util.TextUtil;
-import java.util.HashMap;
+
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
@@ -39,8 +36,6 @@ public class ContentService {
 
     private final LocalizationLoader localizationLoader;
 
-    private final TextUtil textUtil;
-
     private final EntityUtil entityUtil;
 
     @Value("${telegram.bot.message.language.priority}")
@@ -48,9 +43,9 @@ public class ContentService {
 
     @Transactional
     public LocalizedContent parseAndPersistContent(UserEntity user, Bot bot, List<Message> messages) {
+        Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(messages, "messages cannot be null");
-        Assert.notEmpty(messages, "messages cannot be empty");
+        Assert.notEmpty(messages, "messages cannot be null or empty");
 
         return parseAndPersistContent(user, bot, messages, user.getLanguageCode());
     }
@@ -58,9 +53,9 @@ public class ContentService {
     @Transactional
     public LocalizedContent parseAndPersistContent(UserEntity user, Bot bot,
             List<Message> messages, String languageCode) {
+        Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(messages, "messages cannot be null");
-        Assert.notEmpty(messages, "messages cannot be empty");
+        Assert.notEmpty(messages, "messages cannot be null or empty");
 
         return parseAndPersistContent0(user, bot, messages, List.of(), languageCode);
     }
@@ -68,144 +63,44 @@ public class ContentService {
     @Transactional
     public LocalizedContent parseAndPersistContent(UserEntity user, Bot bot,
             List<Message> messages, List<MediaType> allowedContentTypes) {
+        Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(messages, "messages cannot be null");
-        Assert.notEmpty(messages, "messages cannot be empty");
+        Assert.notEmpty(messages, "messages cannot be null or empty");
         Assert.notNull(allowedContentTypes, "allowedContentTypes cannot be null");
 
         return parseAndPersistContent0(user, bot, messages, allowedContentTypes, user.getLanguageCode());
     }
 
-    public List<Message> sendContent(UserEntity user, Bot bot, Long contentId) {
+    @Transactional
+    public LocalizedContent parseAndPersistContent(UserEntity user, Bot bot,
+            List<Message> messages, String languageCode, List<MediaType> allowedContentTypes) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(contentId, "contentId cannot be null");
+        Assert.notNull(languageCode, "languageCode cannot be null");
+        Assert.notEmpty(messages, "messages cannot be null or empty");
+        Assert.notNull(allowedContentTypes, "allowedContentTypes cannot be null");
 
-        final LocalizedContent content = entityUtil.getLocalizedContentById(user, bot, contentId);
-        
-        return sendContent(user, bot, content);
-    }
-
-    /**
-     * Sends the content. It must be initialized, but the depth is irrelevant.
-     * @param user to whom the content will be sent
-     * @param bot
-     * @param content
-     * @return list of the sent messages
-     */
-    public List<Message> sendContent(UserEntity user, Bot bot, LocalizedContent content) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(content, "content cannot be null");
-        
-        try {
-            final LocalizedContentHandler<? extends LocalizedContent> handler = contentManager.getHandler(content.getType());
-
-            return handler.sendContent(user, bot, content);
-        } catch (NoImplementationException e) {
-            throw new LocalizedException("Unknown media type", localizationLoader
-                    .localize(Error.UNKNOWN_MEDIA_TYPE, user));
-        }
-    }
-
-    /**
-     * Asynchronosly sends a specific content.
-     * @param user
-     * @param bot
-     * @param content
-     * @return {@link CompletableFuture} of the request that was sent.
-     */
-    public CompletableFuture<List<Message>> sendContentAsync(UserEntity user, Bot bot, Long contentId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(contentId, "contentId cannot be null");
-
-        final LocalizedContent content = entityUtil.getLocalizedContentById(user, bot, contentId);
-        
-        try {
-            final LocalizedContentHandler<? extends LocalizedContent> handler = contentManager.getHandler(content.getType());
-
-            return handler.sendContentAsync(user, bot, content);
-        } catch (NoImplementationException e) {
-            throw new LocalizedException("Unknown media type", localizationLoader
-                    .localize(Error.UNKNOWN_MEDIA_TYPE, user));
-        }
-    }
-
-    /**
-     * Asynchronosly sends the content to a list of users. It must be initialized, but the depth is irrelevant.
-     * @param sender of the content
-     * @param bot
-     * @param targets of the operation
-     * @param content
-     * @return a list of {@link CompletableFuture} where each future represents one request that was sent.
-     */
-    public List<CompletableFuture<List<Message>>> sendContentInBulkAsync(UserEntity sender, Bot bot,
-            List<Long> targetIds, LocalizedContent content) {
-        Assert.notNull(sender, "sender cannot be null");
-        Assert.notNull(targetIds, "targetIds cannot be null");
-        Assert.notEmpty(targetIds, "targetIds cannot be empty");
-        Assert.noNullElements(targetIds, "targetIds cannot contain null");
-        Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(content, "content cannot be null");
-        
-        try {
-            final LocalizedContentHandler<? extends LocalizedContent> handler = contentManager.getHandler(content.getType());
-
-            return handler.sendContentInBulkAsync(targetIds, bot, content);
-        } catch (NoImplementationException e) {
-            throw new LocalizedException("Unknown media type", localizationLoader
-                    .localize(Error.UNKNOWN_MEDIA_TYPE, sender));
-        }
-    }
-
-    public List<Message> sendLocalizedContent(UserEntity user, Bot bot, Long mappingId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(mappingId, "mappingId cannot be null");
-
-        return sendContent(user, bot, getLocalizedContentFromMapping(user, bot,
-                entityUtil.getMappingById(user, bot, mappingId)));
-    }
-
-    public String getLocalizedText(UserEntity user, Bot bot, Long mappingId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(mappingId, "mappingId cannot be null");
-
-        final LocalizedContent content = getLocalizedContentFromMapping(user, bot,
-                entityUtil.getMappingById(user, bot, mappingId));
-
-        return content.getData();
-    }
-
-    /**
-     * Mapping <b>must have</b> all of its text contents initialized. Entities are currently not supported.
-     * @param user
-     * @param bot
-     * @param mapping
-     * @return the text content
-     */
-    public String getLocalizedText(UserEntity user, Bot bot, ContentMapping mapping) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(mapping, "mapping cannot be null");
-
-        final LocalizedContent content = getLocalizedContentFromMapping(user, bot, mapping);
-
-        return content.getData();
+        return parseAndPersistContent0(user, bot, messages, allowedContentTypes, languageCode);
     }
 
     @Transactional
-    public ContentMapping addNewLocalization(UserEntity user, Bot bot, Long mappingId, Long contentId) {
+    public ContentMapping addNewLocalization(UserEntity user, Bot bot, Long mappingId, String languageCode, List<Message> messages) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(mappingId, "mappingId cannot be null");
-        Assert.notNull(contentId, "contentId cannot be null");
+        Assert.notNull(languageCode, "languageCode cannot be null");
 
         final ContentMapping mapping = entityUtil.getMappingById(user, bot, mappingId);
 
-        mapping.getContent().add(entityUtil.getLocalizedContentReference(contentId));
+        if (mapping.getContent().stream().anyMatch(c -> c.getLanguageCode().equals(languageCode))) {
+            throw new InvalidDataSentException("Localization with language code "
+                    + languageCode + " is already present in mapping " + mapping.getId(),
+                    localizationLoader.localize(Localizations.Error.LOCALIZED_CONTENT_IS_ALREADY_PRESENT, user,
+                        new Localizations.Error.LocalizedContentIsAlreadyPresentParams(mapping.getId(), languageCode)));
+        }
+
+        mapping.getContent().add(parseAndPersistContent(user, bot, messages));
+
         return mapping;
     }
 
@@ -231,37 +126,6 @@ public class ContentService {
         
         mapping.getContent().remove(contentForDeletion);
         return true;
-    }
-
-    private LocalizedContent getLocalizedContentFromMapping(UserEntity user, Bot bot, ContentMapping mapping) {
-        final Map<String, LocalizedContent> contentMap = getContentMap(mapping.getContent());
-
-        if (contentMap.containsKey(user.getLanguageCode())) {
-            LOGGER.debug("Localized content in group " + mapping.getId()
-                    + " for user " + user.getId() + "'s prefered code " + user.getLanguageCode()
-                    + " is available.");
-            return contentMap.get(user.getLanguageCode());
-        }
-        LOGGER.debug("Localized content in group " + mapping.getId() + " for user "
-                + user.getId() + "'s prefered code " + user.getLanguageCode()
-                + " is not available. Looking over the language code priority list...");
-        final List<String> languagePriority = textUtil.getLanguagePriority();
-
-        for (final String code : languagePriority) {
-            if (!code.equals(user.getLanguageCode())) {
-                if (contentMap.containsKey(code)) {
-                    LOGGER.debug("Localized content in group " + mapping.getId()
-                            + " has been found for language code " + code + ".");
-                    return contentMap.get(code);
-                }
-            }
-        }
-        final LocalizedContent firstAvailableContent = mapping.getContent().get(0);
-        LOGGER.warn("There is no available content in group " + mapping.getId()
-                + " for any of the priority language codes. First content in the list (Id: "
-                + firstAvailableContent.getId() + ") will be used instead.");
-
-        return mapping.getContent().get(0);
     }
 
     private LocalizedContent parseAndPersistContent0(UserEntity user, Bot bot, List<Message> messages,
@@ -361,14 +225,5 @@ public class ContentService {
 
         LOGGER.debug("Content type is text.");
         return MediaType.TEXT;
-    }
-
-    private Map<String, LocalizedContent> getContentMap(List<LocalizedContent> content) {
-        final Map<String, LocalizedContent> contentMap = new HashMap<>();
-
-        for (final LocalizedContent localizedContent : content) {
-            contentMap.put(localizedContent.getLanguageCode(), localizedContent);
-        }
-        return contentMap;
     }
 }

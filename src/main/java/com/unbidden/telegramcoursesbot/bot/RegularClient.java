@@ -8,11 +8,10 @@ import com.unbidden.telegramcoursesbot.model.Role;
 import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import java.util.List;
-import org.springframework.lang.NonNull;
+
 import org.springframework.lang.Nullable;
 import org.telegram.telegrambots.meta.api.methods.commands.DeleteMyCommands;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
@@ -29,13 +28,10 @@ public class RegularClient extends CustomTelegramClient {
 
     private final Integer maxConnections;
 
-    public RegularClient(@NonNull Bot bot, @NonNull UserService userService,
-            @NonNull LocalizationLoader loader, @NonNull CertificateDao dao,
-            @NonNull CommandHandlerManager commandHandlerManager,
-            @NonNull EntityUtil entityUtil,
-            @NonNull String baseUrl, @NonNull String secretToken,
-            @Nullable String ip, int maxConnections, boolean isCustomCertificateIncluded) {
-        super(bot, userService, loader, dao, baseUrl, secretToken,
+    public RegularClient(Bot bot,  LocalizationLoader loader, CertificateDao dao,
+            CommandHandlerManager commandHandlerManager, EntityUtil entityUtil, String baseUrl,
+            String secretToken, @Nullable String ip, int maxConnections, boolean isCustomCertificateIncluded) {
+        super(bot, loader, dao, baseUrl, secretToken,
                 ip, isCustomCertificateIncluded);
         this.commandHandlerManager = commandHandlerManager;
         this.entityUtil = entityUtil;
@@ -68,7 +64,7 @@ public class RegularClient extends CustomTelegramClient {
         logger.debug("Command menus have been initialized for bot " + bot.getId() + ".");
     }
 
-    public void setUpMenuForUserForRole(@NonNull UserEntity user, @NonNull Role role) {
+    public void setUpMenuForUserForRole(UserEntity user, Role role) {
         final List<String> languageCodes = localizationLoader.getAvailableLanguageCodes();
 
         for (String code : languageCodes) {
@@ -89,7 +85,7 @@ public class RegularClient extends CustomTelegramClient {
         }
     }
 
-    public void removeMenuForUser(@NonNull UserEntity user) {
+    public void removeMenuForUser(UserEntity user) {
         final List<String> languageCodes = localizationLoader.getAvailableLanguageCodes();
 
         for (String code : languageCodes) {
@@ -107,7 +103,7 @@ public class RegularClient extends CustomTelegramClient {
         }
     }
 
-    public void setUpUserMenu(@NonNull String languageCode) {
+    public void setUpUserMenu(String languageCode) {
         final SetMyCommands setMyCommands = SetMyCommands.builder()
                 .commands(parseToBotCommands(commandHandlerManager.getCommandsForRole(
                     entityUtil.getRole(RoleType.USER)).stream()

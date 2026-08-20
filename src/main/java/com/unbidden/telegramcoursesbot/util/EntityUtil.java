@@ -331,6 +331,18 @@ public class EntityUtil {
     }
 
     @Transactional(readOnly = true)
+    public BotRole getBotRole(UserEntity user, Bot bot, Long targetId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+
+        return botRoleRepository.findByBotIdAndUserId(bot.getId(), targetId).orElseThrow(() ->
+                new EntityNotFoundException("Bot role for user " + targetId
+                + " and bot " + bot.getId() + " does not exist", localizationLoader
+                .localize(Error.BOT_ROLE_NOT_FOUND, user)));
+    }
+
+    @Transactional(readOnly = true)
     public SupportRequest getSupportRequestById(UserEntity user, Bot bot, Long id) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
@@ -453,11 +465,17 @@ public class EntityUtil {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
 
-        if (!bot.getId().equals(BOT_LORD_ID)) {
+        if (!isBotLord(bot)) {
             throw new AccessDeniedException("This action is available only from the "
                     + "bot lord", localizationLoader.localize(
                     Error.UNAVAILABLE_IN_REGULAR_BOT, user));
         }
+    }
+
+    public boolean isBotLord(Bot bot) {
+        Assert.notNull(bot, "bot cannot be null");
+
+        return bot.getId().equals(BOT_LORD_ID);
     }
 
     public String getLocalizedTitle(UserEntity localizedFor, Bot bot, UserEntity target) {

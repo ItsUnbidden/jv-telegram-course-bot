@@ -21,6 +21,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dao.ImageDao;
 import com.unbidden.telegramcoursesbot.exception.CourseIsAlreadyOwnedException;
+import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.exception.OnMaintenanceException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.localization.Localization;
@@ -37,10 +38,11 @@ import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.model.Course.PaymentType;
 import com.unbidden.telegramcoursesbot.model.TelegramPaymentDetails;
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService.PreCheckoutResponse;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
+import com.unbidden.telegramcoursesbot.util.ValidatorUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -58,7 +60,7 @@ public class PaymentOrchestrationService {
 
     private final PaymentService paymentService;
 
-    private final ContentService contentService;
+    private final ContentOrchestrationService contentService;
 
     private final CourseOrchestrationService courseService;
 
@@ -66,9 +68,11 @@ public class PaymentOrchestrationService {
 
     private final LocalizationLoader localizationLoader;
 
+    private final ClientManager clientManager;
+
     private final EntityUtil entityUtil;
 
-    private final ClientManager clientManager;
+    private final ValidatorUtil validatorUtil;
 
     @Value("${telegram.bot.webhook.url}")
     private String serverUrl;
@@ -240,10 +244,22 @@ public class PaymentOrchestrationService {
         return paymentService.checkRefundPossible(user, bot, courseId);
     }
 
-    public void refund(UserEntity user, Bot bot, Long courseId) {
+    public void refund(UserEntity user, Bot bot, Long courseId, String confirmationPhrase, List<Message> messages) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
+        Assert.notNull(confirmationPhrase, "confirmationPhrase cannot be null");
+        Assert.notEmpty(messages, "messages cannot be null");
+
+        validatorUtil.checkExactExpectedMessages(user, messages, 1);  
+        final String providedStr = validatorUtil.checkText(user, messages.getFirst());
+
+        LOGGER.debug("User has provided this string - " + providedStr + ". Checking if this matches the confirmation phrase...");
+        if (!confirmationPhrase.equals(providedStr)) {
+            throw new InvalidDataSentException("Provided string does not match the confirmation phrase",
+                    localizationLoader.localize(Localizations.Error.REFUND_CONFIRMATION_PHRASE_FAILURE, user));
+        }
+        LOGGER.debug("Confirmation phrase matches. Initiating refund...");
 
         final CourseOwnership ownership = paymentService.checkRefundPossible(user, bot, courseId);
         final TelegramPaymentDetails paymentDetails = (TelegramPaymentDetails)ownership.getLastPaymentDetails();
@@ -298,6 +314,51 @@ public class PaymentOrchestrationService {
                     contentService.getLocalizedText(ownership.getUser(), bot, courseTitleMapping), user.getFullName(),
                     entityUtil.getLocalizedTitle(ownership.getUser(), bot, user))));
         LOGGER.debug("Messages sent.");
+    }
+
+    public void takeCourse(UserEntity user, Bot bot, Long targetId, Long courseId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        LOGGER.info("User " + user.getId() + " is trying to take away course " + courseId + " from user " + targetId + "...");
+        final CourseOwnership ownership = paymentService.invalidateGiftCourse(user, bot, targetId, courseId);
+        LOGGER.info("Course ownership " + ownership.getId() + " has been invalidated for user "
+                + user.getId() + " and course " + courseId + ".");
+        final ContentMapping courseTitleMapping = entityUtil.getMappingById(user, bot, ownership.getCourse().getTitle().getId());
+
+        LOGGER.debug("Sending confirmation messages...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
+                Localizations.Service.COURSE_TAKEN_SUCCESSFULY, user, new Localizations.Service.CourseTakenSuccessfullyParams(
+                    contentService.getLocalizedText(user, bot, courseTitleMapping), ownership.getUser().getFullName(),
+                    entityUtil.getLocalizedTitle(user, bot, ownership.getUser()))));
+        clientManager.getClient(bot).sendMessage(ownership.getUser(), localizationLoader.localize(
+                Localizations.Service.COURSE_TAKEN_NOTIFICATION, ownership.getUser(), new Localizations.Service.CourseTakenNotificationParams(
+                    contentService.getLocalizedText(ownership.getUser(), bot, courseTitleMapping), user.getFullName(),
+                    entityUtil.getLocalizedTitle(ownership.getUser(), bot, user))));
+        LOGGER.debug("Messages sent.");
+    }
+
+    public void deleteInvoiceImage(UserEntity user, Bot bot, List<Message> messages) {
+        validatorUtil.checkExactExpectedMessages(user, messages, 1);
+
+        final Long courseId = validatorUtil.parseId(user, messages.getFirst());
+
+        if (!imageDao.exists(courseId)) {
+            throw new InvalidDataSentException("Invoice image does not exist for course "
+                    + courseId, localizationLoader.localize(
+                    Localizations.Error.INVOICE_IMAGE_DOES_NOT_EXIST, user));
+        }
+
+        LOGGER.info("Deleing invoice image for course " + courseId + "...");
+        imageDao.delete(courseId);
+        LOGGER.info("Image deleted.");
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getBotLordClient().sendMessage(user, localizationLoader
+                .localize(Localizations.Service.INVOICE_IMAGE_DELETED, user));
+        LOGGER.debug("Message sent.");
     }
 
     private void sendTelegramInvoice(UserEntity user, Bot bot, Course course) {

@@ -1,10 +1,12 @@
 package com.unbidden.telegramcoursesbot.service.payment;
 
+import com.unbidden.telegramcoursesbot.exception.CourseBoughtException;
 import com.unbidden.telegramcoursesbot.exception.CourseIsAlreadyOwnedException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.RefundImpossibleException;
 import com.unbidden.telegramcoursesbot.exception.StaleStateException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
@@ -17,7 +19,7 @@ import com.unbidden.telegramcoursesbot.model.CourseOwnership.OwnershipSource;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership.OwnershipStatus;
 import com.unbidden.telegramcoursesbot.repository.CourseOwnershipRepository;
 import com.unbidden.telegramcoursesbot.repository.PaymentDetailsRepository;
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import lombok.RequiredArgsConstructor;
@@ -48,7 +50,7 @@ public class PaymentService {
 
     private final CourseOwnershipRepository courseOwnershipRepository;
 
-    private final ContentService contentService;
+    private final ContentOrchestrationService contentService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -149,7 +151,7 @@ public class PaymentService {
         Assert.notNull(courseId, "courseId cannot be null");
 
         final Course course = entityUtil.getCourseById(user, bot, courseId);
-        final UserEntity target = entityUtil.getUser(courseId, user.getLanguageCode());
+        final UserEntity target = entityUtil.getUser(targetId, user.getLanguageCode());
 
         try {
             return createOrActivateOwnership(target, course, OwnershipSource.GIFTED);
@@ -160,6 +162,29 @@ public class PaymentService {
                         contentService.getLocalizedText(user, bot, course.getTitle().getId()), target.getFullName(),
                         entityUtil.getLocalizedTitle(user, bot, target))), e);
         }
+    }
+
+    @Transactional
+    public CourseOwnership invalidateGiftCourse(UserEntity user, Bot bot, Long targetId, Long courseId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        final UserEntity target = entityUtil.getUser(targetId, user.getLanguageCode());
+        final CourseOwnership ownership = entityUtil.getActiveCourseOwnership(target, bot, courseId);
+
+        if (ownership.getSource() != OwnershipSource.GIFTED) {
+            throw new CourseBoughtException("User " + targetId + " has bought course " + courseId + ". It cannot be taken away.",
+                    localizationLoader.localize(Localizations.Error.TAKE_COURSE_BOUGHT, user, new Localizations.Error.TakeCourseBoughtParams(
+                        contentService.getLocalizedText(user, bot, ownership.getCourse().getTitle().getId()), target.getFullName(),
+                        entityUtil.getLocalizedTitle(user, bot, target))));
+        }
+
+        ownership.setLastUpdate(LocalDateTime.now());
+        ownership.setStatus(OwnershipStatus.REVOKED);
+
+        return ownership;
     }
 
     @Transactional(readOnly = true)
@@ -208,7 +233,7 @@ public class PaymentService {
             LOGGER.info("Performing checks for refund of course " + courseId
                     + " for user " + user.getId() + "...");
             LOGGER.debug("Checking whether course " + courseId + " supports refund...");
-            if (course.getRefundStage() < 0) {
+            if (course.getRefundStage() == null) {
                 throw new RefundImpossibleException("Refund for course " + courseId 
                         + " is not possible", localizationLoader.localize(
                         Error.REFUND_COURSE_UNAVAILABLE, user, new Error.RefundCourseUnavailableParams(courseName)));
@@ -219,17 +244,16 @@ public class PaymentService {
                         + " is not owned by user " + user.getId(), localizationLoader
                         .localize(Error.REFUND_COURSE_NOT_OWNED, user, new Error.RefundCourseNotOwnedParams(courseName)));
             }
-            LOGGER.debug("Checking whether course " + courseId + " was gifted to user "
-                    + user.getId() + "...");
-            if (isAvailableAndGifted(user, courseId)) {
-                throw new RefundImpossibleException("Course " + courseId
-                        + " was gifted to user " + user.getId()
-                        + " and therefore it cannot be refunded", localizationLoader
-                        .localize(Error.REFUND_COURSE_WAS_GIFTED, user, new Error.RefundCourseWasGiftedParams(courseName)));
-            }
 
             if (ownership == null) {
                 ownership = entityUtil.getCourseOwnership(user, bot, courseId);
+            }
+            LOGGER.debug("Checking whether the course was aquired through a Telegram purchase...");
+            if (ownership.getSource() != OwnershipSource.TELEGRAM) {
+                throw new RefundImpossibleException("User " + user.getId() + " cannot refund course "
+                        + course.getId() + " because they did not buy it through Telegram.",
+                        localizationLoader.localize(Localizations.Error.REFUND_INVALID_SOURCE, user,
+                            new Localizations.Error.RefundInvalidSourceParams(courseName)));
             }
             LOGGER.debug("Checking whether the refund expiration period is over for user "
                     + user.getId() + "'s ownership for course " + courseId + "...");

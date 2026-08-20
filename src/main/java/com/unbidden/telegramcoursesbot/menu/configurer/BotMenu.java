@@ -20,6 +20,8 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class BotMenu implements MenuConfigurer {
+    private static final String IS_BY_ID_PARAM = "isById";
+
     private final CreateBotButtonHandler createBotHandler;
     private final DisableBotButtonHandler disableBotHandler;
     private final ListBotsButtonHandler listBotsHandler;
@@ -40,14 +42,15 @@ public class BotMenu implements MenuConfigurer {
             new TerminalButton(loader.localize(Localizations.Button.DISABLE_BOT, p.user()).getData(), disableBotHandler),
             new TerminalButton(loader.localize(Localizations.Button.LIST_BOTS, p.user()).getData(), listBotsHandler)
         ));
+        
         final Page page2 = new Page(menu);
 
         page2.setPageIndex(1);
         page2.setColumns(2);
         page2.setLocalizationFunction(p -> loader.localize(Localizations.Menu.BOT_PAGE_1, p.user()));
         page2.setButtonsFunction(p -> List.of(
-            new TerminalButton(loader.localize(Localizations.Button.BY_ID, p.user()).getData(), createBotHandler),
-            new TerminalButton(loader.localize(Localizations.Button.CHOOSE_USER, p.user()).getData(), createBotHandler),
+            new TerminalButton(loader.localize(Localizations.Button.BY_ID, p.user()).getData(), IS_BY_ID_PARAM, String.valueOf(true), createBotHandler),
+            new TerminalButton(loader.localize(Localizations.Button.CHOOSE_USER, p.user()).getData(), IS_BY_ID_PARAM, String.valueOf(false), createBotHandler),
             new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData())
         ));
 

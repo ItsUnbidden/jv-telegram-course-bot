@@ -1,18 +1,18 @@
 package com.unbidden.telegramcoursesbot.bot;
 
 import com.unbidden.telegramcoursesbot.dao.CertificateDao;
+import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
-import jakarta.persistence.EntityNotFoundException;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,8 +31,6 @@ public class ClientManager {
 
     private final CertificateDao dao;
 
-    private final UserService userService;
-
     private final LocalizationLoader loader;
 
     private final EntityUtil entityUtil;
@@ -43,12 +41,10 @@ public class ClientManager {
     
     private BotLordClient botLordClient;
 
-    public ClientManager(CertificateDao dao, UserService userService,
-            LocalizationLoader loader, EntityUtil entityUtil,
+    public ClientManager(CertificateDao dao, LocalizationLoader loader, EntityUtil entityUtil,
             @Lazy CommandHandlerManager commandHandlerManager,
             LocalizationLoader localizationLoader) {
         this.dao = dao;
-        this.userService = userService;
         this.loader = loader;
         this.entityUtil = entityUtil;
         this.commandHandlerManager = commandHandlerManager;
@@ -77,20 +73,19 @@ public class ClientManager {
         final CustomTelegramClient client = clients.get(bot.getId());
 
         if (client == null) {
-            if (bot.getId().equals(entityUtil.getBotLord().getId())) {
+            if (entityUtil.isBotLord(bot)) {
                 return getBotLordClient();
             }
             throw new EntityNotFoundException("Bot " + bot.getId()
-                    + "'s client does not exist");
+                    + "'s client does not exist. This is a bug.", null);
         }
         return client;
     }
 
     public CustomTelegramClient addClient(Bot bot) {
         LOGGER.debug("Creating a new client for bot " + bot.getId() + "...");
-        final RegularClient client = new RegularClient(bot, userService, loader,
-                dao, commandHandlerManager, entityUtil, baseUrl, secretToken, ip,
-                maxConnections, isCustomCertificateIncluded);
+        final RegularClient client = new RegularClient(bot, loader, dao, commandHandlerManager,
+                entityUtil, baseUrl, secretToken, ip, maxConnections, isCustomCertificateIncluded);
 
         clients.put(bot.getId(), client);
         return client;
@@ -99,7 +94,7 @@ public class ClientManager {
     public BotLordClient addBotLordClient(Bot bot) {
         LOGGER.debug("Creating a new client for bot lord...");
         botLordClient = new BotLordClient(botLordToken, baseUrl, ip, secretToken, bot,
-                dao, userService, loader, isCustomCertificateIncluded);
+                dao, loader, isCustomCertificateIncluded);
         return botLordClient;
     }
 
@@ -130,6 +125,23 @@ public class ClientManager {
         LOGGER.debug("Message sent.");
 
         return isOnMaintenance;
+    }
+
+    public void refreshMenus(UserEntity director) {
+        if (!isOnMaintenance) {
+            throw new ForbiddenOperationException("Unable to refresh because server is not on "
+                    + "maintenance", localizationLoader.localize(
+                    Localizations.Error.MAINTENANCE_IN_NOT_ENABLED, director));
+        }
+        LOGGER.info("The director is trying to refresh user menus...");
+
+        botLordClient.setUpMenu();
+        clients.forEach((k, v) -> v.reloadMenus());
+        LOGGER.info("Menus have been reloaded.");
+
+        LOGGER.debug("Sending confirmation message...");
+        botLordClient.sendMessage(director, localizationLoader.localize(Localizations.Service.MENU_REFRESH_SUCCESS, director));
+        LOGGER.debug("Message sent.");
     }
 
     public boolean isOnMaintenance() {

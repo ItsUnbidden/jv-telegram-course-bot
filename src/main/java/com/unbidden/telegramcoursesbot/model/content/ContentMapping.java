@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.model.content;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
@@ -23,7 +24,7 @@ public class ContentMapping extends BaseEntity implements Comparable<ContentMapp
     @Column(nullable = false)
     private Integer position;
 
-    @OneToMany
+    @OneToMany(cascade = CascadeType.REMOVE)
     @JoinTable(name = "content_mappings_content",
             joinColumns = @JoinColumn(name = "mapping_id"),
             inverseJoinColumns = @JoinColumn(name = "content_id"))

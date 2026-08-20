@@ -1,7 +1,9 @@
 package com.unbidden.telegramcoursesbot.exception;
 
-public class CourseBoughtException extends Exception {
-    public CourseBoughtException(String message) {
-        super(message);
+import com.unbidden.telegramcoursesbot.localization.Localization;
+
+public class CourseBoughtException extends LocalizedException {
+    public CourseBoughtException(String message, Localization errorLoc) {
+        super(message, errorLoc);
     }
 }

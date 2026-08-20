@@ -1,75 +1,54 @@
 package com.unbidden.telegramcoursesbot.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
-import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.course.LessonService;
+import com.unbidden.telegramcoursesbot.security.Security;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
+import com.unbidden.telegramcoursesbot.service.orchestration.LessonOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
-import com.unbidden.telegramcoursesbot.util.TextUtil;
+import com.unbidden.telegramcoursesbot.util.EntityUtil;
+
 import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class RemoveLessonFromCourseButtonHandler extends AbstractButtonHandler {
-    private static final Logger LOGGER = LogManager.getLogger(
-            AddLessonToCourseButtonHandler.class);
-
-    private static final String SERVICE_DELETE_LESSON_REQUEST = "service_delete_lesson_request";
-    private static final String SERVICE_LESSON_DELETED = "service_lesson_deleted";
-
-    private static final String ERROR_LESSON_DELETE_CONFIRMATION_FAILURE =
-            "error_lesson_delete_confirmation_failure";
-
-    private static final int EXPECTED_MESSAGES = 1;
+    private static final String LESSON_ID_PARAM = "lessonId";
 
     private final ContentSessionService sessionService;
 
-    private final LessonService lessonService;
+    private final ContentOrchestrationService contentService;
 
-    private final CourseService courseService;
-
-    private final TextUtil textUtil;
+    private final LessonOrchestrationService lessonService;
 
     private final LocalizationLoader localizationLoader;
 
     private final ClientManager clientManager;
 
+    private final EntityUtil entityUtil;
+
     @Override
+    @Security(authorities = AuthorityType.COURSE_SETTINGS)
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        final Course course = courseService.getCourseByName(params[0], user, bot);
-        final Lesson lesson = lessonService.getLessonById(Long.parseLong(params[2]), user, bot);
-        LOGGER.info("User " + user.getId() + " is trying to remove lesson " + lesson.getId()
-                + " from course " + course.getName() + "...");
-        sessionService.createSession(user, bot, m -> {
-            textUtil.checkExpectedMessages(EXPECTED_MESSAGES, user, m, localizationLoader);
-            LOGGER.debug("Checking whether sent string matches course name...");
-            if (!m.get(0).getText().trim().equals(course.getName())) {
-                throw new InvalidDataSentException("Confirmation message does not match "
-                        + "course name", localizationLoader.localize(
-                        ERROR_LESSON_DELETE_CONFIRMATION_FAILURE, user));
-            }
-            LOGGER.debug("Check passed. Deleting lesson...");
-            lessonService.removeLesson(user, lesson);
-            LOGGER.debug("Sending confirmation message...");
-            clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .localize(SERVICE_LESSON_DELETED, user));
-            LOGGER.debug("Message sent.");
+        final Lesson lesson = entityUtil.getLessonById(user, bot, Long.parseLong(params.get(LESSON_ID_PARAM)));
+        final String courseName = contentService.getLocalizedText(user, bot, entityUtil.getCourseTitle(user, bot, lesson.getCourse().getId()));
+        final String confirmationPhrase = localizationLoader.localize(Localizations.Service.DELETE_LESSON_CONFIRMATION_PHRASE, user,
+                new Localizations.Service.DeleteLessonConfirmationPhraseParams(courseName, lesson.getPosition())).getData();
+  
+        sessionService.createSession(user, bot, p -> {
+            lessonService.deleteLesson(p.user(), p.bot(), lesson.getId(), confirmationPhrase, p.messages());
         });
-        LOGGER.debug("Sending request message...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .localize(SERVICE_DELETE_LESSON_REQUEST, user));
-        LOGGER.debug("Request sent.");
+
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(Localizations.Service.DELETE_LESSON_REQUEST, user,
+                new Localizations.Service.DeleteLessonRequestParams(confirmationPhrase)));
     }
 }

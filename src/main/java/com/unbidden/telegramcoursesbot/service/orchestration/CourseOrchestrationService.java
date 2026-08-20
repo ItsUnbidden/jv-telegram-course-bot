@@ -1,5 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.orchestration;
 
+import com.unbidden.telegramcoursesbot.util.ValidatorUtil;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +16,7 @@ import com.unbidden.telegramcoursesbot.dto.CourseResponseDto;
 import com.unbidden.telegramcoursesbot.dto.internal.CourseMenuDto;
 import com.unbidden.telegramcoursesbot.dto.internal.UsersByCourseStageCountDto;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
+import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
@@ -28,7 +31,7 @@ import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.LessonTrigger;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
 import com.unbidden.telegramcoursesbot.service.timing.TimingService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
@@ -42,6 +45,7 @@ public class CourseOrchestrationService {
     private static final Logger LOGGER = LogManager.getLogger(CourseOrchestrationService.class);
     
     private static final String LESSON_ID_PARAM = "lessonId";
+    private static final int MAX_PRICE = 100_000;
 
     private final CourseService courseService;
 
@@ -51,7 +55,7 @@ public class CourseOrchestrationService {
 
     private final TimingService timingService;
 
-    private final ContentService contentService;
+    private final ContentOrchestrationService contentService;
 
     private final MenuOrchestrationService menuService;
 
@@ -66,6 +70,8 @@ public class CourseOrchestrationService {
     private final TextUtil textUtil;
 
     private final EntityUtil entityUtil;
+
+    private final ValidatorUtil validatorUtil;
 
     public CourseResponseDto getById(UserEntity user, Bot bot, Long courseId) {
         Assert.notNull(user, "user cannot be null");
@@ -123,6 +129,17 @@ public class CourseOrchestrationService {
         return courseService.countAndGroupByCourseStage(courseId);
     }
 
+    public void checkDeletable(UserEntity user, Long courseId) {
+        courseService.checkDeletable(user, courseId);
+    }
+
+    public void checkCourseIsNotUnderMaintenance(UserEntity user, Long courseId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        courseService.checkCourseIsNotUnderMaintenance(user, courseId);
+    }
+
     public void initCourse(UserEntity user, Bot bot, Long courseId) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
@@ -156,7 +173,7 @@ public class CourseOrchestrationService {
 
         menuService.terminateMenuGroup(MenuTerminationGroupKey.COURSE_NEXT_STAGE, progress.getId());
 
-        if (progress.getStage() >= progress.getCourse().getNumberOfLessons()) {
+        if (progress.getStage() >= progress.getCourse().getLessons().size()) {
             LOGGER.info("User " + user.getId() + " has completed course " + courseId
                     + ". Commencing ending sequence...");
             end(user, progress);
@@ -166,6 +183,32 @@ public class CourseOrchestrationService {
         timingService.createLessonTriggerIfNeeded(user, bot, courseId);
 
         current(progress);
+    }
+
+    public void createCourse(UserEntity user, Bot bot, List<Message> messages) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+
+        validatorUtil.checkAtLeastExpectedMessages(user, messages, 1);
+        validatorUtil.checkTextLength(user, messages.getFirst(), 3, 35);
+
+        String languageCode = user.getLanguageCode();
+        if (messages.size() > 1 && validatorUtil.checkLanguageCode(user, messages.getLast())) {
+            languageCode = messages.getLast().getText();
+            messages.removeLast();
+        }
+
+        LOGGER.info("User " + user.getId() + " is trying to create a new course.");  
+
+        final Course course = courseService.createCourse(user, bot, languageCode, messages);
+        LOGGER.info("A new course " + course.getId() + " has been created. "
+                + "Further configuration is required.");
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
+                Localizations.Service.NEW_COURSE_CREATED, user));
+        LOGGER.debug("Message sent.");
     }
 
     public void selectStage(UserEntity user, Bot bot, Long courseId, int stage) {
@@ -188,6 +231,135 @@ public class CourseOrchestrationService {
         
         courseService.setCourseProgressStage(user, bot, courseId, stage);
         current(progress);
+    }
+
+    public void toggleMaintenance(UserEntity user, Bot bot, Long courseId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        final Course course = courseService.toggleMaintenance(user, bot, courseId);
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
+                Localizations.Service.COURSE_MAINTENANCE_TOGGLE_SUCCESS, user,
+                new Localizations.Service.CourseMaintenanceToggleSuccessParams(getStatus(user, course.isUnderMaintenance()),
+                    contentService.getLocalizedText(user, bot, course.getTitle()))));
+        LOGGER.debug("Message sent.");
+    }
+
+    public void toggleFeedbackInclusion(UserEntity user, Bot bot, Long courseId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        final Course course = courseService.toggleFeedbackInclusion(user, bot, courseId);
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
+                Localizations.Service.COURSE_FEEDBACK_UPDATE_SUCCESS, user,
+                new Localizations.Service.CourseFeedbackUpdateSuccessParams(getStatus(user, course.isFeedbackIncluded()),
+                    contentService.getLocalizedText(user, bot, course.getTitle()))));
+        LOGGER.debug("Message sent.");
+    }
+
+    public void toggleHomeworkInclusion(UserEntity user, Bot bot, Long courseId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        final Course course = courseService.toggleHomeworkInclusion(user, bot, courseId);
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
+                Localizations.Service.COURSE_HOMEWORK_UPDATE_SUCCESS, user,
+                new Localizations.Service.CourseHomeworkUpdateSuccessParams(getStatus(user, course.isHomeworkIncluded()),
+                    contentService.getLocalizedText(user, bot, course.getTitle()))));
+        LOGGER.debug("Message sent.");
+    }
+
+    public void updateCoursePrice(UserEntity user, Bot bot, Long courseId, List<Message> messages) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+
+        validatorUtil.checkExactExpectedMessages(user, messages, 1);
+        
+        final Integer newPrice = validatorUtil.parseIntInBounds(user, messages.getFirst(), 1, MAX_PRICE);
+        
+        final Course course = courseService.updateCoursePrice(user, bot, courseId, newPrice);
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
+                Localizations.Service.COURSE_PRICE_UPDATE_SUCCESS, user,
+                new Localizations.Service.CoursePriceUpdateSuccessParams(contentService.getLocalizedText(
+                    user, bot, course.getTitle()), MAX_PRICE)));
+        LOGGER.debug("Message sent.");
+    }
+
+    public void deleteCourse(UserEntity user, Bot bot, Long courseId, String confirmationPhrase, List<Message> messages) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+        Assert.notNull(confirmationPhrase, "confirmationPhrase cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+
+        LOGGER.info("User " + user.getId() + " is trying to delete course " + courseId + ".");
+
+        validatorUtil.checkExactExpectedMessages(user, messages, 1);
+        final String providedStr = validatorUtil.checkText(user, messages.getFirst());
+
+        LOGGER.debug("User has provided this string - " + providedStr + ". Checking if this matches the confirmation phrase...");
+        if (!confirmationPhrase.equals(providedStr)) {
+            throw new InvalidDataSentException("Provided string does not match the confirmation phrase",
+                    localizationLoader.localize(Localizations.Error.DELETE_COURSE_CONFIRMATION_PHRASE_FAILURE, user));
+        }
+        LOGGER.debug("Confirmation phrase matches. Deleting course " + courseId + "...");
+
+        courseService.deleteCourse(user, bot, courseId);
+        LOGGER.info("Course " + courseId + " has been deleted.");
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader
+                .localize(Localizations.Service.DELETE_COURSE_SUCCESS, user));
+        LOGGER.debug("Message sent.");
+    }
+
+    public void updateRefundStage(UserEntity user, Bot bot, Long courseId, List<Message> messages) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+        
+        validatorUtil.checkExactExpectedMessages(user, messages, 1);
+        Course course = entityUtil.getCourseById(user, bot, courseId);
+        final int newStage = validatorUtil.parseIntInBounds(user, messages.getFirst(), Integer.MIN_VALUE, course.getLessons().size() - 1);
+
+        if (newStage < 0 && course.getRefundStage() == null || newStage == course.getRefundStage()) {
+            throw new InvalidDataSentException("New refund stage is the same as before.",
+                    localizationLoader.localize(Localizations.Error.SAME_NEW_REFUND_STAGE, user));
+        }
+
+        course = courseService.updateRefundStage(user, bot, courseId, newStage);
+
+        LOGGER.info("Refund stage for course " + courseId  + " has been updated.");
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.getClient(bot).sendMessage(user, localizationLoader
+                .localize(Localizations.Service.NEW_REFUND_STAGE_SUCCESS, user,
+                    new Localizations.Service.NewRefundStageSuccessParams(
+                        contentService.getLocalizedText(user, bot, course.getTitle()),
+                        course.getRefundStage() == null
+                            ? localizationLoader.localize(Localizations.Service.NOT_AVAILABLE, user).getData()
+                            : course.getRefundStage().toString()
+                    )));
+        LOGGER.debug("Message sent.");
+    }
+
+    private String getStatus(UserEntity user, boolean status) {
+        return status ? localizationLoader.localize(Localizations.Service.STATUS_ENABLED, user).getData()
+                : localizationLoader.localize(Localizations.Service.STATUS_DISABLED, user).getData();
     }
 
     private void current(CourseProgress progress) {
@@ -213,7 +385,7 @@ public class CourseOrchestrationService {
         
         LOGGER.debug("Lesson " + lesson.getId() + " or the course does not have any homework."
                 + " Checking, if this is the last lesson...");
-        if (progress.getStage() >= course.getNumberOfLessons() - 1) {
+        if (progress.getStage() >= course.getLessons().size() - 1) {
             next(user, course.getBot(), course.getId(), lesson.getId());
             return;
         }

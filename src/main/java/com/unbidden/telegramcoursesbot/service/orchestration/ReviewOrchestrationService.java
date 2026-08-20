@@ -36,7 +36,7 @@ import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Review;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.review.ReviewService;
 
 import lombok.RequiredArgsConstructor;
@@ -61,7 +61,7 @@ public class ReviewOrchestrationService {
 
     private final MenuOrchestrationService menuService;
 
-    private final ContentService contentService;
+    private final ContentOrchestrationService contentService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -73,6 +73,14 @@ public class ReviewOrchestrationService {
 
     @Value("${telegram.bot.reviews.page_size}")
     private Integer pageSize;
+
+    public Review checkReviewForComment(UserEntity user, Bot bot, Long reviewId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(reviewId, "reviewId cannot be null");
+
+        return reviewService.checkReviewForComment(user, bot, reviewId);
+    }
 
     public void initiateBasicReview(UserEntity user, Bot bot, Long courseId) {
         Assert.notNull(user, "user cannot be null");
@@ -126,21 +134,21 @@ public class ReviewOrchestrationService {
         return review;
     }
 
-    public Review commitAdvancedReview(UserEntity user, Bot bot, Long reviewId, List<Message> messages) {
+    public Review commitAdvancedReview(UserEntity user, Bot bot, Long courseId, List<Message> messages) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(reviewId, "reviewId cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
         Assert.notNull(messages, "messages cannot be null");
 
-        final Review review = reviewService.upgradeReview(user, bot, reviewId, messages);
+        final Review review = reviewService.upgradeReview(user, bot, courseId, messages);
 
-        LOGGER.debug("Review " + reviewId + " has been updated. Sending confirmation message...");
+        LOGGER.debug("Review " + review.getId() + " has been updated. Sending confirmation message...");
 
         clientManager.getClient(bot).sendMessage(review.getUser(), localizationLoader.localize(
                 Localizations.Service.ADVANCED_REVIEW_SUBMITTED, review.getUser(),
                 new Localizations.Service.AdvancedReviewSubmittedParams(contentService.getLocalizedText(user,
                     bot, review.getCourse().getTitle().getId()))));
-        LOGGER.info("Message sent. Review " + reviewId + " has been updated to include advanced feedback. "
+        LOGGER.info("Message sent. Review " + review.getId() + " has been updated to include advanced feedback. "
                 + "All advanced review menus will be terminated.");
         menuService.terminateMenuGroup(MenuTerminationGroupKey.LEAVE_ADVANCED_REVIEW, review.getId());
 
@@ -199,13 +207,13 @@ public class ReviewOrchestrationService {
         return review;
     }
 
-    public Review updateCourseGrade(UserEntity user, Bot bot, Long reviewId, int newGrade) {
+    public Review updateCourseGrade(UserEntity user, Bot bot, Long courseId, int newGrade) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(reviewId, "reviewId cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
         Assert.state(newGrade > 0 && newGrade <= 10, "newGrade must be an int between 1 and 10");
         
-        final Review review = reviewService.updateCourseGrade(user, bot, reviewId, newGrade);
+        final Review review = reviewService.updateCourseGrade(user, bot, courseId, newGrade);
 
         LOGGER.debug("Review has been updated. Sending confirmation message...");
         clientManager.getClient(bot).sendMessage(review.getUser(), localizationLoader.localize(
@@ -217,13 +225,13 @@ public class ReviewOrchestrationService {
         return review;
     }
 
-    public Review updateAdvancedReview(UserEntity user, Bot bot, Long reviewId, List<Message> messages) {
+    public Review updateAdvancedReview(UserEntity user, Bot bot, Long courseId, List<Message> messages) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(reviewId, "reviewId cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
         Assert.notNull(messages, "messages cannot be null");
 
-        final Review review = reviewService.updateAdvancedReview(user, bot, reviewId, messages);
+        final Review review = reviewService.updateAdvancedReview(user, bot, courseId, messages);
 
         LOGGER.debug("Review object recompiled. Sending confirmation message...");
         clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
@@ -324,7 +332,7 @@ public class ReviewOrchestrationService {
         LOGGER.info("Sending advanced review menu for course " + review.getCourse().getId()
                 + " to user " +  review.getUser().getId() + "...");
         menuService.initiateMenu(review.getUser(), bot, MenuKey.LEAVE_ADVANCED_REVIEW,
-                REVIEW_ID_PARAM, review.getCourse().getId().toString(), messageId, MenuTerminationGroupKey.LEAVE_ADVANCED_REVIEW, review.getId());
+                COURSE_ID_PARAM, review.getCourse().getId().toString(), messageId, MenuTerminationGroupKey.LEAVE_ADVANCED_REVIEW, review.getId());
     }
 
     private void sendReviews(UserEntity user, Bot bot, List<Review> reviews) {

@@ -1,50 +1,31 @@
 package com.unbidden.telegramcoursesbot.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
-import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
-import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
-import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
+import com.unbidden.telegramcoursesbot.service.orchestration.HomeworkOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
-import java.util.HashMap;
+
 import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.lang.NonNull;
+
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 @RequiredArgsConstructor
 public class UpdateHomeworkContentButtonHandler extends AbstractButtonHandler {
-    private static final Logger LOGGER = LogManager
-            .getLogger(UpdateHomeworkContentButtonHandler.class);
-    
-    private static final String PARAM_MAPPING_ID = "${mappingId}";
-    private static final String PARAM_HOMEWORK_ID = "${homeworkId}";
-    private static final String PARAM_LESSON_ID = "${lessonId}";
-
-    private static final String SERVICE_HOMEWORK_CONTENT_REQUEST =
-            "service_homework_content_request";
-    private static final String SERVICE_HOMEWORK_CONTENT_UPDATED =
-            "service_homework_content_updated";
-
-    private static final String ERROR_LANGUAGE_CODE_LENGTH = "error_language_code_length";
+    private static final String HOMEWORK_ID_PARAM = "homeworkId";
+    private static final String LESSON_ID_PARAM = "lessonId";
 
     private final ContentSessionService sessionService;
 
-    private final HomeworkService homeworkService;
-
-    private final ContentService contentService;
+    private final HomeworkOrchestrationService homeworkService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -53,54 +34,16 @@ public class UpdateHomeworkContentButtonHandler extends AbstractButtonHandler {
     @Override
     @Security(authorities = AuthorityType.COURSE_SETTINGS)
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        final Homework homework = homeworkService.getHomework(
-                Long.parseLong(params[3]), user, bot);
+        final Long homeworkId = Long.parseLong(params.get(HOMEWORK_ID_PARAM));
+        final Long lessonId = Long.parseLong(params.get(LESSON_ID_PARAM));
 
-        sessionService.createSession(user, bot, m -> {
-            LOGGER.info("User " + user.getId() + " is trying to update homework "
-                    + homework.getId() + "...");  
-            final String localizationName = homework.getMapping().getContent().get(0)
-                    .getData().getData();
-            final Message lastMessage = m.get(m.size() - 1);
-            final String languageCode;
-
-            if (lastMessage.hasText()) {
-                if (lastMessage.getText().length() > 3
-                        || lastMessage.getText().length() < 2) {
-                    throw new InvalidDataSentException("Language code must be "
-                            + "between 2 and 3 characters", localizationLoader
-                            .localize(ERROR_LANGUAGE_CODE_LENGTH, user));
-                }
-                LOGGER.debug("Language code for new content will be "
-                        + lastMessage.getText() + ".");
-                languageCode = lastMessage.getText();
-            } else {
-                languageCode = user.getLanguageCode();
-                LOGGER.debug("Seems like language code is not specified. "
-                        + "Assuming it to be user's telegram language which is "
-                        + languageCode + ".");
-            }
-            final LocalizedContent content = contentService.parseAndPersistContent(bot,
-                    m, localizationName, languageCode);
-            final ContentMapping newMapping = homeworkService
-                    .updateContent(homework.getId(), content, user, bot);
-            LOGGER.info("Homework " + homework.getId() + " content has been updated.");
-            LOGGER.debug("Sending confirmation message...");
-
-            final Map<String, Object> parameterMap = new HashMap<>();
-            parameterMap.put(PARAM_HOMEWORK_ID, homework.getId());
-            parameterMap.put(PARAM_MAPPING_ID, newMapping.getId());
-
-            final Localization success = localizationLoader.localize(
-                    SERVICE_HOMEWORK_CONTENT_UPDATED, user, parameterMap);
-            clientManager.getClient(bot).sendMessage(user, success);
-            LOGGER.debug("Message sent.");
+        sessionService.createSession(user, bot, p -> {
+            homeworkService.updateContent(p.user(), p.bot(), homeworkId, p.messages());
         });
-        LOGGER.debug("Sending content request message...");
-        final Localization request = localizationLoader.getLocalizationForUser(
-                SERVICE_HOMEWORK_CONTENT_REQUEST, user, PARAM_LESSON_ID,
-                homework.getLesson().getId());
+
+        final Localization request = localizationLoader.localize(
+                Localizations.Service.HOMEWORK_CONTENT_REQUEST, user,
+                new Localizations.Service.HomeworkContentRequestParams(lessonId));
         clientManager.getClient(bot).sendMessage(user, request);
-        LOGGER.debug("Message sent.");
     }
 }

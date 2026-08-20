@@ -8,7 +8,6 @@ import com.unbidden.telegramcoursesbot.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.TerminalButton;
-import com.unbidden.telegramcoursesbot.menu.handler.RefreshBotNameAndDescriptionsButtonHandler;
 import com.unbidden.telegramcoursesbot.menu.handler.RefreshLocalizationsButtonHandler;
 import com.unbidden.telegramcoursesbot.menu.handler.RefreshUserMenusButtonHandler;
 
@@ -20,7 +19,6 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class RefreshMenu implements MenuConfigurer {
-    private final RefreshBotNameAndDescriptionsButtonHandler refreshBotNameAndDescriptionsHandler;
     private final RefreshLocalizationsButtonHandler refreshLocalizationsHandler;
     private final RefreshUserMenusButtonHandler refreshUserMenusHandler;
 
@@ -39,7 +37,6 @@ public class RefreshMenu implements MenuConfigurer {
             final List<Button> buttons = new ArrayList<>();
 
             buttons.add(new TerminalButton(loader.localize(Localizations.Button.LOCALIZATIONS_REFRESH, p.user()).getData(), refreshLocalizationsHandler));
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.DESC_NAME_REFRESH, p.user()).getData(), refreshBotNameAndDescriptionsHandler));
             buttons.add(new TerminalButton(loader.localize(Localizations.Button.MENUS_REFRESH, p.user()).getData(), refreshUserMenusHandler));
 
             return buttons;

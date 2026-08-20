@@ -5,7 +5,7 @@ import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 
@@ -19,7 +19,7 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 public class CreatorCommandHandler implements CommandHandler {
     private static final String COMMAND = "/creator";
     
-    private final ContentService contentService;
+    private final ContentOrchestrationService contentService;
 
     private final LocalizationLoader localizationLoader;
 

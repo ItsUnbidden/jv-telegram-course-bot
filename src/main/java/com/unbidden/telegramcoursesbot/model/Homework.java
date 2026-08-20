@@ -2,6 +2,7 @@ package com.unbidden.telegramcoursesbot.model;
 
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -17,7 +18,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "homework")
 public class Homework extends BaseEntity {
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "content_mapping_id", nullable = false)
     private ContentMapping mapping;
 

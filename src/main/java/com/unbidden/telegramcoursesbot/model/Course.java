@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.model;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -28,15 +29,15 @@ import lombok.Setter;
 @Entity
 @Table(name = "courses")
 public class Course extends BaseEntity {
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "title_mapping_id", nullable = false)
     private ContentMapping title;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "description_mapping_id")
     private ContentMapping description;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "end_mapping_id")
     private ContentMapping endMapping;
 
@@ -45,19 +46,15 @@ public class Course extends BaseEntity {
     private Bot bot;
 
     @OrderBy("position ASC")
-    @OneToMany(mappedBy = "course")
+    @OneToMany(mappedBy = "course", cascade = CascadeType.REMOVE)
     private List<Lesson> lessons;
     
     private Integer price;
-    
-    @Column(nullable = false)
-    private Integer numberOfLessons;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private PaymentType paymentType;
 
-    @Column(nullable = false)
     private Integer refundStage;
 
     @Embedded
@@ -81,7 +78,7 @@ public class Course extends BaseEntity {
                 + ", descriptionMappingId=" + (description != null ? description.getId() : "NULL")
                 + ", endMappingId=" + (endMapping != null ? endMapping.getId() : "NULL")
                 + ", botId=" + bot.getId() + ", lessonIds=" + (Hibernate.isInitialized(lessons) ? lessons.stream().map(l -> l.getId()).toList() : "LAZY") 
-                + ", price=" + price + ", numberOfLessons=" + numberOfLessons + ", paymentType=" + paymentType
+                + ", price=" + price + ", paymentType=" + paymentType
                 + ", refundStage=" + refundStage + ", externalInvoice=" + externalInvoice + ", isUnderMaintenance="
                 + isUnderMaintenance + ", isHomeworkIncluded=" + isHomeworkIncluded + ", isFeedbackIncluded=" + isFeedbackIncluded
                 + ", version=" + version + ")";

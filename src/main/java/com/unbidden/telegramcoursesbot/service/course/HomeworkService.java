@@ -1,5 +1,9 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
+import com.unbidden.telegramcoursesbot.exception.MediaTypeParseException;
+import com.unbidden.telegramcoursesbot.exception.OnMaintenanceException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.mapper.HomeworkMapper;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Homework;
@@ -9,10 +13,11 @@ import com.unbidden.telegramcoursesbot.model.HomeworkProgress.Status;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
+import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 import com.unbidden.telegramcoursesbot.repository.ContentMappingRepository;
 import com.unbidden.telegramcoursesbot.repository.HomeworkProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.HomeworkRepository;
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import java.time.LocalDateTime;
@@ -37,7 +42,9 @@ public class HomeworkService {
 
     private final ContentMappingRepository contentMappingRepository;
 
-    private final ContentService contentService;
+    private final ContentOrchestrationService contentService;
+
+    private final LocalizationLoader loader;
 
     private final EntityUtil entityUtil;
 
@@ -51,25 +58,34 @@ public class HomeworkService {
         Assert.notNull(newStatus, "newStatus cannot be null");
 
         final HomeworkProgress progress = entityUtil.getHomeworkProgressByHomeworkId(user, bot, homeworkId);
-        final LocalizedContent content = contentService.parseAndPersistContent(user, bot, messages,
-                HomeworkMapper.parseMediaTypes((progress.getHomework().getAllowedMediaTypes())));
 
-        progress.setContent(content);
+        if (progress.getHomework().getLesson().getCourse().isUnderMaintenance()) {
+            throw new OnMaintenanceException("Course " + progress.getHomework().getLesson().getCourse().getId() + " is currently "
+                    + "marked as under maintenance", loader.localize(
+                    Localizations.Error.COURSE_UNDER_MAINTENANCE, user));
+        }
+        try {
+            final LocalizedContent content = contentService.parseAndPersistContent(user, bot, messages,
+                    HomeworkMapper.parseMediaTypes((progress.getHomework().getAllowedMediaTypes())));
+
+            progress.setContent(content);
+        } catch (MediaTypeParseException e) {
+            throw new RuntimeException("Unable to parse allowed homework media types. This is a bug.");
+        }
+
         updateStatus0(progress, newStatus);
 
         return progress;
     }
 
     @Transactional
-    public HomeworkProgress approve(UserEntity mentor, Bot bot, UserEntity target,
-            Long homeworkId, List<Message> comment) {
+    public HomeworkProgress approve(UserEntity mentor, Bot bot, Long progressId, List<Message> comment) {
         Assert.notNull(mentor, "mentor cannot be null");
         Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(target, "target cannot be null");
-        Assert.notNull(homeworkId, "homeworkId cannot be null");
+        Assert.notNull(progressId, "progressId cannot be null");
         Assert.notNull(comment, "comment cannot be null");
 
-        final HomeworkProgress progress = entityUtil.getHomeworkProgressByHomeworkId(target, bot, homeworkId);
+        final HomeworkProgress progress = entityUtil.getHomeworkProgressById(mentor, bot, progressId);
 
         if (!comment.isEmpty()) progress.setLastComment(contentService.parseAndPersistContent(mentor, bot, comment));
         progress.setCurator(mentor);
@@ -79,15 +95,13 @@ public class HomeworkService {
     }
 
     @Transactional
-    public HomeworkProgress decline(UserEntity mentor, Bot bot, UserEntity target,
-            Long homeworkId, List<Message> comment) {
+    public HomeworkProgress decline(UserEntity mentor, Bot bot, Long progressId, List<Message> comment) {
         Assert.notNull(mentor, "mentor cannot be null");
         Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(target, "target cannot be null");
-        Assert.notNull(homeworkId, "homeworkId cannot be null");
-        Assert.notNull(comment, "comment cannot be null");
+        Assert.notNull(progressId, "progressId cannot be null");
+        Assert.notEmpty(comment, "comment cannot be empty or null");
 
-        final HomeworkProgress progress = entityUtil.getHomeworkProgressByHomeworkId(target, bot, homeworkId);
+        final HomeworkProgress progress = entityUtil.getHomeworkProgressById(mentor, bot, progressId);
 
         progress.setLastComment(contentService.parseAndPersistContent(mentor, bot, comment));
         progress.setCurator(mentor);
@@ -123,36 +137,96 @@ public class HomeworkService {
     }
 
     @Transactional
-    public Homework updateContent(UserEntity user, Bot bot, Long homeworkId, Long contentId) {
+    public Homework updateContent(UserEntity user, Bot bot, Long homeworkId, String languageCode, List<Message> messages) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(homeworkId, "homeworkId cannot be null");
-        Assert.notNull(contentId, "contentId cannot be null");
+        Assert.notNull(languageCode, "languageCode cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
 
         final Homework homework = entityUtil.getHomeworkById(user, bot, homeworkId);
         final ContentMapping contentMapping = new ContentMapping();
 
         contentMapping.setPosition(0);
-        contentMapping.setContent(List.of(entityUtil.getLocalizedContentReference(contentId)));
+        contentMapping.setContent(List.of(contentService.parseAndPersistContent(user, bot, messages, languageCode)));
+
+        contentMappingRepository.delete(homework.getMapping());
         homework.setMapping(contentMappingRepository.save(contentMapping));
 
         return homework;
     }
 
     @Transactional
-    public Homework createDefault(UserEntity user, Bot bot, Long lessonId, Long contentId) {
+    public Homework updateDelay(UserEntity user, Bot bot, Long homeworkId, int newDelay) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(homeworkId, "homeworkId cannot be null");
+
+        final Homework homework = entityUtil.getHomeworkById(user, bot, homeworkId);
+
+        LOGGER.debug("Updating homework delay... Current delay: " + homework.getDelay() + ".");
+        homework.setDelay(newDelay);
+
+        return homework;
+    }
+
+    @Transactional
+    public Homework toggleFeedbackInclusion(UserEntity user, Bot bot, Long homeworkId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(homeworkId, "homeworkId cannot be null");
+
+        final Homework homework = entityUtil.getHomeworkById(user, bot, homeworkId);
+        
+        homework.setFeedbackRequired(!homework.isFeedbackRequired());
+        
+        LOGGER.info("Feedback inclusion for homework " + homeworkId + " is now " + getStatus(homework.isFeedbackRequired()) + ".");
+        
+        return homework;
+    }
+
+    @Transactional
+    public Homework toggleRepeatedCompletion(UserEntity user, Bot bot, Long homeworkId) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(homeworkId, "homeworkId cannot be null");
+
+        final Homework homework = entityUtil.getHomeworkById(user, bot, homeworkId);
+        
+        homework.setRepeatedCompletionAvailable(!homework.isRepeatedCompletionAvailable());
+        
+        LOGGER.info("Repeated completion for homework " + homeworkId + " is now " + getStatus(homework.isRepeatedCompletionAvailable()) + ".");
+        
+        return homework;
+    }
+
+    @Transactional
+    public Homework updateAllowedMediaTypes(UserEntity user, Bot bot, Long homeworkId, List<MediaType> mediaTypes) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(homeworkId, "homeworkId cannot be null");
+        Assert.notNull(mediaTypes, "mediaTypes cannot be null");
+
+        final Homework homework = entityUtil.getHomeworkById(user, bot, homeworkId);
+
+        homework.setAllowedMediaTypes(HomeworkMapper.parseMediaTypesToString(mediaTypes));
+
+        return homework;
+    }
+
+    @Transactional
+    public Homework createHomework(UserEntity user, Bot bot, Long lessonId, String languageCode, List<Message> messages) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(lessonId, "lessonId cannot be null");
-        Assert.notNull(contentId, "contentId cannot be null");
-
-        LOGGER.debug("Creating a new default homework for lesson " + lessonId + "...");
+        Assert.notNull(languageCode, "languageCode cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
 
         final Homework homework = new Homework();
         final ContentMapping mapping = new ContentMapping();
         final Lesson lesson = entityUtil.getLessonById(user, bot, lessonId);
 
-        mapping.setContent(List.of(entityUtil.getLocalizedContentReference(contentId)));
+        mapping.setContent(List.of(contentService.parseAndPersistContent(user, bot, messages, languageCode)));
         mapping.setPosition(0);
 
         homework.setAllowedMediaTypes("");
@@ -165,6 +239,10 @@ public class HomeworkService {
         lesson.setHomework(homework);
 
         return homeworkRepository.save(homework);
+    }
+
+    private String getStatus(boolean status) {
+        return status ? "ENABLED" : "DISABLED";
     }
 
     private HomeworkProgress updateStatus0(HomeworkProgress progress, Status newStatus) {

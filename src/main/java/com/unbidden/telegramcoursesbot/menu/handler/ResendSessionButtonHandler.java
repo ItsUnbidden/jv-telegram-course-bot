@@ -14,10 +14,12 @@ import lombok.RequiredArgsConstructor;
 @Component
 @RequiredArgsConstructor
 public class ResendSessionButtonHandler extends AbstractButtonHandler {
+    private static final String SESSION_ID_PARAM = "sessionId";
+
     private final ContentSessionService contentSessionService;
 
     @Override
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        contentSessionService.resend(UUID.fromString(params[0]), user);
+        contentSessionService.resend(user, bot, UUID.fromString(params.get(SESSION_ID_PARAM)));
     }
 }

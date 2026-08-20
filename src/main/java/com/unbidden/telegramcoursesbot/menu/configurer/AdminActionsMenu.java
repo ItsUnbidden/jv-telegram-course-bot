@@ -25,6 +25,9 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class AdminActionsMenu implements MenuConfigurer {
+    private static final String IS_GIVE_BAN_PARAM = "isGiveBan";
+    private static final String IS_BY_ID_PARAM = "isById";
+
     private final SetRoleButtonHandler setRoleHandler;
     private final ListAdminsButtonHandler listAdminsHandler;
     private final ReceiveHomeworkToggleButtonHandler receiveHomeworkHandler;
@@ -70,8 +73,8 @@ public class AdminActionsMenu implements MenuConfigurer {
         page3.setColumns(1);
         page3.setLocalizationFunction(p -> loader.localize(Localizations.Menu.ADMIN_ACTIONS_PAGE_2, p.user()));
         page3.setButtonsFunction(p -> List.of(
-            new TransitoryButton(loader.localize(Localizations.Button.GIVE_BAN, p.user()).getData(), 3),
-            new TransitoryButton(loader.localize(Localizations.Button.LIFT_BAN, p.user()).getData(), 3),
+            new TransitoryButton(loader.localize(Localizations.Button.GIVE_BAN, p.user()).getData(), IS_GIVE_BAN_PARAM, String.valueOf(true), 3),
+            new TransitoryButton(loader.localize(Localizations.Button.LIFT_BAN, p.user()).getData(), IS_GIVE_BAN_PARAM, String.valueOf(false), 3),
             new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData())
         ));
         final Page page4 = new Page(adminActionsMenu);
@@ -80,8 +83,8 @@ public class AdminActionsMenu implements MenuConfigurer {
         page4.setColumns(2);
         page4.setLocalizationFunction(p -> loader.localize(Localizations.Menu.ADMIN_ACTIONS_PAGE_3, p.user()));
         page4.setButtonsFunction(p -> List.of(
-            new TerminalButton(loader.localize(Localizations.Button.BY_ID, p.user()).getData(), banHandler),
-            new TerminalButton(loader.localize(Localizations.Button.CHOOSE_USER, p.user()).getData(), banHandler),
+            new TerminalButton(loader.localize(Localizations.Button.BY_ID, p.user()).getData(), IS_BY_ID_PARAM, String.valueOf(true), banHandler),
+            new TerminalButton(loader.localize(Localizations.Button.CHOOSE_USER, p.user()).getData(), IS_BY_ID_PARAM, String.valueOf(false), banHandler),
             new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData())
         ));
 

@@ -1,8 +1,9 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
-import com.unbidden.telegramcoursesbot.exception.MoveContentException;
+import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
@@ -15,6 +16,8 @@ import com.unbidden.telegramcoursesbot.service.content.ContentService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import java.util.List;
+import java.util.Optional;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -49,7 +52,7 @@ public class LessonService {
     }
 
     @Transactional
-    public Lesson addContent(UserEntity user, Bot bot, Long lessonId, List<Message> messages) {
+    public Lesson addContent(UserEntity user, Bot bot, Long lessonId, String languageCode, List<Message> messages) {
         Assert.notNull(lessonId, "lessonId cannot be null");
         Assert.notNull(messages, "messages cannot be null");
         Assert.notNull(user, "user cannot be null");
@@ -59,9 +62,10 @@ public class LessonService {
         final ContentMapping contentMapping = new ContentMapping();
 
         contentMapping.setPosition(lesson.getStructure().size());
-        contentMapping.setContent(List.of(contentService.parseAndPersistContent(user, bot, messages)));
+        contentMapping.setContent(List.of(contentService.parseAndPersistContent(user, bot, messages, languageCode)));
         lesson.getStructure().add(contentMappingRepository.save(contentMapping));
-        return lessonRepository.save(lesson);
+
+        return lesson;
     }
 
     @Transactional
@@ -73,12 +77,37 @@ public class LessonService {
 
         final Lesson lesson = entityUtil.getLessonById(user, bot, lessonId);
 
+        LOGGER.info("Removing content " + mappingId + " from lesson " + lessonId + "...");
+
+        final Optional<ContentMapping> mappingOpt = lesson.getStructure().stream()
+                .filter(m -> m.getId().equals(mappingId)).findAny();
+
+        if (mappingOpt.isEmpty()) {
+            throw new EntityNotFoundException("Mapping " + mappingId + " is not present in lesson " + lessonId
+                    + ".", localizationLoader.localize(Localizations.Error.MAPPING_NOT_IN_LESSON, user));
+        }
         lesson.getStructure().removeIf(m -> m.getId().equals(mappingId));
+        contentMappingRepository.delete(mappingOpt.get());
+
         return lesson;
     }
 
     @Transactional
-    public Lesson moveContentToIndex(UserEntity user, Bot bot, Long lessonId, Long mappingId, int index) throws MoveContentException {
+    public Lesson updateDelay(UserEntity user, Bot bot, Long lessonId, int newDelay) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(lessonId, "lessonId cannot be null");
+
+        final Lesson lesson = entityUtil.getLessonById(user, bot, lessonId);
+
+        LOGGER.debug("Updating lesson delay... Current delay: " + lesson.getDelay() + ".");
+        lesson.setDelay(newDelay);
+
+        return lesson;
+    }
+
+    @Transactional
+    public Lesson moveContentToIndex(UserEntity user, Bot bot, Long lessonId, Long mappingId, int index) {
         Assert.notNull(lessonId, "lessonId cannot be null");
         Assert.notNull(mappingId, "mappingId cannot be null");
         Assert.notNull(user, "user cannot be null");
@@ -96,8 +125,9 @@ public class LessonService {
         final ContentMapping mapping = potentialMapping.get(0);
 
         if (mapping.getPosition().equals(index)) {
-            throw new MoveContentException("Mapping " + mappingId
-                    + "'s position is already set to " + index);
+            throw new InvalidDataSentException("Mapping " + mappingId + " is already at position "
+                    + index + " in lesson " + lessonId + ".", localizationLoader.localize(
+                        Localizations.Error.SAME_CONTENT_POSITION, user));
         }
         LOGGER.debug("Current mapping order for lesson " + lessonId + ": "
                 + lesson.getStructure().stream().map(cm -> cm.getId()).toList()
@@ -133,7 +163,6 @@ public class LessonService {
         for (int i = 0; i < course.getLessons().size(); i++) {
             course.getLessons().get(i).setPosition(i);
         }
-        course.setNumberOfLessons(course.getNumberOfLessons() + 1);
 
         lessonRepository.save(lesson);
         LOGGER.info("New lesson " + lesson.getId() + " has been created for course "
@@ -142,21 +171,20 @@ public class LessonService {
     }
 
     @Transactional
-    public Lesson removeLesson(UserEntity user, Bot bot, Long lessonId) {
+    public Lesson deleteLesson(UserEntity user, Bot bot, Long lessonId) {
         final Lesson lesson = entityUtil.getLessonById(user, bot, lessonId);
 
-        LOGGER.info("Removing lesson " + lesson.getId() + " from course "
-                + lesson.getCourse().getId() + "...");
+        LOGGER.info("Removing lesson " + lesson.getId() + " from course " + lesson.getCourse().getId() + "...");
         lessonRepository.delete(lesson);
+        lessonRepository.flush();
+
         final List<Lesson> allCourseLessons = lessonRepository
                 .findByCourseIdOrderByPosition(lesson.getCourse().getId());
 
         for (int i = 0; i < allCourseLessons.size(); i++) {
             allCourseLessons.get(i).setPosition(i);
         }
-        lesson.getCourse().setNumberOfLessons(lesson.getCourse().getNumberOfLessons() - 1);
-        LOGGER.info("Lesson " + lesson.getId() + " has been removed from course "
-                + lesson.getCourse().getId() + ".");
+
         return lesson;
     }
 }

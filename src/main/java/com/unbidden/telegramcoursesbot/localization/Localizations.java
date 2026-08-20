@@ -1,11 +1,7 @@
 package com.unbidden.telegramcoursesbot.localization;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import org.springframework.util.Assert;
 
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.RoleType;
@@ -13,33 +9,6 @@ import com.unbidden.telegramcoursesbot.model.Course.PaymentType;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 
 public final class Localizations {
-    private static final Map<String, LocalizationKey> REVERSED_KEY_MAP = new HashMap<>();
-
-    static {
-        for (Menu menu : Menu.values()) {
-            REVERSED_KEY_MAP.put(menu.getLocName(), menu);
-        }
-        for (Button button : Button.values()) {
-            REVERSED_KEY_MAP.put(button.getLocName(), button);
-        }
-        for (Service service : Service.values()) {
-            REVERSED_KEY_MAP.put(service.getLocName(), service);
-        }
-        for (Error error : Error.values()) {
-            REVERSED_KEY_MAP.put(error.getLocName(), error);
-        }
-    }
-
-    public static LocalizationKey getKeyByLocName(String locName) {
-        Assert.notNull(locName, "locName cannot be null");
-
-        final LocalizationKey key = REVERSED_KEY_MAP.get(locName);
-
-        if (key == null) throw new RuntimeException("No localization key was found for localization name " + locName + ".");
-
-        return key;
-    }
-
     public static interface LocalizationKey {
         String getLocName();
     }
@@ -80,7 +49,7 @@ public final class Localizations {
         STATISTICS_PAGE_1("menu_statistics_page_1"),
         STATISTICS_PAGE_2("menu_statistics_page_2"),
         /**
-         * Possible parameters:
+         * Possible parameters:t
          * <ls>
          *  <li>usersOnStage</li>
          * </ls>
@@ -253,7 +222,6 @@ public final class Localizations {
         SEND_PRIVATE_MESSAGE("button_send_private_message"),
         POST_OPTIONS("button_post_options"),
         MENUS_REFRESH("button_menus_refresh"),
-        DESC_NAME_REFRESH("button_desc_name_refresh"),
         LOCALIZATIONS_REFRESH("button_localizations_refresh"),
         ACCEPT_HOMEWORK_WITH_COMMENT("button_accept_homework_with_comment"),
         ACCEPT_HOMEWORK("button_accept_homework"),
@@ -275,6 +243,10 @@ public final class Localizations {
         REPLY_TO_SUPPORT_REPLY("button_reply_to_support_reply"),
         RESOLVE_SUPPORT_REQUEST("button_resolve_support_request"),
         RESOLVE_LAST_SUPPORT_REQUEST("button_resolve_last_support_request"),
+        BAN_CHOOSE_USER("button_ban_choose_user"),
+        TAKE_COURSE("button_take_course"),
+        GIVE_COURSE("button_give_course"),
+        SET_ROLE_CHOOSE_USER("button_set_role_choose_user"),
         /**
          * A test localization. Is not used in any production systems.
          */
@@ -720,6 +692,331 @@ public final class Localizations {
         STATUS_DISABLED("service_status_disabled"),
         STATUS_ENABLED("service_status_enabled"),
         MAPPING_ID_REQUEST("service_mapping_id_request"),
+        APPROVE_HOMEWORK_COMMENT_REQUEST("service_approve_homework_comment_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>lessonId</li>
+         * </ls>
+         */
+        ADD_LESSON_CONTENT_REQUEST("service_add_lesson_content_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>mappingId</li>
+         *  <li>lessonId</li>
+         * </ls>
+         */
+        LESSON_CONTENT_ADDED("service_lesson_content_added"),
+        CREATE_LESSON_REQUEST("service_create_lesson_request"),
+        NEW_LESSON_CREATED("service_new_lesson_created"),
+        ADD_NEW_LOCALIZATION_REQUEST("service_add_new_localization_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>mappingId</li>
+         *  <li>lessonId</li>
+         * </ls>
+         */
+        ADD_NEW_LOCALIZATION_SUCCESS("service_add_new_localization_success"),
+        BAN_CHOOSE_USER_HOURS_REQUEST("service_ban_choose_user_hours_request"),
+        LIFT_BAN_USER_ID_REQUEST("service_lift_ban_user_id_request"),
+        BAN_USER_ID_REQUEST("service_ban_user_id_request"),
+        BAN_CHOOSE_USER_REQUEST("service_ban_choose_user_request"),
+        BAN_LIFTED_SUCCESS("service_ban_lifted_success"),
+        BAN_SUCCESS("service_ban_success"),
+        COURSE_MAINTENANCE_TOGGLE_SUCCESS("service_course_maintenance_toggle_success"),
+        COURSE_PRICE_UPDATE_REQUEST("service_course_price_update_request"),
+        COURSE_PRICE_UPDATE_SUCCESS("service_course_price_update_success"),
+        NEW_BOT_CREATED("service_new_bot_created"),
+        BOT_CREATED_CREATOR_NOTIFICATION("service_bot_created_creator_notification"),
+        CREATE_BOT_TOKEN_ONLY_REQUEST("service_create_bot_token_only_request"),
+        CREATE_BOT_CREATOR_BY_ID_REQUEST("service_create_bot_creator_by_id_request"),
+        CREATE_BOT_CHOOSE_CREATOR("service_create_bot_choose_creator_request"),
+        NEW_COURSE_REQUEST("service_new_course_request"),
+        NEW_COURSE_CREATED("service_new_course_created"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>lessonId</li>
+         * </ls>
+         */
+        HOMEWORK_CONTENT_REQUEST("service_homework_content_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>homeworkId</li>
+         * </ls>
+         */
+        NEW_HOMEWORK_CREATED("service_new_homework_created"),
+        DECLINE_HOMEWORK_COMMENT_REQUEST("service_decline_homework_comment_request"),
+        INVOICE_IMAGE_DELETE_REQUEST("service_invoice_image_delete_request"),
+        INVOICE_IMAGE_DELETED("service_invoice_image_deleted"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>status</li>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        COURSE_FEEDBACK_UPDATE_SUCCESS("service_course_feedback_update_success"),
+        GENERAL_BAN_LIFTED_SUCCESS("service_general_ban_lifted_success"),
+        GENERAL_BAN_SUCCESS("service_general_ban_success"),
+        GENERAL_POST_STARTED("service_general_post_started"),
+        GENERAL_POST_ROLES_REQUEST("service_general_post_roles_request"),
+        GENERAL_POST_CONTENT_REQUEST("service_general_post_content_request"),
+        GET_CONTENT_REQUEST("service_get_content_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>contentId</li>
+         * </ls>
+         */
+        GET_CONTENT_SUCCESS("service_get_content_success"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        GIVE_TAKE_COURSE_CHOOSE_ACTION("service_give_take_course_choose_action"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>targetFullName</li>
+         *  <li>targetTitle</li>
+         * </ls>
+         */
+        COURSE_TAKEN_SUCCESSFULY("service_course_taken_successfuly"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>senderTitle</li>
+         *  <li>senderFullName</li>
+         * </ls>
+         */
+        COURSE_TAKEN_NOTIFICATION("service_course_taken_notification"),
+        NEW_DELAY_SET_SUCCESS("service_new_delay_set_success"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>maxDelay</li>
+         * </ls>
+         */
+        NEW_HOMEWORK_DELAY_REQUEST("service_new_homework_delay_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>status</li>
+         * </ls>
+         */
+        HOMEWORK_FEEDBACK_UPDATE_SUCCESS("service_homework_feedback_update_success"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>status</li>
+         * </ls>
+         */
+        COURSE_HOMEWORK_UPDATE_SUCCESS("service_course_homework_update_success"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>mediaTypes</li>
+         * </ls>
+         */
+        MEDIA_TYPES_UPDATE_SUCCESS("service_homework_media_types_update_success"),
+        MEDIA_TYPES_REQUEST("service_homework_media_types_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>status</li>
+         * </ls>
+         */
+        REPEATED_COMPLETION_UPDATE_SUCCESS("service_repeated_completion_update_success"),
+        INVOICE_IMAGE_REQUEST("service_invoice_image_request"),
+        INVOICE_IMAGE_UPDATED("service_invoice_image_updated"),
+        REVIEW_COMMENT_REQUEST("service_review_comment_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>maxDelay</li>
+         * </ls>
+         */
+        NEW_LESSON_DELAY_REQUEST("service_new_lesson_delay_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>mentorsInfo</li>
+         *  <li>supportInfo</li>
+         *  <li>creatorInfo</li>
+         * </ls>
+         */
+        GET_ADMIN_LIST("service_get_admin_list"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>bots</li>
+         * </ls>
+         */
+        LIST_BOTS("service_list_bots"),
+        LOCALIZATION_FILES_REQUEST("service_localization_files_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>filesUpdated</li>
+         * </ls>
+         */
+        LOCALIZATION_FILES_UPDATED("service_localization_files_updated"),
+        POST_CONTENT_AND_ROLES_REQUEST("service_post_content_and_roles_request"),
+        POST_CONTENT_REQUEST("service_post_content_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>targetFullName</li>
+         *  <li>newRoleType</li>
+         * </ls>
+         */
+        SET_ROLE_SUCCESS("service_set_role_success"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>status</li>
+         * </ls>
+         */
+        TOGGLE_RECEIVE_HOMEWORK("service_toggle_receive_homework"),
+        LOCALIZATIONS_REFRESH_SUCCESS("service_localizations_refresh_success"),
+        MENU_REFRESH_SUCCESS("service_menu_refresh_success"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>spentStars</li>
+         * </ls>
+         */
+        REFUND_CONFIRMATION_PHRASE("service_refund_confirmation_phrase"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>confirmationPhrase</li>
+         * </ls>
+         */
+        REFUND_CONFIRMATION_REQUEST("service_refund_confirmation_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>contentId</li>
+         *  <li>lessonId</li>
+         * </ls>
+         */
+        LESSON_CONTENT_REMOVED("service_lesson_content_removed"),
+        REMOVE_LESSON_CONTENT_REQUEST("service_remove_lesson_content_request"),
+        DELETE_COURSE_SUCCESS("service_delete_course_success"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>confirmationPhrase</li>
+         * </ls>
+         */
+        DELETE_COURSE_REQUEST("service_delete_course_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        DELETE_COURSE_CONFIRMATION_PHRASE("service_delete_course_confirmation_phrase"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>position</li>
+         * </ls>
+         */
+        DELETE_LESSON_CONFIRMATION_PHRASE("service_delete_lesson_confirmation_phrase"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>confirmationPhrase</li>
+         * </ls>
+         */
+        DELETE_LESSON_REQUEST("service_delete_lesson_request"),
+        DELETE_LESSON_SUCCESS("service_delete_lesson_success"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>availableLanguageCodes</li>
+         *  <li>mappingId</li>
+         * </ls>
+         */
+        REMOVE_LOCALIZATION_FROM_MAPPING_REQUEST("service_remove_localization_from_mapping_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>languageCode</li>
+         *  <li>mappingId</li>
+         * </ls>
+         */
+        REMOVE_LOCALIZATION_FROM_MAPPING_SUCCESS("service_remove_localization_from_mapping_success"),
+        REVIEW_CONTENT_REQUEST("service_review_content_request"),
+        UPDATE_REVIEW_COMMENT_REQUEST("service_update_review_comment_request"),
+        UPLOAD_CONTENT_REQUEST("service_upload_content_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>contentId</li>
+         * </ls>
+         */
+        UPLOAD_CONTENT_SUCCESS("service_upload_content_success"),
+        SUPPORT_REPLY_REPLY_REQUEST("service_support_reply_reply_request"),
+        SUPPORT_REPLY_REPLY_SENT("service_support_reply_reply_sent"),
+        SUPPORT_REQUEST_REPLY_REQUEST("service_support_request_reply_request"),
+        SUPPORT_REQUEST_REPLY_SENT("service_support_request_reply_sent"),
+        LANGUAGE_MANUALLY_SET("service_language_manually_set"),
+        LANGUAGE_RESET_TO_DEFAULT("service_language_reset_to_default"),
+        SEND_HOMEWORK_REQUEST("service_send_homework_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>targetTitle</li>
+         *  <li>targetFullName</li>
+         * </ls>
+         */
+        PRIVATE_MESSAGE_CONTENT_REQUEST("service_private_message_content_request"),
+        PRIVATE_MESSAGE_USER_REQUEST("service_private_message_user_request"),
+        PRIVATE_MESSAGE_SENT("service_private_message_sent"),
+        SUPPORT_REQUEST_SENT("service_support_request_sent"),
+        SUPPORT_REQUEST_CONTENT_REQUEST("service_support_request_content_request"),
+        SET_ROLE_USER_REQUEST("service_set_role_user_request"),
+        LESSON_MAPPING_ORDER_CHANGE_REQUEST("service_lesson_mapping_order_change_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>mappingId</li>
+         *  <li>lessonId</li>
+         *  <li>index</li>
+         * </ls>
+         */
+        LESSON_MAPPING_ORDER_CHANGE_SUCCESS("service_lesson_mapping_order_change_success"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>newRefundStage</li>
+         * </ls>
+         */
+        NEW_REFUND_STAGE_SUCCESS("service_new_refund_stage_success"),
+        NEW_REFUND_STAGE_REQUEST("service_new_refund_stage_request"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>homeworkId</li>
+         *  <li>mappingId</li>
+         * </ls>
+         */
+        HOMEWORK_CONTENT_UPDATED("service_homework_content_updated"),
         COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS("service_course_next_stage_media_group_bypass");
 
         private String locName;
@@ -785,8 +1082,47 @@ public final class Localizations {
         public static record PrivateMessageInfoParams(String senderFullName, String title) {}
         public static record PostCompletedParams(int successes, int failures) {}
         public static record OnMaintenanceStatusChangeParams(String status) {}
+        public static record CourseFeedbackUpdateSuccessParams(String status, String courseName) {}
+        public static record CourseHomeworkUpdateSuccessParams(String status, String courseName) {}
+        public static record AddLessonContentRequestParams(long lessonId) {}
+        public static record LessonContentAddedParams(long mappingId, long lessonId) {}
+        public static record AddNewLocalizationSuccessParams(long mappingId, long contentId) {}
+        public static record AddNewLocalizationRequestParams(long mappingId) {}
+        public static record CourseMaintenanceToggleSuccessParams(String status, String courseName) {}
+        public static record CoursePriceUpdateSuccessParams(String courseName, int currentPrice) {}
+        public static record CoursePriceUpdateRequestParams(String courseName, int currentPrice) {}
+        public static record HomeworkContentRequestParams(long lessonId) {}
+        public static record NewHomeworkCreatedParams(long homeworkId) {}
+        public static record GetContentSuccessParams(long contentId) {}
+        public static record GiveTakeCourseChooseActionParams(String courseName) {}
+        public static record CourseTakenSuccessfullyParams(String courseName, String targetFullName, String targetTitle) {}
+        public static record CourseTakenNotificationParams(String courseName, String senderTitle, String senderFullName) {}
+        public static record HomeworkFeedbackUpdateSuccessParams(String status) {}
+        public static record RepeatedCompletionUpdateSuccessParams(String status) {}
+        public static record MediaTypesUpdateSuccessParams(String mediaTypes) {}
+        public static record NewHomeworkDelayRequestParams(int maxDelay) {}
+        public static record NewLessonDelayRequestParams(int maxDelay) {}
+        public static record GetAdminListParams(String mentorsInfo, String supportInfo, String creatorInfo) {}
+        public static record ListBotsParams(String bots) {}
+        public static record LocalizationFilesUpdatedParams(int filesUpdated) {}
+        public static record SetRoleSuccessParams(String targetFullName, RoleType newRoleType) {}
+        public static record ToggleReceiveHomeworkParams(String status) {}
+        public static record RefundConfirmationPhraseParams(String courseName, int spentStars) {}
+        public static record RefundConfirmationRequestParams(String confirmationPhrase) {}
+        public static record LessonContentRemovedParams(long mappingId, long lessonId) {}
+        public static record DeleteCourseRequestParams(String confirmationPhrase) {}
+        public static record DeleteLessonRequestParams(String confirmationPhrase) {}
+        public static record DeleteCourseConfirmationPhraseParams(String courseName) {}
+        public static record DeleteLessonConfirmationPhraseParams(String courseName, int position) {}
+        public static record RemoveLocalizationFromMappingRequestParams(long mappingId, String availableLanguageCodes) {}
+        public static record RemoveLocalizationFromMappingSuccessParams(long mappingId, String languageCode) {}
+        public static record UploadContentSuccessParams(long mappingId) {}
+        public static record PrivateMessageContentRequestParams(String targetTitle, String targetFullName) {}
+        public static record LessonMappingOrderChangeSuccessParams(long mappingId, long lessonId, int index) {}
+        public static record NewRefundStageSuccessParams(String courseName, String newRefundStage) {}
+        public static record HomeworkContentUpdatedParams(long homeworkId, long mappingId) {}
     }
-
+    
     public static enum Error implements LocalizationKey {
         /**
          * Possible parameters:
@@ -798,10 +1134,19 @@ public final class Localizations {
         /**
          * Possible parameters:
          * <ls>
-         *  <li>messageIndex</li>
+         *  <li>providedMessagesNumber</li>
+         *  <li>expectedMessagesNumber</li>
          * </ls>
          */
         NUMBER_OF_MESSAGES("error_number_of_messages"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>providedMessagesNumber</li>
+         *  <li>expectedMessagesNumber</li>
+         * </ls>
+         */
+        AT_LEAST_NUMBER_OF_MESSAGES("error_at_least_number_of_messages"),
         USER_IS_BANNED_IN_BOT("error_user_is_banned_in_bot"),
         USER_NOT_REGISTRED("error_user_not_registred"),
         /**
@@ -974,7 +1319,7 @@ public final class Localizations {
          *  <li>courseName</li>
          * </ls>
          */
-        REFUND_COURSE_WAS_GIFTED("error_refund_course_was_gifted"),
+        REFUND_INVALID_SOURCE("error_refund_invalid_source"),
         /**
          * Possible parameters:
          * <ls>
@@ -1037,11 +1382,84 @@ public final class Localizations {
         LOCALIZATION_DOES_NOT_EXIST("error_localization_does_not_exist"),
         IS_REFRESHING("error_is_refreshing"),
         PARSE_ID_FAILURE("error_parse_id_failure"),
+        PARSE_ID_BOUNDS_FAILURE("error_parse_int_bounds_failure"),
+        PARSE_INT_FAILURE("error_parse_int_failure"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>lowerBound</li>
+         *  <li>upperBound</li>
+         * </ls>
+         */
+        PARSE_INT_BOUNDS_FAILURE("error_parse_int_bounds_failure"),
+        TEXT_BOUNDS_FAILURE("error_text_bounds_failure"),
         INVALID_START_PARAM("error_invalid_start_param"),
-        AMOUNT_OF_MESSAGES("error_amount_of_messages"),
         TEXT_MESSAGE_EXPECTED("error_text_message_expected"),
         FAILED_ADVANCE_TO_NEXT_LESSON("error_failed_advance_to_next_lesson"),
         STALE_MENU("error_stale_menu"),
+        LANGUAGE_CODE_LENGTH("error_language_code_length"),
+        LESSON_POSITION_INVALID("error_lesson_position_invalid"),
+        PARSE_INDEX_FAILURE("error_parse_index_failure"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>mappingId</li>
+         *  <li>languageCode</li>
+         * </ls>
+         */
+        LOCALIZED_CONTENT_IS_ALREADY_PRESENT("error_localized_content_is_already_present"),
+        BOT_TOKEN_PATTERN_MISMATCH("error_bot_token_pattern_mismatch"),
+        BOT_ALREADY_EXISTS("error_bot_already_exists"),
+        INVOICE_IMAGE_DOES_NOT_EXIST("error_invoice_image_does_not_exist"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>targetFullName</li>
+         *  <li>targetTitle</li>
+         * </ls>
+         */
+        TAKE_COURSE_BOUGHT("error_take_course_bought"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>availableMediaTypes</li>
+         * </ls>
+         */
+        PARSE_MEDIA_TYPES_FAILURE("error_parse_media_types_failure"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>availableRoleTypes</li>
+         * </ls>
+         */
+        PARSE_ROLE_TYPES_FAILURE("error_parse_role_types_failure"),
+        DOWNLOAD_FILE("error_download_file"),
+        NO_MENTORS("error_no_mentors"),
+        NO_SUPPORT_STAFF("error_no_support_staff"),
+        LOCALIZATIONS_KEY_PARSE_FAILURE("error_localizations_key_parse_failure"),
+        LANGUAGE_CODE_REQUIRED("error_language_code_required"),
+        MAINTENANCE_IN_NOT_ENABLED("error_maintenance_in_not_enabled"),
+        REFUND_CONFIRMATION_PHRASE_FAILURE("error_refund_confirmation_phrase_failure"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>numberOfOwnerships</li>
+         * </ls>
+         */
+        DELETE_COURSE_ACTIVE_OWNERSHIPS("error_delete_course_active_ownerships"),
+        DELETE_COURSE_CONFIRMATION_PHRASE_FAILURE("error_delete_course_confirmation_phrase_failure"),
+        DELETE_LESSON_CONFIRMATION_PHRASE_FAILURE("error_delete_lesson_confirmation_phrase_failure"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>languageCode</li>
+         *  <li>availableLanguageCodes</li>
+         * </ls>
+         */
+        NO_LOCALIZATIONS_DELETED("error_no_localizations_deleted"),
+        SAME_CONTENT_POSITION("error_same_content_position"),
+        SAME_NEW_REFUND_STAGE("error_same_new_refund_stage"),
         DIRECTOR_BAN("error_director_ban");
         
         private String locName;
@@ -1057,6 +1475,7 @@ public final class Localizations {
 
         public static record MessageTextMissingParams(int messageIndex) {}
         public static record NumberOfMessagesParams(int providedMessagesNumber, int expectedMessagesNumber) {}
+        public static record AtLeastNumberOfMessagesParams(int providedMessagesNumber, int expectedMessagesNumber) {}
         public static record NoExceptionLocalizationAvailableParams(String excMessage, String excClassName) {}
         public static record TelegramInternalParams(String excMessage) {}
         public static record UnspecifiedExceptionParams(String excMessage, String excClassName) {}
@@ -1071,11 +1490,19 @@ public final class Localizations {
         public static record GiveCourseAlreadyOwnedParams(String courseName, String targetFullName, String targetTitle) {}
         public static record RefundUserAdvancedTooFarParams(String courseName, int maxRefundStage, int currentStage) {}
         public static record RefundCourseNotOwnedParams(String courseName) {}
-        public static record RefundCourseWasGiftedParams(String courseName) {}
+        public static record RefundInvalidSourceParams(String courseName) {}
         public static record RefundCourseCompletedParams(String courseName) {}
         public static record RefundCourseUnavailableParams(String courseName) {}
         public static record RefundPurchaseTooOldParams(String courseName, int maxNumberOfDays, long currentNumberOfDays) {}
         public static record SameNewCourseGradeParams(int courseGrade) {}
         public static record SupportRequestAlreadyAnsweredParams(String userFullName, String title) {}
+        public static record ParseIntBoundsFailureParams(int lowerBound, int upperBound) {}
+        public static record LocalizedContentIsAlreadyPresentParams(long mappingId, String languageCode) {}
+        public static record TextBoundsFailureParams(int lowerBound, int upperBound) {}
+        public static record TakeCourseBoughtParams(String courseName, String targetFullName, String targetTitle) {}
+        public static record ParseMediaTypesFailureParams(String availableMediaTypes) {}
+        public static record ParseRoleTypesFailureParams(String availableRoleTypes) {}
+        public static record DeleteCourseActiveOwnershipsParams(long numberOfOwnerships) {}
+        public static record NoLocalizationsDeletedParams(String languageCode, String availableLanguageCodes) {}
     }
 }

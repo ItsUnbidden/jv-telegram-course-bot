@@ -30,7 +30,7 @@ public class Lesson extends BaseEntity implements Comparable<Lesson> {
     @Column(nullable = false)
     private Integer position;
 
-    @OneToMany
+    @OneToMany(cascade = CascadeType.REMOVE)
     @OrderBy("position ASC")
     @JoinTable(name = "lessons_content_mappings",
             joinColumns = @JoinColumn(name = "lesson_id"),

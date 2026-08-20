@@ -23,6 +23,13 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class StatisticsMenu implements MenuConfigurer {
+    private static final String COURSE_ALL_USERS = "courseAllUsers";
+    private static final String COURSE_COMPLETED_USERS = "courseCompletedUsers";
+    private static final String COURSE_GENERAL = "courseGeneral";
+    private static final String BOT_USERS = "botUsers";
+    private static final String BOT_GENERAL = "botGeneral";
+    
+    private static final String COURSE_STAGE_PARAM = "courseStage";
     private static final String COURSE_ID_PARAM = "courseId";
 
     private final StatisticsButtonHandler statisticsHandler;
@@ -50,10 +57,10 @@ public class StatisticsMenu implements MenuConfigurer {
                 .toList());
 
             buttons.add(new TerminalButton(loader.localize(
-                Localizations.Button.GENERAL_BOT_STATISTICS, p.user()).getData(), statisticsHandler));
+                Localizations.Button.GENERAL_BOT_STATISTICS, p.user()).getData(), BOT_GENERAL, statisticsHandler));
                 
             buttons.add(new TerminalButton(loader.localize(
-                Localizations.Button.BOT_USERS_STATISTICS, p.user()).getData(), statisticsHandler));
+                Localizations.Button.BOT_USERS_STATISTICS, p.user()).getData(), BOT_USERS, statisticsHandler));
             return buttons;
         });
 
@@ -65,7 +72,7 @@ public class StatisticsMenu implements MenuConfigurer {
         page2.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
             
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.COURSE_STATISTICS, p.user()).getData(), statisticsHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.COURSE_STATISTICS, p.user()).getData(), COURSE_GENERAL, statisticsHandler));
             buttons.add(new TransitoryButton(loader.localize(Localizations.Button.COURSE_USERS_STATISTICS, p.user()).getData(), 2));
             buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData()));
 
@@ -81,8 +88,8 @@ public class StatisticsMenu implements MenuConfigurer {
             final List<Button> buttons = new ArrayList<>();
             
             buttons.add(new TransitoryButton(loader.localize(Localizations.Button.COURSE_USERS_BY_STAGE, p.user()).getData(), 3));
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.COURSE_COMPLETED_USERS, p.user()).getData(), statisticsHandler));
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.COURSE_ALL_USERS, p.user()).getData(), statisticsHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.COURSE_COMPLETED_USERS, p.user()).getData(), COURSE_COMPLETED_USERS, statisticsHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.COURSE_ALL_USERS, p.user()).getData(), COURSE_ALL_USERS, statisticsHandler));
             buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData()));
 
             return buttons;
@@ -109,7 +116,7 @@ public class StatisticsMenu implements MenuConfigurer {
             final List<Button> buttons = new ArrayList<>();
             
             for (int i = 0; i < lessonService.countByCourse(Long.parseLong(p.params().get(COURSE_ID_PARAM))); ++i) {
-                buttons.add(new TerminalButton(String.valueOf(i), String.valueOf(i), statisticsHandler));
+                buttons.add(new TerminalButton(String.valueOf(i), COURSE_STAGE_PARAM, String.valueOf(i), statisticsHandler));
             }
             buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData()));
 

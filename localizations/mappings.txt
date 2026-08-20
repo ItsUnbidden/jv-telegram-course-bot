@@ -154,19 +154,19 @@ service status_disabled
 service status_enabled
 service mapping_text_status_update_success ${status}
 service new_course_request
-service new_course_created ${courseName}
+service new_course_created
 service homework_content_request ${lessonId}
 service new_homework_created ${homeworkId}
 service homework_feedback_update_success ${status}
-service homework_media_types_request ${mediaTypes}
+service homework_media_types_request
 service homework_media_types_update_success ${mediaTypes}
 service repeated_completion_update_success ${status}
-service remove_course_request ${courseName}
-service delete_course_success ${courseName}
-service remove_localization_from_mapping_request ${mappingId}
-service remove_localization_from_mapping_success ${languageCode} ${mappingId}
-service lesson_mapping_order_change_request ${lessonId}
-service lesson_mapping_order_change_success ${mappingId} ${index}
+service delete_course_request ${confirmationPhrase}
+service delete_course_success
+service remove_localization_from_mapping_request ${mappingId} ${availableLanguageCodes}
+service remove_localization_from_mapping_success ${mappingId} ${languageCode}
+service lesson_mapping_order_change_request
+service lesson_mapping_order_change_success ${mappingId} ${lessonId} ${index}
 service homework_content_updated ${homeworkId} ${mappingId}
 service send_homework_media_group_bypass
 service feedback_media_group_bypass
@@ -190,7 +190,7 @@ service resend_content
 service update_homework_content_request ${lessonId}
 service homework_content_updated ${homeworkId}
 service remove_lesson_content_request 
-service lesson_content_removed ${contentId} ${lessonId}
+service lesson_content_removed ${mappingId} ${lessonId}
 service review_comment_request
 service review_content_request
 service feedback_for_homework_waiting
@@ -222,7 +222,7 @@ service course_feedback_update_success ${status} ${courseName}
 service course_homework_update_success ${status} ${courseName}
 service refund_success ${courseName}
 service refund_confirmation_request ${confirmationPhrase}
-service new_refund_stage_request ${courseName}
+service new_refund_stage_request
 service new_refund_stage_success ${courseName} ${newRefundStage}
 service update_review_comment_request
 service support_info ${userFullName} ${timestamp} ${tag}
@@ -256,31 +256,31 @@ service ban_lifted_success
 service ban_success
 service general_ban_lifted_success
 service general_ban_success
-service create_bot_name_token_request
 service bot_created_creator_notification
 service new_bot_created
 service create_bot_creator_by_id_request
 service create_bot_choose_creator_request
+service create_bot_token_only_request
 service list_bots ${bots}
 service create_lesson_request
 service new_lesson_created
-service delete_lesson_request
-service lesson_deleted
-service new_homework_delay_request ${maxDelay} 
+service delete_lesson_request ${confirmationPhrase}
+service delete_lesson_success
+service new_homework_delay_request ${maxDelay}
 service new_delay_set_success
-service course_maintenance_toggle_success ${status}
+service course_maintenance_toggle_success ${status} ${courseName}
 service names_descriptions_refresh_success ** Botfather only
 service localizations_refresh_success ** Botfather only
 service menu_refresh_success ** Botfather only
 service post_started
-service post_roles_request
 service post_content_request
+service post_content_and_roles_request
 service general_post_started ** Botfather only
 service general_post_roles_request ** Botfather only
 service general_post_content_request ** Botfather only
 service post_completed ${successes} ${failures}
 service general_post_completed ${messagesSent} ** Botfather only
-service new_lesson_delay_request ${maxDelay} 
+service new_lesson_delay_request ${maxDelay}
 service less_then_an_hour
 service an_hour
 service hours ${hours}
@@ -313,21 +313,25 @@ service not_available
 service no_creator_info
 service no_terms
 service no_start
+service delete_course_confirmation_phrase ${courseName}
+service delete_lesson_confirmation_phrase ${courseName} ${position}
 
 
 error no_exception_localization_available ${excMessage} ${excClassName}
 error language_code_length
 error localized_content_is_already_present ${mappingId} ${languageCode}
-error price_limit ${maxPrice}
-error parse_price_failure
 error new_course_wrong_lessons_amount ${maxAmountOfLessons}
 error message_text_missing ${messageIndex}
 error number_of_messages ${providedMessagesNumber} ${expectedMessagesNumber}
+error at_least_number_of_messages ${providedMessagesNumber} ${expectedMessagesNumber}
 error parse_id_failure
+error parse_id_bounds_failure
+error parse_int_failure
+error parse_int_bounds_failure ${lowerBound} ${upperBound}
+error text_bounds_failure ${lowerBound} ${upperBound}
 error text_message_expected ${messageIndex}
-error parse_enum_failure ${mediaTypes}
+error parse_media_types_failure ${availableMediaTypes}
 error index_limit ${maxValue}
-error parse_index_failure
 error update_message_failure
 error update_markup_failure
 error content_graphics_group_failure
@@ -343,7 +347,6 @@ error session_expired
 error more_then_one_session
 error session_no_shared_entity
 error mixed_sessions
-error delete_test_course_failure
 error review_not_found
 error mapping_not_in_lesson
 error lesson_not_found
@@ -358,10 +361,7 @@ error content_not_found
 error pre_checkout_unknown_course ${courseName}
 error pre_checkout_currency_mismatch
 error pre_checkout_price_mismatch ${currentPrice}
-error give_take_course_no_longer_available ${courseName}
-error give_course_user_not_found ${courseName} ${targetId}
 error give_course_already_owned ${courseName} ${targetFullName} ${targetTitle}
-error take_course_user_not_found ${courseName} ${targetId}
 error take_course_bought ${courseName} ${targetFullName} ${targetTitle}
 error homework_already_declined
 error homework_already_completed
@@ -375,7 +375,7 @@ error refund_course_unavailable ${courseName}
 error refund_purchase_too_old ${courseName} ${maxNumberOfDays} ${currentNumberOfDays}
 error refund_user_advanced_too_far ${courseName} ${maxRefundStage} ${currentStage}
 error refund_course_not_owned ${courseName}
-error refund_course_was_gifted ${courseName}
+error refund_invalid_source ${courseName}
 error refund_course_completed ${courseName}
 error refund_entity_not_found
 error parse_refund_stage_failure
@@ -413,24 +413,18 @@ error cannot_set_banned_role
 error user_already_banned
 error user_is_not_banned
 error user_not_found
-error parse_hours 
 error wrong_ban_hours ${hours}
 error user_id_less_than_zero ${userId}
-error parse_user_id
 error payment_success_server_on_maintenance
 error unavailable_in_regular_bot
 error maintenance_in_not_enabled ** Botfather only
-error parse_content_id_failure
-error bot_name_pattern_mismatch ** Botfather only
 error bot_token_pattern_mismatch ** Botfather only
-error bot_name_length ** Botfather only
 error bot_already_exists ** Botfather only
 error course_already_exists
 error course_name_pattern_mismatch
 error course_name_length
 error lesson_position_invalid
 error parse_index_failure
-error lesson_delete_confirmation_failure
 error parse_delay_failure
 error homework_delay_invalid ${maxDelay}
 error awaiting_lesson ${timeLeft}
@@ -439,7 +433,6 @@ error post_no_roles
 error lesson_delay_invalid ${maxDelay}
 error private_message_user_not_registered_in_bot
 error download_file ** Botfather only
-error no_language_code ** Botfather only
 error no_course_name ** Botfather only
 error invoice_image_does_not_exist ** Botfather only
 error no_content_in_lesson
@@ -451,7 +444,13 @@ error support_staff_request
 error select_lesson_course_not_completed
 error automatic_refund_failure ${courseName}
 error automatic_refund_failure_notification ${courseId} ${userId}
+error same_new_refund_stage
 error course_ownership_not_found
 error send_content
 error invalid_start_param
 error failed_advance_to_next_lesson
+error language_code_required
+error parse_role_types_failure ${availableRoleTypes}
+error delete_course_active_ownerships ${numberOfOwnerships}
+error delete_course_confirmation_phrase_failure
+error no_localizations_deleted ${languageCode} ${availableLanguageCodes}

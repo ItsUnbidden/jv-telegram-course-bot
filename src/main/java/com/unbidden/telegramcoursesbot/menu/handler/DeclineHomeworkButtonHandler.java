@@ -1,33 +1,27 @@
 package com.unbidden.telegramcoursesbot.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
-import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.HomeworkProgress;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
+import com.unbidden.telegramcoursesbot.service.orchestration.HomeworkOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
 
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class DeclineHomeworkButtonHandler extends AbstractButtonHandler {
-    private static final String SERVICE_DECLINE_HOMEWORK_COMMENT_REQUEST =
-            "service_decline_homework_comment_request";
+    private static final String PROGRESS_ID_PARAM = "progressId";
 
-    private final HomeworkService homeworkService;
+    private final HomeworkOrchestrationService homeworkService;
     
-    private final CourseService courseService;
-
     private final ContentSessionService sessionService;
 
     private final LocalizationLoader localizationLoader;
@@ -37,16 +31,11 @@ public class DeclineHomeworkButtonHandler extends AbstractButtonHandler {
     @Override
     @Security(authorities = AuthorityType.GIVE_HOMEWORK_FEEDBACK)
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        final HomeworkProgress progress = homeworkService.getProgress(Long.parseLong(params[0]),
-                user);
-        courseService.checkCourseIsNotUnderMaintenance(progress.getHomework().getLesson()
-                .getCourse(), user);
+        final Long progressId = Long.parseLong(params.get(PROGRESS_ID_PARAM));
                 
-        sessionService.createSession(user, bot, m ->
-                homeworkService.decline(progress, user, m));
+        sessionService.createSession(user, bot, p -> homeworkService.decline(p.user(), p.bot(), progressId, p.messages()));
 
-        final Localization localization = localizationLoader.localize(
-                        SERVICE_DECLINE_HOMEWORK_COMMENT_REQUEST, user);
-        clientManager.getClient(bot).sendMessage(user, localization);
+        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
+                Localizations.Service.DECLINE_HOMEWORK_COMMENT_REQUEST, user));
     }
 }

@@ -2,6 +2,7 @@ package com.unbidden.telegramcoursesbot.model;
 
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.FetchType;
@@ -17,7 +18,7 @@ public class ExternalInvoice {
     @Column(length = 512)
     private String externalStorePageUrl;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "external_invoice_content_id")
     private ContentMapping mapping;
 

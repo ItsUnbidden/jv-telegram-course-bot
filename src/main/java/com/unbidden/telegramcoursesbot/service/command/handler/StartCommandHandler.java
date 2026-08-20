@@ -9,7 +9,7 @@ import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.security.SecurityService;
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.orchestration.CourseOrchestrationService;
 
 import java.util.Arrays;
@@ -31,7 +31,7 @@ public class StartCommandHandler implements CommandHandler {
 
     private final CourseOrchestrationService courseService;
 
-    private final ContentService contentService;
+    private final ContentOrchestrationService contentService;
 
     private final SecurityService securityService;
 

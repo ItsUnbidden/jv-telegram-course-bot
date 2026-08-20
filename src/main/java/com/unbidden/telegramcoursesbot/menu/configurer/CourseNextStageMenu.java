@@ -9,7 +9,7 @@ import com.unbidden.telegramcoursesbot.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.menu.handler.CourseNextStageButtonHandler;
 import com.unbidden.telegramcoursesbot.model.Lesson;
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import java.util.List;
@@ -23,7 +23,7 @@ public class CourseNextStageMenu implements MenuConfigurer {
 
     private final CourseNextStageButtonHandler courseNextStageHandler;
 
-    private final ContentService contentService;
+    private final ContentOrchestrationService contentService;
 
     private final LocalizationLoader loader;
 

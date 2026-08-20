@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.orchestration;
 
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import org.apache.logging.log4j.LogManager;
@@ -29,7 +29,7 @@ public class StatisticsOrchestrationService {
 
     private final MenuOrchestrationService menuService;
 
-    private final ContentService contentService;
+    private final ContentOrchestrationService contentService;
 
     private final UserRepository userRepository;
 

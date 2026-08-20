@@ -4,26 +4,29 @@ import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.review.ReviewService;
+import com.unbidden.telegramcoursesbot.service.orchestration.ReviewOrchestrationService;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
 
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class GetNewReviewsButtonHandler extends AbstractButtonHandler {
-    private final ReviewService reviewService;
+    private static final String COURSE_ID_PARAM = "courseId";
+
+    private final ReviewOrchestrationService reviewService;
 
     @Override
     @Security(authorities = AuthorityType.SEE_REVIEWS)
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        final Long courseId = Long.parseLong(params[0]);
-        
-        if (courseId != -1L) {
-            reviewService.sendNewReviewsForUserAndCourse(user, courseId, bot);
+        final String courseIdParam = params.get(COURSE_ID_PARAM);
+
+        if (courseIdParam != null) {
+            final Long courseId = Long.parseLong(courseIdParam);
+
+            reviewService.sendNewReviewsForUserAndCourse(user, bot, courseId);
         } else {
             reviewService.sendNewReviewsForUser(user, bot);
         }

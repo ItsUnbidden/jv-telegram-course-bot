@@ -40,6 +40,53 @@ public class SupportService {
 
     private final EntityUtil entityUtil;
 
+    @Transactional(readOnly = true)
+    public List<SupportRequest> getUnresolvedRequests(Bot bot, Pageable pageable) {
+        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(pageable, "pageable cannot be null");
+
+        return supportRequestRepository.findByBotIdAndIsResolvedFalse(bot.getId(), pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SupportRequest> getUnresolvedRequestsForUser(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
+        return supportRequestRepository.findByUserAndBotAndIsResolvedFalse(user, bot);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isUserEligibleForSupport(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
+        return supportRequestRepository.countByUserAndBotAndIsResolvedFalse(user, bot) == 0;
+    }
+
+    @Transactional(readOnly = true)
+    public List<SupportRequest> getUnresolvedRequestsForUserInBot(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+        
+        return supportRequestRepository.findByUserAndBotAndIsResolvedFalse(user, bot);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean checkifUserIsStaffMember(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
+        final List<UserEntity> uneligibleUsers = userRepository.findAllStaffMembers(bot.getId());
+        
+        if (uneligibleUsers.contains(user)) {
+            throw new ForbiddenOperationException("User " + user.getId() + " is a part of the "
+                    + "staff, they are uneligible for support", localizationLoader
+                    .localize(Error.SUPPORT_STAFF_REQUEST, user));
+        }
+        return true;
+    }
+
     @Transactional
     public SupportRequest createNewSupportRequest(UserEntity user, Bot bot, List<Message> messages, String tag) {
         Assert.notNull(user, "user cannot be null");
@@ -117,22 +164,6 @@ public class SupportService {
         return reply;
     }
 
-    @Transactional(readOnly = true)
-    public List<SupportRequest> getUnresolvedRequests(Bot bot, Pageable pageable) {
-        Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(pageable, "pageable cannot be null");
-
-        return supportRequestRepository.findByBotIdAndIsResolvedFalse(bot.getId(), pageable);
-    }
-
-    @Transactional(readOnly = true)
-    public List<SupportRequest> getUnresolvedRequestsForUser(UserEntity user, Bot bot) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-
-        return supportRequestRepository.findByUserAndBotAndIsResolvedFalse(user, bot);
-    }
-
     @Transactional
     public SupportRequest markAsResolved(UserEntity user, Bot bot, Long requestId) {
         Assert.notNull(user, "user cannot be null");
@@ -146,22 +177,6 @@ public class SupportService {
         request.setResolved(true);
         
         return request;
-    }
-
-    @Transactional(readOnly = true)
-    public boolean isUserEligibleForSupport(UserEntity user, Bot bot) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-
-        return supportRequestRepository.countByUserAndBotAndIsResolvedFalse(user, bot) == 0;
-    }
-
-    @Transactional(readOnly = true)
-    public List<SupportRequest> getUnresolvedRequestsForUserInBot(UserEntity user, Bot bot) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-        
-        return supportRequestRepository.findByUserAndBotAndIsResolvedFalse(user, bot);
     }
 
     private boolean checkRequestResolved(UserEntity user, Bot bot, SupportMessage message) {
@@ -196,21 +211,6 @@ public class SupportService {
                         localizationLoader.localize(Error.REPLY_ALREADY_ANSWERED,
                         user));
             }
-        }
-        return true;
-    }
-    
-    @Transactional(readOnly = true)
-    public boolean checkifUserIsStaffMember(UserEntity user, Bot bot) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-
-        final List<UserEntity> uneligibleUsers = userRepository.findAllStaffMembers(bot.getId());
-        
-        if (uneligibleUsers.contains(user)) {
-            throw new ForbiddenOperationException("User " + user.getId() + " is a part of the "
-                    + "staff, they are uneligible for support", localizationLoader
-                    .localize(Error.SUPPORT_STAFF_REQUEST, user));
         }
         return true;
     }

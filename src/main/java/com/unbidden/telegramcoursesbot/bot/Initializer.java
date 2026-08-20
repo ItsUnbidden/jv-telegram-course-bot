@@ -19,7 +19,7 @@ public class Initializer implements ApplicationRunner {
 
     private final List<MenuConfigurer> menuConfigurers;
 
-    private final BotService botService;
+    private final BotOrchestrationService botService;
 
     private final UserService userService;
 

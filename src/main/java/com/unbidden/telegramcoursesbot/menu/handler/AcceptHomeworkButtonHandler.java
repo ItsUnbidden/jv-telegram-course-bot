@@ -1,34 +1,28 @@
 package com.unbidden.telegramcoursesbot.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
-import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.HomeworkProgress;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
+import com.unbidden.telegramcoursesbot.service.orchestration.HomeworkOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
+
 import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
 
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class AcceptHomeworkButtonHandler extends AbstractButtonHandler {
-    private static final String ACCEPT_HOMEWORK_WITH_COMMENT_BUTTON = "ahwc";
+    private static final String PROGRESS_ID_PARAM = "progressId";
+    private static final String WITH_COMMENT_PARAM = "withComment";
 
-    private static final String SERVICE_APPROVE_HOMEWORK_COMMENT_REQUEST =
-            "service_approve_homework_comment_request";
-
-    private final HomeworkService homeworkService;
-
-    private final CourseService courseService;
+    private final HomeworkOrchestrationService homeworkService;
 
     private final ContentSessionService sessionService;
 
@@ -39,22 +33,16 @@ public class AcceptHomeworkButtonHandler extends AbstractButtonHandler {
     @Override
     @Security(authorities = AuthorityType.GIVE_HOMEWORK_FEEDBACK)
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        final HomeworkProgress progress = homeworkService.getProgress(Long.parseLong(params[0]),
-                user);
-        courseService.checkCourseIsNotUnderMaintenance(progress.getHomework().getLesson()
-                .getCourse(), user);
-        switch (params[params.length - 1]) {
-            case ACCEPT_HOMEWORK_WITH_COMMENT_BUTTON:
-                sessionService.createSession(user, bot, m -> homeworkService.approve(
-                        progress, user, m));
-                        
-                final Localization localization = localizationLoader.localize(
-                        SERVICE_APPROVE_HOMEWORK_COMMENT_REQUEST, user);
-                clientManager.getClient(bot).sendMessage(user, localization);
-                break;
-            default:
-                homeworkService.approve(progress, user, null);
-                break;
+        final Long progressId = Long.parseLong(params.get(PROGRESS_ID_PARAM));
+
+        if (Boolean.getBoolean(params.get(WITH_COMMENT_PARAM))) {
+            sessionService.createSession(user, bot, p -> homeworkService.approve(p.user(), p.bot(),
+                    progressId, p.messages()));
+                    
+            clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
+                    Localizations.Service.APPROVE_HOMEWORK_COMMENT_REQUEST, user));
+        } else {
+            homeworkService.approve(user, bot, progressId);
         }
     }
 }

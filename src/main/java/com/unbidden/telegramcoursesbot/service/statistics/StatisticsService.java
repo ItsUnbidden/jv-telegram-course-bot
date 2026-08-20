@@ -13,7 +13,7 @@ import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
 import com.unbidden.telegramcoursesbot.repository.PaymentDetailsRepository;
 import com.unbidden.telegramcoursesbot.repository.TelegramPaymentDetailsRepository;
-import com.unbidden.telegramcoursesbot.service.content.ContentService;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import lombok.RequiredArgsConstructor;
@@ -35,7 +35,7 @@ public class StatisticsService {
 
     private final CourseOwnershipRepository courseOwnershipRepository;
 
-    private final ContentService contentService;
+    private final ContentOrchestrationService contentService;
 
     private final EntityUtil entityUtil;
 

@@ -7,7 +7,6 @@ import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -45,8 +44,6 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
 
     protected final Bot bot;
 
-    protected final UserService userService;
-
     protected final LocalizationLoader localizationLoader;
 
     private final CertificateDao certificateDao;
@@ -72,14 +69,12 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
      * (dao is still required)
      * @author Unbidden
      */
-    public CustomTelegramClient(@NonNull Bot bot, @NonNull UserService userService,
-            @NonNull LocalizationLoader loader, @NonNull CertificateDao dao,
-            @NonNull String baseUrl, @NonNull String secretToken,
+    public CustomTelegramClient(@NonNull Bot bot, @NonNull LocalizationLoader loader,
+            @NonNull CertificateDao dao, @NonNull String baseUrl, @NonNull String secretToken,
             @Nullable String ip, boolean isCustomCertificateIncluded) {
         super(bot.getToken());
 
         this.bot = bot;
-        this.userService = userService;
         this.localizationLoader = loader;
         this.logger = LogManager.getLogger("Bot " + bot.getId() + "'s Client");
         this.certificateDao = dao;

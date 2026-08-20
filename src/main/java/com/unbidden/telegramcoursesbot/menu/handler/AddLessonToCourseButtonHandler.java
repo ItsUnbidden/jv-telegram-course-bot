@@ -1,82 +1,39 @@
 package com.unbidden.telegramcoursesbot.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
-import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.course.LessonService;
+import com.unbidden.telegramcoursesbot.security.Security;
+import com.unbidden.telegramcoursesbot.service.orchestration.LessonOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
-import com.unbidden.telegramcoursesbot.util.TextUtil;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class AddLessonToCourseButtonHandler extends AbstractButtonHandler {
-    private static final Logger LOGGER = LogManager.getLogger(
-            AddLessonToCourseButtonHandler.class);
-
-    private static final String SERVICE_CREATE_LESSON_REQUEST = "service_create_lesson_request";
-    private static final String SERVICE_NEW_LESSON_CREATED = "service_new_lesson_created";
-
-    private static final String ERROR_LESSON_POSITION_INVALID = "error_lesson_position_invalid";
-    private static final String ERROR_PARSE_INDEX_FAILURE = "error_parse_index_failure";
-    
-    private static final int EXPECTED_MESSAGES = 1;
+    private static final String COURSE_ID_PARAM = "courseId";
 
     private final ContentSessionService sessionService;
 
-    private final LessonService lessonService;
+    private final LessonOrchestrationService lessonService;
 
-    private final CourseService courseService;
-
-    private final TextUtil textUtil;
-
-    private final LocalizationLoader localizationLoader;
+    private final LocalizationLoader loader;
 
     private final ClientManager clientManager;
 
     @Override
+    @Security(authorities = AuthorityType.COURSE_SETTINGS)
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        final Course course = courseService.getCourseByName(params[0], user, bot);
-        LOGGER.info("User " + user.getId() + " is trying to add a new lesson in course "
-                + course.getName() + "...");
-        sessionService.createSession(user, bot, m -> {
-            textUtil.checkExpectedMessages(EXPECTED_MESSAGES, user, m, localizationLoader);
-            final int position;
-            try {
-                position = Integer.parseInt(m.get(0).getText());
-                if (position < 0 || position > course.getNumberOfLessons()) {
-                    throw new InvalidDataSentException("Position " + position + " is anvailable "
-                            + "for course " + course.getName() + " because it is outside "
-                            + "allowed boundaries of 0 to " + course.getNumberOfLessons(),
-                            localizationLoader.localize(
-                            ERROR_LESSON_POSITION_INVALID, user));
-                }
-            } catch (NumberFormatException e) {
-                throw new InvalidDataSentException("Unable to parse string "
-                        + m.get(1).getText() + " to the new index", localizationLoader
-                        .localize(ERROR_PARSE_INDEX_FAILURE, user));
-            }
-            LOGGER.debug("New position parsed. Adding lesson...");
-            lessonService.createLesson(user, course, position);
-            LOGGER.debug("Sending confirmation message...");
-            clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .localize(SERVICE_NEW_LESSON_CREATED, user));
-            LOGGER.debug("Message sent.");
+        sessionService.createSession(user, bot, p -> {
+            lessonService.addLessonToCourse(p.user(), p.bot(), Long.parseLong(params.get(COURSE_ID_PARAM)), p.messages());
         }, true);
-        LOGGER.debug("Sending request message...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                SERVICE_CREATE_LESSON_REQUEST, user));
-        LOGGER.debug("Request sent.");
+        clientManager.getClient(bot).sendMessage(user, loader.localize(Localizations.Service.CREATE_LESSON_REQUEST, user));
     }
 }

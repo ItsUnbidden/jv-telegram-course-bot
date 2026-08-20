@@ -19,6 +19,8 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class RequestFeedbackMenu implements MenuConfigurer {
+    private static final String WITH_COMMENT_PARAM = "withComment";
+
     private final AcceptHomeworkButtonHandler acceptHandler;
     private final DeclineHomeworkButtonHandler declineHandler;
 
@@ -42,8 +44,10 @@ public class RequestFeedbackMenu implements MenuConfigurer {
         page2.setPageIndex(1);
         page2.setColumns(1);
         page2.setButtonsFunction(p -> List.of(
-            new TerminalButton(localizationLoader.localize(Localizations.Button.ACCEPT_HOMEWORK, p.user()).getData(), acceptHandler),
-            new TerminalButton(localizationLoader.localize(Localizations.Button.ACCEPT_HOMEWORK_WITH_COMMENT, p.user()).getData(), acceptHandler),
+            new TerminalButton(localizationLoader.localize(Localizations.Button.ACCEPT_HOMEWORK, p.user()).getData(),
+                    WITH_COMMENT_PARAM, String.valueOf(false), acceptHandler),
+            new TerminalButton(localizationLoader.localize(Localizations.Button.ACCEPT_HOMEWORK_WITH_COMMENT, p.user()).getData(),
+                    WITH_COMMENT_PARAM, String.valueOf(true), acceptHandler),
             new BackwardButton(localizationLoader.localize(Localizations.Button.BACK, p.user()).getData())
         ));
 
