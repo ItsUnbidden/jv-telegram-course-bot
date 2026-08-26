@@ -1,23 +1,30 @@
 package com.unbidden.telegramcoursesbot.bot;
 
 import com.unbidden.telegramcoursesbot.dao.CertificateDao;
+import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
+import com.unbidden.telegramcoursesbot.exception.TelegramException;
+import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
 public class ClientManager {
@@ -158,6 +165,76 @@ public class ClientManager {
 
     public void setRefreshing(boolean isRefreshing) {
         this.isRefreshing = isRefreshing;
+    }
+
+    /**
+     * Sends a message with the provided {@link Localization} to the chat specified in the {@link BotRole}. 
+     * There are three possible result types:
+     * <ls>
+     *  <li>OK -> Sent successfully</li>
+     *  <li>SKIPPED -> User has disabled the bot</li>
+     *  <li>FAILURE -> An unexpected error occured</li>
+     * </ls>
+     * 
+     * @param botRole
+     * @param localization
+     * @return the result wrapped in {@link SendMessageResultDto}
+     */
+    public SendMessageResultDto sendMessage(BotRole botRole, Localization localization) {
+        if (botRole.isDisabled()) {
+            return new SendMessageResultDto();
+        }
+
+        try {
+            return new SendMessageResultDto(getClient(botRole.getBot()).execute(SendMessage.builder()
+                    .chatId(botRole.getUser().getId())
+                    .text(localization.getData())
+                    .entities(localization.getEntities())
+                    .build()));
+        } catch (TelegramApiException e) {
+            return new SendMessageResultDto(new TelegramException("Unable to send a message to user " + botRole.getUser().getId()
+                    + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(Localizations.Error.SEND_MESSAGE,
+                        botRole.getUser()), e));
+        }
+    }
+
+    /**
+     * Asynchronously sends a message with the provided {@link Localization} to the chat specified in the {@link BotRole}. 
+     * The future <b>always completes</b>. There are three possible result types:
+     * <ls>
+     *  <li>OK -> Sent successfully</li>
+     *  <li>SKIPPED -> User has disabled the bot</li>
+     *  <li>FAILURE -> An unexpected error occured</li>
+     * </ls>
+     * 
+     * @param botRole
+     * @param localization
+     * @return {@link CompletableFuture} with the result wrapped in {@link SendMessageResultDto}
+     */
+    public CompletableFuture<SendMessageResultDto> sendMessageAsync(BotRole botRole, Localization localization) {
+        if (botRole.isDisabled()) {
+            return CompletableFuture.completedFuture(new SendMessageResultDto());
+        }
+
+        try {
+            return getClient(botRole.getBot()).executeAsync(SendMessage.builder()
+                    .chatId(botRole.getUser().getId())
+                    .text(localization.getData())
+                    .entities(localization.getEntities())
+                    .build()).handle((m, t) -> {
+                        if (t != null) {
+                            return new SendMessageResultDto(new TelegramException("Unable to send a message to user " + botRole.getUser().getId()
+                                + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(Localizations.Error.SEND_MESSAGE,
+                                botRole.getUser()), t));
+                        } else {
+                            return new SendMessageResultDto(m);
+                        }
+                    });
+        } catch (TelegramApiException e) {
+            return CompletableFuture.completedFuture(new SendMessageResultDto(new TelegramException("Unable to send a message to user "
+                    + botRole.getUser().getId() + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(
+                    Localizations.Error.SEND_MESSAGE, botRole.getUser()), e)));
+        }
     }
 
     private String getStatus(UserEntity user) {

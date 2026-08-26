@@ -153,7 +153,9 @@ service add_new_localization_success ${contentId} ${mappingId}
 service status_disabled
 service status_enabled
 service mapping_text_status_update_success ${status}
-service new_course_request
+service new_course_title_request
+service telegram_invoice_request
+service external_invoice_request
 service new_course_created
 service homework_content_request ${lessonId}
 service new_homework_created ${homeworkId}
@@ -315,6 +317,9 @@ service no_terms
 service no_start
 service delete_course_confirmation_phrase ${courseName}
 service delete_lesson_confirmation_phrase ${courseName} ${position}
+service course_completed_default ${courseName}
+service yes
+service no
 
 
 error no_exception_localization_available ${excMessage} ${excClassName}
@@ -370,7 +375,7 @@ error critical_director_notification ${excMessage} ${excClassName} ${userId} ${b
 error pre_checkout_course_already_owned ${courseName}
 error payment_details_not_found
 error refund_failure
-error refund_stage_bigger_then_amount_of_lessons ${amountOfLessons}
+error refund_stage_greater_than_number_of_lessons ${maxRefundStage}
 error refund_course_unavailable ${courseName}
 error refund_purchase_too_old ${courseName} ${maxNumberOfDays} ${currentNumberOfDays}
 error refund_user_advanced_too_far ${courseName} ${maxRefundStage} ${currentStage}
@@ -454,3 +459,14 @@ error parse_role_types_failure ${availableRoleTypes}
 error delete_course_active_ownerships ${numberOfOwnerships}
 error delete_course_confirmation_phrase_failure
 error no_localizations_deleted ${languageCode} ${availableLanguageCodes}
+error menu_snapshot_not_found
+error menu_manually_removed_failed
+error no_courses
+error parse_url_failure
+error parse_url_failure_invalid_scheme
+error course_price_update_external_invoice
+error course_refund_stage_update_external_invoice
+error course_validation_no_lessons
+error course_validation_no_content_in_lesson ${lessonIndex}
+error post_request_failure ${successes} ${failures}
+error send_message

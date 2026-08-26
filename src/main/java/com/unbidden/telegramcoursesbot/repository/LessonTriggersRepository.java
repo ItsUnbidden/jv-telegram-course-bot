@@ -25,6 +25,6 @@ public interface LessonTriggersRepository extends JpaRepository<LessonTrigger, L
     Optional<LessonTrigger> findById(@NonNull Long id);
 
     @NonNull
-    Optional<LessonTrigger> findByUserIdAndCourseIdAndProgressStage(@NonNull Long userId,
+    Optional<LessonTrigger> findByUserIdAndProgressCourseIdAndProgressStage(@NonNull Long userId,
             @NonNull Long courseId, @NonNull Integer stage);
 }

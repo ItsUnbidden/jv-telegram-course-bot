@@ -1,0 +1,60 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-menu-snapshots-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: menu_snapshots
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_users_menu_snapshots
+                    references: users(id)
+              - column:
+                  name: bot_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bots_menu_snapshots
+                    references: bots(id)
+              - column:
+                  name: menu_key
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mtg
+                  type: varchar(255)
+              - column:
+                  name: message_id
+                  type: int
+              - column:
+                  name: parameters
+                  type: varchar(512)
+              - column:
+                  name: current_page
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: initial_page
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: page_history
+                  type: varchar(255)
+              - column:
+                  name: version
+                  type: bigint
+                  constraints:
+                    nullable: false

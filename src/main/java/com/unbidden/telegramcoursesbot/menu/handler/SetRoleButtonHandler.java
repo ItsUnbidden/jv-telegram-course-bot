@@ -46,10 +46,10 @@ public class SetRoleButtonHandler extends AbstractButtonHandler {
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
         final RoleType roleType = RoleType.valueOf(params.get(ROLE_TYPE_PARAM));
 
+        final var chooseUserSession = sessionService.createSession(user, bot, getSetRoleFunction(roleType));
         final KeyboardButtonRequestUser requestUserSetRole = KeyboardButtonRequestUser.builder()
                 .userIsBot(false)
-                .requestId(String.valueOf(sessionService.createSession(user, bot,
-                    getSetRoleFunction(roleType)))).build();
+                .requestId(String.valueOf(chooseUserSession.getRequestId())).build();
         final KeyboardButton addButton = KeyboardButton.builder()
                 .requestUser(requestUserSetRole)
                 .text(localizationLoader.localize(Localizations.Button.SET_ROLE_CHOOSE_USER, user)

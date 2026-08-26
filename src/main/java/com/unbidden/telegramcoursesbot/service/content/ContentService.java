@@ -99,7 +99,7 @@ public class ContentService {
                         new Localizations.Error.LocalizedContentIsAlreadyPresentParams(mapping.getId(), languageCode)));
         }
 
-        mapping.getContent().add(parseAndPersistContent(user, bot, messages));
+        mapping.getContent().add(parseAndPersistContent(user, bot, messages, languageCode));
 
         return mapping;
     }
@@ -131,7 +131,7 @@ public class ContentService {
     private LocalizedContent parseAndPersistContent0(UserEntity user, Bot bot, List<Message> messages,
             List<MediaType> allowedContentTypes, String languageCode) {
         LOGGER.debug("Initiating parsing of a message to content.");
-        final MediaType messagesContentType = defineContentType(messages);
+        final MediaType messagesContentType = defineContentType(user, messages);
 
         if (!allowedContentTypes.isEmpty()) {
             LOGGER.debug("Allowed content types are " + allowedContentTypes + ".");
@@ -156,7 +156,7 @@ public class ContentService {
         }
     }
 
-    private MediaType defineContentType(List<Message> messages) {
+    private MediaType defineContentType(UserEntity user, List<Message> messages) {
         LOGGER.debug("Trying to define content type of messages...");
 
         int numberOfText = 0;
@@ -181,7 +181,6 @@ public class ContentService {
                 isCaptionPresent = true;
             }
         }
-        final UserEntity user = entityUtil.getUser(messages.get(0).getFrom());
 
         if (numberOfText != 0 && isCaptionPresent) {
             throw new InvalidDataSentException("Captions and text in the "

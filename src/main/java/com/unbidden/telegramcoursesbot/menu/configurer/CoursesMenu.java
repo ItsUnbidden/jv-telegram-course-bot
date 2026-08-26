@@ -154,7 +154,7 @@ public class CoursesMenu implements MenuConfigurer {
             final List<Button> buttons = new ArrayList<>();
 
             buttons.add(new TransitoryButton(loader.localize(Localizations.Button.UPDATE_COURSE_GRADE, p.user()).getData(), 5));
-            if (Boolean.getBoolean(p.params().get(IS_ADVANCED_REVIEW_PRESENT_PARAM))) {
+            if (Boolean.parseBoolean(p.params().get(IS_ADVANCED_REVIEW_PRESENT_PARAM))) {
                 buttons.add(new TerminalButton(loader.localize(Localizations.Button.UPDATE_ADVANCED_REVIEW, p.user()).getData(), updateAdvancedReviewHandler));
             } else {
                 buttons.add(new TerminalButton(loader.localize(Localizations.Button.SEND_ADVANCED_REVIEW, p.user()).getData(), sendAdvancedReviewHandler));
@@ -181,7 +181,7 @@ public class CoursesMenu implements MenuConfigurer {
             final CourseResponseDto dto = courseService.getById(p.user(), p.bot(), Long.parseLong(p.params().get(COURSE_ID_PARAM)));
 
             for (int i = 0; i < dto.getLessonIds().size(); ++i) {
-                buttons.add(new TerminalButton(String.valueOf(i), dto.getLessonIds().get(i).toString(), selectCourseStageHandler));
+                buttons.add(new TerminalButton(String.valueOf(i), String.valueOf(i), selectCourseStageHandler));
             }
             buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData()));
 

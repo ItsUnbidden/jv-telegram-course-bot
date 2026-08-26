@@ -34,7 +34,7 @@ public abstract class Content extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private MediaType type;
 
-    @Column(nullable = false, columnDefinition = "TINYINT(1)")
+    @Column(nullable = false)
     private boolean isProtected;
 
     @Override

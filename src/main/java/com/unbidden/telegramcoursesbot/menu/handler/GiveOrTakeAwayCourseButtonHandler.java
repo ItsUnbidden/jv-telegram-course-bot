@@ -46,16 +46,17 @@ public class GiveOrTakeAwayCourseButtonHandler extends AbstractButtonHandler {
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
         final Long courseId = Long.parseLong(params.get(COURSE_ID_PARAM));
 
+        final var giveCourseSession = sessionService.createSession(user, bot, getGiveCourseFunction(courseId));
+        final var takeCourseSession = sessionService.createSession(user, bot, getTakeCourseFunction(courseId));
+
         final KeyboardButtonRequestUser requestUserGiveCourse = KeyboardButtonRequestUser
                 .builder()
                 .userIsBot(false)
-                .requestId(String.valueOf(sessionService.createSession(user, bot,
-                    getGiveCourseFunction(courseId)))).build();
+                .requestId(String.valueOf(giveCourseSession.getRequestId())).build();
         final KeyboardButtonRequestUser requestUserTakeCourse = KeyboardButtonRequestUser
                 .builder()
                 .userIsBot(false)
-                .requestId(String.valueOf(sessionService.createSession(user, bot,
-                    getTakeCourseFunction(courseId)))).build();
+                .requestId(String.valueOf(takeCourseSession.getRequestId())).build();
 
         final KeyboardButton giveButton = KeyboardButton.builder()
                 .requestUser(requestUserGiveCourse)

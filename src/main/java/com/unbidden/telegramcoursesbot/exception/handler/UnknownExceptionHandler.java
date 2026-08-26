@@ -52,7 +52,7 @@ public class UnknownExceptionHandler implements ExceptionHandler {
                 Error.UNSPECIFIED_EXCEPTION, user, new UnspecifiedExceptionParams(exc.getMessage(),
                 exc.getClass().getSimpleName()));
 
-        notifyDirector(exc, user, bot);
+        // notifyDirector(exc, user, bot);
 
         return SendMessage.builder()
                 .chatId(user.getId())

@@ -4,8 +4,6 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -34,10 +32,6 @@ public class Course extends BaseEntity {
     private ContentMapping title;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
-    @JoinColumn(name = "description_mapping_id")
-    private ContentMapping description;
-
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "end_mapping_id")
     private ContentMapping endMapping;
 
@@ -48,25 +42,17 @@ public class Course extends BaseEntity {
     @OrderBy("position ASC")
     @OneToMany(mappedBy = "course", cascade = CascadeType.REMOVE)
     private List<Lesson> lessons;
-    
-    private Integer price;
-
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private PaymentType paymentType;
-
-    private Integer refundStage;
 
     @Embedded
-    private ExternalInvoice externalInvoice;
+    private CourseInvoice invoice;
 
-    @Column(nullable = false, columnDefinition = "TINYINT(1)")
+    @Column(nullable = false)
     private boolean isUnderMaintenance;
 
-    @Column(nullable = false, columnDefinition = "TINYINT(1)")
+    @Column(nullable = false)
     private boolean isHomeworkIncluded;
 
-    @Column(nullable = false, columnDefinition = "TINYINT(1)")
+    @Column(nullable = false)
     private boolean isFeedbackIncluded;
 
     @Version
@@ -75,17 +61,9 @@ public class Course extends BaseEntity {
     @Override
     public String toString() {
         return "Course(id=" + getId() + ", titleMappingId=" + title.getId()
-                + ", descriptionMappingId=" + (description != null ? description.getId() : "NULL")
                 + ", endMappingId=" + (endMapping != null ? endMapping.getId() : "NULL")
                 + ", botId=" + bot.getId() + ", lessonIds=" + (Hibernate.isInitialized(lessons) ? lessons.stream().map(l -> l.getId()).toList() : "LAZY") 
-                + ", price=" + price + ", paymentType=" + paymentType
-                + ", refundStage=" + refundStage + ", externalInvoice=" + externalInvoice + ", isUnderMaintenance="
-                + isUnderMaintenance + ", isHomeworkIncluded=" + isHomeworkIncluded + ", isFeedbackIncluded=" + isFeedbackIncluded
-                + ", version=" + version + ")";
-    }
-
-    public static enum PaymentType {
-        EXTERNAL,
-        TELEGRAM
+                + ", invoice=" + invoice + ", isUnderMaintenance=" + isUnderMaintenance + ", isHomeworkIncluded=" + isHomeworkIncluded
+                + ", isFeedbackIncluded=" + isFeedbackIncluded + ", version=" + version + ")";
     }
 }

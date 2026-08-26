@@ -74,7 +74,7 @@ databaseChangeLog:
   - include:
       file: /db/changelog/changes/37-add-statistics-authority.yaml
   - include:
-      file: /db/changelog/changes/38-create-creator-payment-tokens-table.yaml
+      file: /db/changelog/changes/38-create-bot-payment-tokens-table.yaml
   - include:
       file: /db/changelog/changes/39-create-entitlement-table.yaml
   - include:
@@ -91,3 +91,13 @@ databaseChangeLog:
       file: /db/changelog/changes/45-edit-bots-add-new-content-columns.yaml
   - include:
       file: /db/changelog/changes/46-edit-lessons-add-next-lesson-mapping-column.yaml
+  - include:
+      file: /db/changelog/changes/47-drop-messages-and-mtg-tables.yaml
+  - include:
+      file: /db/changelog/changes/48-create-menu-snapshots-table.yaml
+  - include:
+      file: /db/changelog/changes/49-create-menu-snapshot-buttons-table.yaml
+  - include:
+      file: /db/changelog/changes/50-edit-courses-drop-telegram-invoice-not-null-constraints.yaml
+  - include:
+      file: /db/changelog/changes/51-edit-bot-roles-add-disabled-column.yaml

@@ -9,6 +9,8 @@ import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.menu.Menu;
 import com.unbidden.telegramcoursesbot.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import com.unbidden.telegramcoursesbot.model.Course;
+import com.unbidden.telegramcoursesbot.model.ExternalInvoice;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.LinkButton;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
@@ -32,8 +34,13 @@ public class ExternalInvoiceMenu implements MenuConfigurer {
 
         firstPage.setPageIndex(0);
         firstPage.setColumns(1);
-        firstPage.setButtonsFunction(p -> List.of(new LinkButton(loader.localize(Localizations.Button.EXTERNAL_INVOICE_MORE_INFO, p.user()).getData(),
-                entityUtil.getCourseById(p.user(), p.bot(), Long.parseLong(p.params().get(COURSE_ID_PARAM))).getExternalInvoice().getExternalStorePageUrl())));
+        firstPage.setButtonsFunction(p -> {
+            final Course course = entityUtil.getCourseById(p.user(), p.bot(), Long.parseLong(p.params().get(COURSE_ID_PARAM)));
+            final ExternalInvoice invoice = (ExternalInvoice)course.getInvoice();
+
+            return List.of(new LinkButton(loader.localize(Localizations.Button.EXTERNAL_INVOICE_MORE_INFO,
+                    p.user()).getData(), invoice.getExternalStorePageUrl()));
+        });
 
         menu.setPages(List.of(firstPage));
 

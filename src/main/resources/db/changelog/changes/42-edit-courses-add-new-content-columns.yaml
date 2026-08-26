@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: edit-courses-add-title-description-columns
+      id: edit-courses-add-new-content-columns
       author: Unbidden
       changes:
         - addColumn:

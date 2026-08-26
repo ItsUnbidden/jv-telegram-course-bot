@@ -35,7 +35,7 @@ public class AcceptHomeworkButtonHandler extends AbstractButtonHandler {
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
         final Long progressId = Long.parseLong(params.get(PROGRESS_ID_PARAM));
 
-        if (Boolean.getBoolean(params.get(WITH_COMMENT_PARAM))) {
+        if (Boolean.parseBoolean(params.get(WITH_COMMENT_PARAM))) {
             sessionService.createSession(user, bot, p -> homeworkService.approve(p.user(), p.bot(),
                     progressId, p.messages()));
                     

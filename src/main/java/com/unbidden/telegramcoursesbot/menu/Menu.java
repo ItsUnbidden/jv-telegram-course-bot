@@ -85,8 +85,8 @@ public class Menu {
                 final var button = new TerminalMenuSnapshotButton();
                 
                 button.setSnapshot(snapshot);
-                button.setParamName(button.getParamName());
-                button.setParamValue(button.getParamValue());
+                button.setParamName(paramName);
+                button.setParamValue(paramValue);
                 button.setHandlerBeanName(handler.getBeanName());
 
                 return button;

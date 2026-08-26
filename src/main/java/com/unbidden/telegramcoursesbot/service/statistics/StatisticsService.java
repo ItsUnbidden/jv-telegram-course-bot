@@ -60,7 +60,7 @@ public class StatisticsService {
                 telegramPaymentDetailsRepository.countByCourseIdAndRefundedAtIsNotNull(courseId),
                 telegramPaymentDetailsRepository.getTotalStarsIncomeForCourse(courseId),
                 courseOwnershipRepository.countByCourseIdAndStatus(courseId, OwnershipStatus.ACTIVE),
-                courseProgressRepository.countByCourseIdAndNumberOfTimesCompletedGreaterThan0(courseId),
+                courseProgressRepository.countByCourseIdAndNumberOfTimesCompletedGreaterThan(courseId, 0),
                 courseOwnershipRepository.countByCourseIdAndSourceAndStatus(courseId, OwnershipSource.GIFTED, OwnershipStatus.ACTIVE));
     }
 }

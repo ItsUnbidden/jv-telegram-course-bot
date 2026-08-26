@@ -111,7 +111,7 @@ public class HomeworkService {
     }
 
     @Transactional
-    public HomeworkProgress createOrLoadProgress(UserEntity user, Long homeworkId) {
+    public HomeworkProgress createOrLoadProgress(UserEntity user, Bot bot, Long homeworkId) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(homeworkId, "homeworkId cannot be null");
 
@@ -125,7 +125,7 @@ public class HomeworkService {
             homeworkProgress = new HomeworkProgress();
 
             homeworkProgress.setUser(user);
-            homeworkProgress.setHomework(homeworkRepository.getReferenceById(homeworkId));
+            homeworkProgress.setHomework(entityUtil.getHomeworkById(user, bot, homeworkId));
             homeworkProgress.setStatus(Status.INITIALIZED);
             homeworkProgress.setInitializedAt(LocalDateTime.now());
             homeworkProgressRepository.save(homeworkProgress);

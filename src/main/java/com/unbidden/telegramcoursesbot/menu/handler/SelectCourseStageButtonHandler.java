@@ -21,6 +21,6 @@ public class SelectCourseStageButtonHandler extends AbstractButtonHandler {
     @Override
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
         courseService.selectStage(user, bot, Long.parseLong(params.get(COURSE_ID_PARAM)),
-                Integer.parseInt(LESSON_ID_PARAM));
+                Integer.parseInt(params.get(LESSON_ID_PARAM)));
     }
 }

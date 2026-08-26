@@ -40,7 +40,12 @@ public class CommitContentMenu implements MenuConfigurer {
             new TerminalButton(loader.localize(Localizations.Button.CANCEL_SESSION, p.user()).getData(), cancelSessionButtonHandler)
         ));
 
+        final Page terminalPage = new Page(menu);
+
+        terminalPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.COMMIT_CONTENT_TERMINAL_PAGE, p.user()));
+
         menu.setPages(List.of(page));
+        menu.setTerminalPage(terminalPage);
 
         return menu;
     }

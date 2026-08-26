@@ -21,6 +21,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     Page<Review> findByCourseId(Long courseId, Pageable pageable);
     
     @Query("""
+        select r
         from Review r
         left join fetch r.user u
         left join fetch r.course c
@@ -28,12 +29,13 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
         where c.bot.id = :botId and exists(
             select 1
             from Review r2
-            left join r.markedAsRead marked
-            where r2.id = r.id and :userId not in elements(marked.id))
+            left join r.markedAsReadBy marked
+            where r2.id = r.id and (:userId <> marked.id or marked is null))
     """)
     Page<Review> findNewReviewsForUser(Long userId, Long botId, Pageable pageable);
 
     @Query("""
+        select distinct r
         from Review r
         left join fetch r.user u
         left join fetch r.course c
@@ -41,8 +43,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
         where c.id = :courseId and exists(
             select 1
             from Review r2
-            left join r.markedAsRead marked
-            where r2.id = r.id and :userId not in elements(marked.id))
+            left join r.markedAsReadBy marked
+            where r2.id = r.id and (:userId <> marked.id or marked is null))
     """)
     Page<Review> findNewReviewsForUserAndCourse(Long userId, Long courseId, Pageable pageable);
 
@@ -53,8 +55,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
         left join fetch r.course c
         left join fetch r.commentedBy cb
         left join fetch r.content cnt
-        left join fetch r.markedAsRead marked
-        where c.bot.id = :botId and :userId in elements(marked.id)
+        left join fetch r.markedAsReadBy marked
+        where c.bot.id = :botId and :userId = marked.id
     """)
     List<Review> findArchiveReviewsForUser(Long userId, Long botId);
 
@@ -65,8 +67,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
         left join fetch r.course c
         left join fetch r.commentedBy cb
         left join fetch r.content cnt
-        left join fetch r.markedAsRead marked
-        where c.id = :courseId and :userId in elements(marked.id)
+        left join fetch r.markedAsReadBy marked
+        where c.id = :courseId and :userId = marked.id
     """)
     List<Review> findArchiveReviewsForUserAndCourse(Long userId, Long courseId);
 

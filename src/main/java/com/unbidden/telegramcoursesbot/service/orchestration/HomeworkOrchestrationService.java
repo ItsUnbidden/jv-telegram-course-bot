@@ -96,7 +96,7 @@ public class HomeworkOrchestrationService {
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(homeworkId, "homeworkId cannot be null");
 
-        final HomeworkProgress progress = homeworkService.createOrLoadProgress(user, homeworkId);
+        final HomeworkProgress progress = homeworkService.createOrLoadProgress(user, bot, homeworkId);
 
         if (timingService.existsHomeworkTrigger(user.getId(), homeworkId)) {
             LOGGER.debug("User " + user.getId() + " is currently awaiting homework.");
@@ -245,11 +245,13 @@ public class HomeworkOrchestrationService {
         Assert.notNull(messages, "messages cannot be null");
 
         HomeworkProgress progress = entityUtil.getHomeworkProgressByHomeworkId(user, bot, homeworkId);
+        final List<UserEntity> mentors = userService.getHomeworkReceivingUsers(bot);
 
         if (progress.getHomework().getLesson().getCourse().isFeedbackIncluded()
                 && progress.getHomework().isFeedbackRequired()
-                && requestFeedback(progress)) {
+                && !mentors.isEmpty()) {
             progress = homeworkService.commit(user, bot, homeworkId, messages, Status.AWAITS_APPROVAL);
+            requestFeedback(progress, mentors);
 
             clientManager.getClient(bot).sendMessage(progress.getUser(),
                     localizationLoader.localize(
@@ -257,14 +259,16 @@ public class HomeworkOrchestrationService {
         } else {
             progress = homeworkService.commit(user, bot, homeworkId, messages, Status.COMPLETED);
 
-            final List<UserEntity> mentors = userService.getHomeworkReceivingUsers(bot);
-
             for (final UserEntity mentor : mentors) {
                 clientManager.getClient(bot).sendMessage(mentor,
-                        localizationLoader.localize(
-                        Localizations.Service.HOMEWORK_SUBMITTED_NOTIFICATION, mentor,
-                        new Localizations.Service.HomeworkSubmittedNotificationParams(progress.getUser().getId(),
-                                progress.getUser().getFullName(), progress.getUser().getLanguageCode())));
+                    localizationLoader.localize(Localizations.Service.HOMEWORK_SUBMITTED_NOTIFICATION, mentor,
+                        new Localizations.Service.HomeworkSubmittedNotificationParams(
+                            progress.getUser().getId(),
+                            progress.getUser().getFullName(),
+                            localizationLoader.getLanguageName(mentor, progress.getUser().getLanguageCode())
+                        )
+                    )
+                );
                 contentService.sendContent(mentor, bot, progress.getContent().getId());
             }
             clientManager.getClient(bot).sendMessage(progress.getUser(),
@@ -339,6 +343,7 @@ public class HomeworkOrchestrationService {
                         progress.getHomework().getLesson().getPosition(), mentor.getFullName(),
                         entityUtil.getLocalizedTitle(progress.getUser(), bot, mentor))));
             contentService.sendContent(progress.getUser(), bot, progress.getLastComment().getId());
+            sendHomework(progress);
         }
     }
     
@@ -347,31 +352,29 @@ public class HomeworkOrchestrationService {
                 : localizationLoader.localize(Localizations.Service.STATUS_DISABLED, user).getData();
     }
 
-    private boolean requestFeedback(HomeworkProgress progress) {
+    private void requestFeedback(HomeworkProgress progress, List<UserEntity> mentors) {
         Assert.notNull(progress, "Homework progress cannot be null");
 
         final Bot bot = progress.getHomework().getLesson().getCourse().getBot();
-        final List<UserEntity> mentors = userService.getHomeworkReceivingUsers(bot);
+        
         final UserEntity target = progress.getUser();
         final Course course = progress.getHomework().getLesson().getCourse();
         
-        LOGGER.debug("Checking if there are any users who are receiving "
-                + "homework feedback requests...");
-        if (mentors.isEmpty()) {
-            LOGGER.info("There are no users who are receiving homework feedback in bot "
-                    + bot.getId() + ". This means homework inclusion in course settings "
-                    + "will be ignored.");
-            return false;
-        }
         for (final UserEntity mentor : mentors) {
             LOGGER.debug("User " + mentor.getId() + " has homework feedback enabled. "
                     + "Sending approval message to them...");
 
             clientManager.getClient(bot).sendMessage(mentor,
-                    localizationLoader.localize(Localizations.Service.HOMEWORK_FEEDBACK_REQUEST_NOTIFICATION,
-                    mentor, new Localizations.Service.HomeworkFeedbackRequestNotificationParams(target.getId(),
-                    target.getFullName(), target.getLanguageCode(), contentService.getLocalizedText(mentor, bot,
-                        course.getTitle().getId()), progress.getHomework().getLesson().getPosition())));
+                    localizationLoader.localize(Localizations.Service.HOMEWORK_FEEDBACK_REQUEST_NOTIFICATION, mentor,
+                        new Localizations.Service.HomeworkFeedbackRequestNotificationParams(
+                            target.getId(),
+                            target.getFullName(),
+                            localizationLoader.getLanguageName(mentor, target.getLanguageCode()),
+                            contentService.getLocalizedText(mentor, bot, course.getTitle().getId()),
+                            progress.getHomework().getLesson().getPosition()
+                        )
+                    )
+            );
             LOGGER.debug("Homework feedback info has been sent to user " + mentor.getId() + ".");
             final List<Message> sentContent = contentService.sendContent(mentor, bot, progress
                     .getContent().getId());
@@ -396,7 +399,6 @@ public class HomeworkOrchestrationService {
                     progress.getId().toString(), menuMessage.getMessageId(), MenuTerminationGroupKey.REQUEST_FEEDBACK, progress.getId());
             LOGGER.debug("Feedback menu has been initialized for user " + mentor.getId() + ".");
         }
-        return true;
     }
 
     private boolean checkAndHandleSendHomeworkStatusError(HomeworkProgress homeworkProgress) {

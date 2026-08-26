@@ -6,13 +6,13 @@ import com.unbidden.telegramcoursesbot.model.UserEntity;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-public interface ContentSessionService extends SessionService {
+public interface ContentSessionService extends SessionService<ContentSession> {
     @Override
-    default UUID createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function) {
+    default ContentSession createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function) {
         return createSession(user, bot, function, false);
     }
 
-    UUID createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function,
+    ContentSession createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function,
             boolean isSkippingConfirmation);
     
     void removeSessionsWithoutConfirmationForUser(UserEntity user, Bot bot);

@@ -1,7 +1,9 @@
 package com.unbidden.telegramcoursesbot.service.user;
 
+import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.BotRole;
@@ -57,8 +59,13 @@ public class UserService {
         Assert.notNull(bot, "bot cannot be null");
 
         final UserEntity user = updateUser(rawUser);
+        final Optional<BotRole> botRoleOpt = botRoleRepository.findByBotIdAndUserId(bot.getId(), user.getId());
 
-        if (botRoleRepository.existsByBotIdAndUserId(bot.getId(), user.getId())) {
+        if (botRoleOpt.isPresent()) {
+            if (botRoleOpt.get().isDisabled()) {
+                LOGGER.info("User " + user.getId() + " will be reactivated in bot " + bot.getId() + ".");
+                botRoleOpt.get().setDisabled(false);
+            }
             return user;
         }
         
@@ -67,6 +74,23 @@ public class UserService {
         LOGGER.debug("User " + user.getId() + " has been registered in bot " + bot.getId() + ".");
         
         return user;
+    }
+
+    @Transactional
+    public BotRole disableUser(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
+        final BotRole botRole = botRoleRepository.findByBotIdAndUserId(bot.getId(), user.getId()).orElseThrow(() ->
+                new EntityNotFoundException("Bot role for user " + user.getId() + " in bot " + bot.getId()
+                + " has not been found while trying to disable it. This is likely a bug.",
+                localizationLoader.localize(Localizations.Error.BOT_ROLE_NOT_FOUND, user)));
+
+        LOGGER.info("User " + user.getId() + " will be disabled in bot " + bot.getId() + ".");
+        
+        botRole.setDisabled(true);
+
+        return botRole;
     }
 
     @Transactional

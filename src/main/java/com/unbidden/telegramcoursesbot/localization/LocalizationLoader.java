@@ -122,6 +122,25 @@ public class LocalizationLoader {
                 .toList();
     }
 
+    /**
+     * Loads the original language name.
+     * @param code
+     * @return
+     */
+    public String getLanguageName(String code) {
+        return loadGenericLocalization(Localizations.Service.LANGUAGE_CODE, code, code).getData();
+    }
+
+    /**
+     * Loads the name of the language localized for a specific user.
+     * @param localizedFor
+     * @param code
+     * @return
+     */
+    public String getLanguageName(UserEntity localizedFor, String code) {
+        return localizeGeneric(Localizations.Service.LANGUAGE_CODE, localizedFor, code).getData();
+    }
+
     private Localization loadLocalization(LocalizationKey key, String languageCode, Object[] args) {
         LOGGER.trace("Loading cached localization " + key + "...");
         Localization localization = findAvailableLocalization((args == null ? key.getLocName() : key.getLocName().formatted(args)), languageCode);
@@ -221,11 +240,12 @@ public class LocalizationLoader {
                         final String key = keyPattern.formatted(entry.getKey().getName());
                         final String content = textUtil.removeEndLineOverrides(entry.getValue());
                         final Localization newLocalization;
-
-                        if (entry.getKey().isInjectionRequired()) {
+                        final Set<String> paramNames = textUtil.getParamNames(content);
+                        
+                        if (!paramNames.isEmpty()) {
                             LOGGER.trace("Localization " + key + " has custom parameters "
                                     + "that will need to be injected later.");
-                            newLocalization = new Localization(key, content, textUtil.getParamNames(content), true);
+                            newLocalization = new Localization(key, content, paramNames, true);
                         } else {
                             LOGGER.trace("Localization " + key + " does not have any custom "
                                     + "parameters. Parsing markers now...");

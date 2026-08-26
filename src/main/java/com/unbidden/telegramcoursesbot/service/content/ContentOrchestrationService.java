@@ -92,9 +92,13 @@ public class ContentOrchestrationService {
         Assert.notNull(bot, "bot cannot be null");
         Assert.notEmpty(messages, "messages cannot be null or empty");
 
-        final String languageCode = validatorUtil.checkLanguageCode(user, messages.getLast())
-                ? messages.getLast().getText()
-                : user.getLanguageCode();
+        final String languageCode;
+        if (messages.size() > 1 && validatorUtil.checkLanguageCode(user, messages.getLast())) {
+            languageCode = messages.getLast().getText().trim();
+            messages.removeLast();
+        } else {
+            languageCode = user.getLanguageCode();
+        }
 
         final ContentMapping mapping = contentService.addNewLocalization(user, bot, mappingId, languageCode, messages);
         final LocalizedContent content = mapping.getContent().getLast();
@@ -262,12 +266,12 @@ public class ContentOrchestrationService {
         final Map<String, LocalizedContent> contentMap = getContentMap(mapping.getContent());
 
         if (contentMap.containsKey(user.getLanguageCode())) {
-            LOGGER.debug("Localized content in group " + mapping.getId()
+            LOGGER.debug("Localized content in mapping " + mapping.getId()
                     + " for user " + user.getId() + "'s prefered code " + user.getLanguageCode()
                     + " is available.");
             return contentMap.get(user.getLanguageCode());
         }
-        LOGGER.debug("Localized content in group " + mapping.getId() + " for user "
+        LOGGER.debug("Localized content in mapping " + mapping.getId() + " for user "
                 + user.getId() + "'s prefered code " + user.getLanguageCode()
                 + " is not available. Looking over the language code priority list...");
         final List<String> languagePriority = textUtil.getLanguagePriority();
@@ -275,14 +279,14 @@ public class ContentOrchestrationService {
         for (final String code : languagePriority) {
             if (!code.equals(user.getLanguageCode())) {
                 if (contentMap.containsKey(code)) {
-                    LOGGER.debug("Localized content in group " + mapping.getId()
+                    LOGGER.debug("Localized content in mapping " + mapping.getId()
                             + " has been found for language code " + code + ".");
                     return contentMap.get(code);
                 }
             }
         }
         final LocalizedContent firstAvailableContent = mapping.getContent().get(0);
-        LOGGER.warn("There is no available content in group " + mapping.getId()
+        LOGGER.warn("There is no available content in mapping " + mapping.getId()
                 + " for any of the priority language codes. First content in the list (Id: "
                 + firstAvailableContent.getId() + ") will be used instead.");
 

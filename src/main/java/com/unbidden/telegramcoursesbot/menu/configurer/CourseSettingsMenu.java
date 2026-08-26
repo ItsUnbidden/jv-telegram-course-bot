@@ -33,12 +33,15 @@ import com.unbidden.telegramcoursesbot.menu.handler.RemoveLessonFromCourseButton
 import com.unbidden.telegramcoursesbot.menu.handler.UpdateContentPositionButtonHandler;
 import com.unbidden.telegramcoursesbot.menu.handler.UpdateCourseRefundStageButtonHandler;
 import com.unbidden.telegramcoursesbot.menu.handler.UpdateHomeworkContentButtonHandler;
+import com.unbidden.telegramcoursesbot.model.CourseInvoice.PaymentType;
 import com.unbidden.telegramcoursesbot.service.orchestration.CourseOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.orchestration.HomeworkOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.orchestration.LessonOrchestrationService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -93,7 +96,7 @@ public class CourseSettingsMenu implements MenuConfigurer {
             buttons.addAll(courseService.getByBot(p.user(), p.bot()).stream()
                 .map(c -> (Button)new TransitoryButton(c.getLocalizedTitle(), COURSE_ID_PARAM, c.getId().toString(), 1))
                 .toList());
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.CREATE_NEW_COURSE, p.user()).getData(), createCourseHandler));
+            buttons.add(new TransitoryButton(loader.localize(Localizations.Button.CREATE_NEW_COURSE, p.user()).getData(), 5));
 
             return buttons;
         });
@@ -105,6 +108,8 @@ public class CourseSettingsMenu implements MenuConfigurer {
         secondPage.setLocalizationFunction(p -> {
             final CourseResponseDto dto = courseService.getById(p.user(), p.bot(), Long.parseLong(p.params().get(COURSE_ID_PARAM)));
             final String notAvailable = loader.localize(Localizations.Service.NOT_AVAILABLE, p.user()).getData();
+            final String yes = loader.localize(Localizations.Service.YES, p.user()).getData();
+            final String no = loader.localize(Localizations.Service.NO, p.user()).getData();
 
             return loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_1, p.user(), new Localizations.Menu.CourseSettingsPage1Params(
                 dto.getId(),
@@ -114,12 +119,13 @@ public class CourseSettingsMenu implements MenuConfigurer {
                 dto.getEndId() != null ? dto.getEndId().toString() : notAvailable,
                 dto.getPaymentType(),
                 dto.getLessonIds().size(),
-                dto.getPrice(),
-                dto.getRefundStage() >= 0 ? dto.getRefundStage().toString() : notAvailable,
+                dto.getPrice() != null ? dto.getPrice().toString() : notAvailable,
+                dto.getRefundStage() != null ? dto.getRefundStage().toString() : notAvailable,
                 dto.getExternalStorePageUrl() != null ? dto.getExternalStorePageUrl() : notAvailable,
                 dto.getExternalInvoiceMappingId() != null ? dto.getExternalInvoiceMappingId().toString() : notAvailable,
-                dto.isHomeworkIncluded(),   
-                dto.isFeedbackIncluded()
+                dto.isUnderMaintenance() ? yes : no,   
+                dto.isHomeworkIncluded() ? yes : no,   
+                dto.isFeedbackIncluded() ? yes : no
             ));
         });
         secondPage.setButtonsFunction(p -> List.of(
@@ -198,16 +204,22 @@ public class CourseSettingsMenu implements MenuConfigurer {
         fifthPage.setLocalizationFunction(p -> {
             final HomeworkResponseDto dto = homeworkService.getById(p.user(), p.bot(), Long.parseLong(p.params().get(HOMEWORK_ID_PARAM)));
             final String notAvailable = loader.localize(Localizations.Service.NOT_AVAILABLE, p.user()).getData();
+            final String yes = loader.localize(Localizations.Service.YES, p.user()).getData();
+            final String no = loader.localize(Localizations.Service.NO, p.user()).getData();
 
             return loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_4, p.user(), new Localizations.Menu.CourseSettingsPage4Params(
                 dto.getId(),
                 dto.getLessonId(),
                 dto.getDelay() > 0 ? dto.getDelay().toString() : notAvailable,
                 dto.getMappingId(),
-                !dto.getAllowedMediaTypes().isEmpty() ? dto.getAllowedMediaTypes().toString() : notAvailable,
-                dto.isFeedbackRequired(),
-                dto.isRepeatedCompletionAvailable())
-            );
+                !dto.getAllowedMediaTypes().isEmpty()
+                    ? dto.getAllowedMediaTypes().stream()
+                        .map(t -> t.toString().transform(s -> s.charAt(0) + s.substring(1).toLowerCase()))
+                        .collect(Collectors.joining(", "))
+                    : notAvailable,
+                dto.isFeedbackRequired() ? yes : no,
+                dto.isRepeatedCompletionAvailable() ? yes : no
+            ));
         });
         fifthPage.setButtonsFunction(p -> List.of(
             new TerminalButton(loader.localize(Localizations.Button.UPDATE_HOMEWORK_CONTENT, p.user()).getData(), updateHomeworkContentHandler),
@@ -218,7 +230,20 @@ public class CourseSettingsMenu implements MenuConfigurer {
             new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData())
         ));
 
-        menu.setPages(List.of(firstPage, secondPage, thirdPage, fourthPage, fifthPage));
+        final Page sixthPage = new Page(menu);
+
+        sixthPage.setPageIndex(5);
+        sixthPage.setColumns(2);
+        sixthPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_5, p.user()));
+        sixthPage.setButtonsFunction(p -> List.of(
+            new TerminalButton(loader.localize(Localizations.Button.CREATE_COURSE_EXTERNAL_PAYMENT, p.user()).getData(),
+                    PaymentType.EXTERNAL.toString(), createCourseHandler),
+            new TerminalButton(loader.localize(Localizations.Button.CREATE_COURSE_TELEGRAM_PAYMENT, p.user()).getData(),
+                    PaymentType.TELEGRAM.toString(), createCourseHandler),
+            new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData())
+        ));
+
+        menu.setPages(List.of(firstPage, secondPage, thirdPage, fourthPage, fifthPage, sixthPage));
         
         return menu;
     }

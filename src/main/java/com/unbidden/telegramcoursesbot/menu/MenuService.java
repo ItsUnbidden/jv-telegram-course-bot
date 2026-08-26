@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.menu;
 
+import com.unbidden.telegramcoursesbot.util.EntityUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -16,6 +17,7 @@ import com.unbidden.telegramcoursesbot.dto.internal.MenuSnapshotCreatedDto;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuSnapshotUpdatedDto;
 import com.unbidden.telegramcoursesbot.dto.internal.TerminalMenuSnapshotUpdatedDto;
 import com.unbidden.telegramcoursesbot.dto.internal.TransitoryMenuSnapshotUpdatedDto;
+import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.MenuException;
 import com.unbidden.telegramcoursesbot.exception.handler.StaleMenuException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
@@ -50,6 +52,8 @@ public class MenuService {
     
     private final LocalizationLoader loader;
 
+    private final EntityUtil entityUtil;
+
     @Transactional
     public MenuSnapshotCreatedDto createSnapshot(UserEntity user, Bot bot, MenuKey key, Integer initialPage,
             List<Button> buttons, Map<String, String> params, @Nullable Integer messageId,
@@ -65,8 +69,8 @@ public class MenuService {
 
         final MenuSnapshot snapshot = new MenuSnapshot();
 
-        snapshot.setBot(bot);
-        snapshot.setUser(user);
+        snapshot.setBot(entityUtil.getBotReference(bot.getId()));
+        snapshot.setUser(entityUtil.getUserReference(user.getId()));
         snapshot.setInitialPage(initialPage);
         snapshot.setCurrentPage(initialPage);
         snapshot.setGroup(mtgKey != null ? mtgKey.getName().formatted(mtgArgs) : null);
@@ -120,7 +124,7 @@ public class MenuService {
                 currentParams.put(transitoryButton.getParamName(), transitoryButton.getParamValue());
                 snapshot.parseAndSetParams(currentParams);
             }
-            pageHistory.add(transitoryButton.getPointer());
+            pageHistory.add(snapshot.getCurrentPage());
             snapshot.parseAndSetHistory(pageHistory);
             snapshot.setCurrentPage(transitoryButton.getPointer());
 
@@ -128,7 +132,7 @@ public class MenuService {
             final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(user, bot, currentParams, snapshot.getInitialPage()));
             final List<MenuSnapshotButton> snapshotButtons = generatedLayout.stream().map(b -> b.toMenuSnapshotButton(snapshot)).toList();
    
-            final int numberOfDeletions = menuSnapshotButtonRepository.deleteAllByMenuIdInBatch(snapshot.getId());
+            final int numberOfDeletions = menuSnapshotButtonRepository.deleteAllBySnapshotIdInBatch(snapshot.getId());
 
             LOGGER.trace("Deleted " + numberOfDeletions + " snapshot buttons from menu " + snapshot.getId() + ".");
             menuSnapshotButtonRepository.saveAll(snapshotButtons);
@@ -155,7 +159,7 @@ public class MenuService {
                 snapshot.setCurrentPage(snapshot.getInitialPage());
                 snapshot.setPageHistory(null);
 
-                final int numberOfDeletions = menuSnapshotButtonRepository.deleteAllByMenuIdInBatch(snapshot.getId());
+                final int numberOfDeletions = menuSnapshotButtonRepository.deleteAllBySnapshotIdInBatch(snapshot.getId());
 
                 LOGGER.trace("Deleted " + numberOfDeletions + " snapshot buttons from snapshot " + snapshot.getId() + ".");
                 menuSnapshotButtonRepository.saveAll(snapshotButtons);
@@ -168,7 +172,7 @@ public class MenuService {
                 LOGGER.trace("Menu " + menu.getKey() + " is supposed to be removed after a terminal button call.");
                 final Page terminalPage = menu.getTerminalPage();
 
-                final int numberOfDeletions = menuSnapshotButtonRepository.deleteAllByMenuIdInBatch(snapshot.getId());
+                final int numberOfDeletions = menuSnapshotButtonRepository.deleteAllBySnapshotIdInBatch(snapshot.getId());
                 
                 menuSnapshotRepository.delete(snapshot);
                 LOGGER.trace("Deleted " + numberOfDeletions + " snapshot buttons along with their parent snapshot " + snapshot.getId() + ".");
@@ -186,10 +190,13 @@ public class MenuService {
 
             LOGGER.trace("Button " + snapshotButtonId + " is a backward button. Previous page: " + nextPage.getPageIndex());
 
+            snapshot.parseAndSetHistory(pageHistory);
+            snapshot.setCurrentPage(nextPage.getPageIndex());
+
             final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(user, bot, currentParams, snapshot.getInitialPage()));
             final List<MenuSnapshotButton> snapshotButtons = generatedLayout.stream().map(b -> b.toMenuSnapshotButton(snapshot)).toList();
    
-            final int numberOfDeletions = menuSnapshotButtonRepository.deleteAllByMenuIdInBatch(snapshot.getId());
+            final int numberOfDeletions = menuSnapshotButtonRepository.deleteAllBySnapshotIdInBatch(snapshot.getId());
 
             LOGGER.trace("Deleted " + numberOfDeletions + " snapshot buttons from menu " + snapshot.getId() + ".");
             menuSnapshotButtonRepository.saveAll(snapshotButtons);
@@ -202,12 +209,26 @@ public class MenuService {
     }
 
     @Transactional
+    public MenuSnapshot terminateMenu(UserEntity user, Long snapshotId) {
+        final MenuSnapshot snapshot = menuSnapshotRepository.findById(snapshotId).orElseThrow(() ->
+                new EntityNotFoundException("Menu snapshot " + snapshotId + " does not exist.",
+                loader.localize(Localizations.Error.MENU_SNAPSHOT_NOT_FOUND, user)));
+
+        LOGGER.debug("Deleting menu " + snapshotId + " and its buttons...");
+        menuSnapshotButtonRepository.deleteAllBySnapshotIdInBatch(snapshotId);
+        menuSnapshotRepository.delete(snapshot);
+
+        return snapshot;
+    }
+
+    @Transactional
     public List<MenuSnapshot> terminateMenus(MenuTerminationGroupKey key, Object[] args) {
         final String formattedKey = key.getName().formatted(args);
         final List<MenuSnapshot> snapshots = menuSnapshotRepository.findByGroup(formattedKey);
         final List<Long> ids = snapshots.stream().map(s -> s.getId()).toList();
 
-        LOGGER.debug("Deleting all menus in group " + formattedKey + "... Snapshot IDs: " + ids);
+        LOGGER.debug("Deleting all menus and buttons in group " + formattedKey + "... Snapshot IDs: " + ids);
+        menuSnapshotButtonRepository.deleteAllBySnapshotIdsInBatch(ids);
         menuSnapshotRepository.deleteAllByIdInBatch(ids);
 
         return snapshots;

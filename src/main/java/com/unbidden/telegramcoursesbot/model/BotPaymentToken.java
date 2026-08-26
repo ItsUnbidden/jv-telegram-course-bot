@@ -26,8 +26,8 @@ public class BotPaymentToken extends BaseEntity {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
-    private String tokenHash;
+    @Column(nullable = false, columnDefinition = "BINARY(32)")
+    private byte[] tokenHash;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)

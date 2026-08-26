@@ -1,14 +1,14 @@
 package com.unbidden.telegramcoursesbot.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+
 import lombok.Getter;
 import lombok.Setter;
-
-import org.springframework.lang.NonNull;
 
 @Getter
 @Setter
@@ -27,18 +27,22 @@ public class BotRole extends BaseEntity {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
+    @Column(nullable = false)
     private boolean isReceivingHomework;
+
+    @Column(nullable = false)
+    private boolean isDisabled;
 
     public BotRole() {
         
     }
 
-    public BotRole(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Role role,
-            boolean isReceivingHomework) {
+    public BotRole(Bot bot, UserEntity user, Role role, boolean isReceivingHomework) {
         this.bot = bot;
         this.user = user;
         this.role = role;
         this.isReceivingHomework = isReceivingHomework;
+        this.isDisabled = false;
     }
 
     @Override

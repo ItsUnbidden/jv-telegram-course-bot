@@ -1,8 +1,11 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
 import com.unbidden.telegramcoursesbot.dto.internal.CourseMenuDto;
+import com.unbidden.telegramcoursesbot.dto.internal.MappingsByPositionInCourseCountDto;
 import com.unbidden.telegramcoursesbot.dto.internal.UsersByCourseStageCountDto;
+import com.unbidden.telegramcoursesbot.exception.CourseValidationException;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
+import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.exception.OnMaintenanceException;
 import com.unbidden.telegramcoursesbot.exception.RefundImpossibleException;
 import com.unbidden.telegramcoursesbot.exception.StaleStateException;
@@ -11,10 +14,13 @@ import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
+import com.unbidden.telegramcoursesbot.model.CourseInvoice.PaymentType;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
+import com.unbidden.telegramcoursesbot.model.ExternalInvoice;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.Review;
+import com.unbidden.telegramcoursesbot.model.TelegramInvoice;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership.OwnershipStatus;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
@@ -25,8 +31,12 @@ import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
 import com.unbidden.telegramcoursesbot.repository.ReviewRepository;
 import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
+import com.unbidden.telegramcoursesbot.service.orchestration.PaymentOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
+import com.unbidden.telegramcoursesbot.util.ValidatorUtil;
+
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,11 +72,17 @@ public class CourseService {
 
     private final EntityUtil entityUtil;
 
+    private final ValidatorUtil validatorUtil;
+
     @Transactional(readOnly = true)
     public List<Course> getByBot(Bot bot) {
         Assert.notNull(bot, "bot cannot be null");
 
-        return courseRepository.findByBotId(bot.getId());
+        final List<Course> courses = courseRepository.findByBotId(bot.getId());
+
+        contentMappingRepository.findAllById(courses.stream().map(c -> c.getTitle().getId()).toList());
+
+        return courses;
     }
 
     @Transactional(readOnly = true)
@@ -74,7 +90,11 @@ public class CourseService {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
 
-        return courseRepository.findAllOwnedByUser(user.getId(), bot.getId());
+        final List<Course> courses = courseRepository.findAllOwnedByUser(user.getId(), bot.getId());
+
+        contentMappingRepository.findAllById(courses.stream().map(c -> c.getTitle().getId()).toList());
+
+        return courses;
     }
 
     @Transactional(readOnly = true)
@@ -82,7 +102,11 @@ public class CourseService {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
         
-        return courseRepository.findAllAvailableToUser(user.getId(), bot.getId());
+        final List<Course> courses = courseRepository.findAllAvailableToUser(user.getId(), bot.getId());
+
+        contentMappingRepository.findAllById(courses.stream().map(c -> c.getTitle().getId()).toList());
+        
+        return courses;
     }
 
     @Transactional(readOnly = true)
@@ -185,30 +209,49 @@ public class CourseService {
     }
 
     @Transactional
-    public Course createCourse(UserEntity user, Bot bot, String languageCode, List<Message> titleMessages) {
+    public Course createCourse(UserEntity user, Bot bot, Long titleContentId, PaymentType paymentType,
+            String languageCode, List<Message> invoiceMessages) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(titleContentId, "titleContentId cannot be null");
+        Assert.notNull(paymentType, "paymentType cannot be null");
         Assert.notNull(languageCode, "languageCode cannot be null");
-        Assert.notEmpty(titleMessages, "messages cannot be empty or null");
+        Assert.notEmpty(invoiceMessages, "messages cannot be empty or null");
 
         final Course course = new Course();
         final ContentMapping titleMapping = new ContentMapping();
 
         titleMapping.setPosition(0);
-        titleMapping.setContent(List.of(contentService.parseAndPersistContent(user, bot, titleMessages,
-                List.of(MediaType.TEXT))));
+        titleMapping.setContent(List.of(entityUtil.getLocalizedContentReference(titleContentId)));
 
-        course.setPrice(100);
         course.setTitle(contentMappingRepository.save(titleMapping));
         course.setBot(bot);
-        course.setUnderMaintenance(true);
-
         course.setLessons(List.of());
+        course.setUnderMaintenance(true);
         course.setFeedbackIncluded(true);
         course.setHomeworkIncluded(true);
-        
+        final ContentMapping invoiceMapping = new ContentMapping();
+
+        invoiceMapping.setPosition(0);
+        if (paymentType == PaymentType.TELEGRAM) {
+            validatorUtil.checkExactExpectedMessages(user, invoiceMessages, 2);
+            final Integer price = validatorUtil.parseIntInBounds(user, invoiceMessages.getLast(), 1, PaymentOrchestrationService.MAX_PRICE);
+
+            invoiceMessages.removeLast();
+            invoiceMapping.setContent(List.of(contentService.parseAndPersistContent(user, bot, invoiceMessages, languageCode, List.of(MediaType.TEXT))));
+            course.setInvoice(new TelegramInvoice(contentMappingRepository.save(invoiceMapping), price, null));
+        } else {
+            validatorUtil.checkAtLeastExpectedMessages(user, invoiceMessages, 2);
+            final URI uri = validatorUtil.checkUri(user, invoiceMessages.getLast());
+
+            invoiceMessages.removeLast();
+            invoiceMapping.setContent(List.of(contentService.parseAndPersistContent(user, bot, invoiceMessages, languageCode)));
+            course.setInvoice(new ExternalInvoice(uri.toString(), contentMappingRepository.save(invoiceMapping)));
+        }
+
         courseRepository.save(course);
         LOGGER.debug("New course " + course.getId() + " has been created.");
+
         return course;
     }
     
@@ -269,6 +312,9 @@ public class CourseService {
 
         final CourseProgress progress = entityUtil.getCourseProgressForUser(user, bot, courseId);
 
+        if (progress.getNumberOfTimesCompleted() < 1) {
+            progress.setFirstTimeFinishedAt(LocalDateTime.now());
+        }
         progress.setNumberOfTimesCompleted(progress.getNumberOfTimesCompleted() + 1);
         progress.setStage(0);
 
@@ -285,6 +331,25 @@ public class CourseService {
 
         LOGGER.info("User " + user.getId() + " is trying to toggle maintenance for course "
                 + courseId + "... Current status is " + getStatus(course.isUnderMaintenance()) + ".");
+
+        if (course.isUnderMaintenance()) {
+            LOGGER.debug("User " + user.getId() + " wants to disable maintenance for course " + courseId + ". Validating...");
+
+            if (course.getLessons().size() < 1) {
+                throw new CourseValidationException("Course must have at least one lesson.", localizationLoader
+                        .localize(Localizations.Error.COURSE_VALIDATION_NO_LESSONS, user));
+            }
+            final List<MappingsByPositionInCourseCountDto> countDtos = contentMappingRepository.countAndGroupByPositionInLessonsInCourse(courseId);
+
+            LOGGER.info("Count dtos: " + countDtos + ".");
+            for (final var dto : countDtos) {
+                if (dto.numberOfMappings() < 1) {
+                    throw new CourseValidationException("Lessons must have at least one content mapping.", localizationLoader
+                            .localize(Localizations.Error.COURSE_VALIDATION_NO_CONTENT_IN_LESSON, user,
+                                new Localizations.Error.CourseValidationNoContentInLessonParams(dto.position())));
+                }
+            }
+        }
         
         course.setUnderMaintenance(!course.isUnderMaintenance());
         
@@ -333,12 +398,26 @@ public class CourseService {
         Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
+        if (newPrice <= 0 || newPrice > PaymentOrchestrationService.MAX_PRICE) {
+            throw new InvalidDataSentException("Course price must be greater than 0 and lower than or equal to "
+                    + PaymentOrchestrationService.MAX_PRICE + ".", localizationLoader.localize(
+                        Localizations.Error.PARSE_INT_BOUNDS_FAILURE, user,
+                        new Localizations.Error.ParseIntBoundsFailureParams(1, PaymentOrchestrationService.MAX_PRICE)));
+        }
+
         final Course course = entityUtil.getCourseById(user, bot, courseId);
 
-        LOGGER.info("User " + user.getId() + " is changing price for course " + courseId + ". Current value is: "
-                + course.getPrice() + ". Updating to " + newPrice + ".");
+        if (!course.getInvoice().getClass().equals(TelegramInvoice.class)) {
+            throw new ForbiddenOperationException("Course " + courseId + " uses external payments. Payment type "
+                    + "must be changed first before updating its price.", localizationLoader.localize(
+                        Localizations.Error.COURSE_PRICE_UPDATE_EXTERNAL_INVOICE, user));
+        }
+        final TelegramInvoice invoice = (TelegramInvoice)course.getInvoice();
 
-        course.setPrice(newPrice);
+        LOGGER.info("User " + user.getId() + " is changing price for course " + courseId + ". Current value is: "
+                + invoice.getPrice() + ". Updating to " + newPrice + ".");
+
+        invoice.setPrice(newPrice);
 
         return course;
     }
@@ -351,10 +430,28 @@ public class CourseService {
 
         final Course course = entityUtil.getCourseById(user, bot, courseId);
 
-        LOGGER.info("User " + user.getId() + " is changing refund stage for course " + courseId + ". Current value is: "
-                + course.getRefundStage() + ". Updating to " + newStage + ".");
+        if (newStage >= course.getLessons().size()) {
+            throw new InvalidDataSentException("Provided new refund stage " + newStage + " is greater than the number "
+                    + "of lessons in course " + courseId + ".", localizationLoader.localize(
+                        Localizations.Error.REFUND_STAGE_GREATER_THAN_NUMBER_OF_LESSONS, user,
+                        new Localizations.Error.RefundStageGreaterThanNumberOfLessonsParams(course.getLessons().size() - 1)));
+        }
+        if (!course.getInvoice().getClass().equals(TelegramInvoice.class)) {
+            throw new ForbiddenOperationException("Course " + courseId + " uses external payments. Payment type "
+                    + "must be changed first before updating its refund stage.", localizationLoader.localize(
+                        Localizations.Error.COURSE_REFUND_STAGE_UPDATE_EXTERNAL_INVOICE, user));
+        }
+        final TelegramInvoice invoice = (TelegramInvoice)course.getInvoice();
 
-        course.setRefundStage(newStage < 0 ? null : newStage);
+        if (newStage < 0 && invoice.getRefundStage() == null || newStage == invoice.getRefundStage()) {
+            throw new InvalidDataSentException("New refund stage is the same as before.",
+                    localizationLoader.localize(Localizations.Error.SAME_NEW_REFUND_STAGE, user));
+        }
+
+        LOGGER.info("User " + user.getId() + " is changing refund stage for course " + courseId + ". Current value is: "
+                + invoice.getRefundStage() + ". Updating to " + newStage + ".");
+
+        invoice.setRefundStage(newStage < 0 ? null : newStage);
 
         return course;
     }
@@ -388,7 +485,8 @@ public class CourseService {
                     isRefundable = false;
                 }
             } else {
-                isRefundable = ownership.getCourse().getRefundStage() >= 0;
+                isRefundable = ownership.getCourse().getInvoice().getClass().equals(TelegramInvoice.class)
+                        && ((TelegramInvoice)ownership.getCourse().getInvoice()).getRefundStage() != null;
             }
         }
 

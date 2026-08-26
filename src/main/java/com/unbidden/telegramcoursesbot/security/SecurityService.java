@@ -1,13 +1,9 @@
 package com.unbidden.telegramcoursesbot.security;
 
-import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.AccessDeniedException;
-import com.unbidden.telegramcoursesbot.exception.CallbackQueryAnswerException;
-import com.unbidden.telegramcoursesbot.exception.ExceptionHandlerManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error.AccessDeniedParams;
-import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.Authority;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.Bot;
@@ -32,13 +28,7 @@ public class SecurityService {
 
     private final BotRoleRepository botRoleRepository;
 
-    private final ExceptionHandlerManager exceptionHandlerManager;
-
-    private final MenuOrchestrationService menuService;
-
     private final LocalizationLoader localizationLoader;
-
-    private final ClientManager clientManager;
 
     private final EntityUtil entityUtil;
 
@@ -78,16 +68,6 @@ public class SecurityService {
                             new AccessDeniedParams(missingAuthorityTypes)));
             }
         } catch (AccessDeniedException e) {
-            LOGGER.debug("Access to bot " + bot.getId() + " denied for user " + user.getId());
-            try {
-                menuService.answerPotentialCallbackQuery(user, bot);
-            } catch (CallbackQueryAnswerException e1) {
-                LOGGER.error("Unable to answer callback query", e1);
-                clientManager.getClient(bot).sendMessage(exceptionHandlerManager
-                        .handleException(entityUtil.getDiretor(), bot, e1));
-            }
-            clientManager.getClient(bot).sendMessage(exceptionHandlerManager
-                    .handleException(user, bot, e));
             return false;
         }
         LOGGER.trace("Access granted to user " + user.getId() + " in bot " + bot.getId() + ".");

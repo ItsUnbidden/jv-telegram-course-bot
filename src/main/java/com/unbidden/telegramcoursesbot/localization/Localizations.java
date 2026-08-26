@@ -4,8 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.model.CourseInvoice.PaymentType;
 import com.unbidden.telegramcoursesbot.model.RoleType;
-import com.unbidden.telegramcoursesbot.model.Course.PaymentType;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 
 public final class Localizations {
@@ -92,6 +92,7 @@ public final class Localizations {
          *  <li>refundStage</li>
          *  <li>externalStoreUrl</li>
          *  <li>externalInvoiceMappingId</li>
+         *  <li>isOnMaintenance</li>
          *  <li>isHomeworkIncluded</li>
          *  <li>isFeedbackIncluded</li>
          * </ls>
@@ -123,6 +124,7 @@ public final class Localizations {
          * </ls>
          */
         COURSE_SETTINGS_PAGE_4("menu_course_settings_page_4"),
+        COURSE_SETTINGS_PAGE_5("menu_course_settings_page_5"),
         COMMIT_CONTENT_PAGE_0("menu_commit_content_page_0"),
         COMMIT_CONTENT_TERMINAL_PAGE("menu_commit_content_terminal_page"),
         COMMIT_CONTENT_RESEND_TERMINAL_PAGE("menu_commit_content_resend_terminal_page"),
@@ -130,6 +132,10 @@ public final class Localizations {
         COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE("menu_commit_content_expired_terminal_page");
 
         private String locName;
+
+        Menu() {
+            this.locName = "menu_" + this.name().toLowerCase();
+        }
 
         Menu(String locName) {
             this.locName = locName;
@@ -140,23 +146,21 @@ public final class Localizations {
             return locName;
         }
 
-        public static record CourseSettingsPage1Params(long id, String localizedTitle, long titleId, String descriptionId, String endMappingId, PaymentType paymentType,
-                int numberOfLessons, int price, String refundStage, String externalStoreUrl,
-                String externalInvoiceMappingId, boolean isHomeworkIncluded, boolean isFeedbackIncluded) {}
-        public static record CourseSettingsPage3Params(long lessonId, int index, String homeworkId, String delay, String nextLessonTitleMappingId, List<Long> mappingIds) {}
-        public static record CourseSettingsPage4Params(long homeworkId, long lessonId, String delay, long homeworkMappingId, String homeworkMediaTypes,
-                boolean homeworkFeedback, boolean homeworkRepeatedCompletion) {}
+        public static record CourseSettingsPage1Params(long id, String localizedTitle, long titleId, String descriptionId,
+                String endMappingId, PaymentType paymentType, int numberOfLessons, String price,
+                String refundStage, String externalStoreUrl, String externalInvoiceMappingId, String isOnMaintenance,
+                String isHomeworkIncluded, String isFeedbackIncluded) {}
+        public static record CourseSettingsPage3Params(long lessonId, int index, String homeworkId, String delay,
+                String nextLessonTitleMappingId, List<Long> mappingIds) {}
+        public static record CourseSettingsPage4Params(long homeworkId, long lessonId, String delay,
+                long homeworkMappingId, String homeworkMediaTypes,
+                String homeworkFeedback, String homeworkRepeatedCompletion) {}
         public static record LeaveBasicReviewTerminalPageParams(String courseName) {}
         public static record MappingSettingsPage0Params(long mappingId, int position, String content) {}
         public static record StatisticsPage3Params(String usersOnStage) {}
     }
 
     public static enum Button implements LocalizationKey {
-        /**
-         * This is a generic localization that is intended to be used with {@code localizeGeneric} method in {@link LocalizationLoader}.
-         * It requires a <b>lowercase language code</b> to be passed as an argument.
-         */
-        LANGUAGE_CODE("service_language_code_%s"),
         BAN_OPTIONS("button_ban_options"),
         TOGGLE_RECEIVE_HOMEWORK("button_toggle_receive_homework"),
         LIST_ADMINS("button_list_admins"),
@@ -246,6 +250,8 @@ public final class Localizations {
         BAN_CHOOSE_USER("button_ban_choose_user"),
         TAKE_COURSE("button_take_course"),
         GIVE_COURSE("button_give_course"),
+        CREATE_COURSE_EXTERNAL_PAYMENT("button_create_course_external_payment"),
+        CREATE_COURSE_TELEGRAM_PAYMENT("button_create_course_telegram_payment"),
         SET_ROLE_CHOOSE_USER("button_set_role_choose_user"),
         /**
          * A test localization. Is not used in any production systems.
@@ -254,6 +260,10 @@ public final class Localizations {
         BY_ID("button_by_id");
 
         private String locName;
+
+        Button() {
+            this.locName = "button_" + this.name().toLowerCase();
+        }
 
         Button(String locName) {
             this.locName = locName;
@@ -270,6 +280,11 @@ public final class Localizations {
          * It requires a <b>lowercase role type</b> to be passed as an argument.
          */
         ROLE_TITLE("service_role_%s_title"),
+        /**
+         * This is a generic localization that is intended to be used with {@code localizeGeneric} method in {@link LocalizationLoader}.
+         * It requires a <b>lowercase language code</b> to be passed as an argument.
+         */
+        LANGUAGE_CODE("service_language_code_%s"),
         NOT_AVAILABLE("service_not_available"),
         /**
          * Possible parameters:
@@ -463,7 +478,7 @@ public final class Localizations {
          * <ls>
          *  <li>targetId</li>
          *  <li>targetFullName</li>
-         *  <li>targetLanguageCode</li>
+         *  <li>targetLanguage</li>
          *  <li>courseName</li>
          *  <li>lessonIndex</li>
          * </ls>
@@ -504,7 +519,7 @@ public final class Localizations {
          * <ls>
          *  <li>targetId</li>
          *  <li>targetFullName</li>
-         *  <li>targetLanguageCode</li>
+         *  <li>targetLanguage</li>
          * </ls>
          */
         HOMEWORK_SUBMITTED_NOTIFICATION("service_homework_submitted_notification"),
@@ -733,7 +748,9 @@ public final class Localizations {
         CREATE_BOT_TOKEN_ONLY_REQUEST("service_create_bot_token_only_request"),
         CREATE_BOT_CREATOR_BY_ID_REQUEST("service_create_bot_creator_by_id_request"),
         CREATE_BOT_CHOOSE_CREATOR("service_create_bot_choose_creator_request"),
-        NEW_COURSE_REQUEST("service_new_course_request"),
+        NEW_COURSE_TITLE_REQUEST("service_new_course_title_request"),
+        NEW_COURSE_TELEGRAM_INVOICE_REQUEST("service_telegram_invoice_request"),
+        NEW_COURSE_EXTERNAL_INVOICE_REQUEST("service_external_invoice_request"),
         NEW_COURSE_CREATED("service_new_course_created"),
         /**
          * Possible parameters:
@@ -1017,9 +1034,25 @@ public final class Localizations {
          * </ls>
          */
         HOMEWORK_CONTENT_UPDATED("service_homework_content_updated"),
-        COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS("service_course_next_stage_media_group_bypass");
+        MENU_MANUALLY_REMOVED("service_menu_manually_removed"),
+        MENU_MANUALLY_REMOVED_REQUEST("service_menu_manually_removed_request"),
+        MENU_MANUALLY_REMOVED_SUCCESS("service_menu_manually_removed_success"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        COURSE_COMPLETED_DEFAULT("service_course_completed_default"),
+        COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS("service_course_next_stage_media_group_bypass"),
+        YES,
+        NO;
 
         private String locName;
+
+        Service() {
+            this.locName = "service_" + this.name().toLowerCase();
+        }
 
         Service(String locName) {
             this.locName = locName;
@@ -1040,26 +1073,26 @@ public final class Localizations {
         public static record GeneralBanParams(String whoBanned, String title) {}
         public static record HoursParams(int hours) {}
         public static record ReviewInfoContentCommentParams(String userFullName, LocalDateTime basicTimestamp,
-                LocalDateTime lastUpdateTimestamp, String courseName, int courseGrade, String usersWhoRead,
+                String lastUpdateTimestamp, String courseName, int courseGrade, String usersWhoRead,
                 String userWhoCommented, LocalDateTime commentedAt, long contentId, LocalDateTime advancedTimestamp) {}
         public static record ReviewInfoContentParams(String userFullName, LocalDateTime basicTimestamp,
-                LocalDateTime lastUpdateTimestamp, String courseName, int courseGrade,
+                String lastUpdateTimestamp, String courseName, int courseGrade,
                 String usersWhoRead, long contentId, LocalDateTime advancedTimestamp) {}
         public static record ReviewInfoCommentParams(String userFullName, LocalDateTime basicTimestamp,
-                LocalDateTime lastUpdateTimestamp, String courseName, int courseGrade,
+                String lastUpdateTimestamp, String courseName, int courseGrade,
                 String usersWhoRead, String userWhoCommented, LocalDateTime commentedAt) {}
-        public static record ReviewInfoParams(String userFullName, LocalDateTime basicTimestamp, LocalDateTime lastUpdateTimestamp,
+        public static record ReviewInfoParams(String userFullName, LocalDateTime basicTimestamp, String lastUpdateTimestamp,
                 String courseName, int courseGrade, String usersWhoRead) {}
         public static record ReviewContentUpdatedParams(String courseName) {}
         public static record ReviewCourseGradeUpdatedParams(String courseName) {}
         public static record CommentSubmittedNotificationParams(String courseName, String commenterFullName, String title) {}
         public static record BasicReviewSubmittedParams(String courseName) {}
         public static record AdvancedReviewSubmittedParams(String courseName) {}
-        public static record HomeworkFeedbackRequestNotificationParams(Long targetId, String targetFullName, String targetLanguageCode, String courseName, int lessonIndex) {}
+        public static record HomeworkFeedbackRequestNotificationParams(Long targetId, String targetFullName, String targetLanguage, String courseName, int lessonIndex) {}
         public static record HomeworkDeclinedNotificationPlusCommentParams(String courseName, int lessonIndex, String whoApproved, String title) {}
         public static record HomeworkApprovedNotificationParams(String courseName, int lessonIndex, String whoApproved, String title) {}
         public static record HomeworkApprovedNotificationPlusCommentParams(String courseName, int lessonIndex, String whoApproved, String title) {}
-        public static record HomeworkSubmittedNotificationParams(Long targetId, String targetFullName, String targetLanguageCode) {}
+        public static record HomeworkSubmittedNotificationParams(Long targetId, String targetFullName, String targetLanguage) {}
         public static record SupportReplyInfoParams(String userFullName, String title) {}
         public static record SupportInfoParams(String userFullName, LocalDateTime timestamp, String tag) {}
         public static record SupportRequestResolvedParams(String userFullName, String title) {}
@@ -1119,8 +1152,10 @@ public final class Localizations {
         public static record UploadContentSuccessParams(long mappingId) {}
         public static record PrivateMessageContentRequestParams(String targetTitle, String targetFullName) {}
         public static record LessonMappingOrderChangeSuccessParams(long mappingId, long lessonId, int index) {}
+        public static record NewRefundStageRequestParams(String courseName) {}
         public static record NewRefundStageSuccessParams(String courseName, String newRefundStage) {}
         public static record HomeworkContentUpdatedParams(long homeworkId, long mappingId) {}
+        public static record CourseCompletedDefaultParams(String courseName) {}
     }
     
     public static enum Error implements LocalizationKey {
@@ -1222,7 +1257,6 @@ public final class Localizations {
         MAPPING_NOT_IN_LESSON("error_mapping_not_in_lesson"),
         UPDATE_MESSAGE_FAILURE("error_update_message_failure"),
         MENU_NOT_FOUND("error_menu_not_found"),
-        MENU_BUTTON_ISSUE("error_menu_button_issue"),
         MULTIPAGE_LIST_META_NOT_FOUND("error_multipage_list_meta_not_found"),
         NO_DATA_FOR_MULTIPAGE_LIST("error_no_data_for_multipage_list"),
         MTG_NOT_FOUND("error_mtg_not_found"),
@@ -1460,9 +1494,37 @@ public final class Localizations {
         NO_LOCALIZATIONS_DELETED("error_no_localizations_deleted"),
         SAME_CONTENT_POSITION("error_same_content_position"),
         SAME_NEW_REFUND_STAGE("error_same_new_refund_stage"),
-        DIRECTOR_BAN("error_director_ban");
+        MENU_SNAPSHOT_NOT_FOUND("error_menu_snapshot_not_found"),
+        MENU_MANUALLY_REMOVED_FAILED("error_menu_manually_removed_failed"),
+        NO_COURSES("error_no_courses"),
+        PARSE_URL_FAILURE("error_parse_url_failure"),
+        PARSE_URL_FAILURE_INVALID_SCHEME("error_parse_url_failure_invalid_scheme"),
+        COURSE_PRICE_UPDATE_EXTERNAL_INVOICE("error_course_price_update_external_invoice"),
+        COURSE_REFUND_STAGE_UPDATE_EXTERNAL_INVOICE("error_course_refund_stage_update_external_invoice"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>maxRefundStage</li>
+         * </ls>
+         */
+        REFUND_STAGE_GREATER_THAN_NUMBER_OF_LESSONS("error_refund_stage_greater_than_number_of_lessons"),
+        COURSE_VALIDATION_NO_LESSONS("error_course_validation_no_lessons"),
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>lessonIndex</li>
+         * </ls>
+         */
+        COURSE_VALIDATION_NO_CONTENT_IN_LESSON("error_course_validation_no_content_in_lesson"),
+        DIRECTOR_BAN("error_director_ban"),
+        SEND_MESSAGE,
+        POST_REQUEST_FAILURE;
         
         private String locName;
+
+        Error() {
+            this.locName = "error_" + this.name().toLowerCase();
+        }
 
         Error(String locName) {
             this.locName = locName;
@@ -1504,5 +1566,8 @@ public final class Localizations {
         public static record ParseRoleTypesFailureParams(String availableRoleTypes) {}
         public static record DeleteCourseActiveOwnershipsParams(long numberOfOwnerships) {}
         public static record NoLocalizationsDeletedParams(String languageCode, String availableLanguageCodes) {}
+        public static record RefundStageGreaterThanNumberOfLessonsParams(int maxRefundStage) {}
+        public static record CourseValidationNoContentInLessonParams(int lessonIndex) {}
+        public static record PostRequestFailureParams(int successes, int failures) {}
     }
 }

@@ -37,8 +37,8 @@ public class LanguageMenu implements MenuConfigurer {
             final List<Button> buttons = new ArrayList<>();
             
             buttons.addAll(textUtil.getLanguagePriority().stream()
-                    .map(c -> new TerminalButton(loader.localizeGeneric(Localizations.Button.LANGUAGE_CODE, p.user(), c).getData(),
-                        c, selectLanguageButtonHandler)).toList());
+                    .map(c -> new TerminalButton(loader.getLanguageName(c), c, selectLanguageButtonHandler))
+                    .toList());
             buttons.add(new TerminalButton(loader.localize(Localizations.Button.DEFAULT_LANGUAGE_CODE, p.user()).getData(), selectLanguageButtonHandler));
 
             return buttons;

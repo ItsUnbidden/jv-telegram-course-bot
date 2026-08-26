@@ -7,7 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 
@@ -18,15 +17,13 @@ public class InMemoryCallbackQueryRepository implements CallbackQueryRepository 
             new ConcurrentHashMap<>();
 
     @Override
-    @NonNull
-    public CallbackQuery save(@NonNull CallbackQuery query, @NonNull UserEntity user,
-            @NonNull Bot bot) {
+    public CallbackQuery save(UserEntity user, Bot bot, CallbackQuery query) {
         queries.put(new Key(user, bot), query);
         return query;
     }
 
     @Override
-    public Optional<CallbackQuery> findAndRemove(@NonNull UserEntity user, @NonNull Bot bot) {
+    public Optional<CallbackQuery> findAndRemove(UserEntity user, Bot bot) {
         return Optional.ofNullable(queries.remove(new Key(user, bot)));
     }
 

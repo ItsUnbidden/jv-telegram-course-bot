@@ -4,6 +4,7 @@ import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -14,7 +15,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @Embeddable
-public class ExternalInvoice {
+@DiscriminatorValue("EXTERNAL")
+public class ExternalInvoice extends CourseInvoice {
     @Column(length = 512)
     private String externalStorePageUrl;
 

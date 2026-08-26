@@ -27,9 +27,12 @@ import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
+import com.unbidden.telegramcoursesbot.model.CourseInvoice.PaymentType;
+import com.unbidden.telegramcoursesbot.repository.ReviewRepository;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.LessonTrigger;
+import com.unbidden.telegramcoursesbot.model.TelegramInvoice;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
@@ -45,7 +48,8 @@ public class CourseOrchestrationService {
     private static final Logger LOGGER = LogManager.getLogger(CourseOrchestrationService.class);
     
     private static final String LESSON_ID_PARAM = "lessonId";
-    private static final int MAX_PRICE = 100_000;
+
+    private final ReviewRepository reviewRepository;
 
     private final CourseService courseService;
 
@@ -185,26 +189,19 @@ public class CourseOrchestrationService {
         current(progress);
     }
 
-    public void createCourse(UserEntity user, Bot bot, List<Message> messages) {
+    public void createCourse(UserEntity user, Bot bot, Long titleContentId, String languageCode,
+            PaymentType paymentType, List<Message> messages) {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(titleContentId, "titleContentId cannot be null");
+        Assert.notNull(paymentType, "paymentType cannot be null");
         Assert.notEmpty(messages, "messages cannot be empty or null");
-
-        validatorUtil.checkAtLeastExpectedMessages(user, messages, 1);
-        validatorUtil.checkTextLength(user, messages.getFirst(), 3, 35);
-
-        String languageCode = user.getLanguageCode();
-        if (messages.size() > 1 && validatorUtil.checkLanguageCode(user, messages.getLast())) {
-            languageCode = messages.getLast().getText();
-            messages.removeLast();
-        }
 
         LOGGER.info("User " + user.getId() + " is trying to create a new course.");  
 
-        final Course course = courseService.createCourse(user, bot, languageCode, messages);
-        LOGGER.info("A new course " + course.getId() + " has been created. "
-                + "Further configuration is required.");
+        final Course course = courseService.createCourse(user, bot, titleContentId, paymentType, languageCode, messages);
 
+        LOGGER.info("A new course " + course.getId() + " has been created.");
         LOGGER.debug("Sending confirmation message...");
         clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                 Localizations.Service.NEW_COURSE_CREATED, user));
@@ -217,7 +214,7 @@ public class CourseOrchestrationService {
         Assert.notNull(courseId, "courseId cannot be null");
         Assert.state(stage >= 0, "stage must be greater than 0");
 
-        final CourseProgress progress = entityUtil.getCourseProgressForUser(user, bot, courseId);
+        CourseProgress progress = entityUtil.getCourseProgressForUser(user, bot, courseId);
 
         courseService.checkCourseIsNotUnderMaintenance(user, courseId);
         if (!checkWhetherCourseIsAvailable(user, progress.getCourse().getBot(), courseId)) return;
@@ -229,7 +226,7 @@ public class CourseOrchestrationService {
                     Error.SELECT_LESSON_COURSE_NOT_COMPLETED, user));
         }
         
-        courseService.setCourseProgressStage(user, bot, courseId, stage);
+        progress = courseService.setCourseProgressStage(user, bot, courseId, stage);
         current(progress);
     }
 
@@ -286,7 +283,7 @@ public class CourseOrchestrationService {
 
         validatorUtil.checkExactExpectedMessages(user, messages, 1);
         
-        final Integer newPrice = validatorUtil.parseIntInBounds(user, messages.getFirst(), 1, MAX_PRICE);
+        final Integer newPrice = validatorUtil.parseIntInBounds(user, messages.getFirst(), 1, PaymentOrchestrationService.MAX_PRICE);
         
         final Course course = courseService.updateCoursePrice(user, bot, courseId, newPrice);
 
@@ -294,7 +291,7 @@ public class CourseOrchestrationService {
         clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                 Localizations.Service.COURSE_PRICE_UPDATE_SUCCESS, user,
                 new Localizations.Service.CoursePriceUpdateSuccessParams(contentService.getLocalizedText(
-                    user, bot, course.getTitle()), MAX_PRICE)));
+                    user, bot, course.getTitle()), ((TelegramInvoice)course.getInvoice()).getPrice())));
         LOGGER.debug("Message sent.");
     }
 
@@ -333,15 +330,9 @@ public class CourseOrchestrationService {
         Assert.notEmpty(messages, "messages cannot be empty or null");
         
         validatorUtil.checkExactExpectedMessages(user, messages, 1);
-        Course course = entityUtil.getCourseById(user, bot, courseId);
-        final int newStage = validatorUtil.parseIntInBounds(user, messages.getFirst(), Integer.MIN_VALUE, course.getLessons().size() - 1);
-
-        if (newStage < 0 && course.getRefundStage() == null || newStage == course.getRefundStage()) {
-            throw new InvalidDataSentException("New refund stage is the same as before.",
-                    localizationLoader.localize(Localizations.Error.SAME_NEW_REFUND_STAGE, user));
-        }
-
-        course = courseService.updateRefundStage(user, bot, courseId, newStage);
+        
+        final Course course = courseService.updateRefundStage(user, bot, courseId, validatorUtil.parseInt(user, messages.getFirst()));
+        final TelegramInvoice invoice = (TelegramInvoice)course.getInvoice();
 
         LOGGER.info("Refund stage for course " + courseId  + " has been updated.");
 
@@ -350,9 +341,9 @@ public class CourseOrchestrationService {
                 .localize(Localizations.Service.NEW_REFUND_STAGE_SUCCESS, user,
                     new Localizations.Service.NewRefundStageSuccessParams(
                         contentService.getLocalizedText(user, bot, course.getTitle()),
-                        course.getRefundStage() == null
+                        invoice.getRefundStage() == null
                             ? localizationLoader.localize(Localizations.Service.NOT_AVAILABLE, user).getData()
-                            : course.getRefundStage().toString()
+                            : invoice.getRefundStage().toString()
                     )));
         LOGGER.debug("Message sent.");
     }
@@ -421,9 +412,16 @@ public class CourseOrchestrationService {
         if (courseProgress.getCourse().getEndMapping() != null) {
             contentService.sendLocalizedContent(user, courseProgress.getCourse().getBot(),
                     courseProgress.getCourse().getEndMapping().getId());
+        } else {
+            clientManager.getClient(courseProgress.getCourse().getBot()).sendMessage(user,
+                    localizationLoader.localize(Localizations.Service.COURSE_COMPLETED_DEFAULT, user,
+                        new Localizations.Service.CourseCompletedDefaultParams(contentService.getLocalizedText(user,
+                            courseProgress.getCourse().getBot(), courseProgress.getCourse().getTitle().getId()))));
         }
 
-        reviewService.initiateBasicReview(user, courseProgress.getCourse().getBot(), courseProgress.getCourse().getId());
+        if (!reviewRepository.existsByCourseIdAndUserId(courseProgress.getCourse().getId(), courseProgress.getUser().getId())) {
+            reviewService.initiateBasicReview(user, courseProgress.getCourse().getBot(), courseProgress.getCourse().getId());
+        }
     }
 
     private boolean checkForActiveLessonTrigger(CourseProgress progress) {

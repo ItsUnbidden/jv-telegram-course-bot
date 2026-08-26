@@ -2,7 +2,7 @@ package com.unbidden.telegramcoursesbot.dto;
 
 import java.util.List;
 
-import com.unbidden.telegramcoursesbot.model.Course.PaymentType;
+import com.unbidden.telegramcoursesbot.model.CourseInvoice.PaymentType;
 
 import lombok.Data;
 

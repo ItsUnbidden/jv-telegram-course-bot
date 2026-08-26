@@ -217,7 +217,7 @@ public class ReviewService {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        return reviewRepository.existsByCourseIdAndUserId(courseId, courseId);
+        return reviewRepository.existsByCourseIdAndUserId(courseId, user.getId());
     }
 
     @Transactional(readOnly = true)
@@ -225,7 +225,7 @@ public class ReviewService {
         Assert.notNull(user, "user cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        return reviewRepository.existsByCourseIdAndUserIdAndContentIsNotNull(courseId, courseId);
+        return reviewRepository.existsByCourseIdAndUserIdAndContentIsNotNull(courseId, user.getId());
     }
 
     @Transactional(readOnly = true)

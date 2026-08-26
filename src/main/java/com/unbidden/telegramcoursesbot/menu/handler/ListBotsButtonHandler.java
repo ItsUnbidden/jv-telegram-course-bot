@@ -44,7 +44,9 @@ public class ListBotsButtonHandler extends AbstractButtonHandler {
                     .append(role.getBot().getCreatorInfo().getId()).append(" | ")
                     .append(role.getUser().getFullName()).append('\n');
         }
-        builder.delete(builder.length() - 1, builder.length());
+        if (builder.length() > 0) {
+            builder.delete(builder.length() - 1, builder.length());
+        }
 
         LOGGER.debug("Bot list compiled. Sending...");
         clientManager.getBotLordClient().sendMessage(user, localizationLoader

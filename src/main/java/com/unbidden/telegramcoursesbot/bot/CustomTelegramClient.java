@@ -7,13 +7,13 @@ import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+
 import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
@@ -37,6 +37,7 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
         "/generalban",
         "/botsettings",
         "/generalpost",
+        "/terminatemenu",
         "/files"
     );
 
@@ -69,9 +70,8 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
      * (dao is still required)
      * @author Unbidden
      */
-    public CustomTelegramClient(@NonNull Bot bot, @NonNull LocalizationLoader loader,
-            @NonNull CertificateDao dao, @NonNull String baseUrl, @NonNull String secretToken,
-            @Nullable String ip, boolean isCustomCertificateIncluded) {
+    public CustomTelegramClient(Bot bot, LocalizationLoader loader, CertificateDao dao, String baseUrl,
+            String secretToken, @Nullable String ip, boolean isCustomCertificateIncluded) {
         super(bot.getToken());
 
         this.bot = bot;
@@ -109,7 +109,7 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
      * @param sendMessage Telegram message builder
      * @return sent {@link Message}
      */
-    public Message sendMessage(@NonNull SendMessage sendMessage) {
+    public Message sendMessage(SendMessage sendMessage) {
         try {
             return execute(sendMessage);
         } catch (TelegramApiException e) {
@@ -124,7 +124,7 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
      * @param sendMessage Telegram message builder
      * @return {@link CompletableFuture} of the {@link Message}
      */
-    public CompletableFuture<Message> sendMessageAsync(@NonNull SendMessage sendMessage) {
+    public CompletableFuture<Message> sendMessageAsync(SendMessage sendMessage) {
         try {
             return executeAsync(sendMessage);
         } catch (TelegramApiException e) {
@@ -139,8 +139,7 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
      * @param localization
      * @return sent {@link Message}
      */
-    @NonNull
-    public Message sendMessage(@NonNull UserEntity user, @NonNull Localization localization) {
+    public Message sendMessage(UserEntity user, Localization localization) {
         try {
             return execute(SendMessage.builder()
                     .chatId(user.getId())
@@ -159,8 +158,7 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
      * @param localization
      * @return {@link CompletableFuture} of the {@link Message}
      */
-    @NonNull
-    public CompletableFuture<Message> sendMessageAsync(@NonNull UserEntity user, @NonNull Localization localization) {
+    public CompletableFuture<Message> sendMessageAsync(UserEntity user, Localization localization) {
         try {
             return executeAsync(SendMessage.builder()
                     .chatId(user.getId())
@@ -181,9 +179,8 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
      * @param replyMarkup 
      * @return sent {@link Message}
      */
-    @NonNull
-    public Message sendMessage(@NonNull UserEntity user, @NonNull Localization localization,
-            @NonNull ReplyKeyboard replyMarkup) {
+    public Message sendMessage(UserEntity user, Localization localization,
+            ReplyKeyboard replyMarkup) {
         try {
             return execute(SendMessage.builder()
                     .chatId(user.getId())
@@ -212,7 +209,7 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
      * @param endpoint must begin with a '/'
      * @param maxConnections
      */
-    public void runSetWebhook(@NonNull String endpoint, @NonNull Integer maxConnections) {
+    public void runSetWebhook(String endpoint, Integer maxConnections) {
         Assert.notNull(baseUrl, "Base url cannot be null");
         Assert.notNull(secretToken, "Due to security reasons secret token cannot be null");
 
@@ -254,7 +251,7 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
                 .toList();
     }
 
-    protected void initialize(@NonNull String endpoint, @NonNull Integer maxConnections) {
+    protected void initialize(String endpoint, Integer maxConnections) {
         runDeleteWebhook();
         runSetWebhook(endpoint, maxConnections);
 

@@ -13,12 +13,13 @@ import lombok.RequiredArgsConstructor;
 @Component
 @RequiredArgsConstructor
 public class SendBasicReviewButtonHandler extends AbstractButtonHandler {
+    private static final String COURSE_GRADE_PARAM = "terminal";
     private static final String COURSE_ID_PARAM = "courseId";
 
     private final ReviewOrchestrationService reviewService;
 
     @Override
     public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        reviewService.initiateBasicReview(user, bot, Long.parseLong(params.get(COURSE_ID_PARAM)));
+        reviewService.commitBasicReview(user, bot, Long.parseLong(params.get(COURSE_ID_PARAM)), Integer.parseInt(params.get(COURSE_GRADE_PARAM)));
     }
 }

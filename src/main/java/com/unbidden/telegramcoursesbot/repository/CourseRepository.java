@@ -8,17 +8,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 public interface CourseRepository extends JpaRepository<Course, Long> {
-    @EntityGraph(attributePaths = {"title", "title.content"})
+    @EntityGraph(attributePaths = {"lessons"})
     List<Course> findByBotId(Long botId);
 
-    @EntityGraph(attributePaths = {"lessons"})
+    @EntityGraph(attributePaths = {"lessons", "title", "title.content"})
     Optional<Course> findById(Long id);
 
     @Query("""
         select distinct c
         from Course c
-        left join fetch c.title t
-        left join fetch t.content tc
+        left join fetch c.lessons l
         where c.bot.id = :botId and exists(
             select 1
             from CourseOwnership co
@@ -30,8 +29,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query("""
         select distinct c
         from Course c
-        left join fetch c.title t
-        left join fetch t.content tc
+        left join fetch c.lessons l
         where c.bot.id = :botId and not exists(
             select 1
             from CourseOwnership co

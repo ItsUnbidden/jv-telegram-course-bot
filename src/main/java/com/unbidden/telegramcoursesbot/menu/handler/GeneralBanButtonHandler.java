@@ -85,15 +85,14 @@ public class GeneralBanButtonHandler extends AbstractButtonHandler {
             LOGGER.debug("Message sent.");
         } else {
             LOGGER.info("Director " + user.getId() + " wants to ban user by selecting them.");
+            final var chooseUserSession = userOrChatRequestSessionService.createSession(user, bot, getBanFunction(!isGiveBan));
             final KeyboardButtonRequestUser requestUser = KeyboardButtonRequestUser.builder()
                     .userIsBot(false)
-                    .requestId(String.valueOf(userOrChatRequestSessionService
-                        .createSession(user, bot, getBanFunction(!isGiveBan)))).build();
+                    .requestId(String.valueOf(chooseUserSession.getRequestId())).build();
             final KeyboardButton button = KeyboardButton.builder()
                     .requestUser(requestUser)
                     .text(loader.localize(Localizations.Button.BAN_CHOOSE_USER, user).getData())
                     .build();
-
             final KeyboardRow row = new KeyboardRow();
 
             row.add(button);

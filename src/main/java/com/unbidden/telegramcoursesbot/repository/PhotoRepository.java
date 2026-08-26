@@ -9,9 +9,14 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface PhotoRepository extends JpaRepository<Photo, String> {
     @Query("""
-        select c.photos
-        from GraphicsContent c
-        where c.id = :contentId
+        select distinct ph
+        from Photo ph
+        where exists(
+            select 1
+            from GraphicsContent gc
+            left join gc.photos ph2
+            where gc.id = :contentId and ph2 = ph
+        )
     """)
     List<Photo> findByContent(Long contentId);
 }

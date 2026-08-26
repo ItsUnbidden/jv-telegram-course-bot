@@ -10,7 +10,6 @@ databaseChangeLog:
                   name: id
                   type: bigint
                   constraints:
-                    nullable: false
                     primaryKey: true
               - column:
                   name: bot_id
@@ -34,7 +33,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: token_hash
-                  type: varchar(512)
+                  type: binary(32)
                   constraints:
                     nullable: false
               - column:

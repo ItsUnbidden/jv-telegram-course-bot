@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-bots-roles-add-disabled-column
+      author: Unbidden
+      changes:
+        - addColumn:
+            tableName: bot_roles
+            columns:
+              - column:
+                  name: is_disabled
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

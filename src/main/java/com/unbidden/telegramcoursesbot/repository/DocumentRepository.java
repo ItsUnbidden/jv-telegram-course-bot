@@ -9,10 +9,14 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface DocumentRepository extends JpaRepository<Document, String> {
     @Query("""
-        select c.documents
-        from DocumentContent c
-        left join fetch c.documents.thumbnail th
-        where c.id = :contentId
+        select distinct d
+        from Document d
+        where exists(
+            select 1
+            from DocumentContent dc
+            left join dc.documents d2
+            where dc.id = :contentId and d2 = d
+        )
     """)
     List<Document> findByContent(Long contentId);
 }

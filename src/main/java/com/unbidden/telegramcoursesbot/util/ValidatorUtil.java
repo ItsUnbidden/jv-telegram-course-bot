@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.util;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -164,6 +165,28 @@ public class ValidatorUtil {
                     + "localizations since it has an unknown name. Available names: "
                     + possibleNames + ".", loader.localize(
                     Localizations.Error.FILE_NOT_LOCALIZATION, user));
+        }
+    }
+
+    public URI checkUri(UserEntity user, Message message) {
+        final String trimmed = checkText(user, message);
+
+        try {
+            final URI uri = URI.create(trimmed);
+
+            if (uri.getScheme() == null || !uri.getScheme().equals("https")) {
+                throw new InvalidDataSentException("URL does not contain the correct scheme. Scheme: " + uri.getScheme() + ".",
+                        loader.localize(Localizations.Error.PARSE_URL_FAILURE_INVALID_SCHEME, user));
+            }
+            if (uri.getHost() == null || uri.getHost().isBlank()) {
+                throw new InvalidDataSentException("URL does not contain a host.",
+                        loader.localize(Localizations.Error.PARSE_URL_FAILURE, user));
+            }
+            
+            return uri;
+        } catch (IllegalArgumentException e) {
+            throw new InvalidDataSentException("Unable to parse string to a URL. String: " + trimmed + ".",
+                    loader.localize(Localizations.Error.PARSE_URL_FAILURE, user), e);
         }
     }
 }

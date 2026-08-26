@@ -5,6 +5,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
@@ -16,6 +17,7 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.payments.LabeledPrice;
 import org.telegram.telegrambots.meta.api.objects.payments.PreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.objects.payments.SuccessfulPayment;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
@@ -34,9 +36,10 @@ import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership;
 import com.unbidden.telegramcoursesbot.model.CurrencyCode;
+import com.unbidden.telegramcoursesbot.model.ExternalInvoice;
+import com.unbidden.telegramcoursesbot.model.TelegramInvoice;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
-import com.unbidden.telegramcoursesbot.model.Course.PaymentType;
 import com.unbidden.telegramcoursesbot.model.TelegramPaymentDetails;
 import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.payment.PaymentService;
@@ -44,10 +47,7 @@ import com.unbidden.telegramcoursesbot.service.payment.PaymentService.PreCheckou
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 import com.unbidden.telegramcoursesbot.util.ValidatorUtil;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class PaymentOrchestrationService {
     private static final Logger LOGGER = LogManager.getFormatterLogger(PaymentOrchestrationService.class);
 
@@ -55,6 +55,7 @@ public class PaymentOrchestrationService {
 
     private static final String INVOICE_IMAGES_ENDPOINT = "/invoiceimages";
     private static final String PROVIDER_TOKEN = "foo";
+    public static final int MAX_PRICE = 100_000;
     
     private final ImageDao imageDao;
 
@@ -70,12 +71,31 @@ public class PaymentOrchestrationService {
 
     private final ClientManager clientManager;
 
+    private final ReplyKeyboardRemove keyboardRemove;
+
     private final EntityUtil entityUtil;
 
     private final ValidatorUtil validatorUtil;
 
-    @Value("${telegram.bot.webhook.url}")
-    private String serverUrl;
+    private final String serverUrl;
+
+    public PaymentOrchestrationService(ImageDao imageDao, PaymentService paymentService,
+            ContentOrchestrationService contentService, @Lazy CourseOrchestrationService courseService,
+            MenuOrchestrationService menuService, LocalizationLoader localizationLoader, ClientManager clientManager,
+            ReplyKeyboardRemove keyboardRemove, EntityUtil entityUtil, ValidatorUtil validatorUtil,
+            @Value("${telegram.bot.webhook.url}") String serverUrl) {
+        this.imageDao = imageDao;
+        this.paymentService = paymentService;
+        this.contentService = contentService;
+        this.courseService = courseService;
+        this.menuService = menuService;
+        this.localizationLoader = localizationLoader;
+        this.clientManager = clientManager;
+        this.keyboardRemove = keyboardRemove;
+        this.entityUtil = entityUtil;
+        this.validatorUtil = validatorUtil;
+        this.serverUrl = serverUrl;
+    }
 
     public boolean isAvailable(UserEntity user, Long courseId) {
         Assert.notNull(user, "user cannot be null");
@@ -98,7 +118,7 @@ public class PaymentOrchestrationService {
 
         final Course course = entityUtil.getCourseById(user, bot, courseId);
         
-        if (course.getPaymentType() == PaymentType.TELEGRAM) {
+        if (course.getInvoice().getClass().equals(TelegramInvoice.class)) {
             sendTelegramInvoice(user, bot, course);
         } else {
             sendExternalInvoice(user, bot, course);
@@ -144,14 +164,15 @@ public class PaymentOrchestrationService {
                         + "User: " + user.getId() + ", course: " + response.course().getId());
             }
             case PRICE_MISMATCH -> {
-                errorLoc = localizationLoader.localize(
-                        Error.PRE_CHECKOUT_PRICE_MISMATCH, user,
-                        new Localizations.Error.PreCheckoutPriceMismatchParams(response.course().getPrice()));
+                final TelegramInvoice invoice = (TelegramInvoice)response.course().getInvoice();
+
+                errorLoc = localizationLoader.localize(Error.PRE_CHECKOUT_PRICE_MISMATCH, user,
+                        new Localizations.Error.PreCheckoutPriceMismatchParams(invoice.getPrice()));
 
                 LOGGER.info("Precheckout failed: User " + user.getId()
                         + " used invoice with price " + preCheckoutQuery.getTotalAmount()
                         + " while course " + response.course().getId() + "'s current price is "
-                        + response.course().getPrice());
+                        + invoice.getPrice());
             }
             default -> {
                 answerBuilder.ok(true);
@@ -300,6 +321,7 @@ public class PaymentOrchestrationService {
 
         LOGGER.info("User " + user.getId() + " is trying to gift course " + courseId + " to user " + targetId + "...");
         final CourseOwnership ownership = paymentService.registerGiftCourse(user, bot, targetId, courseId);
+
         LOGGER.info("Course ownership " + ownership.getId() + " has been created/updated for user "
                 + user.getId() + " and course " + courseId + ".");
         final ContentMapping courseTitleMapping = entityUtil.getMappingById(user, bot, ownership.getCourse().getTitle().getId());
@@ -311,8 +333,8 @@ public class PaymentOrchestrationService {
                     entityUtil.getLocalizedTitle(user, bot, ownership.getUser()))));
         clientManager.getClient(bot).sendMessage(ownership.getUser(), localizationLoader.localize(
                 Localizations.Service.COURSE_GIFTED_NOTIFICATION, ownership.getUser(), new Localizations.Service.CourseGiftedNotificationParams(
-                    contentService.getLocalizedText(ownership.getUser(), bot, courseTitleMapping), user.getFullName(),
-                    entityUtil.getLocalizedTitle(ownership.getUser(), bot, user))));
+                    contentService.getLocalizedText(ownership.getUser(), bot, courseTitleMapping),
+                    entityUtil.getLocalizedTitle(ownership.getUser(), bot, user), user.getFullName())));
         LOGGER.debug("Messages sent.");
     }
 
@@ -332,7 +354,7 @@ public class PaymentOrchestrationService {
         clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                 Localizations.Service.COURSE_TAKEN_SUCCESSFULY, user, new Localizations.Service.CourseTakenSuccessfullyParams(
                     contentService.getLocalizedText(user, bot, courseTitleMapping), ownership.getUser().getFullName(),
-                    entityUtil.getLocalizedTitle(user, bot, ownership.getUser()))));
+                    entityUtil.getLocalizedTitle(user, bot, ownership.getUser()))), keyboardRemove);
         clientManager.getClient(bot).sendMessage(ownership.getUser(), localizationLoader.localize(
                 Localizations.Service.COURSE_TAKEN_NOTIFICATION, ownership.getUser(), new Localizations.Service.CourseTakenNotificationParams(
                     contentService.getLocalizedText(ownership.getUser(), bot, courseTitleMapping), user.getFullName(),
@@ -364,19 +386,18 @@ public class PaymentOrchestrationService {
     private void sendTelegramInvoice(UserEntity user, Bot bot, Course course) {
         final String imageUrl = serverUrl + INVOICE_IMAGES_ENDPOINT + "/" + course.getId();
         final String courseName = contentService.getLocalizedText(user, bot, course.getTitle().getId());
+        final TelegramInvoice invoice = (TelegramInvoice)course.getInvoice();
 
         LOGGER.debug("Compiling invoice for course " + course.getId() + " for user " + user.getId() + "...");
         final SendInvoiceBuilder<?, ?> builder = SendInvoice.builder()
                 .chatId(user.getId())
                 .title(courseName)
-                .description(course.getDescription() != null
-                    ? contentService.getLocalizedText(user, bot, course.getDescription().getId())
-                    : "") // TODO: potentially remove the not-null check if descriptions become mandatory
+                .description(contentService.getLocalizedText(user, bot, invoice.getDescription().getId()))
                 .payload(course.getId().toString())
                 .providerToken(PROVIDER_TOKEN)
                 .currency(CurrencyCode.XTR.toString())
                 .price(LabeledPrice.builder()
-                    .amount(course.getPrice())
+                    .amount(invoice.getPrice())
                     .label(courseName)
                     .build())
                 .startParameter(course.getId().toString());
@@ -401,8 +422,9 @@ public class PaymentOrchestrationService {
     private void sendExternalInvoice(UserEntity user, Bot bot, Course course) {
         LOGGER.debug("Sending an external invoice for course " + course.getId() + "...");
 
+        final ExternalInvoice invoice = (ExternalInvoice)course.getInvoice();
         final List<Message> sentMessages = contentService.sendLocalizedContent(
-                user, bot, course.getExternalInvoice().getMapping().getId());
+                user, bot, invoice.getMapping().getId());
 
         final Message menuMessage;
         if (sentMessages.size() > 1) {

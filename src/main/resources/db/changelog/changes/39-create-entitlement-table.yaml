@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: create-creator-payment-tokens-table
+      id: create-entitlements-table
       author: Unbidden
       changes:
         - createTable:
@@ -8,7 +8,7 @@ databaseChangeLog:
             columns: 
               - column:
                   name: id
-                  type: binary(16)
+                  type: bigint
                   constraints:
                     nullable: false
                     primaryKey: true
@@ -28,7 +28,7 @@ databaseChangeLog:
                     references: courses(id)
               - column:
                   name: token_hash
-                  type: varchar(512)
+                  type: binary(32)
                   constraints:
                     nullable: false
               - column:
@@ -57,6 +57,11 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column: 
+                  name: external_payment_id_hash
+                  type: binary(32)
+                  constraints:
+                    nullable: false
+              - column: 
                   name: last_rotated_at
                   type: datetime
               - column:
@@ -66,5 +71,5 @@ databaseChangeLog:
                     nullable: false
         - addUniqueConstraint:
             tableName: entitlements
-            columnNames: bot_id, external_payment_id
+            columnNames: bot_id, external_payment_id_hash
             constraintName: uq_entitlement_bot_payment

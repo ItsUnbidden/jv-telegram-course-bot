@@ -86,10 +86,10 @@ public class BanButtonHandler extends AbstractButtonHandler {
             LOGGER.debug("Message sent.");
         } else {
             LOGGER.debug("User " + user.getId() + " wants to choose user.");
+            final var chooseUser = userOrChatRequestSessionService.createSession(user, bot, getBanFunction(!isGiveBan));
             final KeyboardButtonRequestUser requestUser = KeyboardButtonRequestUser.builder()
                     .userIsBot(false)
-                    .requestId(String.valueOf(userOrChatRequestSessionService
-                        .createSession(user, bot, getBanFunction(!isGiveBan)))).build();
+                    .requestId(String.valueOf(chooseUser.getRequestId())).build();
             final KeyboardButton button = KeyboardButton.builder()
                     .requestUser(requestUser)
                     .text(localizationLoader.localize(Localizations.Button.BAN_CHOOSE_USER,

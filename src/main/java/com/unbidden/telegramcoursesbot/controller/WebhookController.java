@@ -6,6 +6,7 @@ import com.unbidden.telegramcoursesbot.exception.ExceptionHandlerManager;
 import com.unbidden.telegramcoursesbot.exception.OnMaintenanceException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
+import com.unbidden.telegramcoursesbot.menu.MenuCallbackRequestProcessor;
 import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
@@ -30,7 +31,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @RestController
 @RequiredArgsConstructor
@@ -45,6 +49,8 @@ public class WebhookController {
     private final ExceptionHandlerManager exceptionHandlerManager;
 
     private final PaymentOrchestrationService paymentService;
+
+    private final MenuCallbackRequestProcessor callbackRequestProcessor;
 
     private final MenuOrchestrationService menuService;
 
@@ -80,7 +86,7 @@ public class WebhookController {
                 if (user.isBanned()) {
                     return;
                 }
-                checkMaintenance(user);
+                checkMaintenance(user, bot);
 
                 sessionDistributor.removeSessionsForUser(user, bot);
 
@@ -93,7 +99,7 @@ public class WebhookController {
                 if (user.isBanned()) {
                     return;
                 }
-                checkMaintenance(user);
+                checkMaintenance(user, bot);
 
                 sessionDistributor.removeSessionsForUser(user, bot);
 
@@ -116,22 +122,31 @@ public class WebhookController {
                 if (user.isBanned()) {
                     return;
                 }
-                checkMaintenance(user);
+                checkMaintenance(user, bot, update.getCallbackQuery());
 
                 LOGGER.debug("Update with a callback query triggered by user "
                         + user.getId() + " in bot " + bot.getId() + ". Button "
                         + update.getCallbackQuery().getData() + ".");
-                menuService.processCallbackQuery(user, bot, update.getCallbackQuery());
+                callbackRequestProcessor.processCallbackQuery(user, bot, update.getCallbackQuery());
             } else if (update.hasMessage()) {
                 user = userService.initializeUserForBot(update.getMessage().getFrom(), bot);
                 if (user.isBanned()) {
                     return;
                 }
-                checkMaintenance(user);
+                checkMaintenance(user, bot);
                 
                 LOGGER.debug("Update with a general message was sent by user "
                         + user.getId() + " in bot " + bot.getId() + ".");
                 sessionDistributor.callService(user, bot, update.getMessage());
+            } else if (update.hasMyChatMember()) {
+                user = userService.initializeUserForBot(update.getMyChatMember().getFrom(), bot);
+
+                if (update.getMyChatMember().getNewChatMember().getStatus().equals("kicked")) {
+                    LOGGER.info("User " + user.getId() + " has blocked bot " + bot.getId() + ".");
+                    userService.disableUser(user, bot);
+                } else {
+                    LOGGER.info("User " + user.getId() + " has activated bot " + bot.getId() + ".");
+                }
             }
         } catch (Exception e) { 
             if (user != null) {
@@ -155,11 +170,6 @@ public class WebhookController {
                 clientManager.getBotLordClient().sendMessage(exceptionHandlerManager
                         .handleException(entityUtil.getDiretor(), bot, e));
             }
-        } else {
-            LOGGER.error("Unable to answer a callback query because the user is unknown.");
-            clientManager.getBotLordClient().sendMessage(exceptionHandlerManager
-                    .handleException(entityUtil.getDiretor(), bot, new RuntimeException(
-                    "Unable to answer a callback query because the user is unknown.")));
         }
     }
 
@@ -195,7 +205,7 @@ public class WebhookController {
 
                 LOGGER.debug("Update with callback query was sent in bot lord. Button "
                         + update.getCallbackQuery().getData() + ".");
-                menuService.processCallbackQuery(user, bot, update.getCallbackQuery());
+                callbackRequestProcessor.processCallbackQuery(user, bot, update.getCallbackQuery());
             } else if (update.hasMessage()) {
                 user = userService.initializeUserForBot(update.getMessage().getFrom(), bot);
                 if (!isDirector(user)) {
@@ -232,8 +242,19 @@ public class WebhookController {
         return clientManager.getClient(bot).getInfo().toString();
     }
 
-    private void checkMaintenance(UserEntity user) {
+    private void checkMaintenance(UserEntity user, Bot bot) {
+        checkMaintenance(user, bot, null);
+    }
+
+    private void checkMaintenance(UserEntity user, Bot bot, CallbackQuery query) {
         if (clientManager.isOnMaintenance()) {
+            if (query != null) {
+                try {
+                    clientManager.getClient(bot).execute(AnswerCallbackQuery.builder().callbackQueryId(query.getId()).build());
+                } catch (TelegramApiException e) {
+                    LOGGER.error("Failed to answer a callback query after denying access due to maintenance.", e);
+                }
+            }
             throw new OnMaintenanceException("Server is on maintenance", localizationLoader
                     .localize(Error.SERVER_ON_MAINTENANCE, user));
         }

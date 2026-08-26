@@ -68,7 +68,13 @@ public class LessonOrchestrationService {
         Assert.notNull(lessonId, "lessonId cannot be null");
         Assert.notEmpty(messages, "messages cannot be null or empty");
 
-        final String languageCode = validatorUtil.checkLanguageCode(user, messages.getLast()) ? messages.getLast().getText() : user.getLanguageCode();
+        final String languageCode;
+        if (messages.size() > 1 && validatorUtil.checkLanguageCode(user, messages.getLast())) {
+            languageCode = messages.getLast().getText().trim();
+            messages.removeLast();
+        } else {
+            languageCode = user.getLanguageCode();
+        }
         
         LOGGER.debug("Adding content to lesson " + lessonId + "...");
         final Lesson lesson = lessonService.addContent(user, bot, lessonId, languageCode, messages);

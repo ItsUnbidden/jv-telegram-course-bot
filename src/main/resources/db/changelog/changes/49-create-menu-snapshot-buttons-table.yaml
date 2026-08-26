@@ -1,0 +1,38 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-menu-snapshot-buttons-table
+      author: Unbidden
+      changes:
+        - createTable:
+            tableName: menu_snapshot_buttons
+            columns: 
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: snapshot_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snapshots_menu_snapshot_buttons
+                    references: menu_snapshots(id)
+              - column:
+                  name: type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: param_name
+                  type: varchar(255)
+              - column:
+                  name: param_value
+                  type: varchar(255)
+              - column:
+                  name: pointer
+                  type: int
+              - column:
+                  name: handler_bean_name
+                  type: varchar(255)

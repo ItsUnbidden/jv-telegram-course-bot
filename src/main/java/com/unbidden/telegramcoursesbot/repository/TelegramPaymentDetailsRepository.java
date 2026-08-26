@@ -11,16 +11,16 @@ public interface TelegramPaymentDetailsRepository extends JpaRepository<Telegram
     long countByCourseIdAndRefundedAtIsNotNull(Long courseId);
 
     @Query("""
-        select sum(pd.totalAmount)
+        select coalesce(sum(pd.totalAmount), 0)
         from TelegramPaymentDetails pd
         where pd.bot.id = :botId and pd.refundedAt = null
     """)
-    long getTotalStarsIncomeInBot(Long botId);
+    Long getTotalStarsIncomeInBot(Long botId);
 
     @Query("""
-        select sum(pd.totalAmount)
+        select coalesce(sum(pd.totalAmount), 0)
         from TelegramPaymentDetails pd
         where pd.course.id = :courseId and pd.refundedAt = null
     """)
-    long getTotalStarsIncomeForCourse(Long courseId);
+    Long getTotalStarsIncomeForCourse(Long courseId);
 }

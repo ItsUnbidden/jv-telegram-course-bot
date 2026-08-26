@@ -38,11 +38,23 @@ public class UserOrchestrationService {
     private final EntityUtil entityUtil;
 
     public List<UserEntity> getHomeworkReceivingUsers(Bot bot) {
+        Assert.notNull(bot, "bot cannot be null");
+
         return userService.getHomeworkReceivingUsers(bot);
     }
 
     public UserEntity initializeUserForBot(User rawUser, Bot bot) {
+        Assert.notNull(rawUser, "rawUser cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
         return userService.initializeUserForBot(rawUser, bot);
+    }
+
+    public BotRole disableUser(UserEntity user, Bot bot) {
+        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
+        return userService.disableUser(user, bot);
     }
 
     public UserEntity createDummyDirector() {

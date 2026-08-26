@@ -27,8 +27,8 @@ public class Entitlement extends BaseEntity{
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
-    @Column(nullable = false, length = 512)
-    private String tokenHash;
+    @Column(nullable = false, columnDefinition = "BINARY(32)")
+    private byte[] tokenHash;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
@@ -46,6 +46,9 @@ public class Entitlement extends BaseEntity{
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String externalPaymentId;
+
+    @Column(nullable = false, columnDefinition = "BINARY(32)")
+    private byte[] externalPaymentIdHash;
 
     private LocalDateTime lastRotatedAt;
 

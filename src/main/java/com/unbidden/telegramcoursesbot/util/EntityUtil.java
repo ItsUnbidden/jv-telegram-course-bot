@@ -213,7 +213,7 @@ public class EntityUtil {
         Assert.notNull(homeworkId, "homeworkId cannot be null");
         Assert.notNull(bot, "bot cannot be null");
 
-        final HomeworkProgress progress = homeworkProgressRepository.findByUserIdAndHomeworkId(
+        final HomeworkProgress progress = homeworkProgressRepository.findByUserIdAndHomeworkIdUnresolved(
                 user.getId(), homeworkId).orElseThrow(() -> new EntityNotFoundException("Homework progress for user "
                 + user.getFullName() + " and homework " + homeworkId + " does not exist",
                 localizationLoader.localize(Error.HOMEWORK_PROGRESS_NOT_FOUND, user)));
@@ -452,6 +452,18 @@ public class EntityUtil {
         Assert.notNull(id, "id cannot be null");
 
         return courseRepository.getReferenceById(id);
+    }
+
+    public UserEntity getUserReference(Long id) {
+        Assert.notNull(id, "id cannot be null");
+
+        return userRepository.getReferenceById(id);
+    }
+
+    public Bot getBotReference(Long id) {
+        Assert.notNull(id, "id cannot be null");
+
+        return botRepository.getReferenceById(id);
     }
 
     @Transactional(readOnly = true)

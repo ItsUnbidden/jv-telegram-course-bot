@@ -1,5 +1,8 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
+import com.unbidden.telegramcoursesbot.exception.NoCoursesException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
@@ -28,10 +31,18 @@ public class CourseCommandHandler implements CommandHandler {
 
     private final MenuOrchestrationService menuService;
 
+    private final LocalizationLoader loader;
+
     @Override
     @Security(authorities = {AuthorityType.BUY, AuthorityType.LAUNCH_COURSE,
             AuthorityType.LEAVE_REVIEW, AuthorityType.REFUND})
     public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
+        final long numberOfCoursesInBot = courseRepository.countByBotId(bot.getId());
+
+        if (numberOfCoursesInBot < 1) {
+            throw new NoCoursesException("There are currently no courses in bot " + bot.getId() + ".",
+                    loader.localize(Localizations.Error.NO_COURSES, user));
+        }
         final long numberOfOwnedCourses = courseOwnershipRepository.countByUserIdAndCourseBotIdAndStatus(
                 user.getId(), bot.getId(), OwnershipStatus.ACTIVE);
 
@@ -39,8 +50,6 @@ public class CourseCommandHandler implements CommandHandler {
             menuService.initiateMenu(user, bot, MenuKey.COURSES, 1, Map.of());
             return;
         }
-        final long numberOfCoursesInBot = courseRepository.countByBotId(bot.getId());
-
         if (numberOfCoursesInBot - numberOfOwnedCourses < 1) {
             menuService.initiateMenu(user, bot, MenuKey.COURSES, 2, Map.of());
             return;

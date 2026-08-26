@@ -47,7 +47,7 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     private final ClientManager clientManager;
 
     @Override
-    public UUID createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function,
+    public ContentSession createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function,
             boolean isSkippingConfirmation) {
         sessionRepository.removeUserOrChatRequestSessionsForUserInBot(user.getId(), bot);
         final List<Session> sessions = sessionRepository.findForUserInBot(user.getId(), bot);
@@ -56,9 +56,8 @@ public class ContentSessionServiceImpl implements ContentSessionService {
             throw new SessionException("User " + user.getId() + " has more then one "
                     + "content session", null);
         } else if (sessions.size() == 1) {
-            LOGGER.trace("User " + user.getId() + " already has a session "
-                    + sessions.get(0).getId() + ".");
-            return sessions.get(0).getId(); // TODO: potentially nonsense. If a user wants to start another session, the previous one will be returned instead, executing the wrong logic.
+            LOGGER.trace("User " + user.getId() + " already has a session " + sessions.get(0).getId() + ". Removing...");
+            sessionRepository.removeContentSessionsForUserInBot(user.getId(), bot);
         }
 
         LOGGER.trace("Creating new content session for user " + user.getId() + "...");
@@ -74,7 +73,8 @@ public class ContentSessionServiceImpl implements ContentSessionService {
         session.setSkippingConfirmation(isSkippingConfirmation);
         sessionRepository.save(session);
         LOGGER.trace("Session saved.");
-        return session.getId();
+        
+        return session;
     }
 
     @Override

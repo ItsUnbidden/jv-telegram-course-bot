@@ -31,9 +31,6 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: number_of_lessons
-                  type: int
-              - column:
                   name: payment_type
                   type: varchar(64)
                   constraints:

@@ -3,37 +3,32 @@ package com.unbidden.telegramcoursesbot.menu;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuParamsDto;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuSnapshotCreatedDto;
-import com.unbidden.telegramcoursesbot.dto.internal.MenuSnapshotUpdatedDto;
-import com.unbidden.telegramcoursesbot.dto.internal.TerminalMenuSnapshotUpdatedDto;
-import com.unbidden.telegramcoursesbot.dto.internal.TransitoryMenuSnapshotUpdatedDto;
 import com.unbidden.telegramcoursesbot.exception.CallbackQueryAnswerException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
-import com.unbidden.telegramcoursesbot.exception.MenuException;
-import com.unbidden.telegramcoursesbot.exception.handler.StaleMenuException;
+import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.Button;
-import com.unbidden.telegramcoursesbot.menu.Menu.Page.LinkButton;
-import com.unbidden.telegramcoursesbot.menu.handler.AbstractButtonHandler;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.MenuSnapshot;
-import com.unbidden.telegramcoursesbot.model.MenuSnapshotButton;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.CallbackQueryRepository;
 import com.unbidden.telegramcoursesbot.repository.MenuRepository;
 import com.unbidden.telegramcoursesbot.util.KeyboardUtil;
+import com.unbidden.telegramcoursesbot.util.ValidatorUtil;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+
 import lombok.RequiredArgsConstructor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.Nullable;
@@ -44,15 +39,12 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageTe
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Service
 @RequiredArgsConstructor
 public class MenuOrchestrationService {
     private static final Logger LOGGER = LogManager.getLogger(MenuOrchestrationService.class);
-
-    private final Map<String, AbstractButtonHandler> buttonHandlers;
 
     private final MenuService menuService;
 
@@ -62,9 +54,11 @@ public class MenuOrchestrationService {
 
     private final LocalizationLoader localizationLoader;
 
+    private final ClientManager clientManager;
+
     private final KeyboardUtil keyboardUtil;
 
-    private final ClientManager clientManager;
+    private final ValidatorUtil validatorUtil;
 
     public Message initiateMenu(UserEntity user, Bot bot, MenuKey key) {
         return initiateMenu0(user, bot, key, 0, Map.of(), null, null, null);
@@ -102,161 +96,6 @@ public class MenuOrchestrationService {
     public void initiateMenu(UserEntity user, Bot bot, MenuKey key, String paramName, String paramValue, Integer messageId,
             MenuTerminationGroupKey mtgKey, Object... mtgArgs) {
         initiateMenu0(user, bot, key, 0, Map.of(paramName, paramValue), messageId, mtgKey, mtgArgs);
-    }
-
-    // TODO: if a menu fails to be sent, it will break forever on the user's side. Some fallback logic might be required to inform the snapshot.
-    public void processCallbackQuery(UserEntity user, Bot bot, CallbackQuery query) {
-        final MenuSnapshotUpdatedDto dto = menuService.processSnapshotUpdate(user, bot, Long.parseLong(query.getData()));
-        
-        if (dto instanceof final TerminalMenuSnapshotUpdatedDto terminalDto) {
-            final AbstractButtonHandler handler = buttonHandlers.get(terminalDto.getBeanName());
-
-            if (handler == null) {
-                throw new StaleMenuException("An unknown handler name " + terminalDto.getBeanName() + " was found in snapshot "
-                        + terminalDto.getSnapshot().getId() + ".", localizationLoader.localize(Localizations.Error.STALE_MENU, user));
-            }
-
-            RuntimeException potentialExc = null;
-            try {
-                LOGGER.trace("Handler " + terminalDto.getBeanName() + " has been found. Executing...");
-                handler.handle(user, bot, terminalDto.getParams());
-                LOGGER.trace("Handler " + terminalDto.getBeanName() + " has finished execution.");
-            } catch (RuntimeException e) {
-                LOGGER.trace("An exception has occured while executing the handler's function. It will be rethrown after the menu is updated.");
-                potentialExc = e;
-            }
-
-            if (terminalDto.getNextPage() != null && terminalDto.getButtons() != null && terminalDto.getSnapshotButtons() != null) {
-                LOGGER.trace("The initial layout will be sent...");
-                try {
-                    if (terminalDto.getNextPage().getLocalizationFunction() == null) {
-                        LOGGER.trace("Sending new message markup...");
-                        clientManager.getClient(bot).execute(EditMessageReplyMarkup.builder()
-                                .chatId(user.getId())
-                                .messageId(terminalDto.getSnapshot().getMessageId())
-                                .replyMarkup(getMarkup(user, bot, terminalDto.getNextPage(),
-                                    terminalDto.getSnapshotButtons(), terminalDto.getButtons()))
-                                .build());
-                        LOGGER.trace("New markup sent.");
-                    } else {
-                        LOGGER.trace("Sending new message content and markup...");
-                        final Localization loc = terminalDto.getNextPage().getLocalizationFunction()
-                                .apply(new MenuParamsDto(user, bot, terminalDto.getParams(), terminalDto.getSnapshot().getInitialPage()));
-
-                        clientManager.getClient(bot).execute(EditMessageText.builder()
-                                .chatId(user.getId())
-                                .messageId(terminalDto.getSnapshot().getMessageId())
-                                .replyMarkup(getMarkup(user, bot, terminalDto.getNextPage(),
-                                    terminalDto.getSnapshotButtons(), terminalDto.getButtons()))
-                                .text(loc.getData())
-                                .entities(loc.getEntities())
-                                .build());
-                        LOGGER.trace("New content and markup sent.");
-                    }  
-                } catch (TelegramApiException e) {
-                    LOGGER.error("Unable to update message " + query.getMessage()
-                            .getMessageId() + " and user " + user.getId(), e);
-                }
-
-                if (potentialExc != null) {
-                    throw potentialExc;
-                }
-                return;
-            }
-            if (terminalDto.isTerminate()) {
-                if (terminalDto.getNextPage() != null) {
-                    LOGGER.trace("The menu is supposed to be terminated with a custom terminal localization.");
-                    if (terminalDto.getNextPage().getLocalizationFunction() != null) {
-                        final Localization loc = terminalDto.getNextPage().getLocalizationFunction().apply(new MenuParamsDto(user, bot,
-                                terminalDto.getParams(), terminalDto.getSnapshot().getInitialPage()));
-
-                        try {
-                            LOGGER.trace("Sending new message content and clear markup...");
-                            clientManager.getClient(bot).execute(EditMessageText.builder()
-                                    .chatId(user.getId())
-                                    .messageId(terminalDto.getSnapshot().getMessageId())
-                                    .replyMarkup(InlineKeyboardMarkup.builder()
-                                        .keyboard(List.of())
-                                        .clearKeyboard()
-                                        .build())
-                                    .text(loc.getData())
-                                    .entities(loc.getEntities())
-                                    .build());
-                            LOGGER.trace("New content and clear markup sent.");
-                        } catch (TelegramApiException e) {
-                            LOGGER.error("Unable to update content and markup for message " + query.getMessage()
-                                    .getMessageId() + " and user " + user.getId(), e);
-                        }
-
-                        if (potentialExc != null) {
-                            throw potentialExc;
-                        }
-                        return;
-                    } else {
-                        LOGGER.warn("Menu " + terminalDto.getNextPage().getMenu().getKey() + " is supposed to be terminated with a custom "
-                                + "localization function, but the function is currently null. If this is intentional, the terminal page should be removed entirely.");
-                    }
-                }
-                LOGGER.trace("The menu is supposed to be terminated with no changes to the message contents.");
-                try {
-                    LOGGER.trace("Sending clear markup...");
-                    clientManager.getClient(bot).execute(EditMessageReplyMarkup.builder()
-                            .chatId(user.getId())
-                            .messageId(terminalDto.getSnapshot().getMessageId())
-                            .replyMarkup(InlineKeyboardMarkup.builder()
-                                .keyboard(List.of())
-                                .clearKeyboard()
-                                .build())
-                            .build());
-                    LOGGER.trace("Clear markup sent.");
-                } catch (TelegramApiException e) {
-                    LOGGER.error("Unable to update markup for message " + query.getMessage()
-                            .getMessageId() + " and user " + user.getId(), e);
-                }
-                
-                if (potentialExc != null) {
-                    throw potentialExc;
-                }
-                return;
-            }
-        } else if (dto instanceof final TransitoryMenuSnapshotUpdatedDto transitoryDto) {
-            LOGGER.trace("Transitioning to the new page...");
-
-            try {
-                if (transitoryDto.getNextPage().getLocalizationFunction() == null) {
-                    LOGGER.trace("Sending new message markup...");
-                    clientManager.getClient(bot).execute(EditMessageReplyMarkup.builder()
-                            .chatId(user.getId())
-                            .messageId(transitoryDto.getSnapshot().getMessageId())
-                            .replyMarkup(getMarkup(user, bot, transitoryDto.getNextPage(),
-                                transitoryDto.getSnapshotButtons(), transitoryDto.getButtons()))
-                            .build());
-                    LOGGER.trace("New markup sent.");
-                    return;
-                } else {
-                    LOGGER.trace("Sending new message content and markup...");
-                    final Localization loc = transitoryDto.getNextPage().getLocalizationFunction()
-                            .apply(new MenuParamsDto(user, bot, transitoryDto.getParams(), transitoryDto.getSnapshot().getInitialPage()));
-
-                    clientManager.getClient(bot).execute(EditMessageText.builder()
-                            .chatId(user.getId())
-                            .messageId(transitoryDto.getSnapshot().getMessageId())
-                            .replyMarkup(getMarkup(user, bot, transitoryDto.getNextPage(),
-                                transitoryDto.getSnapshotButtons(), transitoryDto.getButtons()))
-                            .text(loc.getData())
-                            .entities(loc.getEntities())
-                            .build());
-                    LOGGER.trace("New content and markup sent.");
-                    return;
-                }  
-            } catch (TelegramApiException e) {
-                LOGGER.error("Unable to update message " + query.getMessage()
-                        .getMessageId() + " and user " + user.getId(), e);
-                return;
-            }
-        } else {
-            throw new MenuException("An unknown response DTO was returned by the transactional service. This is a bug.", null);
-        }
     }
 
     public Message initiateMultipageList(UserEntity user, Bot bot,
@@ -402,6 +241,34 @@ public class MenuOrchestrationService {
             // TODO: make sure ignoring this does not cause any issues
         }
     }
+
+    public void terminateMenu(UserEntity user, List<Message> messages) {
+        validatorUtil.checkExactExpectedMessages(user, messages, 1);
+        final Long snapshotId = validatorUtil.parseId(user, messages.getFirst());
+        final MenuSnapshot snapshot = menuService.terminateMenu(user, snapshotId);
+        final InlineKeyboardMarkup clearMarkup = InlineKeyboardMarkup.builder()
+                .clearKeyboard()
+                .keyboard(List.of())
+                .build();
+
+        try {
+            final Localization terminalLoc = localizationLoader.localize(Localizations.Service.MENU_MANUALLY_REMOVED, user);
+
+            clientManager.getClient(snapshot.getBot()).execute(EditMessageText.builder()
+                    .chatId(snapshot.getUser().getId())
+                    .messageId(snapshot.getMessageId())
+                    .text(terminalLoc.getData())
+                    .entities(terminalLoc.getEntities())
+                    .replyMarkup(clearMarkup)
+                    .build());
+        } catch (TelegramApiException e) {
+            throw new TelegramException("Failed to update message " + snapshot.getMessageId() + " for user "
+                    + snapshot.getUser().getId() + " in bot " + snapshot.getBot().getId() + ".",
+                    localizationLoader.localize(Localizations.Error.MENU_MANUALLY_REMOVED_FAILED, user), e);
+        }
+        clientManager.getBotLordClient().sendMessage(user, localizationLoader.localize(
+                Localizations.Service.MENU_MANUALLY_REMOVED_SUCCESS, user));
+    }
     
     /**
      * Removes a specific menu. 
@@ -440,7 +307,7 @@ public class MenuOrchestrationService {
         final List<Button> generatedLayout = firstPage.getButtonsFunction().apply(dto);
         final MenuSnapshotCreatedDto snapshotDto = menuService.createSnapshot(user, bot, key, initialPage,
                     generatedLayout, params, messageId, mtgKey, mtgArgs);
-        final InlineKeyboardMarkup markup = getMarkup(user, bot, firstPage, snapshotDto.buttons(), generatedLayout);
+        final InlineKeyboardMarkup markup = keyboardUtil.getMarkup(user, bot, firstPage, snapshotDto.buttons(), generatedLayout);
 
         if (messageId == null) {
             final Localization localization = firstPage.getLocalizationFunction().apply(dto);
@@ -448,7 +315,7 @@ public class MenuOrchestrationService {
             LOGGER.trace("Sending menu " + menu.getKey() + " to user " + user.getId() + "...");
             final Message message = clientManager.getClient(bot).sendMessage(user, localization, markup);
             LOGGER.trace("Message sent. Adding the new message's ID to snapshot " + snapshotDto.snapshot().getId() + "...");
-            menuService.addMessageIdToSnapshot(snapshotDto.snapshot().getId(), messageId);
+            menuService.addMessageIdToSnapshot(snapshotDto.snapshot().getId(), message.getMessageId());
             LOGGER.trace("Message ID added to snapshot " + snapshotDto.snapshot().getId() + ".");
 
             return message;
@@ -467,26 +334,6 @@ public class MenuOrchestrationService {
                     + user.getId(), e);
         }
         return null;
-    }
-
-    private InlineKeyboardMarkup getMarkup(UserEntity user, Bot bot, Page page,
-            List<MenuSnapshotButton> snapshotButtons, List<Button> buttons) {
-        final List<InlineKeyboardButton> inlineButtons = new ArrayList<>();
-
-        for (int i = 0; i < buttons.size(); ++i) {
-            final Button button = buttons.get(i);
-            final MenuSnapshotButton snapshotButton = snapshotButtons.get(i);
-
-            inlineButtons.add((InlineKeyboardButton)InlineKeyboardButton.builder()
-                    .callbackData(!button.getClass().equals(LinkButton.class) ? snapshotButton.getId().toString() : null)
-                    .url(button.getClass().equals(LinkButton.class) ? ((LinkButton)button).getUrl() : null)
-                    .text(button.getName())
-                    .build());
-        }
-                
-        return InlineKeyboardMarkup.builder()
-                .keyboard(keyboardUtil.getInlineKeyboard(inlineButtons, page.getColumns()))
-                .build();        
     }
 
     private String convertDataPageToString(org.springframework.data.domain.Page<String> dataPage) {

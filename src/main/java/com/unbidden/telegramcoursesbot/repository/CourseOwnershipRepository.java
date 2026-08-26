@@ -14,6 +14,7 @@ public interface CourseOwnershipRepository extends JpaRepository<CourseOwnership
     @EntityGraph(attributePaths = "lastPaymentDetails")
     Optional<CourseOwnership> findByUserIdAndCourseId(Long userId, Long courseId);
 
+    @EntityGraph(attributePaths = {"course", "course.title", "course.title.content"})
     Optional<CourseOwnership> findByUserIdAndCourseIdAndStatus(Long userId, Long courseId, OwnershipStatus status);
 
     @EntityGraph(attributePaths = {"course", "course.title", "course.title.content"})

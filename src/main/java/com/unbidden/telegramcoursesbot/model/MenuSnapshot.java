@@ -29,10 +29,11 @@ import lombok.Setter;
 public class MenuSnapshot extends BaseEntity {
     private static final String ELEMENT_DIVIDER = ":";
     
-    @Column(nullable = false)
+    @Column(nullable = false, name = "menu_key")
     @Enumerated(EnumType.STRING)
     private MenuKey key;
 
+    @Column(name = "mtg")
     private String group;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -75,7 +76,10 @@ public class MenuSnapshot extends BaseEntity {
 
     @Transient
     public void parseAndSetParams(Map<String, String> params) {
-        if (params.isEmpty()) this.parameters = null;
+        if (params.isEmpty()) {
+            this.parameters = null;
+            return;
+        }
 
         final StringBuilder builder = new StringBuilder();
 
@@ -91,7 +95,9 @@ public class MenuSnapshot extends BaseEntity {
             }
             builder.append(entry.getKey()).append(ELEMENT_DIVIDER).append(entry.getValue()).append(ELEMENT_DIVIDER);
         }
-        builder.delete(builder.length() - 1, builder.length());
+        if (builder.length() > 0) {
+            builder.delete(builder.length() - 1, builder.length());
+        }
         
         this.parameters = builder.toString();
     }
@@ -113,7 +119,10 @@ public class MenuSnapshot extends BaseEntity {
 
     @Transient
     public void parseAndSetHistory(List<Integer> history) {
-        if (history.isEmpty()) this.pageHistory = null;
+        if (history.isEmpty()) {
+            this.pageHistory = null;
+            return;
+        }
 
         final StringBuilder builder = new StringBuilder();
 
@@ -123,7 +132,9 @@ public class MenuSnapshot extends BaseEntity {
             }
             builder.append(index).append(ELEMENT_DIVIDER);
         }
-        builder.delete(builder.length() - 1, builder.length());
+        if (builder.length() > 0) {
+            builder.delete(builder.length() - 1, builder.length());
+        }
         
         this.pageHistory = builder.toString();
     }

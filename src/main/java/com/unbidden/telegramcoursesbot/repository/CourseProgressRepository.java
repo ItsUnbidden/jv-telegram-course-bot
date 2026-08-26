@@ -17,7 +17,7 @@ public interface CourseProgressRepository extends JpaRepository<CourseProgress, 
     @EntityGraph(attributePaths = {"user", "course", "course.lessons"})
     Optional<CourseProgress> findById(Long id);
 
-    long countByCourseIdAndNumberOfTimesCompletedGreaterThan0(Long courseId);
+    long countByCourseIdAndNumberOfTimesCompletedGreaterThan(Long courseId, int numberOfTimesCompleted);
 
     @EntityGraph(attributePaths = {"user"})
     List<CourseProgress> findByCourseIdAndStageAndNumberOfTimesCompleted(Long courseId, Integer stage,

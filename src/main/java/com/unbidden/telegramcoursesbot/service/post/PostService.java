@@ -72,11 +72,11 @@ public class PostService {
                     currentRequest = requestQueue.take();
 
                     LOGGER.info("Processing post request for user " + currentRequest.user.getId() + " and bot " + currentRequest.bot.getId() + "...");
+                    int successes = 0;
+                    int failures = 0;
                     try {
                         currentRequest.finalFuture.get();
                         
-                        int successes = 0;
-                        int failures = 0;
                         for (final var future : currentRequest.futures) {
                             if (future.isCompletedExceptionally()) {
                                 ++failures;
@@ -91,6 +91,9 @@ public class PostService {
                                     new Localizations.Service.PostCompletedParams(successes, failures))); // TODO: if exceptions are reintroduced for sendMessage(), this will become a problem
                     } catch (ExecutionException e) {
                         LOGGER.error("An error has occured while waiting for a post request to complete.", e);
+                        clientManager.getClient(currentRequest.bot).sendMessage(currentRequest.user, localizationLoader
+                                .localize(Localizations.Error.POST_REQUEST_FAILURE, currentRequest.user,
+                                    new Localizations.Error.PostRequestFailureParams(successes, failures)));
                     }
                     currentRequest = null;
                 }
@@ -192,7 +195,7 @@ public class PostService {
     }
 
     private void checkExecution(UserEntity user, Bot bot) {
-        if (currentRequest.bot.getId().equals(bot.getId()) || requestQueue.stream().anyMatch(r -> r.bot.getId().equals(bot.getId()))) {
+        if (currentRequest != null && currentRequest.bot.getId().equals(bot.getId()) || requestQueue.stream().anyMatch(r -> r.bot.getId().equals(bot.getId()))) {
             throw new ForbiddenOperationException("A request is already being executed. "
                     + "Only one is allowed per bot at a time.", localizationLoader.localize(
                     Error.TOO_MANY_POST_REQUESTS, user));

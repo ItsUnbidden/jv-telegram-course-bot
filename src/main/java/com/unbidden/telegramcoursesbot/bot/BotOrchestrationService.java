@@ -13,6 +13,7 @@ import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,6 +29,8 @@ public class BotOrchestrationService {
     private final LocalizationLoader loader;
 
     private final ClientManager clientManager;
+
+    private final EntityUtil entityUtil;
 
     public List<Bot> getRegularBots() {
         return botService.getRegularBots();
@@ -45,7 +48,7 @@ public class BotOrchestrationService {
         return botService.updateInitialBot(director);
     }
 
-    public void createBot(UserEntity director, UserEntity creator, String token) {
+    public void createBot(UserEntity director, Long creatorId, String token) {
         final String botToken = token.trim();
 
         if (!BOT_TOKEN_PATTERN.matcher(botToken).matches()) {
@@ -55,14 +58,16 @@ public class BotOrchestrationService {
         }
         LOGGER.debug("Bot token has been parsed.");
 
-        LOGGER.info("Creating a new bot for creator " + creator.getId() + "...");
-        final Bot newBot = botService.createBot(director, creator, botToken);
+        LOGGER.info("Creating a new bot for creator " + creatorId + "...");
+        final Bot newBot = botService.createBot(director, creatorId, botToken);
 
         LOGGER.info("New bot " + newBot.getId() + " has been created. Initializing...");
 
         clientManager.addClient(newBot);
 
         LOGGER.debug("Client initialized for the new bot " + newBot.getId() + ". Sending confirmation messages...");
+        final UserEntity creator = entityUtil.getCreator(newBot);
+        
         clientManager.getBotLordClient().sendMessage(director, loader.localize(Localizations.Service.NEW_BOT_CREATED, director));
         clientManager.getClient(newBot).sendMessage(creator, loader.localize(Localizations.Service.BOT_CREATED_CREATOR_NOTIFICATION, creator));
         LOGGER.debug("Messages sent.");

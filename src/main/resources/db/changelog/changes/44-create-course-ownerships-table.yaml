@@ -31,7 +31,7 @@ databaseChangeLog:
                   type: bigint
                   constraints:
                     foreignKeyName: fk_payment_details_course_ownerships
-                    references: courses(id)
+                    references: payment_details(id)
               - column:
                   name: last_update
                   type: datetime

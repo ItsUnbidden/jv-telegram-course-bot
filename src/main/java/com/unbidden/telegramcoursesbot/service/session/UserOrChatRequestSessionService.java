@@ -19,14 +19,14 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Service
 @RequiredArgsConstructor
-public class UserOrChatRequestSessionService implements SessionService {
+public class UserOrChatRequestSessionService implements SessionService<UserOrChatRequestSession> {
     private static final Logger LOGGER = LogManager
             .getLogger(UserOrChatRequestSessionService.class);
 
     private final SessionRepository sessionRepository;
 
     @Override
-    public UUID createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function) {
+    public UserOrChatRequestSession createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function) {
         sessionRepository.removeContentSessionsForUserInBot(user.getId(), bot);
 
         LOGGER.debug("Creating new user or chat request session for user "
@@ -41,7 +41,8 @@ public class UserOrChatRequestSessionService implements SessionService {
         session.setRequestId(ThreadLocalRandom.current().nextInt());
         sessionRepository.save(session);
         LOGGER.debug("Session saved.");
-        return session.getId();
+        
+        return session;
     }
 
     @Override

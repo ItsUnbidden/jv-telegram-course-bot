@@ -53,7 +53,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: reply_side
-                  type: varchar(100)
+                  type: varchar(64)
                   constraints:
                     nullable: false
               - column:

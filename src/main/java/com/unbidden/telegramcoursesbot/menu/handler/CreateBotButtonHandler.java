@@ -11,7 +11,6 @@ import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.service.session.UserOrChatRequestSessionService;
-import com.unbidden.telegramcoursesbot.util.EntityUtil;
 import com.unbidden.telegramcoursesbot.util.ValidatorUtil;
 
 import java.util.Map;
@@ -42,8 +41,6 @@ public class CreateBotButtonHandler extends AbstractButtonHandler {
 
     private final ClientManager clientManager;
 
-    private final EntityUtil entityUtil;
-
     private final ValidatorUtil validatorUtil;
 
     @Override
@@ -53,17 +50,16 @@ public class CreateBotButtonHandler extends AbstractButtonHandler {
             contentSessionService.createSession(user, bot, p -> {
                 validatorUtil.checkExactExpectedMessages(user, p.messages(), 2);
                 
-                botService.createBot(user, entityUtil.getUser(validatorUtil.parseId(user, p.messages().getFirst()),
-                        user.getLanguageCode()), p.messages().getLast().getText());
+                botService.createBot(user, validatorUtil.parseId(user, p.messages().getFirst()), p.messages().getLast().getText());
             });
         } else {
             clientManager.getBotLordClient().sendMessage(user, localizationLoader
                     .localize(Localizations.Service.CREATE_BOT_CREATOR_BY_ID_REQUEST, user));
 
+            final var chooseUserSession = userOrChatRequestSessionService.createSession(user, bot, getCreateBotFunction(user, bot));
             final KeyboardButtonRequestUser requestUser = KeyboardButtonRequestUser.builder()
                     .userIsBot(false)
-                    .requestId(String.valueOf(userOrChatRequestSessionService
-                        .createSession(user, bot, getCreateBotFunction(user, bot)))).build();
+                    .requestId(String.valueOf(chooseUserSession.getRequestId())).build();
             final KeyboardButton button = KeyboardButton.builder()
                     .requestUser(requestUser)
                     .text(localizationLoader.localize(Localizations.Button.CHOOSE_USER, user).getData())
@@ -85,12 +81,10 @@ public class CreateBotButtonHandler extends AbstractButtonHandler {
 
     private Consumer<SessionParamsDto> getCreateBotFunction(UserEntity director, Bot botlord) {
         return p -> {
-            final UserEntity creator = entityUtil.getUser(p.messages().getFirst().getUserShared().getUserId(),
-                    director.getLanguageCode());
-
             contentSessionService.createSession(director, botlord, p2 -> {
                 validatorUtil.checkExactExpectedMessages(p2.user(), p2.messages(), 1);
-                botService.createBot(director, creator, p2.messages().get(0).getText());
+                botService.createBot(director, p.messages().getFirst().getUserShared().getUserId(),
+                        p2.messages().get(0).getText());
             });
 
             clientManager.getBotLordClient().sendMessage(director, localizationLoader.localize(

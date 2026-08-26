@@ -13,6 +13,7 @@ import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.CurrencyCode;
+import com.unbidden.telegramcoursesbot.model.TelegramInvoice;
 import com.unbidden.telegramcoursesbot.model.TelegramPaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership.OwnershipSource;
@@ -99,16 +100,18 @@ public class PaymentService {
         Assert.notNull(preCheckoutQuery, "preCheckoutQuery cannot be null");
 
         try {
-            final Course course = entityUtil.getCourseById(user, bot,
-                    Long.parseLong(preCheckoutQuery.getInvoicePayload()));
+            final Course course = entityUtil.getCourseById(user, bot, Long.parseLong(preCheckoutQuery.getInvoicePayload()));
             
             if (isAvailable(user, course.getId())) {
                 return new PreCheckoutResponse(PreCheckoutResult.ALREADY_OWNED, course);
             }
+            if (!course.getInvoice().getClass().equals(TelegramInvoice.class)) {
+                return new PreCheckoutResponse(PreCheckoutResult.INVALID_INVOICE, course);
+            }
             if (!preCheckoutQuery.getCurrency().equals(CurrencyCode.XTR.toString())) {
                 return new PreCheckoutResponse(PreCheckoutResult.CURRENCY_MISMATCH, course);
             } 
-            if (!preCheckoutQuery.getTotalAmount().equals(course.getPrice())) {
+            if (!preCheckoutQuery.getTotalAmount().equals(((TelegramInvoice)course.getInvoice()).getPrice())) {
                 return new PreCheckoutResponse(PreCheckoutResult.PRICE_MISMATCH, course);
             }
             
@@ -230,10 +233,16 @@ public class PaymentService {
             }
             final String courseName = contentService.getLocalizedText(user, bot, course.getTitle());
 
+            if (!course.getInvoice().getClass().equals(TelegramInvoice.class)) {
+                throw new RefundImpossibleException("Course " + course.getId() + " does not have a Telegram invoice.",
+                        localizationLoader.localize(Error.REFUND_COURSE_UNAVAILABLE, user, new Error.RefundCourseUnavailableParams(courseName)));
+            }
+            final TelegramInvoice invoice = (TelegramInvoice)course.getInvoice();
+
             LOGGER.info("Performing checks for refund of course " + courseId
                     + " for user " + user.getId() + "...");
             LOGGER.debug("Checking whether course " + courseId + " supports refund...");
-            if (course.getRefundStage() == null) {
+            if (invoice.getRefundStage() == null) {
                 throw new RefundImpossibleException("Refund for course " + courseId 
                         + " is not possible", localizationLoader.localize(
                         Error.REFUND_COURSE_UNAVAILABLE, user, new Error.RefundCourseUnavailableParams(courseName)));
@@ -284,15 +293,15 @@ public class PaymentService {
                         user, new Error.RefundCourseCompletedParams(courseName)));
             }
             LOGGER.debug("Checking whether user " + user.getId() + " has advanced past stage "
-                    + course.getRefundStage() + " in course " + courseId + " (current stage is "
+                    + invoice.getRefundStage() + " in course " + courseId + " (current stage is "
                     + progress.getStage() + ")...");
-            if (progress.getStage() > course.getRefundStage()) {
+            if (progress.getStage() > invoice.getRefundStage()) {
                 throw new RefundImpossibleException("User " + user.getId()
                         + " has advanced in course " + courseId + " to "
                         + progress.getStage() + " lesson which is past lesson "
-                        + course.getRefundStage() + " and therefore the refund is now impossible",
+                        + invoice.getRefundStage() + " and therefore the refund is now impossible",
                         localizationLoader.localize(Error.REFUND_USER_ADVANCED_TOO_FAR,
-                            user, new Error.RefundUserAdvancedTooFarParams(courseName, course.getRefundStage(),
+                            user, new Error.RefundUserAdvancedTooFarParams(courseName, invoice.getRefundStage(),
                             progress.getStage())));
             }
             LOGGER.info("User " + user.getId() + " is eligible for course "
@@ -344,6 +353,7 @@ public class PaymentService {
 
     public static enum PreCheckoutResult {
         OK,
+        INVALID_INVOICE,
         ALREADY_OWNED,
         CURRENCY_MISMATCH,
         PRICE_MISMATCH,

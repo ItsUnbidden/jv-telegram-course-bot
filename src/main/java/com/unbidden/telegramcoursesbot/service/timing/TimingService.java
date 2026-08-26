@@ -125,7 +125,7 @@ public class TimingService {
 
     @Transactional(readOnly = true)
     public Optional<LessonTrigger> findLessonTrigger(Long userId, Long courseId, int stage) {
-        return lessonTriggersRepository.findByUserIdAndCourseIdAndProgressStage(userId, courseId, stage);
+        return lessonTriggersRepository.findByUserIdAndProgressCourseIdAndProgressStage(userId, courseId, stage);
     }
 
     @Transactional(readOnly = true)

@@ -1,10 +1,12 @@
 package com.unbidden.telegramcoursesbot.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.Course;
+import com.unbidden.telegramcoursesbot.model.TelegramInvoice;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
@@ -42,6 +44,13 @@ public class CoursePriceChangeButtonHandler extends AbstractButtonHandler {
         final Long courseId = Long.parseLong(params.get(COURSE_ID_PARAM));
         final Course course = entityUtil.getCourseById(user, bot, courseId);
         
+        if (!course.getInvoice().getClass().equals(TelegramInvoice.class)) {
+            throw new ForbiddenOperationException("Course " + courseId + " uses external payments. Payment type "
+                    + "must be changed first before updating its price.", localizationLoader.localize(
+                        Localizations.Error.COURSE_PRICE_UPDATE_EXTERNAL_INVOICE, user));
+        }
+        final TelegramInvoice invoice = (TelegramInvoice)course.getInvoice();
+
         sessionService.createSession(user, bot, p -> {
             courseService.updateCoursePrice(p.user(), p.bot(), courseId, p.messages());
         }, true);
@@ -49,6 +58,6 @@ public class CoursePriceChangeButtonHandler extends AbstractButtonHandler {
         clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                 Localizations.Service.COURSE_PRICE_UPDATE_REQUEST, user,
                 new Localizations.Service.CoursePriceUpdateRequestParams(contentService
-                    .getLocalizedText(user, bot, course.getTitle()),course.getPrice())));
+                    .getLocalizedText(user, bot, course.getTitle()), invoice.getPrice())));
     }
 }

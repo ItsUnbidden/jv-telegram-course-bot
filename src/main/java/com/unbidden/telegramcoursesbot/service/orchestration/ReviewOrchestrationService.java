@@ -347,6 +347,7 @@ public class ReviewOrchestrationService {
             LOGGER.info("Compiling review info for review " + review.getId() + "...");
             final String localizedCourseName = contentService.getLocalizedText(user, bot,
                     review.getCourse().getTitle().getId());
+            final String notAvailable = localizationLoader.localize(Localizations.Service.NOT_AVAILABLE, user).getData();
 
             final Message message;
             if (review.getContent() != null && review.getCommentContent() != null) {
@@ -354,9 +355,15 @@ public class ReviewOrchestrationService {
 
                 clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                         Localizations.Service.REVIEW_INFO_CONTENT_COMMENT, user, new Localizations.Service.ReviewInfoContentCommentParams(
-                            review.getUser().getFullName(), review.getBasicSubmittedTimestamp(), review.getLastUpdateTimestamp(),
-                            localizedCourseName, review.getCourseGrade(), review.getUsersWhoReadAsString(),
-                            review.getCommentedBy().getFullName(), review.getCommentedAt(), review.getContent().getId(), 
+                            review.getUser().getFullName(),
+                            review.getBasicSubmittedTimestamp(),
+                            review.getLastUpdateTimestamp() != null ? review.getLastUpdateTimestamp().toString() : notAvailable,
+                            localizedCourseName,
+                            review.getCourseGrade(), 
+                            review.getUsersWhoReadAsString(),
+                            review.getCommentedBy().getFullName(),
+                            review.getCommentedAt(),
+                            review.getContent().getId(), 
                             review.getAdvancedSubmittedTimestamp())));
 
                 final List<Message> sentMessages = contentService.sendContent(user, bot, review.getContent().getId());
@@ -367,28 +374,42 @@ public class ReviewOrchestrationService {
 
                 clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                         Localizations.Service.REVIEW_INFO_CONTENT, user, new Localizations.Service.ReviewInfoContentParams(
-                            review.getUser().getFullName(), review.getBasicSubmittedTimestamp(), review.getLastUpdateTimestamp(),
-                            localizedCourseName, review.getCourseGrade(), review.getUsersWhoReadAsString(),
-                            review.getContent().getId(), review.getAdvancedSubmittedTimestamp())));
+                            review.getUser().getFullName(),
+                            review.getBasicSubmittedTimestamp(),
+                            review.getLastUpdateTimestamp() != null ? review.getLastUpdateTimestamp().toString() : notAvailable,
+                            localizedCourseName,
+                            review.getCourseGrade(),
+                            review.getUsersWhoReadAsString(),
+                            review.getContent().getId(),
+                            review.getAdvancedSubmittedTimestamp())));
 
                 final List<Message> sentMessages = contentService.sendContent(user, bot, review.getContent().getId());
 
                 message = getMenuMessage(user, bot, sentMessages);
             } else if (review.getCommentContent() != null) {
                 LOGGER.debug("Review has a comment.");
-
+                
                 message = clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                         Localizations.Service.REVIEW_INFO_COMMENT, user, new Localizations.Service.ReviewInfoCommentParams(
-                            review.getUser().getFullName(), review.getBasicSubmittedTimestamp(), review.getLastUpdateTimestamp(),
-                            localizedCourseName, review.getCourseGrade(), review.getUsersWhoReadAsString(),
-                            review.getCommentedBy().getFullName(), review.getCommentedAt())));
+                            review.getUser().getFullName(),
+                            review.getBasicSubmittedTimestamp(),
+                            review.getLastUpdateTimestamp() != null ? review.getLastUpdateTimestamp().toString() : notAvailable,
+                            localizedCourseName,
+                            review.getCourseGrade(),
+                            review.getUsersWhoReadAsString(),
+                            review.getCommentedBy().getFullName(),
+                            review.getCommentedAt())));
             } else {
                 LOGGER.debug("Review is basic with no comment.");
 
                 message = clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
                         Localizations.Service.REVIEW_INFO, user, new Localizations.Service.ReviewInfoParams(
-                            review.getUser().getFullName(), review.getBasicSubmittedTimestamp(), review.getLastUpdateTimestamp(),
-                            localizedCourseName, review.getCourseGrade(), review.getUsersWhoReadAsString())));
+                            review.getUser().getFullName(),
+                            review.getBasicSubmittedTimestamp(),
+                            review.getLastUpdateTimestamp() != null ? review.getLastUpdateTimestamp().toString() : notAvailable,
+                            localizedCourseName,
+                            review.getCourseGrade(),
+                            review.getUsersWhoReadAsString())));
             }
             menuService.initiateMenu(user, bot, MenuKey.REVIEW_ACTIONS, REVIEW_ID_PARAM, review.getId().toString(), message.getMessageId(),
                     MenuTerminationGroupKey.REVIEW_ACTIONS, review.getId());
