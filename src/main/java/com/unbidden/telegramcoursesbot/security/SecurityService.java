@@ -4,18 +4,16 @@ import com.unbidden.telegramcoursesbot.exception.AccessDeniedException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error.AccessDeniedParams;
-import com.unbidden.telegramcoursesbot.model.Authority;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.RoleType;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.repository.BotRoleRepository;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
@@ -26,61 +24,46 @@ import org.springframework.util.Assert;
 public class SecurityService {
     private static final Logger LOGGER = LogManager.getLogger(SecurityService.class);
 
-    private final BotRoleRepository botRoleRepository;
-
     private final LocalizationLoader localizationLoader;
 
     private final EntityUtil entityUtil;
 
-    public boolean grantAccess(UserEntity user, Bot bot, boolean isBotLordOnly, List<Authority> authorities) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public boolean grantAccess(BotRole botRole, boolean isBotLordOnly, List<AuthorityType> authorities) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(authorities, "authorities cannot be null");
 
-        LOGGER.trace("Security service is checking user " + user.getId()
-                + "'s access in bot " + bot.getId() + "...");
+        LOGGER.trace("Security service is checking user " + botRole.getUser().getId()
+                + "'s access in bot " + botRole.getBot().getId() + "...");
         
         if (isBotLordOnly) {
-            entityUtil.checkBotLord(user, bot);
+            entityUtil.checkBotLord(botRole);
         }
         try {
-            final BotRole botRole = botRoleRepository.findByBotIdAndUserId(bot.getId(),
-                user.getId()).orElseThrow(() -> new AccessDeniedException("User " + user.getId()
-                + " has no role in bot " + bot.getId(), localizationLoader
-                .localize(Error.USER_NOT_REGISTRED, user)));
-
             if (botRole.getRole().getType() == RoleType.BANNED) {
-                throw new AccessDeniedException("User " + user.getId() + " is banned in bot "
-                        + bot.getId(), localizationLoader.localize(
-                        Error.USER_IS_BANNED_IN_BOT, user));
+                throw new AccessDeniedException("User " + botRole.getUser().getId() + " is banned in bot "
+                        + botRole.getBot().getId(), localizationLoader.localize(
+                        Error.USER_IS_BANNED_IN_BOT, botRole));
             }
-            final List<Authority> localAuthorities = new ArrayList<>(authorities);
+            final List<AuthorityType> localAuthorities = new ArrayList<>(authorities);
             
-            localAuthorities.removeAll(botRole.getRole().getAuthorities());
+            localAuthorities.removeAll(botRole.getRole().getAuthorities().stream().map(a -> a.getType()).toList());
             if (localAuthorities.size() > 0) {
-                final List<AuthorityType> missingAuthorityTypes = localAuthorities.stream()
-                        .map(a -> a.getType()).toList();
-
-                throw new AccessDeniedException("User " + user.getId() + " does not have "
-                        + "required authority in bot " + bot.getId() + ". Missing authorities: "
-                        + missingAuthorityTypes + ".",
-                        localizationLoader.localize(Error.ACCESS_DENIED, user,
-                            new AccessDeniedParams(missingAuthorityTypes)));
+                throw new AccessDeniedException("User " + botRole.getUser().getId() + " does not have "
+                        + "required authority in bot " + botRole.getBot().getId() + ". Missing authorities: "
+                        + localAuthorities + ".", localizationLoader.localize(Error.ACCESS_DENIED, botRole,
+                            new AccessDeniedParams(localAuthorities)));
             }
         } catch (AccessDeniedException e) {
             return false;
         }
-        LOGGER.trace("Access granted to user " + user.getId() + " in bot " + bot.getId() + ".");
+        LOGGER.trace("Access granted to user " + botRole.getUser().getId() + " in bot " + botRole.getBot().getId() + ".");
         return true;
     }
 
-    public boolean grantAccess(UserEntity user, Bot bot, AuthorityType... authorityTypes) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public boolean grantAccess(BotRole botRole, AuthorityType... authorityTypes) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(authorityTypes, "authorityTypes cannot be null");
 
-        final List<Authority> authorities = entityUtil.parseAuthorities(List.of(authorityTypes));
-
-        return grantAccess(user, bot, false, authorities);
+        return grantAccess(botRole, false, List.of(authorityTypes));
     }
 }

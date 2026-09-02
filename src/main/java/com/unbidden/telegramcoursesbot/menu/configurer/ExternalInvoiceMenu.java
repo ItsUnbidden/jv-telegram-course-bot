@@ -35,11 +35,11 @@ public class ExternalInvoiceMenu implements MenuConfigurer {
         firstPage.setPageIndex(0);
         firstPage.setColumns(1);
         firstPage.setButtonsFunction(p -> {
-            final Course course = entityUtil.getCourseById(p.user(), p.bot(), Long.parseLong(p.params().get(COURSE_ID_PARAM)));
+            final Course course = entityUtil.getCourseById(p.botRole(), Long.parseLong(p.params().get(COURSE_ID_PARAM)));
             final ExternalInvoice invoice = (ExternalInvoice)course.getInvoice();
 
             return List.of(new LinkButton(loader.localize(Localizations.Button.EXTERNAL_INVOICE_MORE_INFO,
-                    p.user()).getData(), invoice.getExternalStorePageUrl()));
+                    p.botRole()).getData(), invoice.getExternalStorePageUrl()));
         });
 
         menu.setPages(List.of(firstPage));

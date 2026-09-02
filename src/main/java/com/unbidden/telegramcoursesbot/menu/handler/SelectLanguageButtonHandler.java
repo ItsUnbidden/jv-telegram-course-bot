@@ -1,8 +1,7 @@
 package com.unbidden.telegramcoursesbot.menu.handler;
 
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.orchestration.UserOrchestrationService;
 
@@ -21,14 +20,14 @@ public class SelectLanguageButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.INFO)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final String potentialCode = params.get(LANGUAGE_CODE_PARAM);
 
         if (potentialCode == null) {
-            userService.resetLanguageToDefault(user, bot);
+            userService.resetLanguageToDefault(botRole);
             
         } else {
-            userService.changeLanguage(user, bot, potentialCode);
+            userService.changeLanguage(botRole, potentialCode);
             
         }
     }

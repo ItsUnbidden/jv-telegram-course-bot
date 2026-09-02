@@ -25,7 +25,7 @@ public class LessonTriggerExecutor implements TriggerExecutor {
     public void findAndExecute() {
         final List<LessonTrigger> triggers = timingService.findAndRemoveExpiredLessonTriggers();
 
-        triggers.forEach(t -> courseService.current(t.getUser(), t.getBot(), t.getProgress().getCourse().getId()));
+        triggers.forEach(t -> courseService.current(t.getBotRole(), t.getProgress().getCourse().getId()));
         LOGGER.trace(triggers.size() + " expired lesson triggers have been executed.");
     }
 }

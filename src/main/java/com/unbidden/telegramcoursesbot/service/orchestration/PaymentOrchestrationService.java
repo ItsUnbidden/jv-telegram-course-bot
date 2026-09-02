@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.orchestration;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,6 +23,8 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dao.ImageDao;
+import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto;
+import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto.Result;
 import com.unbidden.telegramcoursesbot.exception.CourseIsAlreadyOwnedException;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.exception.OnMaintenanceException;
@@ -32,7 +35,7 @@ import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
-import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership;
 import com.unbidden.telegramcoursesbot.model.CurrencyCode;
@@ -111,65 +114,64 @@ public class PaymentOrchestrationService {
         return paymentService.isAvailableAndGifted(user, courseId);
     }
 
-    public void sendInvoice(UserEntity user, Bot bot, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public void sendInvoice(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        final Course course = entityUtil.getCourseById(user, bot, courseId);
+        final Course course = entityUtil.getCourseById(botRole, courseId);
         
         if (course.getInvoice().getClass().equals(TelegramInvoice.class)) {
-            sendTelegramInvoice(user, bot, course);
+            sendTelegramInvoice(botRole, course);
         } else {
-            sendExternalInvoice(user, bot, course);
+            sendExternalInvoice(botRole, course);
         }
     }
 
-    public void resolvePreCheckout(UserEntity user, Bot bot, PreCheckoutQuery preCheckoutQuery) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public void resolvePreCheckout(BotRole botRole, PreCheckoutQuery preCheckoutQuery) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(preCheckoutQuery, "preCheckoutQuery cannot be null");
 
         final AnswerPreCheckoutQueryBuilder<?, ?> answerBuilder =
                 AnswerPreCheckoutQuery.builder()
                     .preCheckoutQueryId(preCheckoutQuery.getId())
                     .ok(false);
-        final PreCheckoutResponse response = paymentService.checkPreCheckoutConditions(user, bot, preCheckoutQuery);
+        final PreCheckoutResponse response = paymentService.checkPreCheckoutConditions(botRole, preCheckoutQuery);
 
-        LOGGER.info("Precheckout query was sent for course " + response.course().getId() + " by user " + user.getId() + ".");
+        LOGGER.info("Precheckout query was sent for course " + response.course().getId()
+                + " by user " + botRole.getUser().getId() + ".");
 
         Localization errorLoc = null;
         switch (response.result()) {
             case ALREADY_OWNED -> {
                 errorLoc = localizationLoader.localize(
-                        Error.PRE_CHECKOUT_COURSE_ALREADY_OWNED, user,
+                        Error.PRE_CHECKOUT_COURSE_ALREADY_OWNED, botRole,
                         new Localizations.Error.PreCheckoutCourseAlreadyOwnedParams(
-                            contentService.getLocalizedText(user, bot, response.course().getTitle().getId())));
+                            contentService.getLocalizedText(botRole, response.course().getTitle().getId())));
 
-                LOGGER.info("Precheckout failed: user " + user.getId()
+                LOGGER.info("Precheckout failed: user " + botRole.getUser().getId()
                         + " already has course " + response.course().getId());
             }
             case COURSE_NOT_FOUND -> {
                 errorLoc = localizationLoader.localize(
-                        Error.PRE_CHECKOUT_UNKNOWN_COURSE, user);
+                        Error.PRE_CHECKOUT_UNKNOWN_COURSE, botRole);
 
                 LOGGER.info("Precheckout query payload contained unknown course ID: "
-                        + preCheckoutQuery.getInvoicePayload() + ". User: " + user.getId());
+                        + preCheckoutQuery.getInvoicePayload() + ". User: " + botRole.getUser().getId());
             }
             case CURRENCY_MISMATCH -> {
                 errorLoc = localizationLoader.localize(
-                        Error.PRE_CHECKOUT_CURRENCY_MISMATCH, user);
+                        Error.PRE_CHECKOUT_CURRENCY_MISMATCH, botRole);
                         
                 LOGGER.error("Precheckout failed: currency mismatch. Investigation required. "
-                        + "User: " + user.getId() + ", course: " + response.course().getId());
+                        + "User: " + botRole.getUser().getId() + ", course: " + response.course().getId());
             }
             case PRICE_MISMATCH -> {
                 final TelegramInvoice invoice = (TelegramInvoice)response.course().getInvoice();
 
-                errorLoc = localizationLoader.localize(Error.PRE_CHECKOUT_PRICE_MISMATCH, user,
+                errorLoc = localizationLoader.localize(Error.PRE_CHECKOUT_PRICE_MISMATCH, botRole,
                         new Localizations.Error.PreCheckoutPriceMismatchParams(invoice.getPrice()));
 
-                LOGGER.info("Precheckout failed: User " + user.getId()
+                LOGGER.info("Precheckout failed: User " + botRole.getUser().getId()
                         + " used invoice with price " + preCheckoutQuery.getTotalAmount()
                         + " while course " + response.course().getId() + "'s current price is "
                         + invoice.getPrice());
@@ -181,196 +183,194 @@ public class PaymentOrchestrationService {
 
         if (errorLoc != null) {
             answerBuilder.errorMessage(errorLoc.getData());
-            clientManager.getClient(bot).sendMessage(user, errorLoc);
+            clientManager.sendMessage(botRole, errorLoc);
         }
 
         try {
             LOGGER.debug("Sending precheckout response...");
-            clientManager.getClient(bot).execute(answerBuilder.build());
+            clientManager.getClient(botRole.getBot()).execute(answerBuilder.build());
             LOGGER.info("Precheckout completed for course " + response.course().getId()
-                    + " and user " + user.getId() + ".");
+                    + " and user " + botRole.getUser().getId() + ".");
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to answer precheckout query",
-                    localizationLoader.localize(Error.ANSWER_PRECHECKOUT_FAILURE, user), e);
+                    localizationLoader.localize(Error.ANSWER_PRECHECKOUT_FAILURE, botRole), e);
         }
     }
 
-    public void resolveSuccessfulPayment(UserEntity user, Bot bot, SuccessfulPayment payment) {
-        final UserEntity creator = entityUtil.getCreator(bot);
+    public void resolveSuccessfulPayment(BotRole botRole, SuccessfulPayment payment) {
+        final BotRole creatorRole = entityUtil.getCreator(botRole.getBot().getId());
 
         LOGGER.info("Successful payment was sent for course " + payment.getInvoicePayload()
-                + " by user " + user.getId() + ".");
+                + " by user " + botRole.getUser().getId() + ".");
         
         try {
-            final TelegramPaymentDetails paymentDetails = paymentService.registerTelegramPurchase(user, bot, payment);
+            final TelegramPaymentDetails paymentDetails = paymentService.registerTelegramPurchase(botRole, payment);
 
-            LOGGER.info("User " + user.getId() + " has bought course " + payment.getInvoicePayload()
+            LOGGER.info("User " + botRole.getUser().getId() + " has bought course " + payment.getInvoicePayload()
                     + ". Payment details saved. Sending confirmation messages...");
         
-            final ContentMapping courseTitleMapping = entityUtil.getMappingById(user, bot, paymentDetails.getCourse().getTitle().getId());
+            final ContentMapping courseTitleMapping = entityUtil.getMappingById(botRole, paymentDetails.getCourse().getTitle().getId());
 
-            clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                    Localizations.Service.SUCCESSFUL_PAYMENT, user, new Localizations.Service.SuccessfulPaymentParams(
-                        contentService.getLocalizedText(user, bot, courseTitleMapping))));
-            clientManager.getClient(bot).sendMessage(creator, localizationLoader.localize(
-                    Localizations.Service.USER_BOUGHT_COURSE, creator, new Localizations.Service.UserBoughtCourseParams(user.getFullName(),
-                    contentService.getLocalizedText(creator, bot, courseTitleMapping))));
+            clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.SUCCESSFUL_PAYMENT,
+                    botRole, new Localizations.Service.SuccessfulPaymentParams(
+                    contentService.getLocalizedText(botRole, courseTitleMapping))));
+            clientManager.sendMessage(creatorRole, localizationLoader.localize(Localizations.Service.USER_BOUGHT_COURSE,
+                    creatorRole, new Localizations.Service.UserBoughtCourseParams(botRole.getUser().getFullName(),
+                    contentService.getLocalizedText(creatorRole, courseTitleMapping))));
             LOGGER.debug("Messages sent.");
             if (clientManager.isOnMaintenance()) {
                 throw new OnMaintenanceException("Unable to send course because server is on "
                         + "maintenance", localizationLoader.localize(
-                        Error.PAYMENT_SUCCESS_SERVER_ON_MAINTENANCE, user));
+                        Error.PAYMENT_SUCCESS_SERVER_ON_MAINTENANCE, botRole));
             }
-            LOGGER.debug("Initiating course " + payment.getInvoicePayload() + " for user " + user.getId() + "...");
-            courseService.initCourse(user, bot, paymentDetails.getCourse().getId());
+            LOGGER.debug("Initiating course " + payment.getInvoicePayload() + " for user " + botRole.getUser().getId() + "...");
+            courseService.initCourse(botRole, paymentDetails.getCourse().getId());
             LOGGER.debug("Course initiated.");
         } catch (CourseIsAlreadyOwnedException e) {
             LOGGER.warn("Failed to process successfull payment due to course " + payment.getInvoicePayload()
-                    + " already being owned by user " + user.getId() + ". Attempting refund...", e);
+                    + " already being owned by user " + botRole.getUser().getId() + ". Attempting refund...", e);
             
             final RefundStarPayment refundStarPayment = RefundStarPayment.builder()
                     .telegramPaymentChargeId(payment.getTelegramPaymentChargeId())
-                    .userId(user.getId())
+                    .userId(botRole.getUser().getId())
                     .build();
-            final Course course = entityUtil.getCourseById(user, bot, Long.parseLong(payment.getInvoicePayload()));
-            final String courseName = contentService.getLocalizedText(user, bot, course.getTitle().getId());
+            final Course course = entityUtil.getCourseById(botRole, Long.parseLong(payment.getInvoicePayload()));
+            final String courseName = contentService.getLocalizedText(botRole, course.getTitle().getId());
 
             try {
                 LOGGER.debug("Executing automatic refund...");
-                clientManager.getClient(bot).execute(refundStarPayment);
-                clientManager.getClient(bot).sendMessage(creator, localizationLoader.localize(
-                        Localizations.Service.AUTOMATIC_REFUND_NOTIFICATION, creator,
-                        new Localizations.Service.AutomaticRefundNotificationParams(user.getId(), course.getId())));
-                clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                        Localizations.Service.AUTOMATIC_REFUND, user,
+                clientManager.getClient(botRole.getBot()).execute(refundStarPayment);
+                clientManager.sendMessage(creatorRole, localizationLoader.localize(
+                        Localizations.Service.AUTOMATIC_REFUND_NOTIFICATION, creatorRole,
+                        new Localizations.Service.AutomaticRefundNotificationParams(botRole.getUser().getId(), course.getId())));
+                clientManager.sendMessage(botRole, localizationLoader.localize(
+                        Localizations.Service.AUTOMATIC_REFUND, botRole,
                         new Localizations.Service.AutomaticRefundParams(courseName)));
                 LOGGER.info("Automatic refund has been successful and a notification has been sent to the Creator.");
             } catch (TelegramApiException e2) {
-                clientManager.getClient(bot).sendMessage(creator, localizationLoader.localize(
-                        Error.AUTOMATIC_REFUND_FAILURE_NOTIFICATION, creator,
-                            new Error.AutomaticRefundFailureNotificationParams(user.getId(), course.getId())));
-                throw new TelegramException("Failed to automatically refund user " + user.getId()
+                clientManager.sendMessage(creatorRole, localizationLoader.localize(
+                        Error.AUTOMATIC_REFUND_FAILURE_NOTIFICATION, creatorRole,
+                            new Error.AutomaticRefundFailureNotificationParams(botRole.getUser().getId(), course.getId())));
+                throw new TelegramException("Failed to automatically refund user " + botRole.getUser().getId()
                         + " after a successfull Telegram payment failed due to the course already being owned.",
-                        localizationLoader.localize(Error.AUTOMATIC_REFUND_FAILURE, user,
+                        localizationLoader.localize(Error.AUTOMATIC_REFUND_FAILURE, botRole,
                             new Error.AutomaticRefundFailureParams(courseName)), e2);
             }
         }
     }
 
-    public CourseOwnership checkRefundPossible(UserEntity user, Bot bot, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public CourseOwnership checkRefundPossible(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        return paymentService.checkRefundPossible(user, bot, courseId);
+        return paymentService.checkRefundPossible(botRole, courseId);
     }
 
-    public void refund(UserEntity user, Bot bot, Long courseId, String confirmationPhrase, List<Message> messages) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public void refund(BotRole botRole, Long courseId, String confirmationPhrase, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
         Assert.notNull(confirmationPhrase, "confirmationPhrase cannot be null");
         Assert.notEmpty(messages, "messages cannot be null");
 
-        validatorUtil.checkExactExpectedMessages(user, messages, 1);  
-        final String providedStr = validatorUtil.checkText(user, messages.getFirst());
+        validatorUtil.checkExactExpectedMessages(botRole, messages, 1);  
+        final String providedStr = validatorUtil.checkText(botRole, messages.getFirst());
 
         LOGGER.debug("User has provided this string - " + providedStr + ". Checking if this matches the confirmation phrase...");
         if (!confirmationPhrase.equals(providedStr)) {
             throw new InvalidDataSentException("Provided string does not match the confirmation phrase",
-                    localizationLoader.localize(Localizations.Error.REFUND_CONFIRMATION_PHRASE_FAILURE, user));
+                    localizationLoader.localize(Localizations.Error.REFUND_CONFIRMATION_PHRASE_FAILURE, botRole));
         }
         LOGGER.debug("Confirmation phrase matches. Initiating refund...");
 
-        final CourseOwnership ownership = paymentService.checkRefundPossible(user, bot, courseId);
+        final CourseOwnership ownership = paymentService.checkRefundPossible(botRole, courseId);
         final TelegramPaymentDetails paymentDetails = (TelegramPaymentDetails)ownership.getLastPaymentDetails();
         final RefundStarPayment refundStarPayment = RefundStarPayment.builder()
                 .telegramPaymentChargeId(paymentDetails.getTelegramPaymentChargeId())
-                .userId(user.getId())
+                .userId(botRole.getUser().getId())
                 .build();
 
         try {
-            clientManager.getClient(bot).execute(refundStarPayment);
+            clientManager.getClient(botRole.getBot()).execute(refundStarPayment);
         } catch (TelegramApiException e) {
             throw new TelegramException("Failed to send a refund request to user "
-                    + user.getId() + ".", localizationLoader
-                    .localize(Error.REFUND_FAILURE, user), e);
+                    + botRole.getUser().getId() + ".", localizationLoader
+                    .localize(Error.REFUND_FAILURE, botRole), e);
         }
         LOGGER.debug("Invalidating ownership for course " + courseId
-                + " and user " + user.getId() + "..."); 
-        paymentService.invalidateTelegramCourseOwnership(user, bot, courseId);
+                + " and user " + botRole.getUser().getId() + "..."); 
+        paymentService.invalidateTelegramCourseOwnership(botRole, courseId);
         LOGGER.info("Ownership " + ownership.getId() + " has been invalidated.");
         LOGGER.debug("Sending confirmation messages...");
-        final String courseName = contentService.getLocalizedText(user, bot, entityUtil.getCourseById(
-                user, bot, courseId).getTitle().getId());
+        final String courseName = contentService.getLocalizedText(botRole, entityUtil.getCourseById(
+                botRole, courseId).getTitle().getId());
+        final BotRole creatorRole = entityUtil.getCreator(botRole.getBot().getId());
 
-        clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .localize(Localizations.Service.REFUND_SUCCESS, user,
+        clientManager.sendMessage(botRole, localizationLoader
+                .localize(Localizations.Service.REFUND_SUCCESS, botRole,
                     new Localizations.Service.RefundSuccessParams(courseName)));
-        clientManager.getClient(bot).sendMessage(entityUtil.getCreator(bot),
-                localizationLoader.localize(Localizations.Service.USER_REFUNDED_COURSE,
-                user, new Localizations.Service.UserRefundedCourseParams(courseName, user.getFullName())));
+        clientManager.sendMessage(creatorRole, localizationLoader.localize(Localizations.Service.USER_REFUNDED_COURSE,
+                creatorRole, new Localizations.Service.UserRefundedCourseParams(courseName, botRole.getUser().getFullName())));
         LOGGER.debug("Messages sent.");
     }
 
-    public void giftCourse(UserEntity user, Bot bot, Long targetId, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public void giftCourse(BotRole botRole, Long targetId, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(targetId, "targetId cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        LOGGER.info("User " + user.getId() + " is trying to gift course " + courseId + " to user " + targetId + "...");
-        final CourseOwnership ownership = paymentService.registerGiftCourse(user, bot, targetId, courseId);
-
+        LOGGER.info("User " + botRole.getUser().getId() + " is trying to gift course " + courseId + " to user " + targetId + "...");
+        final CourseOwnership ownership = paymentService.registerGiftCourse(botRole, targetId, courseId);
+        
         LOGGER.info("Course ownership " + ownership.getId() + " has been created/updated for user "
-                + user.getId() + " and course " + courseId + ".");
-        final ContentMapping courseTitleMapping = entityUtil.getMappingById(user, bot, ownership.getCourse().getTitle().getId());
+                + botRole.getUser().getId() + " and course " + courseId + ".");
+        final BotRole targetBotRole = entityUtil.getActiveBotRole(botRole, targetId);
+        final ContentMapping courseTitleMapping = entityUtil.getMappingById(botRole, ownership.getCourse().getTitle().getId());
 
         LOGGER.debug("Sending confirmation messages...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                Localizations.Service.COURSE_GIFTED_SUCCESSFULLY, user, new Localizations.Service.CourseGiftedSuccessfullyParams(
-                    contentService.getLocalizedText(user, bot, courseTitleMapping), ownership.getUser().getFullName(),
-                    entityUtil.getLocalizedTitle(user, bot, ownership.getUser()))));
-        clientManager.getClient(bot).sendMessage(ownership.getUser(), localizationLoader.localize(
-                Localizations.Service.COURSE_GIFTED_NOTIFICATION, ownership.getUser(), new Localizations.Service.CourseGiftedNotificationParams(
-                    contentService.getLocalizedText(ownership.getUser(), bot, courseTitleMapping),
-                    entityUtil.getLocalizedTitle(ownership.getUser(), bot, user), user.getFullName())));
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.COURSE_GIFTED_SUCCESSFULLY,
+                botRole, new Localizations.Service.CourseGiftedSuccessfullyParams(
+                contentService.getLocalizedText(botRole, courseTitleMapping), ownership.getUser().getFullName(),
+                entityUtil.getLocalizedTitle(botRole, targetBotRole))));
+        clientManager.sendMessage(targetBotRole, localizationLoader.localize(Localizations.Service.COURSE_GIFTED_NOTIFICATION,
+                targetBotRole, new Localizations.Service.CourseGiftedNotificationParams(
+                contentService.getLocalizedText(targetBotRole, courseTitleMapping),
+                entityUtil.getLocalizedTitle(targetBotRole, botRole), botRole.getUser().getFullName())));
         LOGGER.debug("Messages sent.");
     }
 
-    public void takeCourse(UserEntity user, Bot bot, Long targetId, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public void takeCourse(BotRole botRole, Long targetId, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(targetId, "targetId cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        LOGGER.info("User " + user.getId() + " is trying to take away course " + courseId + " from user " + targetId + "...");
-        final CourseOwnership ownership = paymentService.invalidateGiftCourse(user, bot, targetId, courseId);
+        LOGGER.info("User " + botRole.getUser().getId() + " is trying to take away course " + courseId + " from user " + targetId + "...");
+        final CourseOwnership ownership = paymentService.invalidateGiftCourse(botRole, targetId, courseId);
+
         LOGGER.info("Course ownership " + ownership.getId() + " has been invalidated for user "
-                + user.getId() + " and course " + courseId + ".");
-        final ContentMapping courseTitleMapping = entityUtil.getMappingById(user, bot, ownership.getCourse().getTitle().getId());
+                + botRole.getUser().getId() + " and course " + courseId + ".");
+        final BotRole targetBotRole = entityUtil.getActiveBotRole(botRole, targetId);
+        final ContentMapping courseTitleMapping = entityUtil.getMappingById(botRole, ownership.getCourse().getTitle().getId());
 
         LOGGER.debug("Sending confirmation messages...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                Localizations.Service.COURSE_TAKEN_SUCCESSFULY, user, new Localizations.Service.CourseTakenSuccessfullyParams(
-                    contentService.getLocalizedText(user, bot, courseTitleMapping), ownership.getUser().getFullName(),
-                    entityUtil.getLocalizedTitle(user, bot, ownership.getUser()))), keyboardRemove);
-        clientManager.getClient(bot).sendMessage(ownership.getUser(), localizationLoader.localize(
-                Localizations.Service.COURSE_TAKEN_NOTIFICATION, ownership.getUser(), new Localizations.Service.CourseTakenNotificationParams(
-                    contentService.getLocalizedText(ownership.getUser(), bot, courseTitleMapping), user.getFullName(),
-                    entityUtil.getLocalizedTitle(ownership.getUser(), bot, user))));
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.COURSE_TAKEN_SUCCESSFULY,
+                botRole, new Localizations.Service.CourseTakenSuccessfullyParams(
+                contentService.getLocalizedText(botRole, courseTitleMapping), ownership.getUser().getFullName(),
+                entityUtil.getLocalizedTitle(botRole, targetBotRole))), keyboardRemove);
+        clientManager.sendMessage(targetBotRole, localizationLoader.localize(Localizations.Service.COURSE_TAKEN_NOTIFICATION,
+                targetBotRole, new Localizations.Service.CourseTakenNotificationParams(
+                contentService.getLocalizedText(targetBotRole, courseTitleMapping), botRole.getUser().getFullName(),
+                entityUtil.getLocalizedTitle(targetBotRole, botRole))));
         LOGGER.debug("Messages sent.");
     }
 
-    public void deleteInvoiceImage(UserEntity user, Bot bot, List<Message> messages) {
-        validatorUtil.checkExactExpectedMessages(user, messages, 1);
+    public void deleteInvoiceImage(BotRole botRole, List<Message> messages) {
+        validatorUtil.checkExactExpectedMessages(botRole, messages, 1);
 
-        final Long courseId = validatorUtil.parseId(user, messages.getFirst());
+        final Long courseId = validatorUtil.parseId(botRole, messages.getFirst());
 
         if (!imageDao.exists(courseId)) {
             throw new InvalidDataSentException("Invoice image does not exist for course "
-                    + courseId, localizationLoader.localize(
-                    Localizations.Error.INVOICE_IMAGE_DOES_NOT_EXIST, user));
+                    + courseId, localizationLoader.localize(Localizations.Error.INVOICE_IMAGE_DOES_NOT_EXIST, botRole));
         }
 
         LOGGER.info("Deleing invoice image for course " + courseId + "...");
@@ -378,21 +378,21 @@ public class PaymentOrchestrationService {
         LOGGER.info("Image deleted.");
 
         LOGGER.debug("Sending confirmation message...");
-        clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                .localize(Localizations.Service.INVOICE_IMAGE_DELETED, user));
+        clientManager.sendMessage(botRole, localizationLoader
+                .localize(Localizations.Service.INVOICE_IMAGE_DELETED, botRole));
         LOGGER.debug("Message sent.");
     }
 
-    private void sendTelegramInvoice(UserEntity user, Bot bot, Course course) {
+    private void sendTelegramInvoice(BotRole botRole, Course course) {
         final String imageUrl = serverUrl + INVOICE_IMAGES_ENDPOINT + "/" + course.getId();
-        final String courseName = contentService.getLocalizedText(user, bot, course.getTitle().getId());
+        final String courseName = contentService.getLocalizedText(botRole, course.getTitle().getId());
         final TelegramInvoice invoice = (TelegramInvoice)course.getInvoice();
 
-        LOGGER.debug("Compiling invoice for course " + course.getId() + " for user " + user.getId() + "...");
+        LOGGER.debug("Compiling invoice for course " + course.getId() + " for user " + botRole.getUser().getId() + "...");
         final SendInvoiceBuilder<?, ?> builder = SendInvoice.builder()
-                .chatId(user.getId())
+                .chatId(botRole.getUser().getId())
                 .title(courseName)
-                .description(contentService.getLocalizedText(user, bot, invoice.getDescription().getId()))
+                .description(contentService.getLocalizedText(botRole, invoice.getDescription().getId()))
                 .payload(course.getId().toString())
                 .providerToken(PROVIDER_TOKEN)
                 .currency(CurrencyCode.XTR.toString())
@@ -409,38 +409,46 @@ public class PaymentOrchestrationService {
                 }
         try {
             LOGGER.debug("Sending invoice for course " + course.getId()
-                    + " to user " + user.getId() + "...");
-            clientManager.getClient(bot).execute(builder.build());
+                    + " to user " + botRole.getUser().getId() + "...");
+            clientManager.getClient(botRole.getBot()).execute(builder.build());
             LOGGER.debug("Invoice sent.");
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to send invoice for "
-                    + course.getId() + " to user " + user.getId(), localizationLoader
-                    .localize(Error.SEND_INVOICE_FAILURE, user), e);
+                    + course.getId() + " to user " + botRole.getUser().getId(), localizationLoader
+                    .localize(Error.SEND_INVOICE_FAILURE, botRole), e);
         }
     }
 
-    private void sendExternalInvoice(UserEntity user, Bot bot, Course course) {
+    private void sendExternalInvoice(BotRole botRole, Course course) {
         LOGGER.debug("Sending an external invoice for course " + course.getId() + "...");
 
         final ExternalInvoice invoice = (ExternalInvoice)course.getInvoice();
-        final List<Message> sentMessages = contentService.sendLocalizedContent(
-                user, bot, invoice.getMapping().getId());
+        final List<SendMessageResultDto> sentMessages = contentService.sendLocalizedContent(
+                botRole, invoice.getMapping().getId());
+        final Optional<SendMessageResultDto> failureOpt = sentMessages.stream().filter(dto -> dto.getResult() != Result.OK).findAny();
 
-        final Message menuMessage;
+        if (failureOpt.isPresent()) {
+            throw new TelegramException("Failed to send one or more of the external invoice messages for course "
+                    + course.getId() + " to user " + botRole.getUser().getId() + ".",
+                    localizationLoader.localize(Localizations.Error.SEND_EXTERNAL_INVOICE, botRole),
+                    failureOpt.get().getException());
+        }
+        final SendMessageResultDto sentMessageDto;
+
         if (sentMessages.size() > 1) {
             LOGGER.debug("The content for course " + course.getId() + "'s external invoice is a media group.");
 
-            menuMessage = clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .localize(Localizations.Service.COURSE_EXTERNAL_INVOICE_MEDIA_GROUP_BYPASS, user));
+            sentMessageDto = clientManager.sendMessage(botRole, localizationLoader
+                    .localize(Localizations.Service.COURSE_EXTERNAL_INVOICE_MEDIA_GROUP_BYPASS, botRole));
             LOGGER.debug("Additional message for the menu has been sent.");
         } else {
             LOGGER.debug("The content for course " + course.getId() + "'s invoice is not a media group. "
                     + "The menu will be attached to the message.");    
-            menuMessage = sentMessages.getFirst();
+            sentMessageDto = sentMessages.getFirst();
         }
 
-        menuService.initiateMenu(user, bot, MenuKey.EXTERNAL_INVOICE, COURSE_ID_PARAM,
-                course.getId().toString(), menuMessage.getMessageId());
+        menuService.initiateMenu(botRole, MenuKey.EXTERNAL_INVOICE, COURSE_ID_PARAM,
+                course.getId().toString(), sentMessageDto.getMessage().getMessageId());
         LOGGER.debug("External invoice menu has been sent.");
     }
 }

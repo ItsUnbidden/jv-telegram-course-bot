@@ -1,24 +1,22 @@
 package com.unbidden.telegramcoursesbot.security;
 
-import com.unbidden.telegramcoursesbot.model.Authority;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.AuthorityType;
+import com.unbidden.telegramcoursesbot.model.BotRole;
+
 import java.util.List;
+
 import lombok.Data;
 
 @Data
 public class SecurityDto {
-    private Bot bot;
+    private BotRole botRole;
 
-    private UserEntity user;
-
-    private List<Authority> authorities;
+    private List<AuthorityType> authorities;
 
     private boolean isBotLordOnly;
 
-    public SecurityDto(Bot bot, UserEntity user, List<Authority> authorities, boolean isBotLordOnly) {
-        this.bot = bot;
-        this.user = user;
+    public SecurityDto(BotRole botRole, List<AuthorityType> authorities, boolean isBotLordOnly) {
+        this.botRole = botRole;
         this.authorities = authorities;
         this.isBotLordOnly = isBotLordOnly;
     }

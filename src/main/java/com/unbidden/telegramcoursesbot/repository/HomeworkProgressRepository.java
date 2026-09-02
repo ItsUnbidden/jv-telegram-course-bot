@@ -2,8 +2,10 @@ package com.unbidden.telegramcoursesbot.repository;
 
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress;
 
+import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,10 +18,35 @@ public interface HomeworkProgressRepository extends JpaRepository<HomeworkProgre
     @Query("""
         from HomeworkProgress hp
         left join fetch hp.user u
+        left join fetch hp.content cnt
         left join fetch hp.homework h
         left join fetch h.lesson l
         left join fetch l.course c
+        left join fetch c.title t
+        left join fetch t.content tcnt
         where u.id = :userId and h.id = :homeworkId and hp.status <> 'COMPLETED'
-        """)
+    """)
     Optional<HomeworkProgress> findByUserIdAndHomeworkIdUnresolved(Long userId, Long homeworkId);
+
+    @Query("""
+        from HomeworkProgress hp
+        left join fetch hp.user u
+        left join fetch hp.content cnt
+        left join fetch hp.homework h
+        left join fetch h.lesson l
+        left join fetch l.course c
+        where c.bot.id = :botId and hp.status = 'AWAITS_APPROVAL'
+    """)
+    List<HomeworkProgress> findPendingFeedbackByBotId(Long botId, Pageable pageable);
+
+    @Query("""
+        from HomeworkProgress hp
+        left join fetch hp.user u
+        left join fetch hp.content cnt
+        left join fetch hp.homework h
+        left join fetch h.lesson l
+        left join fetch l.course c
+        where c.id = :courseId and hp.status = 'AWAITS_APPROVAL'
+    """)
+    List<HomeworkProgress> findPendingFeedbackByCourseId(Long courseId, Pageable pageable);
 }

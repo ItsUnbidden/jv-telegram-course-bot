@@ -4,8 +4,7 @@ import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.orchestration.HomeworkOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
@@ -31,15 +30,15 @@ public class HomeworkDelaySettingButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.COURSE_SETTINGS)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final Long homeworkId = Long.parseLong(params.get(HOMEWORK_ID_PARAM));
 
-        sessionService.createSession(user, bot, p -> {
-            homeworkService.updateDelay(p.user(), p.bot(), homeworkId, p.messages());
+        sessionService.createSession(botRole, p -> {
+            homeworkService.updateDelay(p.botRole(), homeworkId, p.messages());
         }, true);
 
-        clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .localize(Localizations.Service.NEW_HOMEWORK_DELAY_REQUEST, user,
+        clientManager.sendMessage(botRole, localizationLoader
+                .localize(Localizations.Service.NEW_HOMEWORK_DELAY_REQUEST, botRole,
                     new Localizations.Service.NewHomeworkDelayRequestParams(HomeworkOrchestrationService.MAX_HOMEWORK_DELAY)));
     }
 }

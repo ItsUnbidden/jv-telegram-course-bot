@@ -1,4 +1,4 @@
-package com.unbidden.telegramcoursesbot.repository;
+package com.unbidden.telegramcoursesbot.repository.impl;
 
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
@@ -7,9 +7,12 @@ import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.repository.AutoClearable;
+import com.unbidden.telegramcoursesbot.repository.SessionRepository;
 import com.unbidden.telegramcoursesbot.service.session.ContentSession;
 import com.unbidden.telegramcoursesbot.service.session.Session;
 import com.unbidden.telegramcoursesbot.service.session.UserOrChatRequestSession;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,12 +21,13 @@ import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
 import lombok.RequiredArgsConstructor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -31,12 +35,9 @@ import org.springframework.stereotype.Repository;
 public class InMemorySessionRepository implements SessionRepository, AutoClearable {
     private static final Logger LOGGER = LogManager.getLogger(InMemorySessionRepository.class);
 
-    private static final int INITIAL_EXPIRY_CHECK_DELAY = 10000;
-
     private static final ConcurrentMap<UUID, Session> sessions = new ConcurrentHashMap<>();
 
-    private static final ConcurrentMap<Long, List<Session>> sessionsIndexedByUser =
-            new ConcurrentHashMap<>();
+    private static final ConcurrentMap<Long, List<Session>> sessionsIndexedByUser = new ConcurrentHashMap<>();
 
     private final MenuOrchestrationService menuService;
 
@@ -49,7 +50,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     @Override
     public Session save(@NonNull Session session) {
         sessions.put(session.getId(), session);
-        indexByUser(session.getUser(), session);
+        indexByUser(session.getBotRole().getUser(), session);
         return session;
     }
 
@@ -60,21 +61,18 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     }
 
     @Override
-    @Scheduled(initialDelay = INITIAL_EXPIRY_CHECK_DELAY,
-            fixedDelayString = "${telegram.bot.message.session.schedule.delay}")
     public void removeExpired() {
         LOGGER.trace("Checking for expired sessions...");
         List<UUID> keysToRemove = new ArrayList<>();
 
         for (Entry<UUID, Session> entry : sessions.entrySet()) {
-            if (LocalDateTime.now().isAfter(entry.getValue()
-                    .getTimestamp().plusSeconds(expiration))) {
+            if (LocalDateTime.now().isAfter(entry.getValue().getTimestamp().plusSeconds(expiration))) {
                 if (entry.getValue() instanceof ContentSession) {
                     try {
                         menuService.terminateMenuGroup(MenuTerminationGroupKey.COMMIT_CONTENT, localizationLoader
-                                .localize(Menu.COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE, entry.getValue().getUser()),
+                                .localize(Menu.COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE, entry.getValue().getBotRole()),
                                 entry.getValue().getId());
-                        LOGGER.debug("An menu group for session " + entry.getValue().getId()
+                        LOGGER.debug("A menu group for session " + entry.getValue().getId()
                                 + " has been terminated after the session expired.");
                     } catch (EntityNotFoundException e) {
                         LOGGER.debug("There is no menu group for session "
@@ -102,7 +100,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
         
         if (userSessions != null) {
             final List<UUID> keysToRemove = userSessions.stream()
-                    .filter(s -> s.getBot().equals(bot)).map(s -> s.getId()).toList();
+                    .filter(s -> s.getBotRole().getBot().equals(bot)).map(s -> s.getId()).toList();
             for (UUID key : keysToRemove) {
                 removeFromIndexedSessions(sessions.remove(key));
             }
@@ -115,7 +113,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
 
         if (userSessions != null) {
             final List<UUID> keysToRemove = userSessions.stream()
-                    .filter(s -> s.getBot().equals(bot)
+                    .filter(s -> s.getBotRole().getBot().equals(bot)
                         && s.getClass().equals(ContentSession.class))
                     .map(s -> s.getId()).toList();
             for (UUID key : keysToRemove) {
@@ -131,7 +129,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
 
         if (userSessions != null) {
             final List<UUID> keysToRemove = userSessions.stream()
-                    .filter(s -> s.getBot().equals(bot)
+                    .filter(s -> s.getBotRole().getBot().equals(bot)
                         && s.getClass().equals(ContentSession.class)
                         && ((ContentSession)s).isSkippingConfirmation())
                     .map(s -> s.getId()).toList();
@@ -148,7 +146,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
 
         if (userSessions != null) {
             final List<UUID> keysToRemove = userSessions.stream()
-                    .filter(s -> s.getBot().equals(bot)
+                    .filter(s -> s.getBotRole().getBot().equals(bot)
                         && s.getClass().equals(UserOrChatRequestSession.class))
                     .map(s -> s.getId()).toList();
             for (UUID key : keysToRemove) {
@@ -162,7 +160,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     public List<Session> findForUserInBot(@NonNull Long userId, @NonNull Bot bot) {
         final List<Session> sessions = sessionsIndexedByUser.get(userId);
         return (sessions != null) ? sessions.stream()
-                .filter(s -> s.getBot().equals(bot)).toList() : new ArrayList<>();
+                .filter(s -> s.getBotRole().getBot().equals(bot)).toList() : new ArrayList<>();
     }
 
     private void indexByUser(UserEntity user, Session session) {
@@ -182,13 +180,13 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
     }
 
     private void removeFromIndexedSessions(Session session) {
-        final List<Session> sessions = sessionsIndexedByUser.get(session.getUser().getId());
+        final List<Session> sessions = sessionsIndexedByUser.get(session.getBotRole().getUser().getId());
         
         if (sessions == null) {
             return;
         }
         sessions.remove(session);
-        LOGGER.debug("Session for user " + session.getUser().getId()
+        LOGGER.debug("Session for user " + session.getBotRole().getUser().getId()
                 + " was removed from the index map.");
 
         final List<Long> usersWithNoSessions = new ArrayList<>();

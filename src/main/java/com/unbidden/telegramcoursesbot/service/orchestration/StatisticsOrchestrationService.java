@@ -7,15 +7,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
-import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.repository.UserRepository;
 import com.unbidden.telegramcoursesbot.model.RoleType;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.statistics.StatisticsService;
 
 import lombok.RequiredArgsConstructor;
@@ -39,67 +39,93 @@ public class StatisticsOrchestrationService {
 
     private final EntityUtil entityUtil;
 
-    public void sendBotStatistics(UserEntity user, Bot bot) {
-        final var params = statisticsService.getBotStatistics(bot);
+    public void sendBotStatistics(BotRole botRole) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        
+        final var params = statisticsService.getBotStatistics(botRole.getBot());
 
-        LOGGER.debug("All data fetched for statistics report on bot " + bot.getId()
-                + " for user " + user.getId() + ". Sending...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                Localizations.Service.BOT_STATISTICS_REPORT, user, params));
+        LOGGER.debug("All data fetched for statistics report on bot " + botRole.getBot().getId()
+                + " for user " + botRole.getUser().getId() + ". Sending...");
+        clientManager.sendMessage(botRole, localizationLoader.localize(
+                Localizations.Service.BOT_STATISTICS_REPORT, botRole, params));
         LOGGER.debug("Report sent.");
     }
 
-    public void sendBotUsers(UserEntity user, Bot bot) {
-        menuService.initiateMultipageList(user, bot,
+    public void sendBotUsers(BotRole botRole) {
+        Assert.notNull(botRole, "botRole cannot be null");
+
+        menuService.initiateMultipageList(botRole,
             p -> {
-                return localizationLoader.localize(Localizations.Service.BOT_USERS, user,
+                return localizationLoader.localize(Localizations.Service.BOT_USERS, botRole,
                         new Localizations.Service.BotUsersParams(p.currentPage(), p.numberOfPages(), p.numberOfElements(), p.data()));
             },
-            (p, q) -> userRepository.findByRoleType(bot.getId(), RoleType.USER, PageRequest.of(p, q)).map(u -> u.getFullUserInfo())
+            (p, q) -> userRepository.findByRoleType(botRole.getBot().getId(), RoleType.USER, PageRequest.of(p, q)).map(u -> u.getFullUserInfo())
         );
     }
 
-    public void sendCourseStatistics(UserEntity user, Bot bot, Long courseId) {
-        final var params = statisticsService.getCourseStatistics(user, bot, courseId);
+    public void sendCourseStatistics(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        final var params = statisticsService.getCourseStatistics(botRole, courseId);
 
         LOGGER.debug("All data fetched for statistics report on course " + courseId
-                + " for user " + user.getId() + ". Sending...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .localize(Localizations.Service.COURSE_STATISTICS_REPORT, user, params));
+                + " for user " + botRole.getUser().getId() + ". Sending...");
+        clientManager.sendMessage(botRole, localizationLoader
+                .localize(Localizations.Service.COURSE_STATISTICS_REPORT, botRole, params));
         LOGGER.debug("Report sent.");
     }
 
-    public void sendCourseUsers(UserEntity user, Bot bot, Long courseId) {
-        menuService.initiateMultipageList(user, bot,
+    public void sendCourseUsers(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        menuService.initiateMultipageList(botRole,
             p -> {
                 return localizationLoader.localize(Localizations.Service.COURSE_USERS,
-                    user, new Localizations.Service.CourseUsersParams(p.currentPage(), p.numberOfPages(), p.numberOfElements(), p.data(),
-                    contentService.getLocalizedText(user, bot, entityUtil.getCourseTitle(user, bot, courseId))));
+                    botRole, new Localizations.Service.CourseUsersParams(p.currentPage(), p.numberOfPages(), p.numberOfElements(), p.data(),
+                    contentService.getLocalizedText(botRole, entityUtil.getCourseTitle(botRole, courseId))));
             },
             (p, q) -> userRepository.findByActiveCourseOwnership(courseId, PageRequest.of(p, q)).map(u -> u.getFullUserInfo())
         );
     }
 
-    public void sendCourseCompletedUsers(UserEntity user, Bot bot, Long courseId) {
-        menuService.initiateMultipageList(user, bot,
+    public void sendCourseCompletedUsers(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        menuService.initiateMultipageList(botRole,
             p -> {
-                return localizationLoader.localize(
-                    Localizations.Service.COURSE_COMPLETED_USERS, user,
-                        new Localizations.Service.CourseCompletedUsersParams(p.currentPage(), p.numberOfPages(),
-                        p.numberOfElements(), p.data(), contentService.getLocalizedText(user, bot,
-                        entityUtil.getCourseTitle(user, bot, courseId))));
+                return localizationLoader.localize(Localizations.Service.COURSE_COMPLETED_USERS, botRole,
+                    new Localizations.Service.CourseCompletedUsersParams(
+                        p.currentPage(),
+                        p.numberOfPages(),
+                        p.numberOfElements(),
+                        p.data(),
+                        contentService.getLocalizedText(botRole, entityUtil.getCourseTitle(botRole, courseId))
+                    )
+                );
             },
             (p, q) -> userRepository.findAllCompletedCourse(courseId, PageRequest.of(p, q)).map(u -> u.getFullUserInfo())
         );
     }
 
-    public void sendCourseStageUsers(UserEntity user, Bot bot, Long courseId, int stage) {
-        menuService.initiateMultipageList(user, bot,
+    public void sendCourseStageUsers(BotRole botRole, Long courseId, int stage) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        menuService.initiateMultipageList(botRole,
             p -> {
-                return localizationLoader.localize(Localizations.Service.COURSE_STAGE_USERS, user,
-                    new Localizations.Service.CourseStageUsersParams(p.currentPage(), p.numberOfPages(),
-                    p.numberOfElements(), p.data(), contentService.getLocalizedText(user, bot,
-                        entityUtil.getCourseTitle(user, bot, courseId)), stage));
+                return localizationLoader.localize(Localizations.Service.COURSE_STAGE_USERS, botRole,
+                    new Localizations.Service.CourseStageUsersParams(
+                        p.currentPage(),
+                        p.numberOfPages(),
+                        p.numberOfElements(),
+                        p.data(), 
+                        contentService.getLocalizedText(botRole, entityUtil.getCourseTitle(botRole, courseId)),
+                        stage
+                    )
+                );
             },
             (p, q) -> userRepository.findAllAtCourseStage(courseId, stage, PageRequest.of(p, q)).map(u -> u.getFullUserInfo())
         );

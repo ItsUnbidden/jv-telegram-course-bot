@@ -4,8 +4,7 @@ import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dto.internal.SessionParamsDto;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.security.Security;
@@ -43,16 +42,16 @@ public class SetRoleButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.ROLE_SETTINGS)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final RoleType roleType = RoleType.valueOf(params.get(ROLE_TYPE_PARAM));
 
-        final var chooseUserSession = sessionService.createSession(user, bot, getSetRoleFunction(roleType));
+        final var chooseUserSession = sessionService.createSession(botRole, getSetRoleFunction(roleType));
         final KeyboardButtonRequestUser requestUserSetRole = KeyboardButtonRequestUser.builder()
                 .userIsBot(false)
                 .requestId(String.valueOf(chooseUserSession.getRequestId())).build();
         final KeyboardButton addButton = KeyboardButton.builder()
                 .requestUser(requestUserSetRole)
-                .text(localizationLoader.localize(Localizations.Button.SET_ROLE_CHOOSE_USER, user)
+                .text(localizationLoader.localize(Localizations.Button.SET_ROLE_CHOOSE_USER, botRole)
                     .getData())
                 .build();
         final KeyboardRow row = new KeyboardRow();
@@ -63,16 +62,17 @@ public class SetRoleButtonHandler extends AbstractButtonHandler {
                 .resizeKeyboard(true)
                 .keyboardRow(row)
                 .build();
-        LOGGER.debug("Sending keyboard message to user " + user.getId()
+                
+        LOGGER.debug("Sending keyboard message to user " + botRole.getUser().getId()
                 + " in order for them to choose the target.");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                Localizations.Service.SET_ROLE_USER_REQUEST, user), markup);
+        clientManager.sendMessage(botRole, localizationLoader.localize(
+                Localizations.Service.SET_ROLE_USER_REQUEST, botRole), markup);
         LOGGER.debug("Keyboard message sent.");
     }
 
     private Consumer<SessionParamsDto> getSetRoleFunction(RoleType roleType) {
         return p -> {
-            userService.setRole(p.user(), p.bot(), p.messages().getFirst().getUserShared().getUserId(), roleType);
+            userService.setRole(p.botRole(), p.messages().getFirst().getUserShared().getUserId(), roleType);
         };
     }
 }

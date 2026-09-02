@@ -3,8 +3,7 @@ package com.unbidden.telegramcoursesbot.menu.handler;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.orchestration.SupportOrchestrationService;
@@ -31,16 +30,16 @@ public class ReplyToSupportRequestButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.ANSWER_SUPPORT)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final Long requestId = Long.parseLong(params.get(REQUEST_ID_PARAM));
 
-        supportService.isUserEligibleForSupport(user, bot);
+        supportService.isUserEligibleForSupport(botRole);
 
-        sessionService.createSession(user, bot, p -> {
-            supportService.replyToSupportRequest(p.user(), p.bot(), requestId, p.messages());          
+        sessionService.createSession(botRole, p -> {
+            supportService.replyToSupportRequest(p.botRole(), requestId, p.messages());          
         });
 
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                Localizations.Service.SUPPORT_REQUEST_REPLY_REQUEST, user));
+        clientManager.sendMessage(botRole, localizationLoader.localize(
+                Localizations.Service.SUPPORT_REQUEST_REPLY_REQUEST, botRole));
     }
 }

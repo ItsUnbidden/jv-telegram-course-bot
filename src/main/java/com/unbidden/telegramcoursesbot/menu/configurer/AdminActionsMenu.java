@@ -43,18 +43,18 @@ public class AdminActionsMenu implements MenuConfigurer {
 
         page1.setPageIndex(0);
         page1.setColumns(2);
-        page1.setLocalizationFunction(p -> loader.localize(Localizations.Menu.ADMIN_ACTIONS_PAGE_0, p.user()));
+        page1.setLocalizationFunction(p -> loader.localize(Localizations.Menu.ADMIN_ACTIONS_PAGE_0, p.botRole()));
         page1.setButtonsFunction(p -> List.of(
-            new TransitoryButton(loader.localize(Localizations.Button.ADD_OR_REMOVE_ADMIN, p.user()).getData(), 1),
-            new TerminalButton(loader.localize(Localizations.Button.LIST_ADMINS, p.user()).getData(), listAdminsHandler),
-            new TerminalButton(loader.localize(Localizations.Button.TOGGLE_RECEIVE_HOMEWORK, p.user()).getData(), receiveHomeworkHandler),
-            new TransitoryButton(loader.localize(Localizations.Button.BAN_OPTIONS, p.user()).getData(), 2)
+            new TransitoryButton(loader.localize(Localizations.Button.ADD_OR_REMOVE_ADMIN, p.botRole()).getData(), 1),
+            new TerminalButton(loader.localize(Localizations.Button.LIST_ADMINS, p.botRole()).getData(), listAdminsHandler),
+            new TerminalButton(loader.localize(Localizations.Button.TOGGLE_RECEIVE_HOMEWORK, p.botRole()).getData(), receiveHomeworkHandler),
+            new TransitoryButton(loader.localize(Localizations.Button.BAN_OPTIONS, p.botRole()).getData(), 2)
         ));
         final Page page2 = new Page(adminActionsMenu);
 
         page2.setPageIndex(1);
         page2.setColumns(2);
-        page2.setLocalizationFunction(p -> loader.localize(Localizations.Menu.ADMIN_ACTIONS_PAGE_1, p.user()));
+        page2.setLocalizationFunction(p -> loader.localize(Localizations.Menu.ADMIN_ACTIONS_PAGE_1, p.botRole()));
         page2.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
 
@@ -63,7 +63,7 @@ public class AdminActionsMenu implements MenuConfigurer {
                     && !rt.equals(RoleType.CREATOR)
                     && !rt.equals(RoleType.BANNED))
                 .map(rt -> new TerminalButton(rt.toString(), rt.toString(), setRoleHandler)).toList());
-            buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData()));
+            buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData()));
             
             return buttons;
         });
@@ -71,21 +71,21 @@ public class AdminActionsMenu implements MenuConfigurer {
 
         page3.setPageIndex(2);
         page3.setColumns(1);
-        page3.setLocalizationFunction(p -> loader.localize(Localizations.Menu.ADMIN_ACTIONS_PAGE_2, p.user()));
+        page3.setLocalizationFunction(p -> loader.localize(Localizations.Menu.ADMIN_ACTIONS_PAGE_2, p.botRole()));
         page3.setButtonsFunction(p -> List.of(
-            new TransitoryButton(loader.localize(Localizations.Button.GIVE_BAN, p.user()).getData(), IS_GIVE_BAN_PARAM, String.valueOf(true), 3),
-            new TransitoryButton(loader.localize(Localizations.Button.LIFT_BAN, p.user()).getData(), IS_GIVE_BAN_PARAM, String.valueOf(false), 3),
-            new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData())
+            new TransitoryButton(loader.localize(Localizations.Button.GIVE_BAN, p.botRole()).getData(), IS_GIVE_BAN_PARAM, String.valueOf(true), 3),
+            new TransitoryButton(loader.localize(Localizations.Button.LIFT_BAN, p.botRole()).getData(), IS_GIVE_BAN_PARAM, String.valueOf(false), 3),
+            new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData())
         ));
         final Page page4 = new Page(adminActionsMenu);
 
         page4.setPageIndex(3);
         page4.setColumns(2);
-        page4.setLocalizationFunction(p -> loader.localize(Localizations.Menu.ADMIN_ACTIONS_PAGE_3, p.user()));
+        page4.setLocalizationFunction(p -> loader.localize(Localizations.Menu.ADMIN_ACTIONS_PAGE_3, p.botRole()));
         page4.setButtonsFunction(p -> List.of(
-            new TerminalButton(loader.localize(Localizations.Button.BY_ID, p.user()).getData(), IS_BY_ID_PARAM, String.valueOf(true), banHandler),
-            new TerminalButton(loader.localize(Localizations.Button.CHOOSE_USER, p.user()).getData(), IS_BY_ID_PARAM, String.valueOf(false), banHandler),
-            new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData())
+            new TerminalButton(loader.localize(Localizations.Button.BY_ID, p.botRole()).getData(), IS_BY_ID_PARAM, String.valueOf(true), banHandler),
+            new TerminalButton(loader.localize(Localizations.Button.CHOOSE_USER, p.botRole()).getData(), IS_BY_ID_PARAM, String.valueOf(false), banHandler),
+            new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData())
         ));
 
         adminActionsMenu.setPages(List.of(page1, page2, page3, page4));

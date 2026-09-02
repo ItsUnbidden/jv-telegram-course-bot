@@ -20,7 +20,7 @@ public class LessonTrigger extends TimedTrigger {
 
     @Override
     public String toString() {
-        return "LessonTrigger(id=" + getId() + ", userId=" + getUser().getId() + ", botId=" + getBot().getId()
-                + ", createdAt=" + getCreatedAt() + ", target=" + getTarget() + ", courseProgressId=" + progress.getId() + ")";
+        return "LessonTrigger(id=" + getId() + ", botRoleId=" + getBotRole().getId() + ", createdAt=" + getCreatedAt()
+                + ", target=" + getTarget() + ", courseProgressId=" + progress.getId() + ")";
     }
 }

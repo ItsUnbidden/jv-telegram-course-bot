@@ -3,8 +3,7 @@ package com.unbidden.telegramcoursesbot.menu.handler;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.orchestration.HomeworkOrchestrationService;
@@ -30,12 +29,12 @@ public class DeclineHomeworkButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.GIVE_HOMEWORK_FEEDBACK)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final Long progressId = Long.parseLong(params.get(PROGRESS_ID_PARAM));
                 
-        sessionService.createSession(user, bot, p -> homeworkService.decline(p.user(), p.bot(), progressId, p.messages()));
+        sessionService.createSession(botRole, p -> homeworkService.decline(p.botRole(), progressId, p.messages()));
 
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                Localizations.Service.DECLINE_HOMEWORK_COMMENT_REQUEST, user));
+        clientManager.sendMessage(botRole, localizationLoader.localize(
+                Localizations.Service.DECLINE_HOMEWORK_COMMENT_REQUEST, botRole));
     }
 }

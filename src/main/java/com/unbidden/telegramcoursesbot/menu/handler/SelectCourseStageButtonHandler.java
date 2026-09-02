@@ -4,8 +4,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.service.orchestration.CourseOrchestrationService;
 
 import lombok.RequiredArgsConstructor;
@@ -19,8 +18,8 @@ public class SelectCourseStageButtonHandler extends AbstractButtonHandler {
     private final CourseOrchestrationService courseService;
 
     @Override
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        courseService.selectStage(user, bot, Long.parseLong(params.get(COURSE_ID_PARAM)),
+    public void handle(BotRole botRole, Map<String, String> params) {
+        courseService.selectStage(botRole, Long.parseLong(params.get(COURSE_ID_PARAM)),
                 Integer.parseInt(params.get(LESSON_ID_PARAM)));
     }
 }

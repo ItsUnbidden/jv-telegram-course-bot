@@ -681,6 +681,13 @@ public final class Localizations {
         /**
          * Possible parameters:
          * <ls>
+         *  <li>numberOfMessages</li>
+         * </ls>
+         */
+        POST_STARTED("service_post_started"),
+        /**
+         * Possible parameters:
+         * <ls>
          *  <li>successes</li>
          *  <li>failures</li>
          * </ls>
@@ -779,9 +786,8 @@ public final class Localizations {
         COURSE_FEEDBACK_UPDATE_SUCCESS("service_course_feedback_update_success"),
         GENERAL_BAN_LIFTED_SUCCESS("service_general_ban_lifted_success"),
         GENERAL_BAN_SUCCESS("service_general_ban_success"),
-        GENERAL_POST_STARTED("service_general_post_started"),
-        GENERAL_POST_ROLES_REQUEST("service_general_post_roles_request"),
         GENERAL_POST_CONTENT_REQUEST("service_general_post_content_request"),
+        GENERAL_POST_CONTENT_AND_ROLES_REQUEST("service_general_post_content_and_roles_request"),
         GET_CONTENT_REQUEST("service_get_content_request"),
         /**
          * Possible parameters:
@@ -1045,6 +1051,14 @@ public final class Localizations {
          */
         COURSE_COMPLETED_DEFAULT("service_course_completed_default"),
         COURSE_NEXT_STAGE_MEDIA_GROUP_BYPASS("service_course_next_stage_media_group_bypass"),
+        NO_PENDING_HOMEWORKS_IN_BOT,
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        NO_PENDING_HOMEWORKS_FOR_COURSE,
         YES,
         NO;
 
@@ -1113,6 +1127,7 @@ public final class Localizations {
         public static record CourseUsersParams(int currentPage, int numberOfPages, long numberOfElements, String data, String courseName) {}
         public static record CourseStageUsersParams(int currentPage, int numberOfPages, long numberOfElements, String data, String courseName, int stage) {}
         public static record PrivateMessageInfoParams(String senderFullName, String title) {}
+        public static record PostStartedParams(long numberOfMessages) {}
         public static record PostCompletedParams(int successes, int failures) {}
         public static record OnMaintenanceStatusChangeParams(String status) {}
         public static record CourseFeedbackUpdateSuccessParams(String status, String courseName) {}
@@ -1156,6 +1171,7 @@ public final class Localizations {
         public static record NewRefundStageSuccessParams(String courseName, String newRefundStage) {}
         public static record HomeworkContentUpdatedParams(long homeworkId, long mappingId) {}
         public static record CourseCompletedDefaultParams(String courseName) {}
+        public static record NoPendingHomeworksForCourseParams(String courseName) {}
     }
     
     public static enum Error implements LocalizationKey {
@@ -1518,6 +1534,9 @@ public final class Localizations {
         COURSE_VALIDATION_NO_CONTENT_IN_LESSON("error_course_validation_no_content_in_lesson"),
         DIRECTOR_BAN("error_director_ban"),
         SEND_MESSAGE,
+        GENERAL_BAN_NO_BOT_ROLES,
+        SEND_EXTERNAL_INVOICE,
+        MAPPING_ONE_CONTENT,
         POST_REQUEST_FAILURE;
         
         private String locName;
@@ -1538,9 +1557,7 @@ public final class Localizations {
         public static record MessageTextMissingParams(int messageIndex) {}
         public static record NumberOfMessagesParams(int providedMessagesNumber, int expectedMessagesNumber) {}
         public static record AtLeastNumberOfMessagesParams(int providedMessagesNumber, int expectedMessagesNumber) {}
-        public static record NoExceptionLocalizationAvailableParams(String excMessage, String excClassName) {}
         public static record TelegramInternalParams(String excMessage) {}
-        public static record UnspecifiedExceptionParams(String excMessage, String excClassName) {}
         public static record CriticalDirectorNotificationParams(String excMessage, String excClassName, long userId, long botId) {}
         public static record ContentMediaGroupDoesNotMatchParams(MediaType sentContentMediaType, List<MediaType> allowedMediaTypes) {}
         public static record AccessDeniedParams(List<AuthorityType> missingAuthorities) {}

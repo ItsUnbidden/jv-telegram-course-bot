@@ -3,8 +3,7 @@ package com.unbidden.telegramcoursesbot.bot;
 import com.unbidden.telegramcoursesbot.dao.CertificateDao;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.Role;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
@@ -28,10 +27,10 @@ public class RegularClient extends CustomTelegramClient {
 
     private final Integer maxConnections;
 
-    public RegularClient(Bot bot,  LocalizationLoader loader, CertificateDao dao,
+    public RegularClient(Long botId, String botToken, LocalizationLoader loader, CertificateDao dao,
             CommandHandlerManager commandHandlerManager, EntityUtil entityUtil, String baseUrl,
             String secretToken, @Nullable String ip, int maxConnections, boolean isCustomCertificateIncluded) {
-        super(bot, loader, dao, baseUrl, secretToken,
+        super(botId, botToken, loader, dao, baseUrl, secretToken,
                 ip, isCustomCertificateIncluded);
         this.commandHandlerManager = commandHandlerManager;
         this.entityUtil = entityUtil;
@@ -41,46 +40,42 @@ public class RegularClient extends CustomTelegramClient {
     }
 
     public void reloadMenus() {
-        logger.debug("Initializing command menus for bot " + bot.getId() + "...");
+        logger.debug("Initializing command menus for bot " + botId + "...");
         setUpMenuButton();
 
         localizationLoader.getAvailableLanguageCodes().forEach(c -> setUpUserMenu(c));
-        final UserEntity director = entityUtil.getDiretor();
+        final UserEntity director = entityUtil.getDirector();
 
-        setUpMenuForUserForRole(director, entityUtil.getRole(RoleType.DIRECTOR));
-        final UserEntity creator = entityUtil.getCreator(bot);
+        setUpMenuForUserForRole(entityUtil.getDirectorBotRole(botId));
+        final BotRole creatorRole = entityUtil.getCreator(botId);
 
-        if (!creator.getId().equals(director.getId())) {
-            setUpMenuForUserForRole(entityUtil.getCreator(bot),
-                    entityUtil.getRole(RoleType.CREATOR));
+        if (!creatorRole.getUser().getId().equals(director.getId())) {
+            setUpMenuForUserForRole(creatorRole);
         }
     
-        final Role supportRole = entityUtil.getRole(RoleType.SUPPORT);
-        entityUtil.getSupport(bot).forEach(s -> setUpMenuForUserForRole(s, supportRole));
-
-        final Role mentorRole = entityUtil.getRole(RoleType.MENTOR);
-        entityUtil.getMentors(bot).forEach(m -> setUpMenuForUserForRole(m, mentorRole));
+        entityUtil.getSupport(botId).forEach(s -> setUpMenuForUserForRole(s));
+        entityUtil.getMentors(botId).forEach(m -> setUpMenuForUserForRole(m));
         
-        logger.debug("Command menus have been initialized for bot " + bot.getId() + ".");
+        logger.debug("Command menus have been initialized for bot " + botId + ".");
     }
 
-    public void setUpMenuForUserForRole(UserEntity user, Role role) {
+    public void setUpMenuForUserForRole(BotRole botRole) {
         final List<String> languageCodes = localizationLoader.getAvailableLanguageCodes();
 
         for (String code : languageCodes) {
             final SetMyCommands setMyCommands = SetMyCommands.builder()
-                    .commands(parseToBotCommands(commandHandlerManager.getCommandsForRole(role).stream()
+                    .commands(parseToBotCommands(commandHandlerManager.getCommandsForRole(botRole.getRole()).stream()
                         .filter(c -> !BOT_LORD_COMMANDS.contains(c))
-                        .toList(), code))
+                        .toList(), code, botRole.getBot().languagesToList()))
                     .languageCode(code)
-                    .scope(BotCommandScopeChat.builder().chatId(user.getId()).build())
+                    .scope(BotCommandScopeChat.builder().chatId(botRole.getUser().getId()).build())
                     .build();
             try {
                 execute(setMyCommands);
             } catch (TelegramApiException e) {
-                throw new TelegramException("Unable to set up " + bot.getId()
-                        + " bot's command menu for role " + role.getType() + " for user "
-                        + user.getId(), null, e);
+                throw new TelegramException("Unable to set up " + botId
+                        + " bot's command menu for role " + botRole.getRole().getType() + " for user "
+                        + botRole.getUser().getId(), null, e);
             }
         }
     }
@@ -96,8 +91,7 @@ public class RegularClient extends CustomTelegramClient {
             try {
                 execute(deleteMyCommands);
             } catch (TelegramApiException e) {
-                throw new TelegramException("Unable to remove " + bot.getId()
-                        + " bot's command menu for user "
+                throw new TelegramException("Unable to remove " + botId + " bot's command menu for user "
                         + user.getId(), null, e);
             }
         }
@@ -108,20 +102,19 @@ public class RegularClient extends CustomTelegramClient {
                 .commands(parseToBotCommands(commandHandlerManager.getCommandsForRole(
                     entityUtil.getRole(RoleType.USER)).stream()
                         .filter(c -> !BOT_LORD_COMMANDS.contains(c))
-                        .toList(), languageCode))
+                        .toList(), languageCode, entityUtil.getBot(botId).languagesToList()))
                 .scope(BotCommandScopeDefault.builder().build())
                 .languageCode(languageCode)
                 .build();
         try {
             execute(setMyCommands);
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to set up " + bot.getId()
-                    + " bot's default menu", null, e);
+            throw new TelegramException("Unable to set up " + botId + " bot's default menu", null, e);
         }
     }
 
     protected void initialize() {
-        super.initialize(URL.formatted(bot.getId()), maxConnections);
+        super.initialize(URL.formatted(botId), maxConnections);
         
         reloadMenus();
     }

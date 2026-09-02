@@ -43,20 +43,20 @@ public class ReviewActionsMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setColumns(1);
         page.setButtonsFunction(p -> {
-            final Review review = entityUtil.getReviewById(p.user(), p.bot(), Long.parseLong(p.params().get(REVIEW_ID_PARAM)));
+            final Review review = entityUtil.getReviewById(p.botRole(), Long.parseLong(p.params().get(REVIEW_ID_PARAM)));
             final List<Button> buttons = new ArrayList<>();
 
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.MARK_REVIEW_AS_READ, p.user()).getData(), markReviewAsReadHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.MARK_REVIEW_AS_READ, p.botRole()).getData(), markReviewAsReadHandler));
             
             if (review.getCommentContent() != null) {
-                buttons.add(new TerminalButton(loader.localize(Localizations.Button.GET_REVIEW_COMMENT, p.user()).getData(),
+                buttons.add(new TerminalButton(loader.localize(Localizations.Button.GET_REVIEW_COMMENT, p.botRole()).getData(),
                         review.getCommentContent().getId().toString(), getReviewCommentHandler));
 
-                if (review.getCommentedBy().getId().equals(p.user().getId())) {
-                    buttons.add(new TerminalButton(loader.localize(Localizations.Button.UPDATE_COMMENT, p.user()).getData(), updateReviewCommentHandler));
+                if (review.getCommentedBy().getId().equals(p.botRole().getId())) {
+                    buttons.add(new TerminalButton(loader.localize(Localizations.Button.UPDATE_COMMENT, p.botRole()).getData(), updateReviewCommentHandler));
                 }
             } else {
-                buttons.add(new TerminalButton(loader.localize(Localizations.Button.LEAVE_REVIEW_COMMENT, p.user()).getData(), leaveReviewCommentHandler));
+                buttons.add(new TerminalButton(loader.localize(Localizations.Button.LEAVE_REVIEW_COMMENT, p.botRole()).getData(), leaveReviewCommentHandler));
             }
 
             return buttons;

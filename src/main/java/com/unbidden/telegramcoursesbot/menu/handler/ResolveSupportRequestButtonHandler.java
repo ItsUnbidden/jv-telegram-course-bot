@@ -4,8 +4,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.service.orchestration.SupportOrchestrationService;
 
 import lombok.RequiredArgsConstructor;
@@ -18,7 +17,7 @@ public class ResolveSupportRequestButtonHandler extends AbstractButtonHandler {
     private final SupportOrchestrationService supportService;
 
     @Override
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        supportService.markAsResolved(user, bot, Long.parseLong(params.get(REQUEST_ID_PARAM)));
+    public void handle(BotRole botRole, Map<String, String> params) {
+        supportService.markAsResolved(botRole, Long.parseLong(params.get(REQUEST_ID_PARAM)));
     }
 }

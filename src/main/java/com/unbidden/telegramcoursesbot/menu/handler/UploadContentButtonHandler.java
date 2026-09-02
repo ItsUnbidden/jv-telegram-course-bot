@@ -4,8 +4,7 @@ import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.content.Content;
 import com.unbidden.telegramcoursesbot.security.Security;
@@ -31,18 +30,17 @@ public class UploadContentButtonHandler extends AbstractButtonHandler {
     
     @Override
     @Security(authorities = AuthorityType.MAINTENANCE)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        sessionService.createSession(user, bot, p -> {
-            final Content content = contentService.parseAndPersistContent(p.user(), p.bot(), p.messages());
+    public void handle(BotRole botRole, Map<String, String> params) {
+        sessionService.createSession(botRole, p -> {
+            final Content content = contentService.parseAndPersistContent(p.botRole(), p.messages());
 
             final Localization success = localizationLoader.localize(
-                    Localizations.Service.UPLOAD_CONTENT_SUCCESS, user,
+                    Localizations.Service.UPLOAD_CONTENT_SUCCESS, botRole,
                     new Localizations.Service.UploadContentSuccessParams(content.getId()));
-            clientManager.getClient(bot).sendMessage(user, success);
+            clientManager.sendMessage(botRole, success);
         });
-        final Localization request = localizationLoader.localize(
-                Localizations.Service.UPLOAD_CONTENT_REQUEST, user);
 
-        clientManager.getClient(bot).sendMessage(user, request);
+        clientManager.sendMessage(botRole, localizationLoader.localize(
+                Localizations.Service.UPLOAD_CONTENT_REQUEST, botRole));
     }
 }

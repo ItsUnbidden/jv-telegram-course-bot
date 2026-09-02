@@ -11,6 +11,7 @@ public interface VideoRepository extends JpaRepository<Video, String> {
     @Query("""
         select distinct v
         from Video v
+        left join fetch v.thumbnail th
         where exists(
             select 1
             from GraphicsContent gc

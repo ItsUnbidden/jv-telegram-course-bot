@@ -48,16 +48,16 @@ public class LeaveBasicReviewMenu implements MenuConfigurer {
 
         firstPage.setPageIndex(0);
         firstPage.setColumns(5);
-        firstPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.LEAVE_BASIC_REVIEW_PAGE_0, p.user()));
+        firstPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.LEAVE_BASIC_REVIEW_PAGE_0, p.botRole()));
         firstPage.setButtonsFunction(p -> COURSE_GRADE_BUTTONS);
 
         final Page terminalPage = new Page(menu);
 
         terminalPage.setPageIndex(2);
         terminalPage.setLocalizationFunction(p -> {
-            final CourseResponseDto dto = courseService.getById(p.user(), p.bot(), Long.parseLong(p.params().get(COURSE_ID_PARAM)));
+            final CourseResponseDto dto = courseService.getById(p.botRole(), Long.parseLong(p.params().get(COURSE_ID_PARAM)));
 
-            return loader.localize(Localizations.Menu.LEAVE_BASIC_REVIEW_TERMINAL_PAGE, p.user(),
+            return loader.localize(Localizations.Menu.LEAVE_BASIC_REVIEW_TERMINAL_PAGE, p.botRole(),
                     new Localizations.Menu.LeaveBasicReviewTerminalPageParams(dto.getLocalizedTitle()));
         });
 

@@ -11,6 +11,7 @@ public interface AudioRepository extends JpaRepository<Audio, String> {
     @Query("""
         select distinct a
         from Audio a
+        left join fetch a.thumbnail th
         where exists(
             select 1
             from AudioContent ac

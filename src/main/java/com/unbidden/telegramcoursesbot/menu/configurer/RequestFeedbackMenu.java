@@ -35,8 +35,8 @@ public class RequestFeedbackMenu implements MenuConfigurer {
         page1.setPageIndex(0);
         page1.setColumns(1);
         page1.setButtonsFunction(p -> List.of(
-            new TerminalButton(localizationLoader.localize(Localizations.Button.DECLINE_HOMEWORK, p.user()).getData(), declineHandler),
-            new TransitoryButton(localizationLoader.localize(Localizations.Button.GENERAL_ACCEPT_HOMEWORK, p.user()).getData(), 1)
+            new TerminalButton(localizationLoader.localize(Localizations.Button.DECLINE_HOMEWORK, p.botRole()).getData(), declineHandler),
+            new TransitoryButton(localizationLoader.localize(Localizations.Button.GENERAL_ACCEPT_HOMEWORK, p.botRole()).getData(), 1)
         ));
                 
         final Page page2 = new Page(menu);
@@ -44,11 +44,11 @@ public class RequestFeedbackMenu implements MenuConfigurer {
         page2.setPageIndex(1);
         page2.setColumns(1);
         page2.setButtonsFunction(p -> List.of(
-            new TerminalButton(localizationLoader.localize(Localizations.Button.ACCEPT_HOMEWORK, p.user()).getData(),
+            new TerminalButton(localizationLoader.localize(Localizations.Button.ACCEPT_HOMEWORK, p.botRole()).getData(),
                     WITH_COMMENT_PARAM, String.valueOf(false), acceptHandler),
-            new TerminalButton(localizationLoader.localize(Localizations.Button.ACCEPT_HOMEWORK_WITH_COMMENT, p.user()).getData(),
+            new TerminalButton(localizationLoader.localize(Localizations.Button.ACCEPT_HOMEWORK_WITH_COMMENT, p.botRole()).getData(),
                     WITH_COMMENT_PARAM, String.valueOf(true), acceptHandler),
-            new BackwardButton(localizationLoader.localize(Localizations.Button.BACK, p.user()).getData())
+            new BackwardButton(localizationLoader.localize(Localizations.Button.BACK, p.botRole()).getData())
         ));
 
         menu.setPages(List.of(page1, page2));

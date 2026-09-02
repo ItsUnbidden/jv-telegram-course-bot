@@ -10,9 +10,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import com.unbidden.telegramcoursesbot.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.LinkButton;
-import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.MenuSnapshotButton;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 
 @Component
 public class KeyboardUtil {
@@ -34,8 +32,7 @@ public class KeyboardUtil {
         return rows;
     }
 
-    public InlineKeyboardMarkup getMarkup(UserEntity user, Bot bot, Page page,
-            List<MenuSnapshotButton> snapshotButtons, List<Button> buttons) {
+    public InlineKeyboardMarkup getMarkup(Page page, List<MenuSnapshotButton> snapshotButtons, List<Button> buttons) {
         final List<InlineKeyboardButton> inlineButtons = new ArrayList<>();
 
         for (int i = 0; i < buttons.size(); ++i) {

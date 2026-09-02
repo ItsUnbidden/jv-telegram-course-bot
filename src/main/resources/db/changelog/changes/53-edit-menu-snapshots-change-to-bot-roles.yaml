@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-menu-snapshots-change-to-bot-roles
+      author: Unbidden
+      changes:
+        - delete:
+            tableName: menu_snapshot_buttons
+        - delete:
+            tableName: menu_snapshots
+        - dropForeignKeyConstraint:
+            baseTableName: menu_snapshots
+            constraintName: fk_users_menu_snapshots
+        - dropForeignKeyConstraint:
+            baseTableName: menu_snapshots
+            constraintName: fk_bots_menu_snapshots
+        - dropColumn:
+            tableName: menu_snapshots
+            columnName: bot_id
+        - dropColumn:
+            tableName: menu_snapshots
+            columnName: user_id
+        - addColumn:
+            tableName: menu_snapshots
+            columns:
+              - column:
+                  name: bot_role_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bot_roles_snapshots
+                    references: bot_roles(id)

@@ -33,16 +33,16 @@ public class CommitContentMenu implements MenuConfigurer {
 
         page.setPageIndex(0);
         page.setColumns(2);
-        page.setLocalizationFunction(p -> loader.localize(Localizations.Menu.COMMIT_CONTENT_PAGE_0, p.user()));
+        page.setLocalizationFunction(p -> loader.localize(Localizations.Menu.COMMIT_CONTENT_PAGE_0, p.botRole()));
         page.setButtonsFunction(p -> List.of(
-            new TerminalButton(loader.localize(Localizations.Button.CONFIRM_SEND_CONTENT, p.user()).getData(), commitSessionButtonHandler),
-            new TerminalButton(loader.localize(Localizations.Button.RESEND_CONTENT, p.user()).getData(), resendSessionButtonHandler),
-            new TerminalButton(loader.localize(Localizations.Button.CANCEL_SESSION, p.user()).getData(), cancelSessionButtonHandler)
+            new TerminalButton(loader.localize(Localizations.Button.CONFIRM_SEND_CONTENT, p.botRole()).getData(), commitSessionButtonHandler),
+            new TerminalButton(loader.localize(Localizations.Button.RESEND_CONTENT, p.botRole()).getData(), resendSessionButtonHandler),
+            new TerminalButton(loader.localize(Localizations.Button.CANCEL_SESSION, p.botRole()).getData(), cancelSessionButtonHandler)
         ));
 
         final Page terminalPage = new Page(menu);
 
-        terminalPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.COMMIT_CONTENT_TERMINAL_PAGE, p.user()));
+        terminalPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.COMMIT_CONTENT_TERMINAL_PAGE, p.botRole()));
 
         menu.setPages(List.of(page));
         menu.setTerminalPage(terminalPage);

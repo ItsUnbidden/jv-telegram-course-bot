@@ -11,6 +11,7 @@ public interface DocumentRepository extends JpaRepository<Document, String> {
     @Query("""
         select distinct d
         from Document d
+        left join fetch d.thumbnail th
         where exists(
             select 1
             from DocumentContent dc

@@ -4,8 +4,7 @@ import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.security.SecurityService;
@@ -14,7 +13,9 @@ import com.unbidden.telegramcoursesbot.service.orchestration.CourseOrchestration
 
 import java.util.Arrays;
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -39,15 +40,15 @@ public class StartCommandHandler implements CommandHandler {
 
     @Override
     @Security(authorities = AuthorityType.INFO)
-    public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
-        LOGGER.info("User " + user.getId() + " triggered the /start command.");
-        if (bot.getStart() == null) {
-            LOGGER.info("There is no custom start message for bot " + bot.getId() + ". A default localization will be sent.");
-            clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                    Localizations.Service.NO_START, user));
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        LOGGER.info("User " + botRole.getUser().getId() + " triggered the /start command.");
+        if (botRole.getBot().getStart() == null) {
+            LOGGER.info("There is no custom start message for bot " + botRole.getBot().getId() + ". A default localization will be sent.");
+            clientManager.sendMessage(botRole, localizationLoader.localize(
+                    Localizations.Service.NO_START, botRole));
         } else {
-            LOGGER.debug("Sending /start message to user " + user.getId() + "...");
-            contentService.sendLocalizedContent(user, bot, bot.getStart().getId());
+            LOGGER.debug("Sending /start message to user " + botRole.getUser().getId() + "...");
+            contentService.sendLocalizedContent(botRole, botRole.getBot().getStart().getId());
         }
         LOGGER.debug("Message sent.");
 
@@ -57,14 +58,13 @@ public class StartCommandHandler implements CommandHandler {
 
             switch (commandParts[1]) {
                 case "course" -> {
-                    if (securityService.grantAccess(user, bot, AuthorityType.LAUNCH_COURSE,
-                            AuthorityType.BUY)) {
+                    if (securityService.grantAccess(botRole, AuthorityType.LAUNCH_COURSE, AuthorityType.BUY)) {
                         try {
-                            courseService.initCourse(user, bot, Long.parseLong(commandParts[2]));
+                            courseService.initCourse(botRole, Long.parseLong(commandParts[2]));
                         } catch (NumberFormatException e) {
                             throw new InvalidDataSentException("Failed to parse course id in a command sent by user "
-                                    + user.getId() + ". Supplied value: " + commandParts[2], localizationLoader
-                                    .localize(Localizations.Error.PARSE_ID_FAILURE, user));
+                                    + botRole.getUser().getId() + ". Supplied value: " + commandParts[2], localizationLoader
+                                    .localize(Localizations.Error.PARSE_ID_FAILURE, botRole));
                         }
                     }
                 }
@@ -73,8 +73,8 @@ public class StartCommandHandler implements CommandHandler {
                 }
                 default -> {
                     throw new InvalidDataSentException("Unknown command parameter was sent: "
-                            + commandParts[1] + " by user " + user.getId() + ".", localizationLoader
-                            .localize(Localizations.Error.INVALID_START_PARAM, user));
+                            + commandParts[1] + " by user " + botRole.getUser().getId() + ".", localizationLoader
+                            .localize(Localizations.Error.INVALID_START_PARAM, botRole));
                 }
             }
         }

@@ -1,8 +1,7 @@
 package com.unbidden.telegramcoursesbot.menu.handler;
 
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.orchestration.StatisticsOrchestrationService;
 
@@ -29,27 +28,27 @@ public class StatisticsButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.STATISTICS)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final String type = params.get(TYPE_PARAM);
 
         switch (type) {
             case BOT_GENERAL:
-                statisticsService.sendBotStatistics(user, bot);
+                statisticsService.sendBotStatistics(botRole);
                 break;
             case BOT_USERS:
-                statisticsService.sendBotUsers(user, bot);
+                statisticsService.sendBotUsers(botRole);
                 break;
             case COURSE_GENERAL:
-                statisticsService.sendCourseStatistics(user, bot, Long.parseLong(params.get(COURSE_ID_PARAM)));
+                statisticsService.sendCourseStatistics(botRole, Long.parseLong(params.get(COURSE_ID_PARAM)));
                 break;
             case COURSE_ALL_USERS:
-                statisticsService.sendCourseUsers(user, bot, Long.parseLong(params.get(COURSE_ID_PARAM)));
+                statisticsService.sendCourseUsers(botRole, Long.parseLong(params.get(COURSE_ID_PARAM)));
                 break;
             case COURSE_COMPLETED_USERS:
-                statisticsService.sendCourseCompletedUsers(user, bot, Long.parseLong(params.get(COURSE_ID_PARAM)));
+                statisticsService.sendCourseCompletedUsers(botRole, Long.parseLong(params.get(COURSE_ID_PARAM)));
                 break;
             default:
-                statisticsService.sendCourseStageUsers(user, bot, Long.parseLong(params.get(COURSE_ID_PARAM)), Integer.parseInt(params.get(COURSE_STAGE_PARAM)));
+                statisticsService.sendCourseStageUsers(botRole, Long.parseLong(params.get(COURSE_ID_PARAM)), Integer.parseInt(params.get(COURSE_STAGE_PARAM)));
         }
     }
 }

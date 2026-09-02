@@ -1,12 +1,14 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
+
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
@@ -20,9 +22,9 @@ public class TestCommandHandler implements CommandHandler {
 
     @Override
     @Security(authorities = AuthorityType.MAINTENANCE)
-    public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
-        clientManager.getClient(bot).sendMessage(SendMessage.builder()
-                .chatId(user.getId())
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        clientManager.sendMessage(botRole, SendMessage.builder()
+                .chatId(botRole.getUser().getId())
                 .text("This is a test command. It currently does nothing🙃.")
                 .build());
     }

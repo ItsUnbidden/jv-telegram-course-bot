@@ -3,8 +3,7 @@ package com.unbidden.telegramcoursesbot.menu.handler;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
@@ -32,18 +31,17 @@ public class GetContentButtonHandler extends AbstractButtonHandler {
     
     @Override
     @Security(authorities = AuthorityType.CONTENT_SETTINGS)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        sessionService.createSession(user, bot, p -> {
-            validatorUtil.checkExactExpectedMessages(p.user(), p.messages(), 1);
-            final Long contentId = validatorUtil.parseId(p.user(), p.messages().getFirst());
+    public void handle(BotRole botRole, Map<String, String> params) {
+        sessionService.createSession(botRole, p -> {
+            validatorUtil.checkExactExpectedMessages(p.botRole(), p.messages(), 1);
+            final Long contentId = validatorUtil.parseId(p.botRole(), p.messages().getFirst());
 
-            contentService.sendContent(p.user(), p.bot(), contentId);
-            clientManager.getClient(p.bot()).sendMessage(p.user(), loader.localize(
-                    Localizations.Service.GET_CONTENT_SUCCESS, p.user(),
+            contentService.sendContent(p.botRole(), contentId);
+            clientManager.sendMessage(p.botRole(), loader.localize(
+                    Localizations.Service.GET_CONTENT_SUCCESS, p.botRole(),
                     new Localizations.Service.GetContentSuccessParams(contentId)));
         }, true);
 
-        clientManager.getClient(bot).sendMessage(user, loader.localize(
-                Localizations.Service.GET_CONTENT_REQUEST, user));
+        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.GET_CONTENT_REQUEST, botRole));
     }
 }

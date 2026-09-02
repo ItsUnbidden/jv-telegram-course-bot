@@ -7,8 +7,7 @@ import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 import com.unbidden.telegramcoursesbot.model.content.Document;
 import com.unbidden.telegramcoursesbot.model.content.DocumentContent;
@@ -49,26 +48,26 @@ public class LocalizationFileUploadButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.MAINTENANCE, isBotLordOnly = true)
-    public void handle(UserEntity director, Bot botlord, Map<String, String> params) {
-        sessionService.createSession(director, botlord, p -> {
-            LOGGER.info("Director " + p.user().getId() + " is trying to update application "
+    public void handle(BotRole botRole, Map<String, String> params) {
+        sessionService.createSession(botRole, p -> {
+            LOGGER.info("Director " + p.botRole().getUser().getId() + " is trying to update application "
                     + "localizations files.");
 
-            validatorUtil.checkAtLeastExpectedMessages(director, p.messages(), 2);
-            if (!validatorUtil.checkLanguageCode(director, p.messages().getLast())) {
+            validatorUtil.checkAtLeastExpectedMessages(p.botRole(), p.messages(), 2);
+            if (!validatorUtil.checkLanguageCode(p.botRole(), p.messages().getLast())) {
                 throw new InvalidDataSentException("Uploading new localization files requires specifying the localization code.",
-                        localizationLoader.localize(Localizations.Error.LANGUAGE_CODE_REQUIRED, director));
+                        localizationLoader.localize(Localizations.Error.LANGUAGE_CODE_REQUIRED, p.botRole()));
             }
             final String languageCode = p.messages().getLast().getText().trim();
             final DocumentContent content = (DocumentContent)contentService
-                    .parseAndPersistContent(director, botlord, p.messages(), List.of(MediaType.DOCUMENT));
+                    .parseAndPersistContent(p.botRole(), p.messages(), List.of(MediaType.DOCUMENT));
 
             LOGGER.debug("Content " + content.getId() + " will be used for localization files. "
                     + "There are " + content.getDocuments().size() + " documents present.");
             
             localizationDao.createLanguageSubDir(languageCode);
             for (final Document document : content.getDocuments()) {
-                validatorUtil.checkIfDocumentIsALocalization(director, document);
+                validatorUtil.checkIfDocumentIsALocalization(p.botRole(), document);
 
                 try {
                     final File file = clientManager.getBotLordClient().execute(new GetFile(document.getId()));
@@ -79,21 +78,21 @@ public class LocalizationFileUploadButtonHandler extends AbstractButtonHandler {
                     LOGGER.info("Localization file " + path.toString() + " has been updated.");
                 } catch (TelegramApiException e) {
                     throw new TelegramException("Unable to download file " + document.getId(),
-                            localizationLoader.localize(Localizations.Error.DOWNLOAD_FILE, director), e);
+                            localizationLoader.localize(Localizations.Error.DOWNLOAD_FILE, p.botRole()), e);
                 }
             }
             LOGGER.info(content.getDocuments().size() + " localization files have been updated.");
 
             LOGGER.debug("Sending confirmation message...");
-            clientManager.getBotLordClient().sendMessage(director, localizationLoader
-                    .localize(Localizations.Service.LOCALIZATION_FILES_UPDATED, director,
+            clientManager.sendMessage(p.botRole(), localizationLoader
+                    .localize(Localizations.Service.LOCALIZATION_FILES_UPDATED, p.botRole(),
                         new Localizations.Service.LocalizationFilesUpdatedParams(content.getDocuments().size())));
             LOGGER.debug("Message sent.");
         });
 
         LOGGER.debug("Sending request message...");
-        clientManager.getBotLordClient().sendMessage(director, localizationLoader
-                .localize(Localizations.Service.LOCALIZATION_FILES_REQUEST, director));
+        clientManager.sendMessage(botRole, localizationLoader
+                .localize(Localizations.Service.LOCALIZATION_FILES_REQUEST, botRole));
         LOGGER.debug("Message sent.");
     }
 }

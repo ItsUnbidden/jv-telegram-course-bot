@@ -3,12 +3,13 @@ package com.unbidden.telegramcoursesbot.service.command.handler;
 import com.unbidden.telegramcoursesbot.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.util.EntityUtil;
+import com.unbidden.telegramcoursesbot.model.BotRole;
+import com.unbidden.telegramcoursesbot.security.Security;
 
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
@@ -19,13 +20,10 @@ public class BotSettingsCommandHandler implements CommandHandler {
 
     private final MenuOrchestrationService menuService;
 
-    private final EntityUtil entityUtil;
-
     @Override
-    public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
-        entityUtil.checkBotLord(user, bot);
-
-        menuService.initiateMenu(user, bot, MenuKey.BOT);
+    @Security(authorities = AuthorityType.MAINTENANCE, isBotLordOnly = true)
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        menuService.initiateMenu(botRole, MenuKey.BOT);
     }
 
     @Override

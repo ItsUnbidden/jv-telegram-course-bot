@@ -27,9 +27,9 @@ public class BanTriggerExecutor implements TriggerExecutor {
         
         for (final BanTrigger trigger : triggers) {
             if (trigger.isGeneral()) {
-                userService.liftGeneralBan(trigger.getUser().getId());
+                userService.liftGeneralBan(trigger.getBotRole());
             } else {
-                userService.liftBanInBot(trigger.getBot(), trigger.getUser());
+                userService.liftBanInBot(trigger.getBotRole());
             }
         }
 

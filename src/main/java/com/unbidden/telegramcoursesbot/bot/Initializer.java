@@ -27,20 +27,19 @@ public class Initializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        // Initializing director
+        LOGGER.info("Initializing director...");
         final UserEntity director = userService.createDummyDirector();
-
-        // Initializing bot lord and its client
+        
+        LOGGER.info("Director has been initialized. Initializing bot lord and its client...");
         botService.initializeBotLord(botService.updateBotLord(director));
     
-        // Initializing initial bot and course enities
+        LOGGER.info("Bot lord and its client have been initialized. Initializing initial bot...");
         botService.updateInitialBot(director);
 
-        // Initializing clients
+        LOGGER.info("Initial bot has been initialized. Initializing regular clients...");
         botService.initializeBots();
 
-        // Initilizing interface menu schemes
-        LOGGER.info("Initializing menus...");
+        LOGGER.info("Regular clients have been initialized. Initializing menu schemas...");
         menuConfigurers.forEach(c -> menuService.save(c.configure()));
         LOGGER.info("Menus have been initialized.");
     }

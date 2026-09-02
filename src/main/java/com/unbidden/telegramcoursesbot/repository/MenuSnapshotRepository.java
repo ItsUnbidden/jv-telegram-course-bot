@@ -8,6 +8,6 @@ import java.util.List;
 
 
 public interface MenuSnapshotRepository extends JpaRepository<MenuSnapshot, Long> {
-    @EntityGraph(attributePaths = "user")
+    @EntityGraph(attributePaths = {"botRole", "botRole.user", "botRole.bot"})
     List<MenuSnapshot> findByGroup(String group);
 }

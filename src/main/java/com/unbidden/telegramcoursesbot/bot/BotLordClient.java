@@ -3,8 +3,9 @@ package com.unbidden.telegramcoursesbot.bot;
 import com.unbidden.telegramcoursesbot.dao.CertificateDao;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import org.springframework.lang.NonNull;
+
+import java.util.List;
+
 import org.springframework.lang.Nullable;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
@@ -16,11 +17,9 @@ public class BotLordClient extends CustomTelegramClient {
     private static final int BOT_LORD_MAX_CONNECTIONS = 5;
     private static final String COMMANDS_LANGUAGE_CODE = "en";
 
-    public BotLordClient(@NonNull String token, @NonNull String baseUrl,
-            @Nullable String ip, @NonNull String secretToken, @NonNull Bot bot,
-            @NonNull CertificateDao certificateDao, @NonNull LocalizationLoader localizationLoader,
-            boolean isCustomCertificateIncluded) {
-        super(bot, localizationLoader, certificateDao,
+    public BotLordClient(Long botId, String token, String baseUrl, @Nullable String ip, String secretToken,
+            CertificateDao certificateDao, LocalizationLoader localizationLoader, boolean isCustomCertificateIncluded) {
+        super(botId, token, localizationLoader, certificateDao,
                 baseUrl, secretToken, ip, isCustomCertificateIncluded);
         initialize();
     }
@@ -32,7 +31,7 @@ public class BotLordClient extends CustomTelegramClient {
 
     public void setUpMenu() {
         final SetMyCommands setMyCommands = SetMyCommands.builder()
-                .commands(parseToBotCommands(BOT_LORD_COMMANDS, COMMANDS_LANGUAGE_CODE))
+                .commands(parseToBotCommands(BOT_LORD_COMMANDS, COMMANDS_LANGUAGE_CODE, List.of()))
                 .scope(BotCommandScopeDefault.builder().build())
                 .languageCode(COMMANDS_LANGUAGE_CODE)
                 .build();

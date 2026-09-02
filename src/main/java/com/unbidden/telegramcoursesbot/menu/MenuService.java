@@ -1,6 +1,5 @@
 package com.unbidden.telegramcoursesbot.menu;
 
-import com.unbidden.telegramcoursesbot.util.EntityUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,15 +24,15 @@ import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.model.BackwardMenuSnapshotButton;
-import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.MenuSnapshot;
 import com.unbidden.telegramcoursesbot.model.MenuSnapshotButton;
 import com.unbidden.telegramcoursesbot.model.TerminalMenuSnapshotButton;
 import com.unbidden.telegramcoursesbot.model.TransitoryMenuSnapshotButton;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.MenuRepository;
 import com.unbidden.telegramcoursesbot.repository.MenuSnapshotButtonRepository;
 import com.unbidden.telegramcoursesbot.repository.MenuSnapshotRepository;
+import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -55,11 +54,10 @@ public class MenuService {
     private final EntityUtil entityUtil;
 
     @Transactional
-    public MenuSnapshotCreatedDto createSnapshot(UserEntity user, Bot bot, MenuKey key, Integer initialPage,
+    public MenuSnapshotCreatedDto createSnapshot(BotRole botRole, MenuKey key, Integer initialPage,
             List<Button> buttons, Map<String, String> params, @Nullable Integer messageId,
             @Nullable MenuTerminationGroupKey mtgKey, @Nullable Object[] mtgArgs) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(key, "key cannot be null");
         Assert.notNull(initialPage, "initialPage cannot be null");
         Assert.notNull(buttons, "buttons cannot be null");
@@ -69,8 +67,7 @@ public class MenuService {
 
         final MenuSnapshot snapshot = new MenuSnapshot();
 
-        snapshot.setBot(entityUtil.getBotReference(bot.getId()));
-        snapshot.setUser(entityUtil.getUserReference(user.getId()));
+        snapshot.setBotRole(entityUtil.getBotRoleReference(botRole.getId()));
         snapshot.setInitialPage(initialPage);
         snapshot.setCurrentPage(initialPage);
         snapshot.setGroup(mtgKey != null ? mtgKey.getName().formatted(mtgArgs) : null);
@@ -103,17 +100,16 @@ public class MenuService {
     }
 
     @Transactional
-    public MenuSnapshotUpdatedDto processSnapshotUpdate(UserEntity user, Bot bot, Long snapshotButtonId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public MenuSnapshotUpdatedDto processSnapshotUpdate(BotRole botRole, Long snapshotButtonId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(snapshotButtonId, "snapshotButtonId cannot be null");
 
         final MenuSnapshotButton calledButton = menuSnapshotButtonRepository.findById(snapshotButtonId).orElseThrow(
                 () -> new StaleMenuException("Failed to find menu snapshot button " + snapshotButtonId + ".",
-                loader.localize(Localizations.Error.STALE_MENU, user)));
+                loader.localize(Localizations.Error.STALE_MENU, botRole)));
         final MenuSnapshot snapshot = calledButton.getSnapshot();
         final Menu menu = menuRepository.find(snapshot.getKey()).orElseThrow(() -> new StaleMenuException("Failed to find configured menu "
-                + snapshot.getKey() + " specified in snapshot " + snapshot.getId() + ".", loader.localize(Localizations.Error.STALE_MENU, user)));
+                + snapshot.getKey() + " specified in snapshot " + snapshot.getId() + ".", loader.localize(Localizations.Error.STALE_MENU, botRole)));
         final Map<String, String> currentParams = snapshot.paramsToMap();
         final List<Integer> pageHistory = snapshot.historyToList();
 
@@ -129,7 +125,7 @@ public class MenuService {
             snapshot.setCurrentPage(transitoryButton.getPointer());
 
             final Page nextPage = menu.getPages().get(transitoryButton.getPointer());
-            final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(user, bot, currentParams, snapshot.getInitialPage()));
+            final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(botRole, currentParams, snapshot.getInitialPage()));
             final List<MenuSnapshotButton> snapshotButtons = generatedLayout.stream().map(b -> b.toMenuSnapshotButton(snapshot)).toList();
    
             final int numberOfDeletions = menuSnapshotButtonRepository.deleteAllBySnapshotIdInBatch(snapshot.getId());
@@ -153,7 +149,7 @@ public class MenuService {
             if (menu.isResetAfterTerminal() && !snapshot.getCurrentPage().equals(snapshot.getInitialPage())) {
                 LOGGER.trace("Menu " + menu.getKey() + " is supposed to be reset after a terminal button call.");
                 final Page nextPage = menu.getPages().get(snapshot.getInitialPage());
-                final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(user, bot, currentParams, snapshot.getInitialPage()));
+                final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(botRole, currentParams, snapshot.getInitialPage()));
                 final List<MenuSnapshotButton> snapshotButtons = generatedLayout.stream().map(b -> b.toMenuSnapshotButton(snapshot)).toList();
 
                 snapshot.setCurrentPage(snapshot.getInitialPage());
@@ -193,7 +189,7 @@ public class MenuService {
             snapshot.parseAndSetHistory(pageHistory);
             snapshot.setCurrentPage(nextPage.getPageIndex());
 
-            final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(user, bot, currentParams, snapshot.getInitialPage()));
+            final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(botRole, currentParams, snapshot.getInitialPage()));
             final List<MenuSnapshotButton> snapshotButtons = generatedLayout.stream().map(b -> b.toMenuSnapshotButton(snapshot)).toList();
    
             final int numberOfDeletions = menuSnapshotButtonRepository.deleteAllBySnapshotIdInBatch(snapshot.getId());
@@ -204,15 +200,15 @@ public class MenuService {
             LOGGER.trace("An iteration of snapshot " + snapshot.getId() + " has been generated.");
             return new TransitoryMenuSnapshotUpdatedDto(snapshot, nextPage, generatedLayout, snapshotButtons, currentParams);
         } else {
-            throw new StaleMenuException("A button of unknown type has been called.", loader.localize(Localizations.Error.STALE_MENU, user));
+            throw new StaleMenuException("A button of unknown type has been called.", loader.localize(Localizations.Error.STALE_MENU, botRole));
         }
     }
 
     @Transactional
-    public MenuSnapshot terminateMenu(UserEntity user, Long snapshotId) {
+    public MenuSnapshot terminateMenu(BotRole botRole, Long snapshotId) {
         final MenuSnapshot snapshot = menuSnapshotRepository.findById(snapshotId).orElseThrow(() ->
                 new EntityNotFoundException("Menu snapshot " + snapshotId + " does not exist.",
-                loader.localize(Localizations.Error.MENU_SNAPSHOT_NOT_FOUND, user)));
+                loader.localize(Localizations.Error.MENU_SNAPSHOT_NOT_FOUND, botRole)));
 
         LOGGER.debug("Deleting menu " + snapshotId + " and its buttons...");
         menuSnapshotButtonRepository.deleteAllBySnapshotIdInBatch(snapshotId);

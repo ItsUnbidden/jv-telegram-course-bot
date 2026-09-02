@@ -8,11 +8,12 @@ import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.LocalizationKey;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
@@ -27,21 +28,22 @@ public class LocalizationCommandHandler implements CommandHandler {
 
     @Override
     @Security(authorities = {AuthorityType.MAINTENANCE})
-    public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
         if (commandParts.length > 3) {
             try {
-                final Localization localization = localizationLoader.loadLocalization(getKey(user, commandParts[1], commandParts[2]), commandParts[3]);
+                final Localization localization = localizationLoader.loadLocalization(getKey(botRole, commandParts[1], commandParts[2]),
+                        commandParts[3], botRole.getBot().languagesToList());
     
-                clientManager.getClient(bot).sendMessage(user, localization);
+                clientManager.sendMessage(botRole, localization);
             } catch (RuntimeException e) {
                 throw new InvalidDataSentException("Localization " + commandParts[1] + " for language code " + commandParts[2]
-                        + " does not exist.", localizationLoader.localize(Localizations.Error.LOCALIZATION_DOES_NOT_EXIST, user));
+                        + " does not exist.", localizationLoader.localize(Localizations.Error.LOCALIZATION_DOES_NOT_EXIST, botRole));
             }
         } else {
             throw new InvalidDataSentException("Localization command requires at least three "
                     + "params: 1. Localization type, 2. Localization name, 3. Language code (en, ru, etc.)",
                     localizationLoader.localize(Localizations.Error.LOCALIZATION_PARAMS_INVALID,
-                    user));
+                    botRole));
         }
     }
 
@@ -55,7 +57,7 @@ public class LocalizationCommandHandler implements CommandHandler {
         return List.of(AuthorityType.CONTENT_SETTINGS);
     }
 
-    private LocalizationKey getKey(UserEntity user, String type, String name) {
+    private LocalizationKey getKey(BotRole botRole, String type, String name) {
         final String typeUpper = type.toUpperCase();
         final String nameUpper = name.toUpperCase();
 
@@ -75,12 +77,12 @@ public class LocalizationCommandHandler implements CommandHandler {
                 }
                 default -> {
                     throw new InvalidDataSentException("Localization type " + typeUpper + " does not exist.",
-                            localizationLoader.localize(Localizations.Error.LOCALIZATIONS_KEY_PARSE_FAILURE, user));
+                            localizationLoader.localize(Localizations.Error.LOCALIZATIONS_KEY_PARSE_FAILURE, botRole));
                 }
             }
         } catch (Exception e) {
             throw new InvalidDataSentException("Unable to parse localization name to a key.",
-                    localizationLoader.localize(Localizations.Error.LOCALIZATIONS_KEY_PARSE_FAILURE, user));
+                    localizationLoader.localize(Localizations.Error.LOCALIZATIONS_KEY_PARSE_FAILURE, botRole));
         }
     }
 }

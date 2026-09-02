@@ -320,9 +320,11 @@ service delete_lesson_confirmation_phrase ${courseName} ${position}
 service course_completed_default ${courseName}
 service yes
 service no
+service no_pending_homeworks_in_bot
+service no_pending_homeworks_for_course ${courseName}
 
 
-error no_exception_localization_available ${excMessage} ${excClassName}
+error no_exception_localization_available
 error language_code_length
 error localized_content_is_already_present ${mappingId} ${languageCode}
 error new_course_wrong_lessons_amount ${maxAmountOfLessons}
@@ -370,7 +372,7 @@ error give_course_already_owned ${courseName} ${targetFullName} ${targetTitle}
 error take_course_bought ${courseName} ${targetFullName} ${targetTitle}
 error homework_already_declined
 error homework_already_completed
-error unspecified_exception ${excMessage} ${excClassName}
+error unspecified_exception
 error critical_director_notification ${excMessage} ${excClassName} ${userId} ${botId}
 error pre_checkout_course_already_owned ${courseName}
 error payment_details_not_found
@@ -470,3 +472,6 @@ error course_validation_no_lessons
 error course_validation_no_content_in_lesson ${lessonIndex}
 error post_request_failure ${successes} ${failures}
 error send_message
+error general_ban_no_bot_roles
+error send_external_invoice
+error mapping_one_content

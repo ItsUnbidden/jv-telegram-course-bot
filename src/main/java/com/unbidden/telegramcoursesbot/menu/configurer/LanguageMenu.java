@@ -32,14 +32,14 @@ public class LanguageMenu implements MenuConfigurer {
 
         page.setPageIndex(0);
         page.setColumns(1);
-        page.setLocalizationFunction(p -> loader.localize(Localizations.Menu.LANGUAGE_PAGE_0, p.user()));
+        page.setLocalizationFunction(p -> loader.localize(Localizations.Menu.LANGUAGE_PAGE_0, p.botRole()));
         page.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
             
             buttons.addAll(textUtil.getLanguagePriority().stream()
                     .map(c -> new TerminalButton(loader.getLanguageName(c), c, selectLanguageButtonHandler))
                     .toList());
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.DEFAULT_LANGUAGE_CODE, p.user()).getData(), selectLanguageButtonHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.DEFAULT_LANGUAGE_CODE, p.botRole()).getData(), selectLanguageButtonHandler));
 
             return buttons;
         });

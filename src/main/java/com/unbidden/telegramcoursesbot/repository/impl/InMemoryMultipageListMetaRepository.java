@@ -1,4 +1,4 @@
-package com.unbidden.telegramcoursesbot.repository;
+package com.unbidden.telegramcoursesbot.repository.impl;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -8,16 +8,18 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Repository;
 
 import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.menu.MultipageListMeta;
+import com.unbidden.telegramcoursesbot.repository.AutoClearable;
+import com.unbidden.telegramcoursesbot.repository.MultipageListMetaRepository;
 
 @Repository
 public class InMemoryMultipageListMetaRepository implements MultipageListMetaRepository,
@@ -25,10 +27,7 @@ public class InMemoryMultipageListMetaRepository implements MultipageListMetaRep
     private static final Logger LOGGER = LogManager.getLogger(
             InMemoryMultipageListMetaRepository.class);
 
-    private static final ConcurrentMap<UUID, MultipageListMeta> metas =
-            new ConcurrentHashMap<>();
-
-    private static final int INITIAL_EXPIRY_CHECK_DELAY = 10000;
+    private static final ConcurrentMap<UUID, MultipageListMeta> metas = new ConcurrentHashMap<>();
 
     private final MenuOrchestrationService menuService;
 
@@ -54,10 +53,8 @@ public class InMemoryMultipageListMetaRepository implements MultipageListMetaRep
     }
 
     @Override
-    @Scheduled(initialDelay = INITIAL_EXPIRY_CHECK_DELAY,
-            fixedDelayString = "${telegram.bot.message.multipage.meta.schedule.delay}")
     public void removeExpired() {
-        LOGGER.trace("Checking for expired sessions...");
+        LOGGER.trace("Checking for expired multipage list metas...");
         final List<UUID> keysToRemove = new ArrayList<>();
 
         for (Entry<UUID, MultipageListMeta> entry : metas.entrySet()) {

@@ -3,10 +3,12 @@ package com.unbidden.telegramcoursesbot.service.command.handler;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
+
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
@@ -19,8 +21,8 @@ public class MaintenanceCommandHandler implements CommandHandler {
 
     @Override
     @Security(authorities = AuthorityType.MAINTENANCE, isBotLordOnly = true)
-    public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
-        clientManager.toggleMaintenance(user);
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        clientManager.toggleMaintenance(botRole);
     }
 
     @Override

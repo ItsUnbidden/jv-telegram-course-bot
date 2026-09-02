@@ -31,14 +31,14 @@ public class GeneralPostMenu implements MenuConfigurer {
 
         page1.setPageIndex(0);
         page1.setColumns(3);
-        page1.setLocalizationFunction(p -> localizationLoader.localize(Localizations.Menu.GENERAL_POST_PAGE_0, p.user()));
+        page1.setLocalizationFunction(p -> localizationLoader.localize(Localizations.Menu.GENERAL_POST_PAGE_0, p.botRole()));
         page1.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
 
             for (final RoleType roleType : RoleType.values()) {
                 buttons.add(new TerminalButton(roleType.toString(), roleType.toString(), generalPostHandler));
             }
-            buttons.add(new TerminalButton(localizationLoader.localize(Localizations.Button.POST_CUSTOM_ROLE_SET, p.user()).getData(), generalPostHandler));
+            buttons.add(new TerminalButton(localizationLoader.localize(Localizations.Button.POST_CUSTOM_ROLE_SET, p.botRole()).getData(), generalPostHandler));
 
             return buttons;
         });

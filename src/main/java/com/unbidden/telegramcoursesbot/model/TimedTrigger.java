@@ -14,12 +14,8 @@ import lombok.Setter;
 @MappedSuperclass
 public abstract class TimedTrigger extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserEntity user;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "bot_id", nullable = false)
-    private Bot bot;
+    @JoinColumn(name = "bot_role_id", nullable = false)
+    private BotRole botRole;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -29,7 +25,7 @@ public abstract class TimedTrigger extends BaseEntity {
 
     @Override
     public String toString() {
-        return "TimedTrigger(id=" + getId() + ", userId=" + user.getId() + ", botId=" + bot.getId()
+        return "TimedTrigger(id=" + getId() + ", botRoleId=" + botRole.getId()
                 + ", createdAt=" + createdAt + ", target=" + target + ")";
     }
 }

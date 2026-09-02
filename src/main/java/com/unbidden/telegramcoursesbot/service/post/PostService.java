@@ -1,17 +1,16 @@
 package com.unbidden.telegramcoursesbot.service.post;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
-import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.RoleType;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.repository.BotRoleRepository;
-import com.unbidden.telegramcoursesbot.repository.UserRepository;
 import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
@@ -22,7 +21,9 @@ import jakarta.annotation.PreDestroy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -31,10 +32,11 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
@@ -43,11 +45,13 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 public class PostService {
     private static final Logger LOGGER = LogManager.getLogger(PostService.class);
 
+    private static final int QUERY_PAGE_SIZE = 500;
+    
+    private volatile Request currentRequest = null;
+
     private final BlockingQueue<Request> requestQueue = new LinkedBlockingDeque<>();
 
     private final ExecutorService postWorkerThreadExecutor;
-
-    private final UserRepository userRepository;
 
     private final ContentOrchestrationService contentService;
 
@@ -61,7 +65,6 @@ public class PostService {
 
     private final ValidatorUtil validatorUtil;
 
-    private Request currentRequest = null;
 
     @PostConstruct
     protected void start() {
@@ -71,7 +74,8 @@ public class PostService {
                 while (!Thread.currentThread().isInterrupted()) {
                     currentRequest = requestQueue.take();
 
-                    LOGGER.info("Processing post request for user " + currentRequest.user.getId() + " and bot " + currentRequest.bot.getId() + "...");
+                    LOGGER.info("Processing post request for user " + currentRequest.botRole.getUser().getId()
+                            + " and bot " + currentRequest.botRole.getBot().getId() + "...");
                     int successes = 0;
                     int failures = 0;
                     try {
@@ -84,15 +88,15 @@ public class PostService {
                                 ++successes;
                             }
                         }
-                        LOGGER.info("Post request for user " + currentRequest.user.getId() + " and bot " + currentRequest.bot.getId()
+                        LOGGER.info("Post request for user " + currentRequest.botRole.getUser().getId() + " and bot " + currentRequest.botRole.getBot().getId()
                                 + " has been completed. Sent messages: " + successes + ", failures: " + failures + ".");
-                        clientManager.getClient(currentRequest.bot).sendMessage(currentRequest.user, localizationLoader
-                                .localize(Localizations.Service.POST_COMPLETED, currentRequest.user,
-                                    new Localizations.Service.PostCompletedParams(successes, failures))); // TODO: if exceptions are reintroduced for sendMessage(), this will become a problem
+                        clientManager.sendMessage(currentRequest.botRole, localizationLoader
+                                .localize(Localizations.Service.POST_COMPLETED, currentRequest.botRole,
+                                    new Localizations.Service.PostCompletedParams(successes, failures)));
                     } catch (ExecutionException e) {
                         LOGGER.error("An error has occured while waiting for a post request to complete.", e);
-                        clientManager.getClient(currentRequest.bot).sendMessage(currentRequest.user, localizationLoader
-                                .localize(Localizations.Error.POST_REQUEST_FAILURE, currentRequest.user,
+                        clientManager.sendMessage(currentRequest.botRole, localizationLoader
+                                .localize(Localizations.Error.POST_REQUEST_FAILURE, currentRequest.botRole,
                                     new Localizations.Error.PostRequestFailureParams(successes, failures)));
                     }
                     currentRequest = null;
@@ -103,69 +107,52 @@ public class PostService {
         });
     }
 
-    public void sendMessages(UserEntity sender, Bot bot, List<Message> messages) {
-        Assert.notNull(sender, "sender cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public void sendMessages(BotRole botRole, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notEmpty(messages, "messages cannot be empty or null");
 
-        validatorUtil.checkAtLeastExpectedMessages(sender, messages, 2);
-        if (!messages.getLast().hasText()) {
-            throw new InvalidDataSentException("The last message is supposed to be a list of roles.",
-                    localizationLoader.localize(Localizations.Error.POST_NO_ROLES, sender));
-        }
-        final String[] potentialRoleTypes = messages.getLast().getText().trim().split(" ");
-        final List<RoleType> roleTypes = new ArrayList<>();
-
-        for (final String roleStr : potentialRoleTypes) {
-            try {
-                roleTypes.add(RoleType.valueOf(roleStr.toUpperCase()));
-            } catch (IllegalArgumentException e) {
-                throw new InvalidDataSentException("Unable to parse " + roleStr + " to a " + RoleType.class.getName() + " enum value", localizationLoader.localize(
-                        Localizations.Error.PARSE_ROLE_TYPES_FAILURE, sender, new Localizations.Error.ParseRoleTypesFailureParams(
-                            Arrays.stream(RoleType.values()).map(t -> t.toString()).collect(Collectors.joining(" ")))), e);
-            }
-        }
-        LOGGER.debug("Roles parsed.");
-
-        sendMessages0(sender, bot, roleTypes, messages.subList(0, messages.size() - 1));
+        sendMessages0(botRole, parseRoleTypes(botRole, messages), messages.subList(0, messages.size() - 1));
     }
 
-    public void sendMessages(UserEntity sender, Bot bot, RoleType roleType, List<Message> messages) {
-        Assert.notNull(sender, "sender cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public void sendMessages(BotRole botRole, RoleType roleType, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(roleType, "roleType cannot be null");
         Assert.notEmpty(messages, "messages cannot be empty or null");
 
-        sendMessages0(sender, bot, List.of(roleType), messages);
+        sendMessages0(botRole, Set.of(roleType), messages);
     }
 
-    public void sendPrivateMessageToUser(UserEntity sender, Bot bot, UserEntity target, List<Message> messages) {
-        Assert.notNull(sender, "sender cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(target, "target cannot be null");
+    public void sendGeneralMessages(BotRole botRole, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notEmpty(messages, "messages cannot be empty or null");
 
-        LOGGER.info("User " + sender.getId() + " is sending a private message to user "
-                + target.getId() + " in bot " + bot.getId() + "...");
-        
-        checkUserIsInBot(sender, bot, target);
-
-        clientManager.getClient(bot).sendMessage(target, localizationLoader
-                .localize(Localizations.Service.PRIVATE_MESSAGE_INFO, target,
-                    new Localizations.Service.PrivateMessageInfoParams(sender.getFullName(),
-                    entityUtil.getLocalizedTitle(target, bot, sender))));
-        LOGGER.debug("Info message sent.");
-        contentService.sendContent(target, bot, contentService.parseAndPersistContent(sender, bot, messages));
-        LOGGER.debug("Content sent.");
+        sendGeneralMessages0(botRole, parseRoleTypes(botRole, messages), messages.subList(0, messages.size() - 1));
     }
 
-    @Transactional(readOnly = true)
-    public void checkUserIsInBot(UserEntity user, Bot bot, UserEntity target) {
-        if (!botRoleRepository.existsByBotIdAndUserId(bot.getId(), target.getId())) {
-            throw new ForbiddenOperationException("User " + target.getId()
-                    + " is not registered in bot " + bot.getId(), localizationLoader
-                    .localize(Error.PRIVATE_MESSAGE_USER_NOT_REGISTERED_IN_BOT, user));
-        }
+    public void sendGeneralMessages(BotRole botRole, RoleType roleType, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(roleType, "roleType cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+
+        sendGeneralMessages0(botRole, Set.of(roleType), messages);
+    }
+
+    public void sendPrivateMessageToUser(BotRole botRole, Long targetId, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+
+        LOGGER.info("User " + botRole.getUser().getId() + " is sending a private message to user "
+                + targetId + " in bot " + botRole.getBot().getId() + "...");
+        final BotRole targetRole = entityUtil.getActiveBotRole(botRole, targetId);
+
+        clientManager.sendMessage(targetRole, localizationLoader
+                .localize(Localizations.Service.PRIVATE_MESSAGE_INFO, targetRole,
+                    new Localizations.Service.PrivateMessageInfoParams(botRole.getUser().getFullName(),
+                    entityUtil.getLocalizedTitle(targetRole, botRole))));
+        LOGGER.debug("Info message sent.");
+        contentService.sendContent(targetRole, contentService.parseAndPersistContent(targetRole, messages));
+        LOGGER.debug("Content sent.");
     }
 
     @PreDestroy
@@ -174,46 +161,107 @@ public class PostService {
         LOGGER.info("Post executor has been ordered to shutdown.");
     }
 
-    private synchronized void sendMessages0(UserEntity sender, Bot bot, List<RoleType> roleTypes, List<Message> messages) {
-        checkExecution(sender, bot);
+    private synchronized void sendMessages0(BotRole botRole, Set<RoleType> roleTypes, List<Message> messages) {
+        checkExecution(botRole);
 
-        final LocalizedContent content = contentService.parseAndPersistContent(sender, bot, messages);
+        final LocalizedContent content = contentService.parseAndPersistContent(botRole, messages);
 
-        LOGGER.info("Executing a post request from user " + sender.getId() + " in bot "
-                + bot.getId() + "... Content id is " + content.getId() + ". Roles are " + roleTypes + ".");
-        final List<Long> userIds = userRepository.findAllIdsByBotIdAndRoleTypeIn(bot.getId(), roleTypes);
-        final var futures = contentService.sendContentInBulkAsync(sender, bot, userIds, content);
+        LOGGER.info("Executing a post request from user " + botRole.getUser().getId() + " in bot "
+                + botRole.getBot().getId() + "... Content id is " + content.getId() + ". Roles are " + roleTypes + ".");
+        final long totalNumber = botRoleRepository.countByBotIdAndRoleTypeInAndIsDisabledFalse(botRole.getBot().getId(), roleTypes);
+        final List<CompletableFuture<List<SendMessageResultDto>>> futures = new ArrayList<>();
+
+        for (int i = 0; i < Math.ceil((double)totalNumber / QUERY_PAGE_SIZE); ++i) {
+            final List<BotRole> botRoles = botRoleRepository.findByBotIdAndRoleTypeInAndIsDisabledFalse(botRole.getBot().getId(),
+                    roleTypes, PageRequest.of(i, QUERY_PAGE_SIZE));
+
+            futures.addAll(contentService.sendContentInBulkAsync(botRole, botRoles, content));
+        }
 
         LOGGER.info("All of the requests have been initiated. Once they are all completed, a confirmation will be sent to "
-                + sender.getId() + ".");
+                + botRole.getUser().getId() + ".");
 
         final CompletableFuture<Void> finalFuture = CompletableFuture.allOf(futures.stream()
                 .map(f -> f.handle((r, t) -> null))
                 .toArray(CompletableFuture[]::new));
 
-        requestQueue.add(new Request(sender, bot, futures, finalFuture));
+        requestQueue.add(new Request(botRole, futures, finalFuture));
+
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.POST_STARTED, botRole,
+                new Localizations.Service.PostStartedParams(totalNumber)));
     }
 
-    private void checkExecution(UserEntity user, Bot bot) {
-        if (currentRequest != null && currentRequest.bot.getId().equals(bot.getId()) || requestQueue.stream().anyMatch(r -> r.bot.getId().equals(bot.getId()))) {
+    private synchronized void sendGeneralMessages0(BotRole botRole, Set<RoleType> roleTypes, List<Message> messages) {
+        checkExecution(botRole);
+
+        final LocalizedContent content = contentService.parseAndPersistContent(botRole, messages);
+
+        LOGGER.info("Executing a general post request from director " + botRole.getUser().getId()
+                + "... Content id is " + content.getId() + ". Roles are " + roleTypes + ".");
+        final long totalNumber = botRoleRepository.countByRoleTypeInAndIsDisabledFalse(roleTypes);
+        final List<CompletableFuture<List<SendMessageResultDto>>> futures = new ArrayList<>();
+
+        for (int i = 0; i < Math.ceil((double)totalNumber / QUERY_PAGE_SIZE); ++i) {
+            final List<BotRole> botRoles = botRoleRepository.findByRoleTypeInAndIsDisabledFalse(roleTypes,
+                    PageRequest.of(i, QUERY_PAGE_SIZE));
+
+            futures.addAll(contentService.sendContentInBulkAsync(botRole, botRoles, content));
+        }
+
+        LOGGER.info("All of the requests have been initiated. Once they are all completed, a confirmation will be sent to "
+                + botRole.getUser().getId() + ".");
+
+        final CompletableFuture<Void> finalFuture = CompletableFuture.allOf(futures.stream()
+                .map(f -> f.handle((r, t) -> null))
+                .toArray(CompletableFuture[]::new));
+
+        requestQueue.add(new Request(botRole, futures, finalFuture));
+
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.POST_STARTED, botRole,
+                new Localizations.Service.PostStartedParams(totalNumber)));
+    }
+
+    private void checkExecution(BotRole botRole) {
+        if (currentRequest != null && currentRequest.botRole.getId().equals(botRole.getId())
+                || requestQueue.stream().anyMatch(r -> r.botRole.getId().equals(botRole.getId()))) {
             throw new ForbiddenOperationException("A request is already being executed. "
                     + "Only one is allowed per bot at a time.", localizationLoader.localize(
-                    Error.TOO_MANY_POST_REQUESTS, user));
+                    Error.TOO_MANY_POST_REQUESTS, botRole));
         }
     }
 
+    private Set<RoleType> parseRoleTypes(BotRole botRole, List<Message> messages) {
+        validatorUtil.checkAtLeastExpectedMessages(botRole, messages, 2);
+        if (!messages.getLast().hasText()) {
+            throw new InvalidDataSentException("The last message is supposed to be a list of roles.",
+                    localizationLoader.localize(Localizations.Error.POST_NO_ROLES, botRole));
+        }
+        final String[] potentialRoleTypes = messages.getLast().getText().trim().split(" ");
+        final Set<RoleType> roleTypes = new HashSet<>();
+
+        for (final String roleStr : potentialRoleTypes) {
+            try {
+                roleTypes.add(RoleType.valueOf(roleStr.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new InvalidDataSentException("Unable to parse " + roleStr + " to a " + RoleType.class.getName() + " enum value", localizationLoader.localize(
+                        Localizations.Error.PARSE_ROLE_TYPES_FAILURE, botRole, new Localizations.Error.ParseRoleTypesFailureParams(
+                            Arrays.stream(RoleType.values()).map(t -> t.toString()).collect(Collectors.joining(" ")))), e);
+            }
+        }
+        LOGGER.debug("Roles parsed.");
+
+        return roleTypes;
+    }
+
     private static class Request {
-        UserEntity user;
+        BotRole botRole;
 
-        Bot bot;
-
-        List<CompletableFuture<List<Message>>> futures;
+        List<CompletableFuture<List<SendMessageResultDto>>> futures;
 
         CompletableFuture<Void> finalFuture;
 
-        Request(UserEntity user, Bot bot, List<CompletableFuture<List<Message>>> futures, CompletableFuture<Void> finalFuture) {
-            this.user = user;
-            this.bot = bot;  
+        Request(BotRole botRole, List<CompletableFuture<List<SendMessageResultDto>>> futures, CompletableFuture<Void> finalFuture) {
+            this.botRole = botRole;
             this.futures = futures;  
             this.finalFuture = finalFuture;  
         }

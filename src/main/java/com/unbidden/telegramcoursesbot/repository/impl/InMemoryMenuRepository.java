@@ -1,4 +1,4 @@
-package com.unbidden.telegramcoursesbot.repository;
+package com.unbidden.telegramcoursesbot.repository.impl;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import com.unbidden.telegramcoursesbot.menu.Menu;
 import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import com.unbidden.telegramcoursesbot.repository.MenuRepository;
 
 @Repository
 public class InMemoryMenuRepository implements MenuRepository {

@@ -33,9 +33,7 @@ import java.lang.annotation.Target;
 public @interface Security {
     AuthorityType[] authorities();
 
-    String botParamName() default "bot";
-
-    String userParamName() default "user";
+    String botRoleParamName() default "botRole";
 
     boolean isBotLordOnly() default false;
 }

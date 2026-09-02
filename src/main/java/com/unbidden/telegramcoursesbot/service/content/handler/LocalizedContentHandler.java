@@ -1,7 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.content.handler;
 
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 
@@ -11,17 +11,17 @@ import java.util.concurrent.CompletableFuture;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 public interface LocalizedContentHandler<T extends LocalizedContent> {
-    default T parseAndPersist(Bot bot, List<Message> messages, String languageCode) {
-        return parseAndPersist(bot, messages, languageCode, false);
+    default T parseAndPersist(BotRole botRole, List<Message> messages, String languageCode) {
+        return parseAndPersist(botRole, messages, languageCode, false);
     }
 
-    T parseAndPersist(Bot bot, List<Message> messages, String languageCode, boolean isProtected);
+    T parseAndPersist(BotRole botRole, List<Message> messages, String languageCode, boolean isProtected);
 
-    List<Message> sendContent(UserEntity user, Bot bot, LocalizedContent content);
+    List<SendMessageResultDto> sendContent(BotRole botRole, LocalizedContent content);
 
-    CompletableFuture<List<Message>> sendContentAsync(UserEntity user, Bot bot, LocalizedContent content);
+    CompletableFuture<List<SendMessageResultDto>> sendContentAsync(BotRole botRole, LocalizedContent content);
 
-    List<CompletableFuture<List<Message>>> sendContentInBulkAsync(List<Long> userIds, Bot bot, LocalizedContent content);
+    List<CompletableFuture<List<SendMessageResultDto>>> sendContentInBulkAsync(List<BotRole> targetRoles, LocalizedContent content);
 
     MediaType getContentType();
 }

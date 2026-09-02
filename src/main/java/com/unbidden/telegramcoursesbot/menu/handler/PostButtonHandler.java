@@ -4,9 +4,8 @@ import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.RoleType;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.post.PostService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
@@ -32,23 +31,23 @@ public class PostButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.POST)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final RoleType roleType = params.get(ROLE_TYPE_PARAM) != null ? RoleType.valueOf(params.get(ROLE_TYPE_PARAM)) : null;
 
         if (roleType == null) {
-            sessionService.createSession(user, bot, p -> {
-                postService.sendMessages(p.user(), p.bot(), p.messages());
+            sessionService.createSession(botRole, p -> {
+                postService.sendMessages(p.botRole(), p.messages());
             });
 
-            clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .localize(Localizations.Service.POST_CONTENT_AND_ROLES_REQUEST, user));
+            clientManager.sendMessage(botRole, localizationLoader
+                    .localize(Localizations.Service.POST_CONTENT_AND_ROLES_REQUEST, botRole));
         } else {
-            sessionService.createSession(user, bot, p -> {
-                postService.sendMessages(p.user(), p.bot(), roleType, p.messages());
+            sessionService.createSession(botRole, p -> {
+                postService.sendMessages(p.botRole(), roleType, p.messages());
             });
 
-            clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .localize(Localizations.Service.POST_CONTENT_REQUEST, user));
+            clientManager.sendMessage(botRole, localizationLoader
+                    .localize(Localizations.Service.POST_CONTENT_REQUEST, botRole));
         }
     }
 }

@@ -45,20 +45,20 @@ public class BotService {
     }
 
     @Transactional
-    public Bot createBot(UserEntity director, Long creatorId, String token) {
+    public Bot createBot(BotRole botRole, Long creatorId, String token) {
         LOGGER.info("Creating a new bot...");
         final Bot bot = new Bot();
 
         bot.setToken(token);
 
-        final UserEntity dirRef = entityUtil.getUserReference(director.getId());
+        final UserEntity dirRef = entityUtil.getUserReference(botRole.getUser().getId());
         final List<BotRole> botRoles = new ArrayList<>();
 
-        if (director.getId().equals(creatorId)) {
+        if (botRole.getUser().getId().equals(creatorId)) {
             LOGGER.warn("Bot Creator is Director. No Creator role will be added.");
             botRoles.add(new BotRole(bot, dirRef, entityUtil.getRole(RoleType.DIRECTOR), true));
         } else {
-            botRoles.add(new BotRole(bot, entityUtil.getUser(creatorId, director.getLanguageCode()), entityUtil.getRole(RoleType.CREATOR), true));
+            botRoles.add(new BotRole(bot, entityUtil.getUser(botRole, creatorId), entityUtil.getRole(RoleType.CREATOR), true));
             botRoles.add(new BotRole(bot, dirRef, entityUtil.getRole(RoleType.DIRECTOR), false));
         }
         

@@ -4,10 +4,9 @@ import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
-import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.TelegramInvoice;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
@@ -40,24 +39,24 @@ public class CoursePriceChangeButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.COURSE_SETTINGS)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final Long courseId = Long.parseLong(params.get(COURSE_ID_PARAM));
-        final Course course = entityUtil.getCourseById(user, bot, courseId);
+        final Course course = entityUtil.getCourseById(botRole, courseId);
         
         if (!course.getInvoice().getClass().equals(TelegramInvoice.class)) {
             throw new ForbiddenOperationException("Course " + courseId + " uses external payments. Payment type "
                     + "must be changed first before updating its price.", localizationLoader.localize(
-                        Localizations.Error.COURSE_PRICE_UPDATE_EXTERNAL_INVOICE, user));
+                        Localizations.Error.COURSE_PRICE_UPDATE_EXTERNAL_INVOICE, botRole));
         }
         final TelegramInvoice invoice = (TelegramInvoice)course.getInvoice();
 
-        sessionService.createSession(user, bot, p -> {
-            courseService.updateCoursePrice(p.user(), p.bot(), courseId, p.messages());
+        sessionService.createSession(botRole, p -> {
+            courseService.updateCoursePrice(p.botRole(), courseId, p.messages());
         }, true);
 
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                Localizations.Service.COURSE_PRICE_UPDATE_REQUEST, user,
+        clientManager.sendMessage(botRole, localizationLoader.localize(
+                Localizations.Service.COURSE_PRICE_UPDATE_REQUEST, botRole,
                 new Localizations.Service.CoursePriceUpdateRequestParams(contentService
-                    .getLocalizedText(user, bot, course.getTitle()), invoice.getPrice())));
+                    .getLocalizedText(botRole, course.getTitle()), invoice.getPrice())));
     }
 }

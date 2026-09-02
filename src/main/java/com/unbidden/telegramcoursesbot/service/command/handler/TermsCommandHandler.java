@@ -6,11 +6,12 @@ import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
@@ -27,13 +28,13 @@ public class TermsCommandHandler implements CommandHandler {
 
     @Override
     @Security(authorities = AuthorityType.INFO)
-    public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
-        if (bot.getTerms() == null) {
-            clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                    Localizations.Service.NO_TERMS, user));
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        if (botRole.getBot().getTerms() == null) {
+            clientManager.sendMessage(botRole, localizationLoader.localize(
+                    Localizations.Service.NO_TERMS, botRole));
             return;
         }
-        contentService.sendLocalizedContent(user, bot, bot.getTerms().getId());
+        contentService.sendLocalizedContent(botRole, botRole.getBot().getTerms().getId());
     }
 
     @Override

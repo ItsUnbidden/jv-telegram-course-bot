@@ -2,9 +2,8 @@ package com.unbidden.telegramcoursesbot.dto.internal;
 
 import java.util.Map;
 
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 
-public record MenuParamsDto(UserEntity user, Bot bot, Map<String, String> params, int initialPage) {
+public record MenuParamsDto(BotRole botRole, Map<String, String> params, int initialPage) {
 
 }

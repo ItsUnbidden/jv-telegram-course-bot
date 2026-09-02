@@ -4,7 +4,7 @@ import com.unbidden.telegramcoursesbot.dao.LocalizationDao;
 import com.unbidden.telegramcoursesbot.exception.LocalizationLoadingException;
 import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationException;
 import com.unbidden.telegramcoursesbot.localization.Localizations.LocalizationKey;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.repository.LocalizationRepository;
 import com.unbidden.telegramcoursesbot.util.Tag;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
@@ -49,11 +49,12 @@ public class LocalizationLoader {
         cacheLocalizationFiles();
     }
 
-    public Localization localize(LocalizationKey key, UserEntity user) {
+    public Localization localize(LocalizationKey key, BotRole botRole) {
         Assert.notNull(key, "key cannot be null");
-        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(botRole, "botRole cannot be null");
         
-        final Localization localization = loadLocalization(key, user.getLanguageCode());
+        final Localization localization = loadLocalization(key, botRole.getUser().getLanguageCode(),
+                botRole.getBot().languagesToList());
         
         if (localization.isInjectionRequired()) {
             LOGGER.error("Localization \"" + localization.getName() + "\" is marked for parameter injection, "
@@ -63,12 +64,13 @@ public class LocalizationLoader {
         return localization;
     }
 
-    public Localization localize(LocalizationKey key, UserEntity user, Object paramRecord) {
+    public Localization localize(LocalizationKey key, BotRole botRole, Object paramRecord) {
         Assert.notNull(key, "key cannot be null");
-        Assert.notNull(user, "user cannot be null");
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(paramRecord, "paramRecord cannot be null");
         
-        final Localization localization = loadLocalization(key, user.getLanguageCode());
+        final Localization localization = loadLocalization(key, botRole.getUser().getLanguageCode(),
+                botRole.getBot().languagesToList());
 
         if (!localization.isInjectionRequired()) {
             return localization;
@@ -80,13 +82,13 @@ public class LocalizationLoader {
         return setUpLocalization(localization, withInjectedParams);
     }
 
-    public Localization localizeGeneric(LocalizationKey key, UserEntity user, Object... args) {
+    public Localization localizeGeneric(LocalizationKey key, BotRole botRole, Object... args) {
         Assert.notNull(key, "key cannot be null");
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(args, "args cannot be null");
-        Assert.notEmpty(args, "args cannot be empty");
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notEmpty(args, "args cannot be empty or null");
         
-        final Localization localization = loadLocalization(key, user.getLanguageCode(), args);
+        final Localization localization = loadLocalization(key, botRole.getUser().getLanguageCode(),
+                botRole.getBot().languagesToList(), args);
         
         if (localization.isInjectionRequired()) {
             LOGGER.error("Localization \"" + localization.getName() + "\" is marked for parameter injection, "
@@ -101,18 +103,21 @@ public class LocalizationLoader {
         cacheLocalizationFiles();
     }
 
-    public Localization loadLocalization(LocalizationKey key, String languageCode) {
+    public Localization loadLocalization(LocalizationKey key, String languageCode, List<String> customLangPriority) {
         Assert.notNull(key, "name cannot be null");
         Assert.notNull(languageCode, "languageCode cannot be null");
+        Assert.notNull(customLangPriority, "customLangPriority cannot be null");
 
-        return loadLocalization(key, languageCode, null);
+        return loadLocalization(key, languageCode, customLangPriority, null);
     }
 
-    public Localization loadGenericLocalization(LocalizationKey key, String languageCode, Object... args) {
+    public Localization loadGenericLocalization(LocalizationKey key, String languageCode,
+            List<String> customLangPriority, Object... args) {
         Assert.notNull(key, "name cannot be null");
         Assert.notNull(languageCode, "languageCode cannot be null");
+        Assert.notNull(customLangPriority, "customLangPriority cannot be null");
 
-        return loadLocalization(key, languageCode, args);
+        return loadLocalization(key, languageCode, customLangPriority, args);
     }
 
     public List<String> getAvailableLanguageCodes() {
@@ -128,7 +133,7 @@ public class LocalizationLoader {
      * @return
      */
     public String getLanguageName(String code) {
-        return loadGenericLocalization(Localizations.Service.LANGUAGE_CODE, code, code).getData();
+        return loadGenericLocalization(Localizations.Service.LANGUAGE_CODE, code, List.of(), code).getData();
     }
 
     /**
@@ -137,13 +142,14 @@ public class LocalizationLoader {
      * @param code
      * @return
      */
-    public String getLanguageName(UserEntity localizedFor, String code) {
-        return localizeGeneric(Localizations.Service.LANGUAGE_CODE, localizedFor, code).getData();
+    public String getLanguageName(BotRole botRole, String code) {
+        return localizeGeneric(Localizations.Service.LANGUAGE_CODE, botRole, code).getData();
     }
 
-    private Localization loadLocalization(LocalizationKey key, String languageCode, Object[] args) {
+    private Localization loadLocalization(LocalizationKey key, String languageCode, List<String> customLangPriority, Object[] args) {
         LOGGER.trace("Loading cached localization " + key + "...");
-        Localization localization = findAvailableLocalization((args == null ? key.getLocName() : key.getLocName().formatted(args)), languageCode);
+        Localization localization = findAvailableLocalization((args == null ? key.getLocName() : key.getLocName().formatted(args)),
+                languageCode, customLangPriority);
 
         if (!localization.isInjectionRequired()) {
             return localization;
@@ -275,17 +281,30 @@ public class LocalizationLoader {
         return localization;
     }
 
-    private Localization findAvailableLocalization(String name, String preferableLanguageCode) {
-        Optional<Localization> potentialLoc = localizationRepository
-                .find(name + "_" + preferableLanguageCode);
+    private Localization findAvailableLocalization(String name, String preferableLanguageCode, List<String> customLangPriority) {
+        Optional<Localization> potentialLoc = localizationRepository.find(name + "_" + preferableLanguageCode);
         
         if (potentialLoc.isPresent()) {
-            LOGGER.trace("Localization " + name + " for prefered code " + preferableLanguageCode
-                    + " is available.");
+            LOGGER.trace("Localization " + name + " for prefered code " + preferableLanguageCode + " is available.");
             return potentialLoc.get();
         }
-        LOGGER.trace("Localization " + name + " for prefered code " + preferableLanguageCode
-                + " is not available. Looking over the language code priority list...");
+
+        if (!customLangPriority.isEmpty()) {
+            LOGGER.trace("Localization " + name + " for prefered code " + preferableLanguageCode
+                    + " is not available. Looking through the custom language code priority list: " + customLangPriority + "...");
+            for (String code : customLangPriority) {
+                if (!code.equals(preferableLanguageCode)) {
+                    potentialLoc = localizationRepository.find(name + "_" + code);
+                    if (potentialLoc.isPresent()) {
+                        LOGGER.trace("Localization " + name + " found for code " + code + ".");
+                        return potentialLoc.get();
+                    }
+                }
+            }
+        }
+
+        LOGGER.trace("Localization " + name + " for languages in the custom list"
+                + " is not available. Looking over the application language code priority list...");
         for (String code : languagePriority) {
             if (!code.equals(preferableLanguageCode)) {
                 potentialLoc = localizationRepository.find(name + "_" + code);
@@ -295,8 +314,7 @@ public class LocalizationLoader {
                 }
             }
         }
-        LOGGER.warn("No localization with name " + name
-                + " was found. The name will be sent instead.");
+        LOGGER.warn("No localization with name " + name + " was found. The name will be sent instead.");
         return new Localization(name);
     }
 }

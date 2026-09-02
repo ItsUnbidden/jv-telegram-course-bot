@@ -25,7 +25,7 @@ public class HomeworkTriggerExecutor implements TriggerExecutor {
     public void findAndExecute() {
         final List<HomeworkTrigger> triggers = timingService.findAndRemoveExpiredHomeworkTriggers();
 
-        triggers.forEach(t -> homeworkService.sendHomework(t.getProgress()));
+        triggers.forEach(t -> homeworkService.sendHomework(t.getBotRole(), t.getProgress()));
         LOGGER.trace(triggers.size() + " expired homework triggers have been executed.");
     }
 }

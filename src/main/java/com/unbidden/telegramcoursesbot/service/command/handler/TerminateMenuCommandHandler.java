@@ -10,8 +10,7 @@ import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 
@@ -32,12 +31,12 @@ public class TerminateMenuCommandHandler implements CommandHandler {
 
     @Override
     @Security(authorities = AuthorityType.MAINTENANCE, isBotLordOnly = true)
-    public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
-        sessionService.createSession(user, bot, p -> {
-            menuService.terminateMenu(p.user(), p.messages());
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        sessionService.createSession(botRole, p -> {
+            menuService.terminateMenu(p.botRole(), p.messages());
         }, true);
 
-        clientManager.getBotLordClient().sendMessage(user, loader.localize(Localizations.Service.MENU_MANUALLY_REMOVED_REQUEST, user));
+        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.MENU_MANUALLY_REMOVED_REQUEST, botRole));
     }
 
     @Override

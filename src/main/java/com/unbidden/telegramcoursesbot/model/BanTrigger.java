@@ -15,7 +15,7 @@ public class BanTrigger extends TimedTrigger {
 
     @Override
     public String toString() {
-        return "BanTrigger(id=" + getId() + ", userId=" + getUser().getId() + ", botId=" + getBot().getId()
-                + ", createdAt=" + getCreatedAt() + ", target=" + getTarget() + ", isGeneral=" + isGeneral + ")";
+        return "BanTrigger(id=" + getId() + ", botRoleId=" + getBotRole().getId() + ", createdAt=" + getCreatedAt()
+                + ", target=" + getTarget() + ", isGeneral=" + isGeneral + ")";
     }
 }

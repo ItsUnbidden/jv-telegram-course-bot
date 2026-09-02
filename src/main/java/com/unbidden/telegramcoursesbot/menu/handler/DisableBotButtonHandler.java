@@ -2,8 +2,7 @@ package com.unbidden.telegramcoursesbot.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.security.Security;
 import lombok.RequiredArgsConstructor;
 
@@ -19,9 +18,9 @@ public class DisableBotButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.BOTS_SETTINGS, isBotLordOnly = true)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        clientManager.getBotLordClient().sendMessage(SendMessage.builder()
-                .chatId(user.getId())
+    public void handle(BotRole botRole, Map<String, String> params) {
+        clientManager.sendMessage(botRole, SendMessage.builder()
+                .chatId(botRole.getUser().getId())
                 .text("This is not implemented at the moment.")
                 .build());
     }

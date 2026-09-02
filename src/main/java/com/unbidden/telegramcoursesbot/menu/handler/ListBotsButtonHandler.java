@@ -5,9 +5,7 @@ import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.BotRole;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.security.Security;
 
 import java.util.List;
@@ -32,7 +30,7 @@ public class ListBotsButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.BOTS_SETTINGS, isBotLordOnly = true)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final StringBuilder builder = new StringBuilder();
         final List<BotRole> botRoles = botService.getAllCreatorRoles();
         
@@ -49,9 +47,8 @@ public class ListBotsButtonHandler extends AbstractButtonHandler {
         }
 
         LOGGER.debug("Bot list compiled. Sending...");
-        clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                .localize(Localizations.Service.LIST_BOTS, user,
-                    new Localizations.Service.ListBotsParams(builder.toString())));
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.LIST_BOTS,
+                botRole, new Localizations.Service.ListBotsParams(builder.toString())));
         LOGGER.debug("Message sent.");
     }
 }

@@ -10,7 +10,6 @@ import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.BotRole;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
@@ -23,7 +22,9 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
@@ -80,7 +81,7 @@ public class ClientManager {
         final CustomTelegramClient client = clients.get(bot.getId());
 
         if (client == null) {
-            if (entityUtil.isBotLord(bot)) {
+            if (entityUtil.isBotLord(bot.getId())) {
                 return getBotLordClient();
             }
             throw new EntityNotFoundException("Bot " + bot.getId()
@@ -91,7 +92,7 @@ public class ClientManager {
 
     public CustomTelegramClient addClient(Bot bot) {
         LOGGER.debug("Creating a new client for bot " + bot.getId() + "...");
-        final RegularClient client = new RegularClient(bot, loader, dao, commandHandlerManager,
+        final RegularClient client = new RegularClient(bot.getId(), bot.getToken(), loader, dao, commandHandlerManager,
                 entityUtil, baseUrl, secretToken, ip, maxConnections, isCustomCertificateIncluded);
 
         clients.put(bot.getId(), client);
@@ -100,7 +101,7 @@ public class ClientManager {
 
     public BotLordClient addBotLordClient(Bot bot) {
         LOGGER.debug("Creating a new client for bot lord...");
-        botLordClient = new BotLordClient(botLordToken, baseUrl, ip, secretToken, bot,
+        botLordClient = new BotLordClient(bot.getId(), bot.getToken(), baseUrl, ip, secretToken,
                 dao, loader, isCustomCertificateIncluded);
         return botLordClient;
     }
@@ -114,31 +115,32 @@ public class ClientManager {
                 + "and webhook has been deleted.");
     }
 
-    public boolean toggleMaintenance(UserEntity user) {
+    public boolean toggleMaintenance(BotRole botRole) {
+        Assert.notNull(botRole, "botRole cannot be null.");
+
         if (isRefreshing()) {
             throw new ForbiddenOperationException("Cannot toggle maintenance while the server "
                     + "is refreshing", localizationLoader.localize(
-                    Localizations.Error.IS_REFRESHING, user));
+                    Localizations.Error.IS_REFRESHING, botRole));
         }
         LOGGER.info("Director is toggling maintenance... Current status is "
-                + getStatus(user) + ".");
+                + getStatus(botRole) + ".");
         isOnMaintenance = !isOnMaintenance;
-        LOGGER.info("Maintenance is now " + getStatus(user));
+        LOGGER.info("Maintenance is now " + getStatus(botRole));
 
         LOGGER.debug("Sending confirmation message to director...");
-        getBotLordClient().sendMessage(user, localizationLoader
-                .localize(Localizations.Service.ON_MAINTENANCE_STATUS_CHANGE, user,
-                    new Localizations.Service.OnMaintenanceStatusChangeParams(getStatus(user))));
+        sendMessage(botRole, localizationLoader.localize(Localizations.Service.ON_MAINTENANCE_STATUS_CHANGE, botRole,
+                    new Localizations.Service.OnMaintenanceStatusChangeParams(getStatus(botRole))));
         LOGGER.debug("Message sent.");
 
         return isOnMaintenance;
     }
 
-    public void refreshMenus(UserEntity director) {
+    public void refreshMenus(BotRole botRole) {
         if (!isOnMaintenance) {
             throw new ForbiddenOperationException("Unable to refresh because server is not on "
                     + "maintenance", localizationLoader.localize(
-                    Localizations.Error.MAINTENANCE_IN_NOT_ENABLED, director));
+                    Localizations.Error.MAINTENANCE_IN_NOT_ENABLED, botRole));
         }
         LOGGER.info("The director is trying to refresh user menus...");
 
@@ -147,7 +149,7 @@ public class ClientManager {
         LOGGER.info("Menus have been reloaded.");
 
         LOGGER.debug("Sending confirmation message...");
-        botLordClient.sendMessage(director, localizationLoader.localize(Localizations.Service.MENU_REFRESH_SUCCESS, director));
+        sendMessage(botRole, localizationLoader.localize(Localizations.Service.MENU_REFRESH_SUCCESS, botRole));
         LOGGER.debug("Message sent.");
     }
 
@@ -165,6 +167,61 @@ public class ClientManager {
 
     public void setRefreshing(boolean isRefreshing) {
         this.isRefreshing = isRefreshing;
+    }
+
+    /**
+     * Sends a message using {@link SendMessage} to the chat specified in the {@link BotRole}. 
+     * There are three possible result types:
+     * <ls>
+     *  <li>OK -> Sent successfully</li>
+     *  <li>SKIPPED -> User has disabled the bot</li>
+     *  <li>FAILURE -> An unexpected error occured</li>
+     * </ls>
+     * 
+     * @param botRole
+     * @param sendMessage
+     * @return the result wrapped in {@link SendMessageResultDto}
+     */
+    public SendMessageResultDto sendMessage(BotRole botRole, SendMessage sendMessage) {
+        if (botRole.isDisabled()) {
+            return new SendMessageResultDto();
+        }
+
+        try {
+            return new SendMessageResultDto(getClient(botRole.getBot()).execute(sendMessage));
+        } catch (TelegramApiException e) {
+            return new SendMessageResultDto(new TelegramException("Unable to send a message to user " + botRole.getUser().getId()
+                    + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(Localizations.Error.SEND_MESSAGE,
+                        botRole), e));
+        }
+    }
+
+    /**
+     * Asynchronously sends message provided in {@link SendMessage}. Warning! Field chatId in 
+     * {@link SendMessage} must be a user id, if that is not the case, exception will be thrown.
+     * @param sendMessage Telegram message builder
+     * @return {@link CompletableFuture} of the {@link Message}
+     */
+    public CompletableFuture<SendMessageResultDto> sendMessageAsync(BotRole botRole, SendMessage sendMessage) {
+        if (botRole.isDisabled()) {
+            return CompletableFuture.completedFuture(new SendMessageResultDto());
+        }
+
+        try {
+            return getClient(botRole.getBot()).executeAsync(sendMessage).handle((m, t) -> {
+                        if (t != null) {
+                            return new SendMessageResultDto(new TelegramException("Unable to send a message to user " + botRole.getUser().getId()
+                                + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(Localizations.Error.SEND_MESSAGE,
+                                botRole), t));
+                        } else {
+                            return new SendMessageResultDto(m);
+                        }
+                    });
+        } catch (TelegramApiException e) {
+            return CompletableFuture.completedFuture(new SendMessageResultDto(new TelegramException("Unable to send a message to user "
+                    + botRole.getUser().getId() + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(
+                    Localizations.Error.SEND_MESSAGE, botRole), e)));
+        }
     }
 
     /**
@@ -194,7 +251,40 @@ public class ClientManager {
         } catch (TelegramApiException e) {
             return new SendMessageResultDto(new TelegramException("Unable to send a message to user " + botRole.getUser().getId()
                     + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(Localizations.Error.SEND_MESSAGE,
-                        botRole.getUser()), e));
+                        botRole), e));
+        }
+    }
+
+    /**
+     * Sends a message with the provided {@link Localization} and markup to the chat specified in the {@link BotRole}.
+     * There are three possible result types:
+     * <ls>
+     *  <li>OK -> Sent successfully</li>
+     *  <li>SKIPPED -> User has disabled the bot</li>
+     *  <li>FAILURE -> An unexpected error occured</li>
+     * </ls>
+     * 
+     * @param botRole
+     * @param localization
+     * @param markup
+     * @return the result wrapped in {@link SendMessageResultDto}
+     */
+    public SendMessageResultDto sendMessage(BotRole botRole, Localization localization, ReplyKeyboard markup) {
+        if (botRole.isDisabled()) {
+            return new SendMessageResultDto();
+        }
+
+        try {
+            return new SendMessageResultDto(getClient(botRole.getBot()).execute(SendMessage.builder()
+                    .chatId(botRole.getUser().getId())
+                    .text(localization.getData())
+                    .entities(localization.getEntities())
+                    .replyMarkup(markup)
+                    .build()));
+        } catch (TelegramApiException e) {
+            return new SendMessageResultDto(new TelegramException("Unable to send a message to user " + botRole.getUser().getId()
+                    + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(Localizations.Error.SEND_MESSAGE,
+                        botRole), e));
         }
     }
 
@@ -225,7 +315,7 @@ public class ClientManager {
                         if (t != null) {
                             return new SendMessageResultDto(new TelegramException("Unable to send a message to user " + botRole.getUser().getId()
                                 + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(Localizations.Error.SEND_MESSAGE,
-                                botRole.getUser()), t));
+                                botRole), t));
                         } else {
                             return new SendMessageResultDto(m);
                         }
@@ -233,13 +323,13 @@ public class ClientManager {
         } catch (TelegramApiException e) {
             return CompletableFuture.completedFuture(new SendMessageResultDto(new TelegramException("Unable to send a message to user "
                     + botRole.getUser().getId() + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(
-                    Localizations.Error.SEND_MESSAGE, botRole.getUser()), e)));
+                    Localizations.Error.SEND_MESSAGE, botRole), e)));
         }
     }
 
-    private String getStatus(UserEntity user) {
+    private String getStatus(BotRole botRole) {
         return localizationLoader.localize(isOnMaintenance
                 ? Localizations.Service.STATUS_ENABLED
-                : Localizations.Service.STATUS_DISABLED, user).getData();
+                : Localizations.Service.STATUS_DISABLED, botRole).getData();
     }
 }

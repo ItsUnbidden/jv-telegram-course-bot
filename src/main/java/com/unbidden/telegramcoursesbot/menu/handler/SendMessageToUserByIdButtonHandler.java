@@ -4,8 +4,7 @@ import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.post.PostService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
@@ -35,28 +34,28 @@ public class SendMessageToUserByIdButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.POST)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        sessionService.createSession(user, bot, p -> {
-            validatorUtil.checkExactExpectedMessages(p.user(), p.messages(), 1);
-            final long userId = validatorUtil.parseId(p.user(), p.messages().getFirst());
-            final UserEntity target = entityUtil.getUser(userId, user.getLanguageCode());
+    public void handle(BotRole botRole, Map<String, String> params) {
+        sessionService.createSession(botRole, p -> {
+            validatorUtil.checkExactExpectedMessages(p.botRole(), p.messages(), 1);
+            final long userId = validatorUtil.parseId(p.botRole(), p.messages().getFirst());
+            final BotRole targetRole = entityUtil.getActiveBotRole(botRole, userId);
 
-            postService.checkUserIsInBot(user, bot, target);
-            requestContentAndSendMessage(user, bot, target);
+            requestContentAndSendMessage(p.botRole(), targetRole);
         }, true);
 
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                Localizations.Service.PRIVATE_MESSAGE_USER_REQUEST, user));
+        clientManager.sendMessage(botRole, localizationLoader.localize(
+                Localizations.Service.PRIVATE_MESSAGE_USER_REQUEST, botRole));
     }
 
-    private void requestContentAndSendMessage(UserEntity user, Bot bot, UserEntity target) {
-        sessionService.createSession(user, bot, p -> {
-            postService.sendPrivateMessageToUser(p.user(), p.bot(), target, p.messages());
+    private void requestContentAndSendMessage(BotRole botRole, BotRole targetRole) {
+        sessionService.createSession(botRole, p -> {
+            postService.sendPrivateMessageToUser(p.botRole(), targetRole.getUser().getId(), p.messages());
         });
 
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                Localizations.Service.PRIVATE_MESSAGE_CONTENT_REQUEST, user,
+        clientManager.sendMessage(botRole, localizationLoader.localize(
+                Localizations.Service.PRIVATE_MESSAGE_CONTENT_REQUEST, botRole,
                 new Localizations.Service.PrivateMessageContentRequestParams(
-                    entityUtil.getLocalizedTitle(user, bot, target), target.getFullName())));
+                    entityUtil.getLocalizedTitle(botRole, targetRole),
+                    targetRole.getUser().getFullName())));
     }
 }

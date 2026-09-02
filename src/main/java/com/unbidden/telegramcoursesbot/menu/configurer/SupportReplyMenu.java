@@ -29,7 +29,7 @@ public class SupportReplyMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setColumns(1);
         page.setButtonsFunction(p -> List.of(
-            new TerminalButton(loader.localize(Localizations.Button.REPLY_TO_SUPPORT_REQUEST, p.user()).getData(), replyToSupportRequestHandler)
+            new TerminalButton(loader.localize(Localizations.Button.REPLY_TO_SUPPORT_REQUEST, p.botRole()).getData(), replyToSupportRequestHandler)
         ));
 
         menu.setPages(List.of(page));

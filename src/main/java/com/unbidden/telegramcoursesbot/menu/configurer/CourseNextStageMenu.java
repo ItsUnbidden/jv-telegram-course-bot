@@ -38,10 +38,10 @@ public class CourseNextStageMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setColumns(1);
         page.setButtonsFunction(p -> {
-            final Lesson lesson = entityUtil.getLessonById(p.user(), p.bot(), Long.parseLong(p.params().get(LESSON_ID_PARAM)));
+            final Lesson lesson = entityUtil.getLessonById(p.botRole(), Long.parseLong(p.params().get(LESSON_ID_PARAM)));
             final String buttonName = lesson.getNextLessonButtonTitle() == null
-                    ? loader.localize(Localizations.Button.NEXT_LESSON_DEFAULT, p.user()).getData()
-                    : contentService.getLocalizedText(p.user(), p.bot(), lesson.getNextLessonButtonTitle().getId());
+                    ? loader.localize(Localizations.Button.NEXT_LESSON_DEFAULT, p.botRole()).getData()
+                    : contentService.getLocalizedText(p.botRole(), lesson.getNextLessonButtonTitle().getId());
 
             return List.of(new TerminalButton(buttonName, lesson.getCourse().getId().toString(), courseNextStageHandler));
         });

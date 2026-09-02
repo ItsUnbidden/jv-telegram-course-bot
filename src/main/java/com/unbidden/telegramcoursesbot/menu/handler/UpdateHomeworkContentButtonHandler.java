@@ -1,11 +1,9 @@
 package com.unbidden.telegramcoursesbot.menu.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
-import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.orchestration.HomeworkOrchestrationService;
@@ -33,17 +31,15 @@ public class UpdateHomeworkContentButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.COURSE_SETTINGS)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final Long homeworkId = Long.parseLong(params.get(HOMEWORK_ID_PARAM));
         final Long lessonId = Long.parseLong(params.get(LESSON_ID_PARAM));
 
-        sessionService.createSession(user, bot, p -> {
-            homeworkService.updateContent(p.user(), p.bot(), homeworkId, p.messages());
+        sessionService.createSession(botRole, p -> {
+            homeworkService.updateContent(p.botRole(), homeworkId, p.messages());
         });
 
-        final Localization request = localizationLoader.localize(
-                Localizations.Service.HOMEWORK_CONTENT_REQUEST, user,
-                new Localizations.Service.HomeworkContentRequestParams(lessonId));
-        clientManager.getClient(bot).sendMessage(user, request);
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.HOMEWORK_CONTENT_REQUEST,
+                botRole, new Localizations.Service.HomeworkContentRequestParams(lessonId)));
     }
 }

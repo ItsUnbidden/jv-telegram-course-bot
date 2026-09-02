@@ -48,28 +48,28 @@ public class BotOrchestrationService {
         return botService.updateInitialBot(director);
     }
 
-    public void createBot(UserEntity director, Long creatorId, String token) {
+    public void createBot(BotRole botRole, Long creatorId, String token) {
         final String botToken = token.trim();
 
         if (!BOT_TOKEN_PATTERN.matcher(botToken).matches()) {
             throw new InvalidDataSentException("Bot token " + botToken
                     + " does not match the bot token  pattern", loader
-                    .localize(Localizations.Error.BOT_TOKEN_PATTERN_MISMATCH, director));
+                    .localize(Localizations.Error.BOT_TOKEN_PATTERN_MISMATCH, botRole));
         }
         LOGGER.debug("Bot token has been parsed.");
 
         LOGGER.info("Creating a new bot for creator " + creatorId + "...");
-        final Bot newBot = botService.createBot(director, creatorId, botToken);
+        final Bot newBot = botService.createBot(botRole, creatorId, botToken);
 
         LOGGER.info("New bot " + newBot.getId() + " has been created. Initializing...");
 
         clientManager.addClient(newBot);
 
         LOGGER.debug("Client initialized for the new bot " + newBot.getId() + ". Sending confirmation messages...");
-        final UserEntity creator = entityUtil.getCreator(newBot);
+        final BotRole creatorRole = entityUtil.getCreator(newBot.getId());
         
-        clientManager.getBotLordClient().sendMessage(director, loader.localize(Localizations.Service.NEW_BOT_CREATED, director));
-        clientManager.getClient(newBot).sendMessage(creator, loader.localize(Localizations.Service.BOT_CREATED_CREATOR_NOTIFICATION, creator));
+        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.NEW_BOT_CREATED, botRole));
+        clientManager.sendMessage(creatorRole, loader.localize(Localizations.Service.BOT_CREATED_CREATOR_NOTIFICATION, creatorRole));
         LOGGER.debug("Messages sent.");
     }
 

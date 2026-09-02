@@ -26,10 +26,10 @@ public class SecurityAspect {
         try {
             dto = dataParser.parse(joinPoint);
         } catch (SecurityDataParsingException e) {
-            throw new RuntimeException("Cannot continue without resolving parsing issue", e);
+            throw new RuntimeException("There was a security parsing issue. This is a bug.", e);
         }
 
-        if (securityService.grantAccess(dto.getUser(), dto.getBot(), dto.isBotLordOnly(), dto.getAuthorities())) {
+        if (securityService.grantAccess(dto.getBotRole(), dto.isBotLordOnly(), dto.getAuthorities())) {
             joinPoint.proceed();
         } else {
             LOGGER.debug("Cannot proceed to the method since access was denied.");

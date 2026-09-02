@@ -1,7 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.timing;
 
 import com.unbidden.telegramcoursesbot.model.BanTrigger;
-import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Homework;
@@ -9,7 +9,6 @@ import com.unbidden.telegramcoursesbot.model.HomeworkTrigger;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.LessonTrigger;
 import com.unbidden.telegramcoursesbot.model.TimedTrigger;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.BanTriggersRepository;
 import com.unbidden.telegramcoursesbot.repository.HomeworkTriggersRepository;
 import com.unbidden.telegramcoursesbot.repository.LessonTriggersRepository;
@@ -41,13 +40,12 @@ public class TimingService {
     private final EntityUtil entityUtil;
 
     @Transactional
-    public Optional<LessonTrigger> createLessonTriggerIfNeeded(UserEntity user, Bot bot, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Optional<LessonTrigger> createLessonTriggerIfNeeded(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
         
-        final CourseProgress progress = entityUtil.getCourseProgressForUser(user, bot, courseId);
-        final Lesson lesson = entityUtil.getLessonByPositionAndCourseId(user, bot, progress.getStage(), courseId);
+        final CourseProgress progress = entityUtil.getCourseProgressForUser(botRole, courseId);
+        final Lesson lesson = entityUtil.getLessonByPositionAndCourseId(botRole, progress.getStage(), courseId);
 
         if (lesson.getDelay() > 0 && progress.getNumberOfTimesCompleted() == 0) {
             LOGGER.debug("Lesson " + lesson.getId() + " has a delay of " + lesson.getDelay()
@@ -55,14 +53,13 @@ public class TimingService {
             final LessonTrigger trigger = new LessonTrigger();
 
             trigger.setProgress(progress);
-            trigger.setBot(progress.getCourse().getBot());
-            trigger.setUser(progress.getUser());
+            trigger.setBotRole(botRole);
             trigger.setCreatedAt(LocalDateTime.now());
             trigger.setTarget(LocalDateTime.now().plusMinutes(lesson.getDelay()));
 
             lessonTriggersRepository.save(trigger);
 
-            LOGGER.debug("New trigger " + trigger.getId() + " for user " + user.getId()
+            LOGGER.debug("New trigger " + trigger.getId() + " for user " + botRole.getUser().getId()
                     + " and lesson " + lesson.getId() + " has been created. It will activate at "
                     + trigger.getTarget() + ".");
             
@@ -72,28 +69,26 @@ public class TimingService {
     }
 
     @Transactional
-    public Optional<HomeworkTrigger> createHomeworkTriggerIfNeeded(UserEntity user, Bot bot, Long homeworkId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Optional<HomeworkTrigger> createHomeworkTriggerIfNeeded(BotRole botRole, Long homeworkId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(homeworkId, "homeworkId cannot be null");
 
-        final Homework homework = entityUtil.getHomeworkById(user, bot, homeworkId);
-        final CourseProgress progress = entityUtil.getCourseProgressById(user, bot, homework.getLesson().getCourse().getId());
+        final Homework homework = entityUtil.getHomeworkById(botRole, homeworkId);
+        final CourseProgress progress = entityUtil.getCourseProgressForUser(botRole, homework.getLesson().getCourse().getId());
 
-        if (homework.getDelay() > 0 && progress.getNumberOfTimesCompleted() == 0) {
+        if (homework.getDelay() > 0 && progress.getNumberOfTimesCompleted() < 1) {
             LOGGER.debug("Homework " + homework.getId() + " has a delay of "
                     + homework.getDelay() + " minutes. Creating homework trigger...");
             final HomeworkTrigger trigger = new HomeworkTrigger();
 
-            trigger.setProgress(entityUtil.getHomeworkProgressByHomeworkId(user, bot, homeworkId));
-            trigger.setBot(bot);
-            trigger.setUser(user);
+            trigger.setProgress(entityUtil.getHomeworkProgressByHomeworkId(botRole, homeworkId));
+            trigger.setBotRole(botRole);
             trigger.setCreatedAt(LocalDateTime.now());
             trigger.setTarget(LocalDateTime.now().plusMinutes(homework.getDelay()));
 
             homeworkTriggersRepository.save(trigger);
 
-            LOGGER.debug("New trigger " + trigger.getId() + " for user " + user.getId()
+            LOGGER.debug("New trigger " + trigger.getId() + " for user " + botRole.getUser().getId()
                     + " and homework " + homework.getId() + " has been created. It will "
                     + "activate at " + trigger.getTarget() + ".");
             return Optional.of(trigger);
@@ -102,40 +97,42 @@ public class TimingService {
     }
 
     @Transactional
-    public BanTrigger createBanTrigger(UserEntity target, Bot bot, int hours, boolean isGeneral) {
-        Assert.notNull(target, "target cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public BanTrigger createBanTrigger(BotRole botRole, int hours, boolean isGeneral) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.state(hours > 0, "hours must be greater than 0");
 
-        LOGGER.debug("Creating timed trigger for user " + target.getId() + "'s ban in bot " + bot + "...");
+        LOGGER.debug("Creating timed trigger for user " + botRole.getUser().getId() + "'s ban in bot " + botRole.getBot().getId() + "...");
         final BanTrigger trigger = new BanTrigger();
 
-        trigger.setBot(bot);
-        trigger.setUser(target);
+        trigger.setBotRole(botRole);
         trigger.setCreatedAt(LocalDateTime.now());
         trigger.setGeneral(isGeneral);
         trigger.setTarget(LocalDateTime.now().plusHours(hours));
 
         LOGGER.debug("New trigger's target will be " + trigger.getTarget() + ".");
         banTriggersRepository.save(trigger);
-        LOGGER.debug("Timed trigger for user " + target.getId() + " has been created and persisted.");  
 
         return trigger;
     }
 
     @Transactional(readOnly = true)
-    public Optional<LessonTrigger> findLessonTrigger(Long userId, Long courseId, int stage) {
-        return lessonTriggersRepository.findByUserIdAndProgressCourseIdAndProgressStage(userId, courseId, stage);
+    public Optional<LessonTrigger> findLessonTrigger(Long botRoleId, Long courseId, int stage) {
+        return lessonTriggersRepository.findByBotRoleIdAndProgressCourseIdAndProgressStage(botRoleId, courseId, stage);
     }
 
     @Transactional(readOnly = true)
-    public boolean existsHomeworkTrigger(Long userId, Long homeworkId) {
-        return homeworkTriggersRepository.existsByUserIdAndProgressHomeworkId(userId, homeworkId);
+    public boolean existsHomeworkTrigger(Long botRoleId, Long homeworkId) {
+        return homeworkTriggersRepository.existsByBotRoleIdAndProgressHomeworkId(botRoleId, homeworkId);
     }
 
     @Transactional
-    public int removeBanTriggerIfPresent(Long userId, Long botId) {
-        return banTriggersRepository.deleteByUserIdAndBotId(userId, botId);
+    public int removeBanTriggerIfPresent(Long botRoleId) {
+        return banTriggersRepository.deleteByBotRoleId(botRoleId);
+    }
+
+    @Transactional
+    public void removeGeneralBanTriggerIfPresent(Long userId) {
+        banTriggersRepository.deleteByBotRoleUserIdAndIsGeneralTrue(userId);
     }
 
     /**

@@ -5,8 +5,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 
 import lombok.RequiredArgsConstructor;
@@ -19,7 +18,7 @@ public class CommitSessionButtonHandler extends AbstractButtonHandler {
     private final ContentSessionService contentSessionService;
 
     @Override
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        contentSessionService.commit(user, bot, UUID.fromString(params.get(SESSION_ID_PARAM)));
+    public void handle(BotRole botRole, Map<String, String> params) {
+        contentSessionService.commit(botRole, UUID.fromString(params.get(SESSION_ID_PARAM)));
     }
 }

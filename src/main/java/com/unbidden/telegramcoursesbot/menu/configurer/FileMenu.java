@@ -34,13 +34,13 @@ public class FileMenu implements MenuConfigurer {
 
         page.setPageIndex(0);
         page.setColumns(1);
-        page.setLocalizationFunction(p -> loader.localize(Localizations.Menu.FILES_PAGE_0, p.user()));
+        page.setLocalizationFunction(p -> loader.localize(Localizations.Menu.FILES_PAGE_0, p.botRole()));
         page.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
             
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.UPLOAD_LOCALIZATION_FILE, p.user()).getData(), localizationFileUploadHandler));
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.UPLOAD_IMAGE_FILE, p.user()).getData(), imageFileUploadHandler));
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.DELETE_INVOICE_IMAGE, p.user()).getData(), deleteInvoiceImageHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.UPLOAD_LOCALIZATION_FILE, p.botRole()).getData(), localizationFileUploadHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.UPLOAD_IMAGE_FILE, p.botRole()).getData(), imageFileUploadHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.DELETE_INVOICE_IMAGE, p.botRole()).getData(), deleteInvoiceImageHandler));
             
             return buttons;
         });

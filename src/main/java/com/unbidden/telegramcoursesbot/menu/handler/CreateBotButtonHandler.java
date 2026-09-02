@@ -6,8 +6,7 @@ import com.unbidden.telegramcoursesbot.dto.internal.SessionParamsDto;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
 import com.unbidden.telegramcoursesbot.service.session.UserOrChatRequestSessionService;
@@ -45,24 +44,23 @@ public class CreateBotButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.BOTS_SETTINGS, isBotLordOnly = true)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         if (Boolean.valueOf(params.get(IS_BY_ID_PARAM))) {
-            contentSessionService.createSession(user, bot, p -> {
-                validatorUtil.checkExactExpectedMessages(user, p.messages(), 2);
+            contentSessionService.createSession(botRole, p -> {
+                validatorUtil.checkExactExpectedMessages(p.botRole(), p.messages(), 2);
                 
-                botService.createBot(user, validatorUtil.parseId(user, p.messages().getFirst()), p.messages().getLast().getText());
+                botService.createBot(p.botRole(), validatorUtil.parseId(p.botRole(), p.messages().getFirst()), p.messages().getLast().getText());
             });
         } else {
-            clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                    .localize(Localizations.Service.CREATE_BOT_CREATOR_BY_ID_REQUEST, user));
+            clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.CREATE_BOT_CREATOR_BY_ID_REQUEST, botRole));
 
-            final var chooseUserSession = userOrChatRequestSessionService.createSession(user, bot, getCreateBotFunction(user, bot));
+            final var chooseUserSession = userOrChatRequestSessionService.createSession(botRole, getCreateBotFunction(botRole));
             final KeyboardButtonRequestUser requestUser = KeyboardButtonRequestUser.builder()
                     .userIsBot(false)
                     .requestId(String.valueOf(chooseUserSession.getRequestId())).build();
             final KeyboardButton button = KeyboardButton.builder()
                     .requestUser(requestUser)
-                    .text(localizationLoader.localize(Localizations.Button.CHOOSE_USER, user).getData())
+                    .text(localizationLoader.localize(Localizations.Button.CHOOSE_USER, botRole).getData())
                     .build();
 
             final KeyboardRow row = new KeyboardRow();
@@ -74,21 +72,20 @@ public class CreateBotButtonHandler extends AbstractButtonHandler {
                     .keyboardRow(row)
                     .build();
 
-            clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                    .localize(Localizations.Service.CREATE_BOT_CHOOSE_CREATOR, user), markup);
+            clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.CREATE_BOT_CHOOSE_CREATOR, botRole), markup);
         }
     }
 
-    private Consumer<SessionParamsDto> getCreateBotFunction(UserEntity director, Bot botlord) {
+    private Consumer<SessionParamsDto> getCreateBotFunction(BotRole botRole) {
         return p -> {
-            contentSessionService.createSession(director, botlord, p2 -> {
-                validatorUtil.checkExactExpectedMessages(p2.user(), p2.messages(), 1);
-                botService.createBot(director, p.messages().getFirst().getUserShared().getUserId(),
+            contentSessionService.createSession(botRole, p2 -> {
+                validatorUtil.checkExactExpectedMessages(p2.botRole(), p2.messages(), 1);
+                botService.createBot(botRole, p.messages().getFirst().getUserShared().getUserId(),
                         p2.messages().get(0).getText());
             });
 
-            clientManager.getBotLordClient().sendMessage(director, localizationLoader.localize(
-                    Localizations.Service.CREATE_BOT_TOKEN_ONLY_REQUEST, director), keyboardRemove);
+            clientManager.sendMessage(botRole, localizationLoader.localize(
+                    Localizations.Service.CREATE_BOT_TOKEN_ONLY_REQUEST, botRole), keyboardRemove);
         };
     }
 }

@@ -32,12 +32,12 @@ public class RefreshMenu implements MenuConfigurer {
 
         page1.setPageIndex(0);
         page1.setColumns(1);
-        page1.setLocalizationFunction(p -> loader.localize(Localizations.Menu.REFRESH_PAGE_0, p.user()));
+        page1.setLocalizationFunction(p -> loader.localize(Localizations.Menu.REFRESH_PAGE_0, p.botRole()));
         page1.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
 
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.LOCALIZATIONS_REFRESH, p.user()).getData(), refreshLocalizationsHandler));
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.MENUS_REFRESH, p.user()).getData(), refreshUserMenusHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.LOCALIZATIONS_REFRESH, p.botRole()).getData(), refreshLocalizationsHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.MENUS_REFRESH, p.botRole()).getData(), refreshUserMenusHandler));
 
             return buttons;
         });

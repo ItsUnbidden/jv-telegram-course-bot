@@ -4,8 +4,7 @@ import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.orchestration.PaymentOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
@@ -29,12 +28,11 @@ public class DeleteInvoiceImageButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.MAINTENANCE, isBotLordOnly = true)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        sessionService.createSession(user, bot, p -> {
-            paymentService.deleteInvoiceImage(p.user(), p.bot(), p.messages());
+    public void handle(BotRole botRole, Map<String, String> params) {
+        sessionService.createSession(botRole, p -> {
+            paymentService.deleteInvoiceImage(p.botRole(), p.messages());
         }, true);
 
-        clientManager.getBotLordClient().sendMessage(user, loader
-                .localize(Localizations.Service.INVOICE_IMAGE_DELETE_REQUEST, user));
+        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.INVOICE_IMAGE_DELETE_REQUEST, botRole));
     }
 }

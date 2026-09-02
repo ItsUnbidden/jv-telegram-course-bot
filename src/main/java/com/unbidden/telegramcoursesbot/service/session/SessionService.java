@@ -1,8 +1,7 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
 import com.unbidden.telegramcoursesbot.dto.internal.SessionParamsDto;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 
 import java.util.function.Consumer;
 
@@ -11,9 +10,9 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 public interface SessionService<S extends Session> {
-    S createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function);
+    S createSession(BotRole botRole, Consumer<SessionParamsDto> function);
 
-    void removeSessionsForUserInBot(UserEntity user, Bot bot);
+    void removeSessionsForUserInBot(BotRole botRole);
 
-    void processResponse(UserEntity user, Bot bot, Session session, Message message);
+    void processResponse(BotRole botRole, Session session, Message message);
 }

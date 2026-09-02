@@ -3,10 +3,10 @@ package com.unbidden.telegramcoursesbot.exception;
 import com.unbidden.telegramcoursesbot.exception.handler.GeneralLocalizedExceptionHandler;
 import com.unbidden.telegramcoursesbot.exception.handler.LocalizedExceptionHandler;
 import com.unbidden.telegramcoursesbot.exception.handler.UnknownExceptionHandler;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 
 import java.util.List;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -33,9 +33,8 @@ public class ExceptionHandlerManager {
     }
 
     @NonNull
-    public SendMessage handleException(@NonNull UserEntity user, @NonNull Bot bot,
-            @NonNull Exception exc) {
-        LOGGER.info("User " + user.getId() + " has caused " + exc.getClass().getName()
+    public SendMessage handleException(BotRole botRole, Exception exc) {
+        LOGGER.debug("User " + botRole.getUser().getId() + " has caused " + exc.getClass().getName()
                 + " to occur. Searching for exception handler...");
 
         if (exc instanceof LocalizedException) {
@@ -44,17 +43,16 @@ public class ExceptionHandlerManager {
                 if (exc.getClass().equals(handler.getExceptionClass())) {
                     LOGGER.info("Handler " + handler.getClass().getName()
                             + " has been found. Commencing handling...");
-                    return handler.compileSendMessage(user, bot, exc);
+                    return handler.compileSendMessage(botRole, exc);
                 }
             }
             LOGGER.debug("No specific localized exception handler has been found for localized "
-                    + "exception of type " + exc.getClass().getName()
-                    + ". Using general handler...");
-            return generalLocalizedHandler.compileSendMessage(user, bot, exc);
+                    + "exception of type " + exc.getClass().getName() + ". Using general handler...");
+            return generalLocalizedHandler.compileSendMessage(botRole, exc);
         }
         
         LOGGER.warn("Exception is not localized. Using unknown exception handler "
                 + unknownHandler.getClass().getName() + "...");
-        return unknownHandler.compileSendMessage(user, bot, exc);
+        return unknownHandler.compileSendMessage(botRole, exc);
     }
 }

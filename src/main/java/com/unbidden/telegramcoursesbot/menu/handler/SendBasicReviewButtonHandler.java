@@ -4,8 +4,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.service.orchestration.ReviewOrchestrationService;
 
 import lombok.RequiredArgsConstructor;
@@ -19,7 +18,7 @@ public class SendBasicReviewButtonHandler extends AbstractButtonHandler {
     private final ReviewOrchestrationService reviewService;
 
     @Override
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        reviewService.commitBasicReview(user, bot, Long.parseLong(params.get(COURSE_ID_PARAM)), Integer.parseInt(params.get(COURSE_GRADE_PARAM)));
+    public void handle(BotRole botRole, Map<String, String> params) {
+        reviewService.commitBasicReview(botRole, Long.parseLong(params.get(COURSE_ID_PARAM)), Integer.parseInt(params.get(COURSE_GRADE_PARAM)));
     }
 }

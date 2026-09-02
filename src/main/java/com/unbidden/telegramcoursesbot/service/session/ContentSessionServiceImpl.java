@@ -13,6 +13,7 @@ import com.unbidden.telegramcoursesbot.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.menu.MenuTerminationGroupKey;
 import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.SessionRepository;
 
@@ -47,8 +48,11 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     private final ClientManager clientManager;
 
     @Override
-    public ContentSession createSession(UserEntity user, Bot bot, Consumer<SessionParamsDto> function,
+    public ContentSession createSession(BotRole botRole, Consumer<SessionParamsDto> function,
             boolean isSkippingConfirmation) {
+        final UserEntity user = botRole.getUser();
+        final Bot bot = botRole.getBot();
+
         sessionRepository.removeUserOrChatRequestSessionsForUserInBot(user.getId(), bot);
         final List<Session> sessions = sessionRepository.findForUserInBot(user.getId(), bot);
 
@@ -64,8 +68,7 @@ public class ContentSessionServiceImpl implements ContentSessionService {
         final ContentSession session = new ContentSession();
 
         session.setId(UUID.randomUUID());
-        session.setUser(user);
-        session.setBot(bot);
+        session.setBotRole(botRole);
         session.setTimestamp(LocalDateTime.now());
         session.setFunction(function);
         session.setMessages(new ArrayList<>());
@@ -78,69 +81,70 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     }
 
     @Override
-    public void removeSessionsForUserInBot(UserEntity user, Bot bot) {
-        sessionRepository.removeForUserInBot(user.getId(), bot);
+    public void removeSessionsForUserInBot(BotRole botRole) {
+        sessionRepository.removeForUserInBot(botRole.getUser().getId(), botRole.getBot());
     }
 
     @Override
-    public void removeSessionsWithoutConfirmationForUser(UserEntity user, Bot bot) {
-        sessionRepository.removeSessionsWithoutConfirmationForUserInBot(user.getId(), bot);
+    public void removeSessionsWithoutConfirmationForUser(BotRole botRole) {
+        sessionRepository.removeSessionsWithoutConfirmationForUserInBot(botRole.getUser().getId(), botRole.getBot());
     }
 
     @Override
-    public void processResponse(UserEntity user, Bot bot, Session session, Message message) {
+    public void processResponse(BotRole botRole, Session session, Message message) {
         final ContentSession contentSession = (ContentSession)session;
         
         contentSession.getMessages().add(message);
         LOGGER.trace("Adding new message to the confirmation list...");
         if (contentSession.isSkippingConfirmation()) {
             LOGGER.trace("Only one message is expected, no confirmation message will be sent.");
-            commit(user, bot, session.getId());
+            commit(botRole, session.getId());
         } else if (!contentSession.isMenuInitialized()) {
             LOGGER.trace("Sending confirmation menu...");
-            menuService.initiateMenu(user, bot, MenuKey.COMMIT_CONTENT,
+            menuService.initiateMenu(botRole, MenuKey.COMMIT_CONTENT,
                     SESSION_ID_PARAM, contentSession.getId().toString(), MenuTerminationGroupKey.COMMIT_CONTENT,
                     session.getId());
             
             contentSession.setMenuInitialized(true);
         }
-        LOGGER.trace("Session response of user " + user.getId() + " has been processed.");
+        LOGGER.trace("Session response of user " + botRole.getUser().getId() + " has been processed.");
     }
 
     @Override
-    public void commit(UserEntity user, Bot bot, UUID sessionId) {
-        final ContentSession session = (ContentSession)getSession(sessionId, user);
+    public void commit(BotRole botRole, UUID sessionId) {
+        final ContentSession session = (ContentSession)getSession(sessionId, botRole);
 
-        LOGGER.trace("Removing sessions for user " + user.getId() + "...");
+        LOGGER.trace("Removing sessions for user " +  botRole.getUser().getId() + "...");
         if (!session.isSkippingConfirmation()) {
             menuService.terminateMenuGroup(MenuTerminationGroupKey.COMMIT_CONTENT, session.getId());
         }
-        removeSessionsForUserInBot(user, bot);
+        removeSessionsForUserInBot(botRole);
         LOGGER.trace("All sessions have been removed for user. Executing content session "
-                + sessionId + "'s function for user " + user.getId() + "...");
-        session.execute(user, bot);
+                + sessionId + "'s function for user " +  botRole.getUser().getId() + "...");
+        session.execute(botRole);
         LOGGER.trace("Content session " + sessionId + "'s function has been executed.");
     }
 
     @Override
-    public void resend(UserEntity user, Bot bot, UUID sessionId) {
-        final ContentSession session = (ContentSession)getSession(sessionId, user);
+    public void resend(BotRole botRole, UUID sessionId) {
+        final ContentSession session = (ContentSession)getSession(sessionId, botRole);
 
-        LOGGER.trace("Removing sessions for user " + user.getId()
+        LOGGER.trace("Removing sessions for user " +  botRole.getUser().getId()
                 + " and recreating session...");
         if (!session.isSkippingConfirmation()) {
             menuService.terminateMenuGroup(MenuTerminationGroupKey.COMMIT_CONTENT,
-                    localizationLoader.localize(Menu.COMMIT_CONTENT_RESEND_TERMINAL_PAGE, user), session.getId());
+                    localizationLoader.localize(Menu.COMMIT_CONTENT_RESEND_TERMINAL_PAGE, botRole), session.getId());
         }
-        removeSessionsForUserInBot(user, bot);
-        createSession(user, bot, session.getFunction());
+        removeSessionsForUserInBot(botRole);
+        createSession(botRole, session.getFunction());
         LOGGER.trace("All sessions have been removed for user and new session has been created. "
                 + "Sending resend message...");
 
         final Localization resendLoc = localizationLoader.localize(
-                Localizations.Service.RESEND_CONTENT, user);
-        clientManager.getClient(bot).sendMessage(SendMessage.builder()
-                .chatId(user.getId())
+                Localizations.Service.RESEND_CONTENT, botRole);
+
+        clientManager.sendMessage(botRole, SendMessage.builder()
+                .chatId(botRole.getUser().getId())
                 .text(resendLoc.getData())
                 .entities(resendLoc.getEntities())
                 .build());
@@ -148,23 +152,23 @@ public class ContentSessionServiceImpl implements ContentSessionService {
     }
 
     @Override
-    public void cancel(UserEntity user, Bot bot, UUID sessionId) {
-        final ContentSession session = (ContentSession)getSession(sessionId, user);
+    public void cancel(BotRole botRole, UUID sessionId) {
+        final ContentSession session = (ContentSession)getSession(sessionId, botRole);
 
         if (!session.isSkippingConfirmation()) {
             menuService.terminateMenuGroup(MenuTerminationGroupKey.COMMIT_CONTENT,
-                    localizationLoader.localize(Menu.COMMIT_CONTENT_CANCEL_TERMINAL_PAGE, user), session.getId());
+                    localizationLoader.localize(Menu.COMMIT_CONTENT_CANCEL_TERMINAL_PAGE, botRole), session.getId());
         }
-        removeSessionsForUserInBot(user, bot);
+        removeSessionsForUserInBot(botRole);
     }
 
-    private Session getSession(UUID sessionId, UserEntity user) {
+    private Session getSession(UUID sessionId, BotRole botRole) {
         final Optional<Session> potentialSession = sessionRepository.find(sessionId);
 
         if (potentialSession.isEmpty()) {
             throw new ActionExpiredException("There is no session with id " + sessionId
                     + ". It might have expired.", localizationLoader.localize(
-                    Error.SESSION_EXPIRED, user));
+                    Error.SESSION_EXPIRED, botRole));
         }
         return potentialSession.get();
     }

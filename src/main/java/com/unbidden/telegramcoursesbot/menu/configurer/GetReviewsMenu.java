@@ -39,14 +39,14 @@ public class GetReviewsMenu implements MenuConfigurer {
 
         firstPage.setPageIndex(0);
         firstPage.setColumns(1);
-        firstPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.GET_REVIEWS_PAGE_0, p.user()));
+        firstPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.GET_REVIEWS_PAGE_0, p.botRole()));
         firstPage.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
 
-            buttons.addAll(courseService.getByBot(p.user(), p.bot()).stream()
+            buttons.addAll(courseService.getByBot(p.botRole()).stream()
                 .map(c -> (Button)new TransitoryButton(c.getLocalizedTitle(), COURSE_ID_PARAM, c.getId().toString(), 1))
                 .toList());
-            buttons.add(new TransitoryButton(loader.localize(Localizations.Button.ALL_COURSES_REVIEWS, p.user()).getData(), 1));
+            buttons.add(new TransitoryButton(loader.localize(Localizations.Button.ALL_COURSES_REVIEWS, p.botRole()).getData(), 1));
 
             return buttons;
         });
@@ -55,11 +55,11 @@ public class GetReviewsMenu implements MenuConfigurer {
 
         secondPage.setPageIndex(1);
         secondPage.setColumns(2);
-        secondPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.GET_REVIEWS_PAGE_1, p.user()));
+        secondPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.GET_REVIEWS_PAGE_1, p.botRole()));
         secondPage.setButtonsFunction(p -> List.of(
-            new TerminalButton(loader.localize(Localizations.Button.GET_NEW_REVIEWS, p.user()).getData(), getNewReviewsHandler),
-            new TerminalButton(loader.localize(Localizations.Button.GET_ARCHIVE_REVIEWS, p.user()).getData(), getArchiveReviewsHandler),
-            new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData())
+            new TerminalButton(loader.localize(Localizations.Button.GET_NEW_REVIEWS, p.botRole()).getData(), getNewReviewsHandler),
+            new TerminalButton(loader.localize(Localizations.Button.GET_ARCHIVE_REVIEWS, p.botRole()).getData(), getArchiveReviewsHandler),
+            new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData())
         ));
 
         menu.setPages(List.of(firstPage, secondPage));

@@ -20,7 +20,7 @@ public class HomeworkTrigger extends TimedTrigger {
 
     @Override
     public String toString() {
-        return "HomeworkTrigger(id=" + getId() + ", userId=" + getUser().getId() + ", botId=" + getBot().getId()
-                + ", createdAt=" + getCreatedAt() + ", target=" + getTarget() + ", homeworkProgressId=" + progress.getId() + ")";
+        return "HomeworkTrigger(id=" + getId() + ", botRoleId=" + getBotRole().getId() + ", createdAt=" + getCreatedAt()
+                + ", target=" + getTarget() + ", homeworkProgressId=" + progress.getId() + ")";
     }
 }

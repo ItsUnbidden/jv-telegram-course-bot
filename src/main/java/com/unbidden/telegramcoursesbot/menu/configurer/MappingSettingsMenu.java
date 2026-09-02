@@ -38,16 +38,16 @@ public class MappingSettingsMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setColumns(2);
         page.setLocalizationFunction(p -> {
-            final ContentMapping mapping = entityUtil.getMappingById(p.user(), p.bot(),
+            final ContentMapping mapping = entityUtil.getMappingById(p.botRole(),
                 Long.parseLong(p.params().get(MAPPING_ID_PARAM)));
 
-            return loader.localize(Localizations.Menu.MAPPING_SETTINGS_PAGE_0, p.user(),
+            return loader.localize(Localizations.Menu.MAPPING_SETTINGS_PAGE_0, p.botRole(),
                 new Localizations.Menu.MappingSettingsPage0Params(mapping.getId(), mapping.getPosition(),
                 getContentString(mapping)));
         });
         page.setButtonsFunction(p -> List.of(
-            new TerminalButton(loader.localize(Localizations.Button.ADD_MAPPING_LOCALIZATION, p.user()).getData(), addMappingLocalizationHandler),
-            new TerminalButton(loader.localize(Localizations.Button.REMOVE_MAPPING_LOCALIZATION, p.user()).getData(), removeMappingLocalizationHandler)
+            new TerminalButton(loader.localize(Localizations.Button.ADD_MAPPING_LOCALIZATION, p.botRole()).getData(), addMappingLocalizationHandler),
+            new TerminalButton(loader.localize(Localizations.Button.REMOVE_MAPPING_LOCALIZATION, p.botRole()).getData(), removeMappingLocalizationHandler)
         ));
 
         menu.setPages(List.of(page));

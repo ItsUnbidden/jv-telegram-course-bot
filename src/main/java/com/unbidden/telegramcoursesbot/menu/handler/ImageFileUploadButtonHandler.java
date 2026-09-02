@@ -6,8 +6,7 @@ import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 import com.unbidden.telegramcoursesbot.model.content.Document;
 import com.unbidden.telegramcoursesbot.model.content.DocumentContent;
@@ -49,15 +48,15 @@ public class ImageFileUploadButtonHandler extends AbstractButtonHandler {
     // TODO: this has to be revamped to allow creators to upload course invoice images themselves
     @Override
     @Security(authorities = AuthorityType.MAINTENANCE, isBotLordOnly = true)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        sessionService.createSession(user, bot, p -> {
-            validatorUtil.checkExactExpectedMessages(user, p.messages(), 2);
-            final Long courseId = validatorUtil.parseId(user, p.messages().getLast());
+    public void handle(BotRole botRole, Map<String, String> params) {
+        sessionService.createSession(botRole, p -> {
+            validatorUtil.checkExactExpectedMessages(p.botRole(), p.messages(), 2);
+            final Long courseId = validatorUtil.parseId(p.botRole(), p.messages().getLast());
 
-            LOGGER.info("User " + user.getId() + " is trying to update a course " + courseId + " invoice image.");
+            LOGGER.info("User " + p.botRole().getUser().getId() + " is trying to update a course " + courseId + " invoice image.");
 
             final DocumentContent content = (DocumentContent)contentService
-                    .parseAndPersistContent(p.user(), p.bot(), p.messages(), List.of(MediaType.DOCUMENT));
+                    .parseAndPersistContent(p.botRole(), p.messages(), List.of(MediaType.DOCUMENT));
             LOGGER.debug("Content " + content.getId() + " will be used for the invoice image "
                     + "for course " + courseId + ".");
             
@@ -69,20 +68,20 @@ public class ImageFileUploadButtonHandler extends AbstractButtonHandler {
                 LOGGER.info("Invoice image file " + path.toString() + " has been updated.");
             } catch (TelegramApiException e) {
                 throw new TelegramException("Unable to download file " + document.getId(),
-                        localizationLoader.localize(Localizations.Error.DOWNLOAD_FILE, user), e);
+                        localizationLoader.localize(Localizations.Error.DOWNLOAD_FILE, p.botRole()), e);
             }
             
             LOGGER.info("Invoice image file for course " + courseId + " has been updated.");
 
             LOGGER.debug("Sending confirmation message...");
-            clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                    .localize(Localizations.Service.INVOICE_IMAGE_UPDATED, user));
+            clientManager.sendMessage(p.botRole(), localizationLoader
+                    .localize(Localizations.Service.INVOICE_IMAGE_UPDATED, p.botRole()));
             LOGGER.debug("Message sent.");
         });
 
         LOGGER.debug("Sending request message...");
-        clientManager.getBotLordClient().sendMessage(user, localizationLoader
-                .localize(Localizations.Service.INVOICE_IMAGE_REQUEST, user));
+        clientManager.sendMessage(botRole, localizationLoader
+                .localize(Localizations.Service.INVOICE_IMAGE_REQUEST, botRole));
         LOGGER.debug("Message sent.");
     }
 }

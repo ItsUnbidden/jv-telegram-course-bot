@@ -4,8 +4,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.BeanNameAware;
 
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 
 public abstract class AbstractButtonHandler implements BeanNameAware {
     private String beanName;
@@ -19,5 +18,5 @@ public abstract class AbstractButtonHandler implements BeanNameAware {
         return beanName;
     }
 
-    public abstract void handle(UserEntity user, Bot bot, Map<String, String> params);
+    public abstract void handle(BotRole botRole, Map<String, String> params);
 }

@@ -32,11 +32,11 @@ public class ContentMenu implements MenuConfigurer {
 
         page.setPageIndex(0);
         page.setColumns(2);
-        page.setLocalizationFunction(p -> loader.localize(Localizations.Menu.CONTENT_ACTIONS_PAGE_0, p.user()));
+        page.setLocalizationFunction(p -> loader.localize(Localizations.Menu.CONTENT_ACTIONS_PAGE_0, p.botRole()));
         page.setButtonsFunction(p -> List.of(
-                new TerminalButton(loader.localize(Localizations.Button.UPLOAD_CONTENT, p.user()).getData(), uploadContentHandler),
-                new TerminalButton(loader.localize(Localizations.Button.GET_CONTENT, p.user()).getData(), getContentHandler),
-                new TerminalButton(loader.localize(Localizations.Button.GET_MAPPING, p.user()).getData(), getMappingHandler)
+                new TerminalButton(loader.localize(Localizations.Button.UPLOAD_CONTENT, p.botRole()).getData(), uploadContentHandler),
+                new TerminalButton(loader.localize(Localizations.Button.GET_CONTENT, p.botRole()).getData(), getContentHandler),
+                new TerminalButton(loader.localize(Localizations.Button.GET_MAPPING, p.botRole()).getData(), getMappingHandler)
         ));
         
         menu.setPages(List.of(page));

@@ -3,8 +3,7 @@ package com.unbidden.telegramcoursesbot.menu.handler;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.orchestration.HomeworkOrchestrationService;
@@ -32,17 +31,17 @@ public class AcceptHomeworkButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.GIVE_HOMEWORK_FEEDBACK)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final Long progressId = Long.parseLong(params.get(PROGRESS_ID_PARAM));
 
         if (Boolean.parseBoolean(params.get(WITH_COMMENT_PARAM))) {
-            sessionService.createSession(user, bot, p -> homeworkService.approve(p.user(), p.bot(),
+            sessionService.createSession(botRole, p -> homeworkService.approve(p.botRole(),
                     progressId, p.messages()));
                     
-            clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                    Localizations.Service.APPROVE_HOMEWORK_COMMENT_REQUEST, user));
+            clientManager.sendMessage(botRole, localizationLoader.localize(
+                    Localizations.Service.APPROVE_HOMEWORK_COMMENT_REQUEST, botRole));
         } else {
-            homeworkService.approve(user, bot, progressId);
+            homeworkService.approve(botRole, progressId);
         }
     }
 }

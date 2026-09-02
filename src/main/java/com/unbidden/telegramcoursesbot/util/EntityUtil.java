@@ -3,11 +3,9 @@ package com.unbidden.telegramcoursesbot.util;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
-import org.telegram.telegrambots.meta.api.objects.User;
 
 import com.unbidden.telegramcoursesbot.exception.AccessDeniedException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
@@ -55,8 +53,8 @@ import lombok.RequiredArgsConstructor;
 @Component
 @RequiredArgsConstructor
 public class EntityUtil {
-    private static final Long BOT_LORD_ID = 1L;
-    private static final Long START_BOT_ID = 2L;
+    public static final Long BOT_LORD_ID = 1L;
+    public static final Long START_BOT_ID = 2L;
 
     private final CourseRepository courseRepository;
 
@@ -96,130 +94,158 @@ public class EntityUtil {
     private Long directorId;
 
     @Transactional(readOnly = true)
-    public Course getCourseById(UserEntity user, Bot bot, Long id) {
+    public Course getCourseById(BotRole botRole, Long id) {
         Assert.notNull(id, "id cannot be null");
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(botRole, "botRole cannot be null");
 
         final Course course = courseRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Course " + id + " does not exist",
-                localizationLoader.localize(Error.COURSE_NOT_FOUND, user)));
+                localizationLoader.localize(Error.COURSE_NOT_FOUND, botRole)));
         
-        checkBotVisibility(user, course.getBot(), bot);
+        checkBotVisibility(botRole, course.getBot());
         return course;
     }
 
     @Transactional(readOnly = true)
-    public ContentMapping getCourseTitle(UserEntity user, Bot bot, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
+    public ContentMapping getCourseTitle(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
         final ContentMapping title = contentMappingRepository.findCourseTitle(courseId).orElseThrow(() ->
                 new EntityNotFoundException("Course " + courseId + " does not exist",
-                localizationLoader.localize(Error.COURSE_NOT_FOUND, user)));
+                localizationLoader.localize(Error.COURSE_NOT_FOUND, botRole)));
         
-        if (!title.getContent().isEmpty()) checkBotVisibility(user, title.getContent().getFirst().getBot(), bot);
+        if (!title.getContent().isEmpty()) checkBotVisibility(botRole, title.getContent().getFirst().getBot());
         return title;
     }
 
     @Transactional(readOnly = true)
-    public Lesson getLessonById(UserEntity user, Bot bot, Long lessonId) {
+    public Lesson getLessonById(BotRole botRole, Long lessonId) {
         Assert.notNull(lessonId, "lessonId cannot be null");
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(botRole, "botRole cannot be null");
 
         final Lesson lesson = lessonRepository.findById(lessonId).orElseThrow(() ->
                 new EntityNotFoundException("Lesson with id " + lessonId + " does not exist",
-                localizationLoader.localize(Error.LESSON_NOT_FOUND, user)));
+                localizationLoader.localize(Error.LESSON_NOT_FOUND, botRole)));
 
-        checkBotVisibility(user, lesson.getCourse().getBot(), bot);
+        checkBotVisibility(botRole, lesson.getCourse().getBot());
         return lesson;
     }
 
     @Transactional(readOnly = true)
-    public Lesson getLessonByPositionAndCourseId(UserEntity user, Bot bot, int position, Long courseId) {
+    public Lesson getLessonByPositionAndCourseId(BotRole botRole, int position, Long courseId) {
         Assert.notNull(courseId, "courseId cannot be null");
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(botRole, "botRole cannot be null");
 
         final Lesson lesson = lessonRepository.findByPositionAndCourseId(position, courseId).orElseThrow(() ->
                 new EntityNotFoundException("There is no lesson at position " + position
-                + " in course " + courseId, localizationLoader.localize(Error.LESSON_NOT_FOUND, user)));
+                + " in course " + courseId, localizationLoader.localize(Error.LESSON_NOT_FOUND, botRole)));
 
-        checkBotVisibility(user, lesson.getCourse().getBot(), bot);
+        checkBotVisibility(botRole, lesson.getCourse().getBot());
         return lesson;
     }
 
     @Transactional(readOnly = true)
-    public CourseProgress getCourseProgressForUser(UserEntity user, Bot bot, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
+    public CourseProgress getCourseProgressForUser(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
 
-        final CourseProgress progress = courseProgressRepository.findByUserIdAndCourseId(user.getId(), courseId)
+        final CourseProgress progress = courseProgressRepository.findByUserIdAndCourseId(botRole.getUser().getId(), courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Course progress for user "
-                + user.getFullName() + " and course " + courseId + " does not exist.",
-                localizationLoader.localize(Error.COURSE_PROGRESS_NOT_FOUND, user)));
+                + botRole.getUser().getFullName() + " and course " + courseId + " does not exist.",
+                localizationLoader.localize(Error.COURSE_PROGRESS_NOT_FOUND, botRole)));
         
-        checkBotVisibility(user, progress.getCourse().getBot(), bot);
+        checkBotVisibility(botRole, progress.getCourse().getBot());
         return progress;
     }
 
     @Transactional(readOnly = true)
-    public CourseProgress getCourseProgressById(UserEntity user, Bot bot, Long id) {
-        Assert.notNull(user, "user cannot be null");
+    public CourseProgress getCourseProgressById(BotRole botRole, Long id) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(id, "id cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
 
         final CourseProgress progress = courseProgressRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Course progress with id " + id + " does not exist.",
-                localizationLoader.localize(Error.COURSE_PROGRESS_NOT_FOUND, user)));
+                localizationLoader.localize(Error.COURSE_PROGRESS_NOT_FOUND, botRole)));
 
-        checkBotVisibility(user, progress.getCourse().getBot(), bot);
+        checkBotVisibility(botRole, progress.getCourse().getBot());
         return progress;
     }
 
     @Transactional(readOnly = true)
-    public Homework getHomeworkById(UserEntity user, Bot bot, Long id) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Homework getHomeworkById(BotRole botRole, Long id) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(id, "id cannot be null");
 
         final Homework homework = homeworkRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Homework with id " + id + " does not exist",
-                localizationLoader.localize(Error.HOMEWORK_NOT_FOUND, user)));
+                localizationLoader.localize(Error.HOMEWORK_NOT_FOUND, botRole)));
 
-        checkBotVisibility(user, homework.getLesson().getCourse().getBot(), bot);
+        checkBotVisibility(botRole, homework.getLesson().getCourse().getBot());
         return homework;
     }
 
     @Transactional(readOnly = true)
-    public HomeworkProgress getHomeworkProgressById(UserEntity user, Bot bot, Long progressId) {
-        Assert.notNull(user, "user cannot be null");
+    public HomeworkProgress getHomeworkProgressById(BotRole botRole, Long progressId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(progressId, "progressId cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
 
         final HomeworkProgress progress = homeworkProgressRepository.findById(progressId).orElseThrow(() ->
                 new EntityNotFoundException("Homework progress with id " + progressId + " does not exist",
-                localizationLoader.localize(Error.HOMEWORK_PROGRESS_NOT_FOUND, user)));
+                localizationLoader.localize(Error.HOMEWORK_PROGRESS_NOT_FOUND, botRole)));
 
-        checkBotVisibility(user, progress.getHomework().getLesson().getCourse().getBot(), bot);
+        checkBotVisibility(botRole, progress.getHomework().getLesson().getCourse().getBot());
         return progress;
     }
 
     @Transactional(readOnly = true)
-    public HomeworkProgress getHomeworkProgressByHomeworkId(UserEntity user, Bot bot, Long homeworkId) {
-        Assert.notNull(user, "user cannot be null");
+    public HomeworkProgress getHomeworkProgressByHomeworkId(BotRole botRole, Long homeworkId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(homeworkId, "homeworkId cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
 
         final HomeworkProgress progress = homeworkProgressRepository.findByUserIdAndHomeworkIdUnresolved(
-                user.getId(), homeworkId).orElseThrow(() -> new EntityNotFoundException("Homework progress for user "
-                + user.getFullName() + " and homework " + homeworkId + " does not exist",
-                localizationLoader.localize(Error.HOMEWORK_PROGRESS_NOT_FOUND, user)));
+                botRole.getUser().getId(), homeworkId).orElseThrow(() -> new EntityNotFoundException("Homework progress for user "
+                + botRole.getUser().getFullName() + " and homework " + homeworkId + " does not exist",
+                localizationLoader.localize(Error.HOMEWORK_PROGRESS_NOT_FOUND, botRole)));
 
-        checkBotVisibility(user, progress.getHomework().getLesson().getCourse().getBot(), bot);
+        checkBotVisibility(botRole, progress.getHomework().getLesson().getCourse().getBot());
         return progress;
+    }
+
+    @Transactional(readOnly = true)
+    public BotRole getActiveBotRole(BotRole botRole, Long targetId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+
+        return botRoleRepository.findByBotIdAndUserIdAndIsDisabledFalse(botRole.getBot().getId(), targetId).orElseThrow(() ->
+                new EntityNotFoundException("An active bot role for user " + targetId
+                + " and bot " + botRole.getBot().getId() + " does not exist", localizationLoader
+                .localize(Error.BOT_ROLE_NOT_FOUND, botRole)));
+    }
+
+    @Transactional(readOnly = true)
+    public BotRole getBotRole(BotRole botRole, Long targetId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+
+        return botRoleRepository.findByBotIdAndUserId(botRole.getBot().getId(), targetId).orElseThrow(() ->
+                new EntityNotFoundException("A bot role for user " + targetId
+                + " and bot " + botRole.getBot().getId() + " does not exist", localizationLoader
+                .localize(Error.BOT_ROLE_NOT_FOUND, botRole)));
+    }
+
+    @Transactional(readOnly = true)
+    public BotRole getBotRoleById(BotRole botRole, Long botRoleId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(botRoleId, "botRoleId cannot be null");
+
+        final BotRole targetBotRole = botRoleRepository.findById(botRoleId).orElseThrow(() ->
+                new EntityNotFoundException("Bot role " + botRoleId + " does not exist",
+                localizationLoader.localize(Error.BOT_ROLE_NOT_FOUND, botRole)));
+
+        checkBotVisibility(botRole, targetBotRole.getBot());
+
+        return targetBotRole;
     }
 
     @Transactional(readOnly = true)
@@ -243,196 +269,160 @@ public class EntityUtil {
     }
 
     @Transactional(readOnly = true)
-    public UserEntity getUser(User telegramUser) {
-        Assert.notNull(telegramUser, "telegramUser cannot be null");
-
-        return userRepository.findById(telegramUser.getId()).orElseThrow(() -> new EntityNotFoundException("User "
-                + telegramUser.getId() + " is not registred in the database", localizationLoader
-                .loadLocalization(Error.USER_NOT_FOUND, telegramUser.getLanguageCode())));
-    }
-
-    @Transactional(readOnly = true)
-    public UserEntity getUser(Long userId, String languageCode) {
+    public UserEntity getUser(BotRole botRole, Long userId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(userId, "userId cannot be null");
-        Assert.notNull(languageCode, "languageCode cannot be null");
 
         return userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User "
                 + userId + " is not registred in the database", localizationLoader
-                .loadLocalization(Error.USER_NOT_FOUND, languageCode)));
+                .localize(Error.USER_NOT_FOUND, botRole)));
     }
 
     @Transactional(readOnly = true)
-    public LocalizedContent getLocalizedContentById(UserEntity user, Bot bot, Long id) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public LocalizedContent getLocalizedContentById(BotRole botRole, Long id) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(id, "id cannot be null");
         
         final LocalizedContent content = localizedContentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Content with id " + id + " does not exist",
-                localizationLoader.localize(Error.CONTENT_NOT_FOUND, user)));
+                localizationLoader.localize(Error.CONTENT_NOT_FOUND, botRole)));
 
-        checkBotVisibility(user, content.getBot(), bot);
+        checkBotVisibility(botRole, content.getBot());
         return content;
     }
 
     @Transactional(readOnly = true)
-    public ContentMapping getMappingById(UserEntity user, Bot bot, Long id) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public ContentMapping getMappingById(BotRole botRole, Long id) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(id, "id cannot be null");
 
         final ContentMapping mapping = contentMappingRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Content mapping with id " + id
                 + " does not exist", localizationLoader.localize(
-                Error.CONTENT_MAPPING_NOT_FOUND, user)));
+                Error.CONTENT_MAPPING_NOT_FOUND, botRole)));
 
-        if (!mapping.getContent().isEmpty()) checkBotVisibility(user, mapping.getContent().getFirst().getBot(), bot);
+        if (!mapping.getContent().isEmpty()) checkBotVisibility(botRole, mapping.getContent().getFirst().getBot());
         return mapping;
     }
 
     @Transactional(readOnly = true)
-    public Review getReviewByCourseAndUser(UserEntity user, Bot bot, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Review getReviewByCourseAndUser(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        final Review review = reviewRepository.findByCourseIdAndUserId(courseId, user.getId())
-                .orElseThrow(() -> new EntityNotFoundException("User " + user.getId()
+        final Review review = reviewRepository.findByUserIdAndCourseId(botRole.getUser().getId(), courseId)
+                .orElseThrow(() -> new EntityNotFoundException("User " + botRole.getUser().getId()
                 + " has never left a review for course " + courseId, localizationLoader
-                .localize(Error.REVIEW_NOT_FOUND, user)));
+                .localize(Error.REVIEW_NOT_FOUND, botRole)));
 
-        checkBotVisibility(user, review.getCourse().getBot(), bot);
+        checkBotVisibility(botRole, review.getCourse().getBot());
         return review;
     }
 
     @Transactional(readOnly = true)
-    public Review getReviewById(UserEntity user, Bot bot, Long reviewId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Review getReviewById(BotRole botRole, Long reviewId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(reviewId, "reviewId cannot be null");
 
         final Review review = reviewRepository.findById(reviewId).orElseThrow(() ->
                 new EntityNotFoundException("Review with id " + reviewId + " does not exist.",
-                localizationLoader.localize(Error.REVIEW_NOT_FOUND, user)));
+                localizationLoader.localize(Error.REVIEW_NOT_FOUND, botRole)));
 
-        checkBotVisibility(user, review.getCourse().getBot(), bot);
+        checkBotVisibility(botRole, review.getCourse().getBot());
         return review;
     }
 
     @Transactional(readOnly = true)
-    public BotRole getBotRole(UserEntity user, Bot bot) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-
-        return botRoleRepository.findByBotIdAndUserId(bot.getId(), user.getId()).orElseThrow(() ->
-                new EntityNotFoundException("Bot role for user " + user.getId()
-                + " and bot " + bot.getId() + " does not exist", localizationLoader
-                .localize(Error.BOT_ROLE_NOT_FOUND, user)));
-    }
-
-    @Transactional(readOnly = true)
-    public BotRole getBotRole(UserEntity user, Bot bot, Long targetId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
-        Assert.notNull(targetId, "targetId cannot be null");
-
-        return botRoleRepository.findByBotIdAndUserId(bot.getId(), targetId).orElseThrow(() ->
-                new EntityNotFoundException("Bot role for user " + targetId
-                + " and bot " + bot.getId() + " does not exist", localizationLoader
-                .localize(Error.BOT_ROLE_NOT_FOUND, user)));
-    }
-
-    @Transactional(readOnly = true)
-    public SupportRequest getSupportRequestById(UserEntity user, Bot bot, Long id) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public SupportRequest getSupportRequestById(BotRole botRole, Long id) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(id, "id cannot be null");
 
         final SupportRequest request = supportRequestRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Support request with id " + id + " does not exist",
-                localizationLoader.localize(Error.SUPPORT_REQUEST_NOT_FOUND,
-                user)));
+                localizationLoader.localize(Error.SUPPORT_REQUEST_NOT_FOUND, botRole)));
 
-        checkBotVisibility(user, request.getBot(), bot);
+        checkBotVisibility(botRole, request.getBot());
         return request;
     }
 
     @Transactional(readOnly = true)
-    public SupportReply getSupportReplyById(UserEntity user, Bot bot, Long id) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public SupportReply getSupportReplyById(BotRole botRole, Long id) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(id, "id cannot be null");
 
         final SupportReply reply = supportReplyRepository.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Support reply with id " + id + " does not exist",
-                localizationLoader.localize(Error.SUPPORT_REPLY_NOT_FOUND,
-                user)));
+                localizationLoader.localize(Error.SUPPORT_REPLY_NOT_FOUND, botRole)));
 
-        checkBotVisibility(user, reply.getBot(), bot);
+        checkBotVisibility(botRole, reply.getBot());
         return reply;
     }
 
     @Transactional(readOnly = true)
-    public CourseOwnership getCourseOwnership(UserEntity user, Bot bot, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public CourseOwnership getCourseOwnership(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        final CourseOwnership ownership = courseOwnershipRepository.findByUserIdAndCourseId(user.getId(), courseId).orElseThrow(() ->
-                new EntityNotFoundException("Course ownership for user " + user.getId()
+        final CourseOwnership ownership = courseOwnershipRepository.findByUserIdAndCourseId(botRole.getUser().getId(), courseId).orElseThrow(() ->
+                new EntityNotFoundException("Course ownership for user " + botRole.getUser().getId()
                 + " and course " + courseId + " does not exist.", localizationLoader
-                .localize(Error.COURSE_OWNERSHIP_NOT_FOUND, user)));
+                .localize(Error.COURSE_OWNERSHIP_NOT_FOUND, botRole)));
 
-        checkBotVisibility(user, ownership.getCourse().getBot(), bot);
+        checkBotVisibility(botRole, ownership.getCourse().getBot());
         return ownership;
     }
 
     @Transactional(readOnly = true)
-    public CourseOwnership getActiveCourseOwnership(UserEntity user, Bot bot, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public CourseOwnership getActiveCourseOwnership(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
         final CourseOwnership ownership = courseOwnershipRepository.findByUserIdAndCourseIdAndStatus(
-                user.getId(), courseId, OwnershipStatus.ACTIVE).orElseThrow(() ->
-                new EntityNotFoundException("Course ownership for user " + user.getId()
+                botRole.getUser().getId(), courseId, OwnershipStatus.ACTIVE).orElseThrow(() ->
+                new EntityNotFoundException("Course ownership for user " + botRole.getUser().getId()
                 + " and course " + courseId + " does not exist.", localizationLoader
-                .localize(Error.COURSE_OWNERSHIP_NOT_FOUND, user)));
+                .localize(Error.COURSE_OWNERSHIP_NOT_FOUND, botRole)));
 
-        checkBotVisibility(user, ownership.getCourse().getBot(), bot);
+        checkBotVisibility(botRole, ownership.getCourse().getBot());
         return ownership;
     }
 
     @Transactional(readOnly = true)
-    public UserEntity getDiretor() {
+    public UserEntity getDirector() {
         return userRepository.findById(directorId).get();
     }
 
     @Transactional(readOnly = true)
-    public UserEntity getCreator(Bot bot) {
-        Assert.notNull(bot, "bot cannot be null");
+    public BotRole getDirectorBotRole(Long botId) {
+        Assert.notNull(botId, "botId cannot be null");
 
-        final List<UserEntity> potentialCreator = userRepository
-                .findByRoleType(bot.getId(), RoleType.CREATOR, Pageable.unpaged()).toList();
+        return botRoleRepository.findByBotIdAndRoleTypeAndIsDisabledFalse(botId, RoleType.DIRECTOR).getFirst();
+    }
+
+    @Transactional(readOnly = true)
+    public BotRole getCreator(Long botId) {
+        Assert.notNull(botId, "botId cannot be null");
+
+        final List<BotRole> potentialCreator = botRoleRepository.findByBotIdAndRoleTypeAndIsDisabledFalse(botId, RoleType.CREATOR);
 
         if (potentialCreator.isEmpty()) {
-            return getDiretor();
+            return botRoleRepository.findByBotIdAndRoleTypeAndIsDisabledFalse(botId, RoleType.DIRECTOR).getFirst();
         }
-        return potentialCreator.get(0);
+        return potentialCreator.getFirst();
     }
 
     @Transactional(readOnly = true)
-    public List<UserEntity> getSupport(Bot bot) {
-        Assert.notNull(bot, "bot cannot be null");
+    public List<BotRole> getSupport(Long botId) {
+        Assert.notNull(botId, "botId cannot be null");
 
-        return userRepository.findByRoleType(bot.getId(), RoleType.SUPPORT, Pageable.unpaged()).toList();
+        return botRoleRepository.findByBotIdAndRoleTypeAndIsDisabledFalse(botId, RoleType.SUPPORT);
     }
 
     @Transactional(readOnly = true)
-    public List<UserEntity> getMentors(Bot bot) {
-        Assert.notNull(bot, "bot cannot be null");
+    public List<BotRole> getMentors(Long botId) {
+        Assert.notNull(botId, "botId cannot be null");
 
-        return userRepository.findByRoleType(bot.getId(), RoleType.MENTOR, Pageable.unpaged()).toList();
+        return botRoleRepository.findByBotIdAndRoleTypeAndIsDisabledFalse(botId, RoleType.MENTOR);
     }
 
     @Transactional(readOnly = true)
@@ -466,6 +456,12 @@ public class EntityUtil {
         return botRepository.getReferenceById(id);
     }
 
+    public BotRole getBotRoleReference(Long id) {
+        Assert.notNull(id, "id cannot be null");
+
+        return botRoleRepository.getReferenceById(id);
+    }
+
     @Transactional(readOnly = true)
     public List<Authority> parseAuthorities(List<AuthorityType> types) {
         Assert.notNull(types, "types cannot be null");
@@ -473,37 +469,35 @@ public class EntityUtil {
         return authorityRepository.findByTypeIn(types);
     }
 
-    public void checkBotLord(UserEntity user, Bot bot) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public void checkBotLord(BotRole botRole) {
+        Assert.notNull(botRole, "botRole cannot be null");
 
-        if (!isBotLord(bot)) {
+        if (!isBotLord(botRole.getBot().getId())) {
             throw new AccessDeniedException("This action is available only from the "
                     + "bot lord", localizationLoader.localize(
-                    Error.UNAVAILABLE_IN_REGULAR_BOT, user));
+                    Error.UNAVAILABLE_IN_REGULAR_BOT, botRole));
         }
     }
 
-    public boolean isBotLord(Bot bot) {
-        Assert.notNull(bot, "bot cannot be null");
+    public boolean isBotLord(Long botId) {
+        Assert.notNull(botId, "botId cannot be null");
 
-        return bot.getId().equals(BOT_LORD_ID);
+        return botId.equals(BOT_LORD_ID);
     }
 
-    public String getLocalizedTitle(UserEntity localizedFor, Bot bot, UserEntity target) {
+    public String getLocalizedTitle(BotRole localizedFor, BotRole target) {
         Assert.notNull(localizedFor, "localizedFor cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
         Assert.notNull(target, "target cannot be null");
 
         return localizationLoader.localizeGeneric(Service.ROLE_TITLE, localizedFor,
-                getBotRole(target, bot).getRole().getType().toString().toLowerCase()).getData();
+                target.getRole().getType().toString().toLowerCase()).getData();
     }
 
-    private void checkBotVisibility(UserEntity user, Bot required, Bot current) {
-        if (!required.getId().equals(current.getId()) && !getBotLord().getId().equals(current.getId())) {
+    private void checkBotVisibility(BotRole botRole, Bot required) {
+        if (!required.getId().equals(botRole.getBot().getId()) && !getBotLord().getId().equals(botRole.getBot().getId())) {
             throw new AccessDeniedException("This asset is not available for bot "
-                    + current.getId(), localizationLoader.localize(
-                    Error.BOT_VISIBILITY_MISMATCH, user));
+                    + botRole.getBot().getId(), localizationLoader.localize(
+                    Error.BOT_VISIBILITY_MISMATCH, botRole));
         }
     }
 }

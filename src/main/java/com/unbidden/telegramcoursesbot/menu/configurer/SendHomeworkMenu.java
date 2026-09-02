@@ -29,7 +29,7 @@ public class SendHomeworkMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setColumns(1);
         page.setButtonsFunction(p -> List.of(
-            new TerminalButton(localizationLoader.localize(Localizations.Button.SEND_HOMEWORK, p.user()).getData(), sendHomeworkHandler)
+            new TerminalButton(localizationLoader.localize(Localizations.Button.SEND_HOMEWORK, p.botRole()).getData(), sendHomeworkHandler)
         ));
 
         menu.setPages(List.of(page));

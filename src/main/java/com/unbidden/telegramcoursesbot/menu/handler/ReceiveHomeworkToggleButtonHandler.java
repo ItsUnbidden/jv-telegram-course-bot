@@ -1,7 +1,6 @@
 package com.unbidden.telegramcoursesbot.menu.handler;
 
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.orchestration.UserOrchestrationService;
@@ -19,7 +18,7 @@ public class ReceiveHomeworkToggleButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.GIVE_HOMEWORK_FEEDBACK)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        userService.toggleReceiveHomework(user, bot);
+    public void handle(BotRole botRole, Map<String, String> params) {
+        userService.toggleReceiveHomework(botRole);
     }
 }

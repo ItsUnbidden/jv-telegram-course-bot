@@ -2,15 +2,11 @@ package com.unbidden.telegramcoursesbot.bot;
 
 import com.unbidden.telegramcoursesbot.dao.CertificateDao;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
-import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 
 import java.io.InputStream;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,7 +14,6 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.meta.api.methods.menubutton.SetChatMenuButton;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updates.DeleteWebhook;
 import org.telegram.telegrambots.meta.api.methods.updates.GetWebhookInfo;
 import org.telegram.telegrambots.meta.api.methods.updates.SetWebhook;
@@ -26,8 +21,6 @@ import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.WebhookInfo;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.menubutton.MenuButtonCommands;
-import org.telegram.telegrambots.meta.api.objects.message.Message;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 public abstract class CustomTelegramClient extends OkHttpTelegramClient {
@@ -43,7 +36,7 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
 
     protected final Logger logger;
 
-    protected final Bot bot;
+    protected final Long botId;
 
     protected final LocalizationLoader localizationLoader;
 
@@ -59,8 +52,8 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
 
     /**
      * Creates a new instance of {@link CustomTelegramClient}.
-     * @param bot this client is supposed to service
-     * @param userService
+     * @param botId of the bot this client represents
+     * @param botToken of the bot this client represents
      * @param loader
      * @param dao to load a custom certificate
      * @param baseUrl of this server
@@ -70,13 +63,13 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
      * (dao is still required)
      * @author Unbidden
      */
-    public CustomTelegramClient(Bot bot, LocalizationLoader loader, CertificateDao dao, String baseUrl,
+    public CustomTelegramClient(Long botId, String botToken, LocalizationLoader loader, CertificateDao dao, String baseUrl,
             String secretToken, @Nullable String ip, boolean isCustomCertificateIncluded) {
-        super(bot.getToken());
+        super(botToken);
 
-        this.bot = bot;
+        this.botId = botId;
         this.localizationLoader = loader;
-        this.logger = LogManager.getLogger("Bot " + bot.getId() + "'s Client");
+        this.logger = LogManager.getLogger("Bot " + botId + "'s Client");
         this.certificateDao = dao;
         this.baseUrl = baseUrl;
         this.secretToken = secretToken;
@@ -100,97 +93,6 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
             execute(setChatMenuButton);
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to set bot's menu button.", null, e);
-        }
-    }
-
-    /**
-     * Sends message provided in {@link SendMessage}. Warning! Field chatId in 
-     * {@link SendMessage} must be a user id, if that is not the case, exception will be thrown.
-     * @param sendMessage Telegram message builder
-     * @return sent {@link Message}
-     */
-    public Message sendMessage(SendMessage sendMessage) {
-        try {
-            return execute(sendMessage);
-        } catch (TelegramApiException e) {
-            logger.error("Unable to send message.", e);
-            return new Message(); // TODO: ensure that this is a reasonable approach
-        }
-    }
-
-    /**
-     * Asynchronously sends message provided in {@link SendMessage}. Warning! Field chatId in 
-     * {@link SendMessage} must be a user id, if that is not the case, exception will be thrown.
-     * @param sendMessage Telegram message builder
-     * @return {@link CompletableFuture} of the {@link Message}
-     */
-    public CompletableFuture<Message> sendMessageAsync(SendMessage sendMessage) {
-        try {
-            return executeAsync(sendMessage);
-        } catch (TelegramApiException e) {
-            logger.error("Unable to send message.", e);
-            return CompletableFuture.failedFuture(e);
-        }
-    }
-
-    /**
-     * Sends message to {@link UserEntity} using provided {@link Localization}.
-     * @param user to whom the message will be sent
-     * @param localization
-     * @return sent {@link Message}
-     */
-    public Message sendMessage(UserEntity user, Localization localization) {
-        try {
-            return execute(SendMessage.builder()
-                    .chatId(user.getId())
-                    .text(localization.getData())
-                    .entities(localization.getEntities())
-                    .build());
-        } catch (TelegramApiException e) {
-            logger.error("Unable to send message to user %s.".formatted(user.getId()), e);
-            return new Message(); // TODO: ensure that this is a reasonable approach
-        }
-    }
-
-    /**
-     * Asynchronously sends message to {@link UserEntity} using provided {@link Localization}.
-     * @param user to whom the message will be sent
-     * @param localization
-     * @return {@link CompletableFuture} of the {@link Message}
-     */
-    public CompletableFuture<Message> sendMessageAsync(UserEntity user, Localization localization) {
-        try {
-            return executeAsync(SendMessage.builder()
-                    .chatId(user.getId())
-                    .text(localization.getData())
-                    .entities(localization.getEntities())
-                    .build());
-        } catch (TelegramApiException e) {
-            logger.error("Unable to send message to user %s.".formatted(user.getId()), e);
-            return CompletableFuture.failedFuture(e);
-        }
-    }
-
-    /**
-     * Sends message to {@link UserEntity} using provided {@link Localization}
-     * with a specified markup.
-     * @param user to whom the message will be sent
-     * @param localization
-     * @param replyMarkup 
-     * @return sent {@link Message}
-     */
-    public Message sendMessage(UserEntity user, Localization localization,
-            ReplyKeyboard replyMarkup) {
-        try {
-            return execute(SendMessage.builder()
-                    .chatId(user.getId())
-                    .text(localization.getData())
-                    .entities(localization.getEntities())
-                    .replyMarkup(replyMarkup)
-                    .build());
-        } catch (TelegramApiException e) {
-            logger.error("Unable to send message to user %s.".formatted(user.getId()), e);
-            return new Message(); // TODO: ensure that this is a reasonable approach
         }
     }
 
@@ -230,7 +132,7 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
                     .maxConnections(maxConnections)
                     .build());
         } catch (TelegramApiException e) {
-            throw new TelegramException("Unable to set up bot " + bot.getId()
+            throw new TelegramException("Unable to set up bot " + botId
                     + "'s webhook.", null, e);
         } finally {
             if (publicKeyStream != null) {
@@ -238,15 +140,15 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
                 logger.debug("Certificate public key stream has been closed.");
             }
         }
-        logger.info("Bot " + bot.getId() + " has been registered.");
+        logger.info("Bot " + botId + " has been registered.");
     }
 
-    protected List<BotCommand> parseToBotCommands(List<String> commands, String languageCode) {
+    protected List<BotCommand> parseToBotCommands(List<String> commands, String languageCode, List<String> customLangPriority) {
         return commands.stream()
                 .map(c -> (BotCommand)BotCommand.builder()
                     .command(c)
                     .description(localizationLoader.loadGenericLocalization(Localizations.Menu.COMMAND_DESCRIPTION,
-                        languageCode, c.replace("/", "").toLowerCase()).getData())
+                        languageCode, customLangPriority, c.replace("/", "").toLowerCase()).getData())
                     .build())
                 .toList();
     }

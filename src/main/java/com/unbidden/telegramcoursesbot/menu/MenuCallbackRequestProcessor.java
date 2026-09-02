@@ -23,8 +23,7 @@ import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.menu.handler.AbstractButtonHandler;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.repository.CallbackQueryRepository;
 import com.unbidden.telegramcoursesbot.util.KeyboardUtil;
 
@@ -48,23 +47,23 @@ public class MenuCallbackRequestProcessor {
     private final KeyboardUtil keyboardUtil;
     
     // TODO: if a menu fails to be sent, it will break forever on the user's side. Some fallback logic might be required to inform the snapshot.
-    public void processCallbackQuery(UserEntity user, Bot bot, CallbackQuery query) {
-        callbackQueryRepository.save(user, bot, query);
+    public void processCallbackQuery(BotRole botRole, CallbackQuery query) {
+        callbackQueryRepository.save(botRole, query);
 
-        final MenuSnapshotUpdatedDto dto = menuService.processSnapshotUpdate(user, bot, Long.parseLong(query.getData()));
+        final MenuSnapshotUpdatedDto dto = menuService.processSnapshotUpdate(botRole, Long.parseLong(query.getData()));
         
         if (dto instanceof final TerminalMenuSnapshotUpdatedDto terminalDto) {
             final AbstractButtonHandler handler = buttonHandlers.get(terminalDto.getBeanName());
 
             if (handler == null) {
                 throw new StaleMenuException("An unknown handler name " + terminalDto.getBeanName() + " was found in snapshot "
-                        + terminalDto.getSnapshot().getId() + ".", loader.localize(Localizations.Error.STALE_MENU, user));
+                        + terminalDto.getSnapshot().getId() + ".", loader.localize(Localizations.Error.STALE_MENU, botRole));
             }
 
             RuntimeException potentialExc = null;
             try {
                 LOGGER.trace("Handler " + terminalDto.getBeanName() + " has been found. Executing...");
-                handler.handle(user, bot, terminalDto.getParams());
+                handler.handle(botRole, terminalDto.getParams());
                 LOGGER.trace("Handler " + terminalDto.getBeanName() + " has finished execution.");
             } catch (RuntimeException e) {
                 LOGGER.trace("An exception has occured while executing the handler's function. It will be rethrown after the menu is updated.");
@@ -76,22 +75,22 @@ public class MenuCallbackRequestProcessor {
                 try {
                     if (terminalDto.getNextPage().getLocalizationFunction() == null) {
                         LOGGER.trace("Sending new message markup...");
-                        clientManager.getClient(bot).execute(EditMessageReplyMarkup.builder()
-                                .chatId(user.getId())
+                        clientManager.getClient(botRole.getBot()).execute(EditMessageReplyMarkup.builder()
+                                .chatId(botRole.getUser().getId())
                                 .messageId(terminalDto.getSnapshot().getMessageId())
-                                .replyMarkup(keyboardUtil.getMarkup(user, bot, terminalDto.getNextPage(),
+                                .replyMarkup(keyboardUtil.getMarkup(terminalDto.getNextPage(),
                                     terminalDto.getSnapshotButtons(), terminalDto.getButtons()))
                                 .build());
                         LOGGER.trace("New markup sent.");
                     } else {
                         LOGGER.trace("Sending new message content and markup...");
                         final Localization loc = terminalDto.getNextPage().getLocalizationFunction()
-                                .apply(new MenuParamsDto(user, bot, terminalDto.getParams(), terminalDto.getSnapshot().getInitialPage()));
+                                .apply(new MenuParamsDto(botRole, terminalDto.getParams(), terminalDto.getSnapshot().getInitialPage()));
 
-                        clientManager.getClient(bot).execute(EditMessageText.builder()
-                                .chatId(user.getId())
+                        clientManager.getClient(botRole.getBot()).execute(EditMessageText.builder()
+                                .chatId(botRole.getUser().getId())
                                 .messageId(terminalDto.getSnapshot().getMessageId())
-                                .replyMarkup(keyboardUtil.getMarkup(user, bot, terminalDto.getNextPage(),
+                                .replyMarkup(keyboardUtil.getMarkup(terminalDto.getNextPage(),
                                     terminalDto.getSnapshotButtons(), terminalDto.getButtons()))
                                 .text(loc.getData())
                                 .entities(loc.getEntities())
@@ -99,8 +98,9 @@ public class MenuCallbackRequestProcessor {
                         LOGGER.trace("New content and markup sent.");
                     }  
                 } catch (TelegramApiException e) {
-                    LOGGER.error("Unable to update message " + query.getMessage()
-                            .getMessageId() + " and user " + user.getId(), e);
+                    LOGGER.error("Unable to update message " + query.getMessage().getMessageId() + " and user " + botRole.getUser().getId(), e);
+
+                    // TODO: introduce fallback
                 }
 
                 if (potentialExc != null) {
@@ -112,13 +112,13 @@ public class MenuCallbackRequestProcessor {
                 if (terminalDto.getNextPage() != null) {
                     LOGGER.trace("The menu is supposed to be terminated with a custom terminal localization.");
                     if (terminalDto.getNextPage().getLocalizationFunction() != null) {
-                        final Localization loc = terminalDto.getNextPage().getLocalizationFunction().apply(new MenuParamsDto(user, bot,
+                        final Localization loc = terminalDto.getNextPage().getLocalizationFunction().apply(new MenuParamsDto(botRole,
                                 terminalDto.getParams(), terminalDto.getSnapshot().getInitialPage()));
 
                         try {
                             LOGGER.trace("Sending new message content and clear markup...");
-                            clientManager.getClient(bot).execute(EditMessageText.builder()
-                                    .chatId(user.getId())
+                            clientManager.getClient(botRole.getBot()).execute(EditMessageText.builder()
+                                    .chatId(botRole.getUser().getId())
                                     .messageId(terminalDto.getSnapshot().getMessageId())
                                     .replyMarkup(InlineKeyboardMarkup.builder()
                                         .keyboard(List.of())
@@ -130,7 +130,9 @@ public class MenuCallbackRequestProcessor {
                             LOGGER.trace("New content and clear markup sent.");
                         } catch (TelegramApiException e) {
                             LOGGER.error("Unable to update content and markup for message " + query.getMessage()
-                                    .getMessageId() + " and user " + user.getId(), e);
+                                    .getMessageId() + " and user " + botRole.getUser().getId(), e);
+
+                            // TODO: introduce fallback
                         }
 
                         if (potentialExc != null) {
@@ -145,8 +147,8 @@ public class MenuCallbackRequestProcessor {
                 LOGGER.trace("The menu is supposed to be terminated with no changes to the message contents.");
                 try {
                     LOGGER.trace("Sending clear markup...");
-                    clientManager.getClient(bot).execute(EditMessageReplyMarkup.builder()
-                            .chatId(user.getId())
+                    clientManager.getClient(botRole.getBot()).execute(EditMessageReplyMarkup.builder()
+                            .chatId(botRole.getUser().getId())
                             .messageId(terminalDto.getSnapshot().getMessageId())
                             .replyMarkup(InlineKeyboardMarkup.builder()
                                 .keyboard(List.of())
@@ -156,7 +158,9 @@ public class MenuCallbackRequestProcessor {
                     LOGGER.trace("Clear markup sent.");
                 } catch (TelegramApiException e) {
                     LOGGER.error("Unable to update markup for message " + query.getMessage()
-                            .getMessageId() + " and user " + user.getId(), e);
+                            .getMessageId() + " and user " + botRole.getUser().getId(), e);
+
+                    // TODO: introduce fallback
                 }
             }
             if (potentialExc != null) {
@@ -168,10 +172,10 @@ public class MenuCallbackRequestProcessor {
             try {
                 if (transitoryDto.getNextPage().getLocalizationFunction() == null) {
                     LOGGER.trace("Sending new message markup...");
-                    clientManager.getClient(bot).execute(EditMessageReplyMarkup.builder()
-                            .chatId(user.getId())
+                    clientManager.getClient(botRole.getBot()).execute(EditMessageReplyMarkup.builder()
+                            .chatId(botRole.getUser().getId())
                             .messageId(transitoryDto.getSnapshot().getMessageId())
-                            .replyMarkup(keyboardUtil.getMarkup(user, bot, transitoryDto.getNextPage(),
+                            .replyMarkup(keyboardUtil.getMarkup(transitoryDto.getNextPage(),
                                 transitoryDto.getSnapshotButtons(), transitoryDto.getButtons()))
                             .build());
                     LOGGER.trace("New markup sent.");
@@ -179,12 +183,12 @@ public class MenuCallbackRequestProcessor {
                 } else {
                     LOGGER.trace("Sending new message content and markup...");
                     final Localization loc = transitoryDto.getNextPage().getLocalizationFunction()
-                            .apply(new MenuParamsDto(user, bot, transitoryDto.getParams(), transitoryDto.getSnapshot().getInitialPage()));
+                            .apply(new MenuParamsDto(botRole, transitoryDto.getParams(), transitoryDto.getSnapshot().getInitialPage()));
 
-                    clientManager.getClient(bot).execute(EditMessageText.builder()
-                            .chatId(user.getId())
+                    clientManager.getClient(botRole.getBot()).execute(EditMessageText.builder()
+                            .chatId(botRole.getUser().getId())
                             .messageId(transitoryDto.getSnapshot().getMessageId())
-                            .replyMarkup(keyboardUtil.getMarkup(user, bot, transitoryDto.getNextPage(),
+                            .replyMarkup(keyboardUtil.getMarkup(transitoryDto.getNextPage(),
                                 transitoryDto.getSnapshotButtons(), transitoryDto.getButtons()))
                             .text(loc.getData())
                             .entities(loc.getEntities())
@@ -194,8 +198,9 @@ public class MenuCallbackRequestProcessor {
                 }  
             } catch (TelegramApiException e) {
                 LOGGER.error("Unable to update message " + query.getMessage()
-                        .getMessageId() + " and user " + user.getId(), e);
-                return;
+                        .getMessageId() + " and user " + botRole.getUser().getId(), e);
+
+                // TODO: introduce fallback
             }
         } else {
             throw new MenuException("An unknown response DTO was returned by the transactional service. This is a bug.", null);

@@ -5,8 +5,7 @@ import com.unbidden.telegramcoursesbot.dto.internal.SessionParamsDto;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.orchestration.UserOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
@@ -52,46 +51,44 @@ public class GeneralBanButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.GENERAL_BANS, isBotLordOnly = true)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final boolean isGiveBan = Boolean.valueOf(params.get(IS_GIVE_BAN_PARAM));
 
         if (Boolean.valueOf(params.get(IS_BY_ID_PARAM))) {
-            LOGGER.info("Director " + user.getId() + " wants to ban user by id.");
-            contentSessionService.createSession(user, bot, p -> {
+            LOGGER.info("Director " + botRole.getUser().getId() + " wants to ban user by id.");
+            contentSessionService.createSession(botRole, p -> {
                 final long userId;
             
                 if (isGiveBan) {
-                    validatorUtil.checkExactExpectedMessages(p.user(), p.messages(), 2);
-                    userId = validatorUtil.parseId(p.user(), p.messages().getFirst());
+                    validatorUtil.checkExactExpectedMessages(p.botRole(), p.messages(), 2);
+                    userId = validatorUtil.parseId(p.botRole(), p.messages().getFirst());
 
-                    userService.banUserGenerally(p.user(), userId, validatorUtil.parseIntInBounds(
-                            p.user(), p.messages().getLast(), 0, MAX_BAN_HOURS));
+                    userService.banUserGenerally(p.botRole(), userId, validatorUtil.parseIntInBounds(
+                            p.botRole(), p.messages().getLast(), 0, MAX_BAN_HOURS));
                 } else {
-                    validatorUtil.checkExactExpectedMessages(p.user(), p.messages(), 1);
-                    userId = validatorUtil.parseId(p.user(), p.messages().getFirst());
+                    validatorUtil.checkExactExpectedMessages(p.botRole(), p.messages(), 1);
+                    userId = validatorUtil.parseId(p.botRole(), p.messages().getFirst());
 
-                    userService.liftGeneralBan(p.user(), userId);
+                    userService.liftGeneralBan(p.botRole(), userId);
                 }
             });
 
-            LOGGER.debug("Sending request message to director " + user.getId() + "...");
+            LOGGER.debug("Sending request message to director " + botRole.getUser().getId() + "...");
             if (isGiveBan) {
-                clientManager.getClient(bot).sendMessage(user, loader
-                        .localize(Localizations.Service.BAN_USER_ID_REQUEST, user));
+                clientManager.sendMessage(botRole, loader.localize(Localizations.Service.BAN_USER_ID_REQUEST, botRole));
             } else {
-                clientManager.getClient(bot).sendMessage(user, loader
-                        .localize(Localizations.Service.LIFT_BAN_USER_ID_REQUEST, user));
+                clientManager.sendMessage(botRole, loader.localize(Localizations.Service.LIFT_BAN_USER_ID_REQUEST, botRole));
             }
             LOGGER.debug("Message sent.");
         } else {
-            LOGGER.info("Director " + user.getId() + " wants to ban user by selecting them.");
-            final var chooseUserSession = userOrChatRequestSessionService.createSession(user, bot, getBanFunction(!isGiveBan));
+            LOGGER.info("Director " + botRole.getUser().getId() + " wants to ban user by selecting them.");
+            final var chooseUserSession = userOrChatRequestSessionService.createSession(botRole, getBanFunction(!isGiveBan));
             final KeyboardButtonRequestUser requestUser = KeyboardButtonRequestUser.builder()
                     .userIsBot(false)
                     .requestId(String.valueOf(chooseUserSession.getRequestId())).build();
             final KeyboardButton button = KeyboardButton.builder()
                     .requestUser(requestUser)
-                    .text(loader.localize(Localizations.Button.BAN_CHOOSE_USER, user).getData())
+                    .text(loader.localize(Localizations.Button.BAN_CHOOSE_USER, botRole).getData())
                     .build();
             final KeyboardRow row = new KeyboardRow();
 
@@ -102,10 +99,9 @@ public class GeneralBanButtonHandler extends AbstractButtonHandler {
                     .keyboardRow(row)
                     .build();
 
-            LOGGER.debug("Sending keyboard message to director " + user.getId()
+            LOGGER.debug("Sending keyboard message to director " + botRole.getUser().getId()
                     + " so that they can choose the target.");
-            clientManager.getClient(bot).sendMessage(user, loader
-                    .localize(Localizations.Service.BAN_CHOOSE_USER_REQUEST, user), markup);
+            clientManager.sendMessage(botRole, loader.localize(Localizations.Service.BAN_CHOOSE_USER_REQUEST, botRole), markup);
             LOGGER.debug("Keyboard message sent.");
         }
     }
@@ -113,20 +109,19 @@ public class GeneralBanButtonHandler extends AbstractButtonHandler {
     private Consumer<SessionParamsDto> getBanFunction(boolean lift) {
         return p -> {
             if (lift) {
-                userService.liftGeneralBan(p.user(), p.messages().getFirst().getUserShared().getUserId());
+                userService.liftGeneralBan(p.botRole(), p.messages().getFirst().getUserShared().getUserId());
                 return;
             }
 
-            contentSessionService.createSession(p.user(), p.bot(), p2 -> {
-                validatorUtil.checkExactExpectedMessages(p2.user(), p2.messages(), 1);
-                userService.banUserGenerally(p2.user(), p.messages().getFirst().getUserShared().getUserId(),
-                        validatorUtil.parseIntInBounds(p2.user(), p2.messages().getFirst(), 0, MAX_BAN_HOURS));
+            contentSessionService.createSession(p.botRole(), p2 -> {
+                validatorUtil.checkExactExpectedMessages(p2.botRole(), p2.messages(), 1);
+                userService.banUserGenerally(p2.botRole(), p.messages().getFirst().getUserShared().getUserId(),
+                        validatorUtil.parseIntInBounds(p2.botRole(), p2.messages().getFirst(), 0, MAX_BAN_HOURS));
             });
 
-            LOGGER.debug("Sending request for ban hours to director " + p.user().getId() + "...");
-            clientManager.getClient(p.bot()).sendMessage(p.user(), loader
-                    .localize(Localizations.Service.BAN_CHOOSE_USER_HOURS_REQUEST, p.user()),
-                    keyboardRemove);
+            LOGGER.debug("Sending request for ban hours to director " + p.botRole().getUser().getId() + "...");
+            clientManager.sendMessage(p.botRole(), loader.localize(Localizations.Service.BAN_CHOOSE_USER_HOURS_REQUEST,
+                    p.botRole()), keyboardRemove);
             LOGGER.debug("Message sent.");
         };
     }

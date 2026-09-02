@@ -37,17 +37,17 @@ public class SupportRequestMenu implements MenuConfigurer{
 
         page1.setPageIndex(0);
         page1.setColumns(2);
-        page1.setLocalizationFunction(p -> loader.localize(Localizations.Menu.SUPPORT_REQUEST_PAGE_0, p.user()));
+        page1.setLocalizationFunction(p -> loader.localize(Localizations.Menu.SUPPORT_REQUEST_PAGE_0, p.botRole()));
         page1.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
 
             for (int i = 0; i < 4; i++) {
                 buttons.add(new TerminalButton("support" + i, String.valueOf(i), sendSupportRequestHandler));
             }
-            if (!supportService.isUserEligibleForSupport(p.user(), p.bot())) {
-                final List<SupportRequest> unresolvedRequests = supportService.getUnresolvedRequestsForUserInBot(p.user(), p.bot());
+            if (!supportService.isUserEligibleForSupport(p.botRole())) {
+                final List<SupportRequest> unresolvedRequests = supportService.getUnresolvedRequestsForUserInBot(p.botRole());
 
-                buttons.add(new TerminalButton(loader.localize(Localizations.Button.RESOLVE_LAST_SUPPORT_REQUEST, p.user()).getData(),
+                buttons.add(new TerminalButton(loader.localize(Localizations.Button.RESOLVE_LAST_SUPPORT_REQUEST, p.botRole()).getData(),
                         REQUEST_ID_PARAM, unresolvedRequests.get(0).getId().toString(), resolveRequestHandler));
             }
 
@@ -57,7 +57,7 @@ public class SupportRequestMenu implements MenuConfigurer{
         final Page terminalPage = new Page(menu);
 
         terminalPage.setPageIndex(1);
-        terminalPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.SUPPORT_REQUEST_TERMINAL_PAGE, p.user()));
+        terminalPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.SUPPORT_REQUEST_TERMINAL_PAGE, p.botRole()));
 
         menu.setTerminalPage(terminalPage);
         menu.setPages(List.of(page1));

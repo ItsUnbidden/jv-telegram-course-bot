@@ -4,9 +4,8 @@ import java.util.List;
 
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 
-public record SessionParamsDto(UserEntity user, Bot bot, List<Message> messages) {
+public record SessionParamsDto(BotRole botRole, List<Message> messages) {
 
 }

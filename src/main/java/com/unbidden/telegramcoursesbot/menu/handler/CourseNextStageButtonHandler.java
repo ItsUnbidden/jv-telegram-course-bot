@@ -5,8 +5,7 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.orchestration.CourseOrchestrationService;
 
@@ -22,8 +21,8 @@ public class CourseNextStageButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.LAUNCH_COURSE)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
-        courseService.next(user, bot, Long.parseLong(params.get(COURSE_ID_PARAM)),
+    public void handle(BotRole botRole, Map<String, String> params) {
+        courseService.next(botRole, Long.parseLong(params.get(COURSE_ID_PARAM)),
                 Long.parseLong(params.get(LESSON_ID_PARAM)));
     }
 }

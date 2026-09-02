@@ -6,9 +6,8 @@ import com.unbidden.telegramcoursesbot.util.TextUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,6 +22,8 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dao.ArchiveReviewsDao;
+import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto;
+import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto.Result;
 import com.unbidden.telegramcoursesbot.exception.ActionExpiredException;
 import com.unbidden.telegramcoursesbot.exception.ArchiveReviewsException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
@@ -32,11 +33,12 @@ import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.menu.MenuTerminationGroupKey;
-import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Review;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.repository.impl.InMemoryReviewSessionRepository;
 import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
+import com.unbidden.telegramcoursesbot.service.model.ReviewSession;
 import com.unbidden.telegramcoursesbot.service.review.ReviewService;
 
 import lombok.RequiredArgsConstructor;
@@ -49,13 +51,13 @@ public class ReviewOrchestrationService {
     private static final String REVIEW_ID_PARAM = "reviewId";
     private static final String COURSE_ID_PARAM = "courseId";
 
-    private static final Map<Long, ReviewSession> REVIEW_SESSION_MAP = new HashMap<>();
-
     private static final String ARCHIVE_REVIEWS_FILE_NAME = "archive_reviews_user_%s_course_%s";
     private static final String ARCHIVE_REVIEWS_FILE_FORMAT = ".txt";
     private static final String TEMP_FILE_NAME = "reviews_for_%s";
 
     private final ArchiveReviewsDao archiveReviewsDao;
+
+    private final InMemoryReviewSessionRepository reviewSessionRepository;
 
     private final ReviewService reviewService;
 
@@ -74,80 +76,81 @@ public class ReviewOrchestrationService {
     @Value("${telegram.bot.reviews.page_size}")
     private Integer pageSize;
 
-    public Review checkReviewForComment(UserEntity user, Bot bot, Long reviewId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Review checkReviewForComment(BotRole botRole, Long reviewId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(reviewId, "reviewId cannot be null");
 
-        return reviewService.checkReviewForComment(user, bot, reviewId);
+        return reviewService.checkReviewForComment(botRole, reviewId);
     }
 
-    public void initiateBasicReview(UserEntity user, Bot bot, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public void initiateBasicReview(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        if (reviewService.doesReviewForUserAndCourseExist(user, courseId)) {
+        if (reviewService.doesReviewForUserAndCourseExist(botRole.getUser().getId(), courseId)) {
             throw new ActionExpiredException("Unable to initiate a new review menu "
-                    + "for user " + user.getId() + " since they have already left a review "
+                    + "for user " + botRole.getUser().getId() + " since they have already left a review "
                     + "for course " + courseId, localizationLoader.localize(
-                    Error.REVIEW_ALREADY_PRESENT, user));
+                    Error.REVIEW_ALREADY_PRESENT, botRole));
         }
 
         LOGGER.info("Sending basic review menu for course " + courseId + " to user "
-                + user.getFullName() + "...");
-        menuService.initiateMenu(user, bot, MenuKey.LEAVE_BASIC_REVIEW,
+                + botRole.getUser().getFullName() + "...");
+        menuService.initiateMenu(botRole, MenuKey.LEAVE_BASIC_REVIEW,
                 COURSE_ID_PARAM, courseId.toString(),
                 MenuTerminationGroupKey.LEAVE_BASIC_REVIEW, courseId);
     }
 
-    public Review commitBasicReview(UserEntity user, Bot bot, Long courseId,
-            int courseGrade) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Review commitBasicReview(BotRole botRole, Long courseId, int courseGrade) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        if (reviewService.doesReviewForUserAndCourseExist(user, courseId)) {
+        if (reviewService.doesReviewForUserAndCourseExist(botRole.getUser().getId(), courseId)) {
             throw new ActionExpiredException("Unable to create a new review entity "
-                    + "for user " + user.getId() + " since they have already left a review "
+                    + "for user " + botRole.getUser().getId() + " since they have already left a review "
                     + "for course " + courseId, localizationLoader.localize(
-                    Error.COMMIT_BASIC_REVIEW_FAILURE, user));
+                    Error.COMMIT_BASIC_REVIEW_FAILURE, botRole));
         }
 
-        LOGGER.info("User " + user.getFullName() + " wants to submit a basic review for course "
+        LOGGER.info("User " + botRole.getUser().getFullName() + " wants to submit a basic review for course "
                 + courseId + ". Their course grade is " + courseGrade + ".");
-        final Course course = entityUtil.getCourseById(user, bot, courseId);
-        final Review review = reviewService.createNewReview(user, courseId, courseGrade);
+        final Course course = entityUtil.getCourseById(botRole, courseId);
+        final Review review = reviewService.createNewReview(botRole.getUser().getId(), courseId, courseGrade);
 
         LOGGER.debug("New review " + review.getId() + " has been created. Sending confirmation message...");
-        final Message confirmationMessage = clientManager.getClient(course.getBot())
-                .sendMessage(user, localizationLoader.localize(
-                Localizations.Service.BASIC_REVIEW_SUBMITTED, user,
-                new Localizations.Service.BasicReviewSubmittedParams(
-                    contentService.getLocalizedText(user, bot, course.getTitle().getId()))));
+        final SendMessageResultDto confirmationMessage = clientManager.sendMessage(botRole, localizationLoader.localize(
+                Localizations.Service.BASIC_REVIEW_SUBMITTED, botRole, new Localizations.Service.BasicReviewSubmittedParams(
+                    contentService.getLocalizedText(botRole, course.getTitle().getId()))));
         LOGGER.debug("Message sent. An offer to provide an advanced review "
                 + "will be sent. All 'leave basic review' menus will be terminated.");
         menuService.terminateMenuGroup(MenuTerminationGroupKey.LEAVE_BASIC_REVIEW, course.getId());
 
-        initiateAdvancedReview(review, bot, confirmationMessage.getMessageId());
+        if (confirmationMessage.getResult() == Result.OK) {
+            LOGGER.info("Sending advanced review menu for course " + review.getCourse().getId()
+                    + " to user " +  review.getUser().getId() + "...");
+            menuService.initiateMenu(botRole, MenuKey.LEAVE_ADVANCED_REVIEW, COURSE_ID_PARAM, review.getCourse().getId().toString(),
+                    confirmationMessage.getMessage().getMessageId(), MenuTerminationGroupKey.LEAVE_ADVANCED_REVIEW, review.getId());
+        } else {
+            LOGGER.error("Failed to send basic review confirmation message. Advanced review menu won't be sent.");
+            // TODO: introduce fallback
+        }
 
         return review;
     }
 
-    public Review commitAdvancedReview(UserEntity user, Bot bot, Long courseId, List<Message> messages) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Review commitAdvancedReview(BotRole botRole, Long courseId, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
         Assert.notNull(messages, "messages cannot be null");
 
-        final Review review = reviewService.upgradeReview(user, bot, courseId, messages);
+        final Review review = reviewService.upgradeReview(botRole, courseId, messages);
 
         LOGGER.debug("Review " + review.getId() + " has been updated. Sending confirmation message...");
 
-        clientManager.getClient(bot).sendMessage(review.getUser(), localizationLoader.localize(
-                Localizations.Service.ADVANCED_REVIEW_SUBMITTED, review.getUser(),
-                new Localizations.Service.AdvancedReviewSubmittedParams(contentService.getLocalizedText(user,
-                    bot, review.getCourse().getTitle().getId()))));
+        clientManager.sendMessage(botRole, localizationLoader.localize(
+                Localizations.Service.ADVANCED_REVIEW_SUBMITTED, botRole,
+                new Localizations.Service.AdvancedReviewSubmittedParams(contentService.getLocalizedText(
+                    botRole, review.getCourse().getTitle().getId()))));
         LOGGER.info("Message sent. Review " + review.getId() + " has been updated to include advanced feedback. "
                 + "All advanced review menus will be terminated.");
         menuService.terminateMenuGroup(MenuTerminationGroupKey.LEAVE_ADVANCED_REVIEW, review.getId());
@@ -155,206 +158,191 @@ public class ReviewOrchestrationService {
         return review;
     }
 
-    public Review leaveComment(UserEntity user, Bot bot, Long reviewId, List<Message> messages) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Review leaveComment(BotRole botRole, Long reviewId, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(reviewId, "reviewId cannot be null");
         Assert.notNull(messages, "messages cannot be null");
 
-        final Review review = reviewService.leaveComment(user, bot, reviewId, messages);
+        final Review review = reviewService.leaveComment(botRole, reviewId, messages);
+        final BotRole targetRole = entityUtil.getActiveBotRole(botRole, review.getUser().getId());
 
         LOGGER.debug("Review " + reviewId + " has been updated. Sending confirmation message...");
-        clientManager.getClient(review.getCourse().getBot()).sendMessage(user,
-                localizationLoader.localize(Localizations.Service.COMMENT_SUBMITTED, user));
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.COMMENT_SUBMITTED, botRole));
         LOGGER.debug("Message sent. Sending notification to the review's owner..."); 
-        clientManager.getClient(review.getCourse().getBot())
-                .sendMessage(review.getUser(), localizationLoader.localize(
-                Localizations.Service.COMMENT_SUBMITTED_NOTIFICATION, user,
+        clientManager.sendMessage(targetRole, localizationLoader.localize(
+                Localizations.Service.COMMENT_SUBMITTED_NOTIFICATION, targetRole,
                 new Localizations.Service.CommentSubmittedNotificationParams(
-                    contentService.getLocalizedText(user, bot, review.getCourse().getTitle().getId()), user.getFullName(),
-                    entityUtil.getLocalizedTitle(review.getUser(), review.getCourse().getBot(), user))));
+                    contentService.getLocalizedText(targetRole, review.getCourse().getTitle().getId()),
+                    botRole.getUser().getFullName(),
+                    entityUtil.getLocalizedTitle(targetRole, botRole))));
         LOGGER.debug("Notificaton sent. Sending comment content...");
-        contentService.sendContent(review.getUser(), bot, review.getCommentContent().getId());
+        contentService.sendContent(targetRole, review.getCommentContent().getId());
         
         LOGGER.debug("Content sent. Review " + reviewId + " will be removed from the active review session.");
-        removeFromReviewSession(user, bot, review);
+        removeFromReviewSession(targetRole, review);
 
         return review;
     }
 
-    public Review updateComment(UserEntity user, Bot bot, Long reviewId, List<Message> messages) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Review updateComment(BotRole botRole, Long reviewId, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(reviewId, "reviewId cannot be null");
         Assert.notNull(messages, "messages cannot be null");
 
-        final Review review = reviewService.updateComment(user, bot, reviewId, messages);
+        final Review review = reviewService.updateComment(botRole, reviewId, messages);
+        final BotRole targetRole = entityUtil.getActiveBotRole(botRole, review.getUser().getId());
 
         LOGGER.debug("Review has been updated Sending confirmation message...");
-        clientManager.getClient(review.getCourse().getBot()).sendMessage(user,
-                localizationLoader.localize(Localizations.Service.COMMENT_SUBMITTED, user));
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.COMMENT_SUBMITTED, botRole));
         LOGGER.debug("Message sent. Sending notification to the review's owner...");
-        clientManager.getClient(review.getCourse().getBot()).sendMessage(review.getUser(),
-                localizationLoader.localize(Localizations.Service.COMMENT_SUBMITTED_NOTIFICATION,
-                user, new Localizations.Service.CommentSubmittedNotificationParams(
-                    contentService.getLocalizedText(user, bot, review.getCourse().getTitle().getId()), user.getFullName(),
-                    entityUtil.getLocalizedTitle(review.getUser(), review.getCourse().getBot(), user))));
+        clientManager.sendMessage(targetRole, localizationLoader.localize(Localizations.Service.COMMENT_SUBMITTED_NOTIFICATION,
+                targetRole, new Localizations.Service.CommentSubmittedNotificationParams(
+                    contentService.getLocalizedText(targetRole, review.getCourse().getTitle().getId()),
+                    botRole.getUser().getFullName(),
+                    entityUtil.getLocalizedTitle(targetRole, botRole))));
         LOGGER.debug("Notificaton sent. Sending comment content...");
-        contentService.sendContent(review.getUser(), review.getCourse().getBot(),
-                review.getCommentContent().getId());
+        contentService.sendContent(targetRole, review.getCommentContent().getId());
         LOGGER.debug("New comment content has been sent.");
 
         return review;
     }
 
-    public Review updateCourseGrade(UserEntity user, Bot bot, Long courseId, int newGrade) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Review updateCourseGrade(BotRole botRole, Long courseId, int newGrade) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
         Assert.state(newGrade > 0 && newGrade <= 10, "newGrade must be an int between 1 and 10");
         
-        final Review review = reviewService.updateCourseGrade(user, bot, courseId, newGrade);
+        final Review review = reviewService.updateCourseGrade(botRole, courseId, newGrade);
 
         LOGGER.debug("Review has been updated. Sending confirmation message...");
-        clientManager.getClient(bot).sendMessage(review.getUser(), localizationLoader.localize(
-                Localizations.Service.REVIEW_COURSE_GRADE_UPDATED, review.getUser(),
-                new Localizations.Service.ReviewCourseGradeUpdatedParams(
-                    contentService.getLocalizedText(user, bot, review.getCourse().getTitle().getId()))));
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.REVIEW_COURSE_GRADE_UPDATED,
+                botRole, new Localizations.Service.ReviewCourseGradeUpdatedParams(
+                    contentService.getLocalizedText(botRole, review.getCourse().getTitle().getId()))));
         LOGGER.debug("Message sent."); 
 
         return review;
     }
 
-    public Review updateAdvancedReview(UserEntity user, Bot bot, Long courseId, List<Message> messages) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Review updateAdvancedReview(BotRole botRole, Long courseId, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
         Assert.notNull(messages, "messages cannot be null");
 
-        final Review review = reviewService.updateAdvancedReview(user, bot, courseId, messages);
+        final Review review = reviewService.updateAdvancedReview(botRole, courseId, messages);
 
         LOGGER.debug("Review object recompiled. Sending confirmation message...");
-        clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                Localizations.Service.REVIEW_CONTENT_UPDATED, review.getUser(),
-                new Localizations.Service.ReviewContentUpdatedParams(
-                    contentService.getLocalizedText(user, bot, review.getCourse().getTitle().getId()))));
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.REVIEW_CONTENT_UPDATED,
+                botRole, new Localizations.Service.ReviewContentUpdatedParams(
+                    contentService.getLocalizedText(botRole, review.getCourse().getTitle().getId()))));
         LOGGER.debug("Message sent.");
 
         return review;
     }
 
-    public Review markReviewAsRead(UserEntity user, Bot bot, Long reviewId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Review markReviewAsRead(BotRole botRole, Long reviewId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(reviewId, "reviewId cannot be null");
 
-        final Review review = reviewService.addToUsersWhoRead(user, bot, reviewId);
+        final Review review = reviewService.addToUsersWhoRead(botRole, reviewId);
 
-        removeFromReviewSession(user, bot, review);
+        removeFromReviewSession(botRole, review);
         return review;
     }
 
-    public void sendNewReviewsForUser(UserEntity user, Bot bot) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public void sendNewReviewsForUser(BotRole botRole) {
+        Assert.notNull(botRole, "botRole cannot be null");
 
         final List<Review> reviews = reviewService.getNewReviewsForUser(
-                user, bot, PageRequest.of(0, pageSize)).stream().toList();
+                botRole, PageRequest.of(0, pageSize)).stream().toList();
 
         LOGGER.info("Sending " + reviews.size() + " new review(s) to user "
-                + user.getFullName());
-        sendReviews(user, bot, reviews);
+                + botRole.getUser().getFullName());
+        sendReviews(botRole, reviews);
         LOGGER.debug("Reviews sent. Updating review session...");
 
-        updateReviewSession(user, reviews.size(), null);
+        reviewSessionRepository.save(new ReviewSession(botRole.getId(), reviews.size(), null));
         LOGGER.debug("Review session updated.");
     }
 
-    public void sendNewReviewsForUserAndCourse(UserEntity user, Bot bot, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public void sendNewReviewsForUserAndCourse(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        final List<Review> reviews = reviewService.getNewReviewsForUserAndCourse(user,
+        final List<Review> reviews = reviewService.getNewReviewsForUserAndCourse(botRole.getUser().getId(),
                 courseId, PageRequest.of(0, pageSize)).stream().toList();
 
         LOGGER.info("Sending " + reviews.size() + " new review(s) for course " + courseId
-                + " to user " + user.getFullName());
-        sendReviews(user, bot, reviews);
+                + " to user " + botRole.getUser().getFullName());
+        sendReviews(botRole, reviews);
         LOGGER.debug("Reviews sent. Updating review session...");
 
-        updateReviewSession(user, reviews.size(), courseId);
+        reviewSessionRepository.save(new ReviewSession(botRole.getId(), reviews.size(), courseId));
         LOGGER.debug("Review session updated.");
     }
 
-    public void sendArchiveReviewsForUser(UserEntity user, Bot bot) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public void sendArchiveReviewsForUser(BotRole botRole) {
+        Assert.notNull(botRole, "botRole cannot be null");
 
-        final List<Review> archiveReviews = reviewService.getArchiveReviewsForUser(user, bot);
+        final List<Review> archiveReviews = reviewService.getArchiveReviewsForUser(botRole);
         
         LOGGER.info("Sending " + archiveReviews.size() + " archive review(s) to user "
-                + user.getFullName());
-        sendArchiveReviews(archiveReviews, user, null);
+                + botRole.getUser().getFullName());
+        sendArchiveReviews(botRole, archiveReviews, null);
         LOGGER.debug("Reviews sent.");
     }
 
-    public void sendArchiveReviewsForUserAndCourse(UserEntity user, Bot bot, Long courseId) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public void sendArchiveReviewsForUserAndCourse(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        final List<Review> archiveReviews = reviewService.getArchiveReviewsForUserAndCourse(user, courseId);
+        final List<Review> archiveReviews = reviewService.getArchiveReviewsForUserAndCourse(
+                botRole.getUser().getId(), courseId);
         
         LOGGER.info("Sending " + archiveReviews.size() + " archive review(s) for course "
-                + courseId + " to user " + user.getFullName());
-        sendArchiveReviews(archiveReviews, user, courseId);
+                + courseId + " to user " + botRole.getUser().getFullName());
+        sendArchiveReviews(botRole, archiveReviews, courseId);
         LOGGER.debug("Reviews sent.");
     }
 
-    private void removeFromReviewSession(UserEntity user, Bot bot, Review review) {
-        final ReviewSession currentReviewSession = REVIEW_SESSION_MAP.get(user.getId());
+    private void removeFromReviewSession(BotRole botRole, Review review) {
+        final Optional<ReviewSession> currentReviewSessionOpt = reviewSessionRepository.find(botRole.getId());
 
-        currentReviewSession.counter--;
+        if (currentReviewSessionOpt.isPresent()) {
+            final var currentReviewSession = currentReviewSessionOpt.get();
 
-        menuService.terminateMenuGroup(MenuTerminationGroupKey.REVIEW_ACTIONS, review.getId());
-
-        if (currentReviewSession.counter < 1) {
-            if (currentReviewSession.courseId != null) {
-                sendNewReviewsForUserAndCourse(user, bot, currentReviewSession.courseId);
-            } else {
-                sendNewReviewsForUser(user, bot);
+            currentReviewSession.setCounter(currentReviewSession.getCounter() - 1);
+    
+            menuService.terminateMenuGroup(MenuTerminationGroupKey.REVIEW_ACTIONS, review.getId());
+    
+            if (currentReviewSession.getCounter() < 1) {
+                if (currentReviewSession.getCourseId() != null) {
+                    sendNewReviewsForUserAndCourse(botRole, currentReviewSession.getCourseId());
+                } else {
+                    sendNewReviewsForUser(botRole);
+                }
             }
         }
     }
 
-    private void initiateAdvancedReview(Review review, Bot bot, Integer messageId) {
-        LOGGER.info("Sending advanced review menu for course " + review.getCourse().getId()
-                + " to user " +  review.getUser().getId() + "...");
-        menuService.initiateMenu(review.getUser(), bot, MenuKey.LEAVE_ADVANCED_REVIEW,
-                COURSE_ID_PARAM, review.getCourse().getId().toString(), messageId, MenuTerminationGroupKey.LEAVE_ADVANCED_REVIEW, review.getId());
-    }
-
-    private void sendReviews(UserEntity user, Bot bot, List<Review> reviews) {
+    private void sendReviews(BotRole botRole, List<Review> reviews) {
         if (reviews.isEmpty()) {
-            LOGGER.info("No further reviews are availbable for user " + user.getId() + ".");
-            clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                    Localizations.Service.NO_NEW_REVIEWS_FOR_USER, user));
+            LOGGER.info("No further reviews are availbable for user " + botRole.getUser().getId() + ".");
+            clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.NO_NEW_REVIEWS_FOR_USER, botRole));
+            reviewSessionRepository.remove(botRole.getId());
             return;
         }
 
         for (final Review review : reviews) {
             LOGGER.info("Compiling review info for review " + review.getId() + "...");
-            final String localizedCourseName = contentService.getLocalizedText(user, bot,
-                    review.getCourse().getTitle().getId());
-            final String notAvailable = localizationLoader.localize(Localizations.Service.NOT_AVAILABLE, user).getData();
+            final String localizedCourseName = contentService.getLocalizedText(botRole, review.getCourse().getTitle().getId());
+            final String notAvailable = localizationLoader.localize(Localizations.Service.NOT_AVAILABLE, botRole).getData();
 
-            final Message message;
+            final SendMessageResultDto message;
             if (review.getContent() != null && review.getCommentContent() != null) {
                 LOGGER.debug("Review is advanced and has a comment.");
 
-                clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                        Localizations.Service.REVIEW_INFO_CONTENT_COMMENT, user, new Localizations.Service.ReviewInfoContentCommentParams(
+                clientManager.sendMessage(botRole, localizationLoader.localize(
+                        Localizations.Service.REVIEW_INFO_CONTENT_COMMENT, botRole, new Localizations.Service.ReviewInfoContentCommentParams(
                             review.getUser().getFullName(),
                             review.getBasicSubmittedTimestamp(),
                             review.getLastUpdateTimestamp() != null ? review.getLastUpdateTimestamp().toString() : notAvailable,
@@ -366,14 +354,14 @@ public class ReviewOrchestrationService {
                             review.getContent().getId(), 
                             review.getAdvancedSubmittedTimestamp())));
 
-                final List<Message> sentMessages = contentService.sendContent(user, bot, review.getContent().getId());
+                final List<SendMessageResultDto> sentMessages = contentService.sendContent(botRole, review.getContent().getId());
 
-                message = getMenuMessage(user, bot, sentMessages);
+                message = getMenuMessage(botRole, sentMessages);
             } else if (review.getContent() != null) {
                 LOGGER.debug("Review is advanced.");
 
-                clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                        Localizations.Service.REVIEW_INFO_CONTENT, user, new Localizations.Service.ReviewInfoContentParams(
+                clientManager.sendMessage(botRole, localizationLoader.localize(
+                        Localizations.Service.REVIEW_INFO_CONTENT, botRole, new Localizations.Service.ReviewInfoContentParams(
                             review.getUser().getFullName(),
                             review.getBasicSubmittedTimestamp(),
                             review.getLastUpdateTimestamp() != null ? review.getLastUpdateTimestamp().toString() : notAvailable,
@@ -383,14 +371,14 @@ public class ReviewOrchestrationService {
                             review.getContent().getId(),
                             review.getAdvancedSubmittedTimestamp())));
 
-                final List<Message> sentMessages = contentService.sendContent(user, bot, review.getContent().getId());
+                final List<SendMessageResultDto> sentMessages = contentService.sendContent(botRole, review.getContent().getId());
 
-                message = getMenuMessage(user, bot, sentMessages);
+                message = getMenuMessage(botRole, sentMessages);
             } else if (review.getCommentContent() != null) {
                 LOGGER.debug("Review has a comment.");
                 
-                message = clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                        Localizations.Service.REVIEW_INFO_COMMENT, user, new Localizations.Service.ReviewInfoCommentParams(
+                message = clientManager.sendMessage(botRole, localizationLoader.localize(
+                        Localizations.Service.REVIEW_INFO_COMMENT, botRole, new Localizations.Service.ReviewInfoCommentParams(
                             review.getUser().getFullName(),
                             review.getBasicSubmittedTimestamp(),
                             review.getLastUpdateTimestamp() != null ? review.getLastUpdateTimestamp().toString() : notAvailable,
@@ -402,8 +390,8 @@ public class ReviewOrchestrationService {
             } else {
                 LOGGER.debug("Review is basic with no comment.");
 
-                message = clientManager.getClient(bot).sendMessage(user, localizationLoader.localize(
-                        Localizations.Service.REVIEW_INFO, user, new Localizations.Service.ReviewInfoParams(
+                message = clientManager.sendMessage(botRole, localizationLoader.localize(
+                        Localizations.Service.REVIEW_INFO, botRole, new Localizations.Service.ReviewInfoParams(
                             review.getUser().getFullName(),
                             review.getBasicSubmittedTimestamp(),
                             review.getLastUpdateTimestamp() != null ? review.getLastUpdateTimestamp().toString() : notAvailable,
@@ -411,24 +399,27 @@ public class ReviewOrchestrationService {
                             review.getCourseGrade(),
                             review.getUsersWhoReadAsString())));
             }
-            menuService.initiateMenu(user, bot, MenuKey.REVIEW_ACTIONS, REVIEW_ID_PARAM, review.getId().toString(), message.getMessageId(),
-                    MenuTerminationGroupKey.REVIEW_ACTIONS, review.getId());
+            if (message.getResult() == Result.OK) {
+                menuService.initiateMenu(botRole, MenuKey.REVIEW_ACTIONS, REVIEW_ID_PARAM, review.getId().toString(),
+                        message.getMessage().getMessageId(), MenuTerminationGroupKey.REVIEW_ACTIONS, review.getId());
+            } else {
+                LOGGER.error("Failed to send the review message. Review actions menu will not be attached.");
+                // TODO: introduce fallback
+            }
         }
     }
 
-    private void sendArchiveReviews(List<Review> reviews, UserEntity user, Long courseId) {
+    private void sendArchiveReviews(BotRole botRole, List<Review> reviews, Long courseId) {
         if (reviews.size() == 0) {
-            throw new ArchiveReviewsException("No archive reviews available", localizationLoader
-                    .localize(Error.NO_ARCHIVE_REVIEWS_AVAILABLE, user));
+            throw new ArchiveReviewsException("No archive reviews available",
+                    localizationLoader.localize(Error.NO_ARCHIVE_REVIEWS_AVAILABLE, botRole));
         }
-        final Bot bot = reviews.get(0).getCourse().getBot();
-        final Path tempFile = archiveReviewsDao.createTempFile(TEMP_FILE_NAME.formatted(
-                user.getId()));
+        final Path tempFile = archiveReviewsDao.createTempFile(TEMP_FILE_NAME.formatted(botRole.getUser().getId()));
         final StringBuilder builder = new StringBuilder();
 
         for (final Review review : reviews) {
             final String reviewInfo = textUtil.getArchiveReviewInfo(review, contentService.getLocalizedText(
-                    user, bot, review.getCourse().getTitle().getId()), builder);
+                    botRole, review.getCourse().getTitle().getId()), builder);
 
             LOGGER.debug("Writing review " + review.getId() + " to a temp file "
                     + tempFile + "...");
@@ -436,56 +427,44 @@ public class ReviewOrchestrationService {
             LOGGER.debug("Review has been saved to the temp file.");
             builder.delete(0, builder.length());
         }
-        final String fileName = ARCHIVE_REVIEWS_FILE_NAME.formatted(user.getId(),
-                (user.getId() == null) ? "all" : courseId) + ARCHIVE_REVIEWS_FILE_FORMAT;
+        final String fileName = ARCHIVE_REVIEWS_FILE_NAME.formatted(botRole.getUser().getId(),
+                (courseId == null) ? "all" : courseId) + ARCHIVE_REVIEWS_FILE_FORMAT;
 
         try {
             LOGGER.debug("Reading temp file " + tempFile + " and sending reviews file to user "
-                    + user.getId() + "...");
+                    + botRole.getUser().getId() + "...");
             final InputStream inputStream = archiveReviewsDao.read(tempFile);
 
             try {
-                clientManager.getClient(bot).execute(SendDocument.builder()
-                        .chatId(user.getId())
+                clientManager.getClient(botRole.getBot()).execute(SendDocument.builder()
+                        .chatId(botRole.getUser().getId())
                         .document(new InputFile(inputStream, fileName))
                         .build());
-                LOGGER.info("Archive reviews file has been sent to user " + user.getId() + ".");
+                LOGGER.info("Archive reviews file has been sent to user " + botRole.getUser().getId() + ".");
             } catch (TelegramApiException e) {
                 throw new TelegramException("Unable to send file " + fileName + " to user "
-                        + user.getId(), localizationLoader.localize(
-                        Error.SEND_FILE_FAILURE, user), e);
+                        + botRole.getUser().getId(), localizationLoader.localize(
+                        Error.SEND_FILE_FAILURE, botRole), e);
             } finally {
                 inputStream.close();
                 LOGGER.debug("Input stream has been closed.");
             }
         } catch (IOException e) {
             throw new ArchiveReviewsException("Unable to close the stream after the temp file "
-                    + tempFile + " has been read for user " + user.getId(), null, e);
+                    + tempFile + " has been read for user " + botRole.getUser().getId(), null, e);
         }
     }
 
-    private void updateReviewSession(UserEntity user, int numberOfReviews, Long courseId) {
-        final ReviewSession reviewSession = REVIEW_SESSION_MAP.get(user.getId());
-        
-        courseId = (courseId != null && numberOfReviews > 0) ? courseId : null;
-        if (reviewSession != null) {
-            reviewSession.counter = numberOfReviews;
-            reviewSession.courseId = courseId;
-        } else {
-            REVIEW_SESSION_MAP.put(user.getId(), new ReviewSession(courseId, numberOfReviews));
-        }
-    }
-
-    private Message getMenuMessage(UserEntity user, Bot bot, List<Message> sentMessages) {
-        final Message menuMessage;
+    private SendMessageResultDto getMenuMessage(BotRole botRole, List<SendMessageResultDto> sentMessages) {
+        final SendMessageResultDto menuMessage;
 
         if (sentMessages.size() > 1) {
             LOGGER.debug("Review content is a media group. To avoid Telegram restrictions, an "
-                    + "additional message will be sent to user " + user.getId()
+                    + "additional message will be sent to user " + botRole.getUser().getId()
                     + " to attach the feedback menu to.");
 
-            menuMessage = clientManager.getClient(bot).sendMessage(user, localizationLoader
-                    .localize(Localizations.Service.REVIEW_MEDIA_GROUP_BYPASS, user));
+            menuMessage = clientManager.sendMessage(botRole, localizationLoader
+                    .localize(Localizations.Service.REVIEW_MEDIA_GROUP_BYPASS, botRole));
             LOGGER.debug("Additional message for menu has been sent.");
         } else {
             LOGGER.debug("Review content is not a media group. Menu will be attached to it.");    
@@ -493,16 +472,5 @@ public class ReviewOrchestrationService {
         }
 
         return menuMessage;
-    }
-
-    private class ReviewSession {
-        Long courseId;
-
-        int counter;
-
-        ReviewSession(Long courseId, int counter) {
-            this.counter = counter;
-            this.courseId = courseId;
-        }
     }
 }

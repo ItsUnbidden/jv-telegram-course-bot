@@ -3,14 +3,16 @@ package com.unbidden.telegramcoursesbot.menu.handler;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.session.ContentSessionService;
+
 import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -28,14 +30,14 @@ public class AddMappingLocalizationButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.CONTENT_SETTINGS)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final Long mappingId = Long.parseLong(params.get(MAPPING_ID_PARAM));
 
-        sessionService.createSession(user, bot, p -> {
-            contentService.addNewLocalization(p.user(), p.bot(), mappingId, p.messages());
+        sessionService.createSession(botRole, p -> {
+            contentService.addNewLocalization(p.botRole(), mappingId, p.messages());
         });
-        clientManager.getClient(bot).sendMessage(user, localizationLoader
-                .localize(Localizations.Service.ADD_NEW_LOCALIZATION_REQUEST, user,
+        clientManager.sendMessage(botRole, localizationLoader
+                .localize(Localizations.Service.ADD_NEW_LOCALIZATION_REQUEST, botRole,
                     new Localizations.Service.AddNewLocalizationRequestParams(mappingId)));
     }
 }

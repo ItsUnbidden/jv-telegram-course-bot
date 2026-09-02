@@ -2,9 +2,9 @@ package com.unbidden.telegramcoursesbot.service.statistics;
 
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.RoleType;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership.OwnershipSource;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership.OwnershipStatus;
 import com.unbidden.telegramcoursesbot.repository.BotRoleRepository;
@@ -52,10 +52,10 @@ public class StatisticsService {
     }
 
     @Transactional(readOnly = true)
-    public Localizations.Service.CourseStatisticsReportParams getCourseStatistics(UserEntity user, Bot bot, Long courseId) {
-        final Course course = entityUtil.getCourseById(user, bot, courseId);
+    public Localizations.Service.CourseStatisticsReportParams getCourseStatistics(BotRole botRole, Long courseId) {
+        final Course course = entityUtil.getCourseById(botRole, courseId);
 
-        return new Localizations.Service.CourseStatisticsReportParams(contentService.getLocalizedText(user, bot, course.getTitle().getId()),
+        return new Localizations.Service.CourseStatisticsReportParams(contentService.getLocalizedText(botRole, course.getTitle().getId()),
                 paymentDetailsRepository.countByCourseId(courseId),
                 telegramPaymentDetailsRepository.countByCourseIdAndRefundedAtIsNotNull(courseId),
                 telegramPaymentDetailsRepository.getTotalStarsIncomeForCourse(courseId),

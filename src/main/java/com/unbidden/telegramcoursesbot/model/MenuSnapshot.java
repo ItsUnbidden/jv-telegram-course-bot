@@ -37,12 +37,8 @@ public class MenuSnapshot extends BaseEntity {
     private String group;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "bot_id", nullable = false)
-    private Bot bot;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserEntity user;
+    @JoinColumn(name = "bot_role_id", nullable = false)
+    private BotRole botRole;
 
     private Integer messageId;
 

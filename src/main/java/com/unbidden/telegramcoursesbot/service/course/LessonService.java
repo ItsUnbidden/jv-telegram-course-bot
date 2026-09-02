@@ -5,10 +5,9 @@ import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
-import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.Lesson;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.repository.ContentMappingRepository;
 import com.unbidden.telegramcoursesbot.repository.LessonRepository;
@@ -52,30 +51,28 @@ public class LessonService {
     }
 
     @Transactional
-    public Lesson addContent(UserEntity user, Bot bot, Long lessonId, String languageCode, List<Message> messages) {
+    public Lesson addContent(BotRole botRole, Long lessonId, String languageCode, List<Message> messages) {
         Assert.notNull(lessonId, "lessonId cannot be null");
         Assert.notNull(messages, "messages cannot be null");
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(botRole, "botRole cannot be null");
 
-        final Lesson lesson = entityUtil.getLessonById(user, bot, lessonId);
+        final Lesson lesson = entityUtil.getLessonById(botRole, lessonId);
         final ContentMapping contentMapping = new ContentMapping();
 
         contentMapping.setPosition(lesson.getStructure().size());
-        contentMapping.setContent(List.of(contentService.parseAndPersistContent(user, bot, messages, languageCode)));
+        contentMapping.setContent(List.of(contentService.parseAndPersistContent(botRole, messages, languageCode)));
         lesson.getStructure().add(contentMappingRepository.save(contentMapping));
 
         return lesson;
     }
 
     @Transactional
-    public Lesson removeContent(UserEntity user, Bot bot, Long lessonId, Long mappingId) {
+    public Lesson removeContent(BotRole botRole, Long lessonId, Long mappingId) {
         Assert.notNull(lessonId, "lessonId cannot be null");
         Assert.notNull(mappingId, "mappingId cannot be null");
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(botRole, "botRole cannot be null");
 
-        final Lesson lesson = entityUtil.getLessonById(user, bot, lessonId);
+        final Lesson lesson = entityUtil.getLessonById(botRole, lessonId);
 
         LOGGER.info("Removing content " + mappingId + " from lesson " + lessonId + "...");
 
@@ -84,7 +81,7 @@ public class LessonService {
 
         if (mappingOpt.isEmpty()) {
             throw new EntityNotFoundException("Mapping " + mappingId + " is not present in lesson " + lessonId
-                    + ".", localizationLoader.localize(Localizations.Error.MAPPING_NOT_IN_LESSON, user));
+                    + ".", localizationLoader.localize(Localizations.Error.MAPPING_NOT_IN_LESSON, botRole));
         }
         lesson.getStructure().removeIf(m -> m.getId().equals(mappingId));
         contentMappingRepository.delete(mappingOpt.get());
@@ -93,12 +90,11 @@ public class LessonService {
     }
 
     @Transactional
-    public Lesson updateDelay(UserEntity user, Bot bot, Long lessonId, int newDelay) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Lesson updateDelay(BotRole botRole, Long lessonId, int newDelay) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(lessonId, "lessonId cannot be null");
 
-        final Lesson lesson = entityUtil.getLessonById(user, bot, lessonId);
+        final Lesson lesson = entityUtil.getLessonById(botRole, lessonId);
 
         LOGGER.debug("Updating lesson delay... Current delay: " + lesson.getDelay() + ".");
         lesson.setDelay(newDelay);
@@ -107,27 +103,26 @@ public class LessonService {
     }
 
     @Transactional
-    public Lesson moveContentToIndex(UserEntity user, Bot bot, Long lessonId, Long mappingId, int index) {
+    public Lesson moveContentToIndex(BotRole botRole, Long lessonId, Long mappingId, int index) {
         Assert.notNull(lessonId, "lessonId cannot be null");
         Assert.notNull(mappingId, "mappingId cannot be null");
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+        Assert.notNull(botRole, "botRole cannot be null");
 
-        final Lesson lesson = entityUtil.getLessonById(user, bot, lessonId);
+        final Lesson lesson = entityUtil.getLessonById(botRole, lessonId);
         final List<ContentMapping> potentialMapping = lesson.getStructure().stream()
                 .filter(m -> m.getId().equals(mappingId)).toList();
 
         if (potentialMapping.size() == 0) {
             throw new EntityNotFoundException("Mapping " + mappingId
                     + " does not belong to lesson " + lessonId, localizationLoader
-                    .localize(Error.MAPPING_NOT_IN_LESSON, user));
+                    .localize(Error.MAPPING_NOT_IN_LESSON, botRole));
         }
         final ContentMapping mapping = potentialMapping.get(0);
 
         if (mapping.getPosition().equals(index)) {
             throw new InvalidDataSentException("Mapping " + mappingId + " is already at position "
                     + index + " in lesson " + lessonId + ".", localizationLoader.localize(
-                        Localizations.Error.SAME_CONTENT_POSITION, user));
+                        Localizations.Error.SAME_CONTENT_POSITION, botRole));
         }
         LOGGER.debug("Current mapping order for lesson " + lessonId + ": "
                 + lesson.getStructure().stream().map(cm -> cm.getId()).toList()
@@ -145,12 +140,11 @@ public class LessonService {
     }
 
     @Transactional
-    public Lesson createLesson(UserEntity user, Bot bot, Long courseId, int position) {
-        Assert.notNull(user, "user cannot be null");
-        Assert.notNull(bot, "bot cannot be null");
+    public Lesson createLesson(BotRole botRole, Long courseId, int position) {
+        Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        final Course course = entityUtil.getCourseById(user, bot, courseId);
+        final Course course = entityUtil.getCourseById(botRole, courseId);
 
         LOGGER.info("Creating a new lesson for course " + course.getId() + "...");
         final Lesson lesson = new Lesson();
@@ -171,8 +165,8 @@ public class LessonService {
     }
 
     @Transactional
-    public Lesson deleteLesson(UserEntity user, Bot bot, Long lessonId) {
-        final Lesson lesson = entityUtil.getLessonById(user, bot, lessonId);
+    public Lesson deleteLesson(BotRole botRole, Long lessonId) {
+        final Lesson lesson = entityUtil.getLessonById(botRole, lessonId);
 
         LOGGER.info("Removing lesson " + lesson.getId() + " from course " + lesson.getCourse().getId() + "...");
         lessonRepository.delete(lesson);

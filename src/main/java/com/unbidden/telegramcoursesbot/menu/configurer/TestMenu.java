@@ -29,7 +29,7 @@ public class TestMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setColumns(1);
         page.setButtonsFunction(p -> List.of(
-            new TerminalButton(loader.localize(Localizations.Button.TEST_MENU, p.user()).getData(), "param1", "value1", testButtonHandler)
+            new TerminalButton(loader.localize(Localizations.Button.TEST_MENU, p.botRole()).getData(), "param1", "value1", testButtonHandler)
         ));
 
         final Page terminalPage = new Page(menu);

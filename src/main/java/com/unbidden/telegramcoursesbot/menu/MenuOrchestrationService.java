@@ -3,6 +3,8 @@ package com.unbidden.telegramcoursesbot.menu;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuParamsDto;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuSnapshotCreatedDto;
+import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto;
+import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto.Result;
 import com.unbidden.telegramcoursesbot.exception.CallbackQueryAnswerException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
@@ -14,8 +16,8 @@ import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.MenuSnapshot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.CallbackQueryRepository;
 import com.unbidden.telegramcoursesbot.repository.MenuRepository;
 import com.unbidden.telegramcoursesbot.util.KeyboardUtil;
@@ -60,45 +62,45 @@ public class MenuOrchestrationService {
 
     private final ValidatorUtil validatorUtil;
 
-    public Message initiateMenu(UserEntity user, Bot bot, MenuKey key) {
-        return initiateMenu0(user, bot, key, 0, Map.of(), null, null, null);
+    public Message initiateMenu(BotRole botRole, MenuKey key) {
+        return initiateMenu0(botRole, key, 0, Map.of(), null, null, null);
     }
 
-    public Message initiateMenu(UserEntity user, Bot bot, MenuKey key, String paramName, String paramValue) {
-        return initiateMenu(user, bot, key, 0, paramName, paramValue);
+    public Message initiateMenu(BotRole botRole, MenuKey key, String paramName, String paramValue) {
+        return initiateMenu(botRole, key, 0, paramName, paramValue);
     }
 
-    public Message initiateMenu(UserEntity user, Bot bot, MenuKey key, String paramName, String paramValue,
+    public Message initiateMenu(BotRole botRole, MenuKey key, String paramName, String paramValue,
             MenuTerminationGroupKey mtgKey, Object... mtgArgs) {
-        return initiateMenu0(user, bot, key, 0, Map.of(paramName, paramValue), null, mtgKey, mtgArgs);
+        return initiateMenu0(botRole, key, 0, Map.of(paramName, paramValue), null, mtgKey, mtgArgs);
     }
 
-    public Message initiateMenu(UserEntity user, Bot bot, MenuKey key, int initialPage, String paramName, String paramValue) {
-        return initiateMenu0(user, bot, key, initialPage, Map.of(paramName, paramValue), null, null, null);
+    public Message initiateMenu(BotRole botRole, MenuKey key, int initialPage, String paramName, String paramValue) {
+        return initiateMenu0(botRole, key, initialPage, Map.of(paramName, paramValue), null, null, null);
     }
 
-    public Message initiateMenu(UserEntity user, Bot bot, MenuKey key, int initialPage, Map<String, String> params) {
-        return initiateMenu0(user, bot, key, initialPage, params, null, null, null);
+    public Message initiateMenu(BotRole botRole, MenuKey key, int initialPage, Map<String, String> params) {
+        return initiateMenu0(botRole, key, initialPage, params, null, null, null);
     }
 
-    public void initiateMenu(UserEntity user, Bot bot, MenuKey key, Integer messageId) {
-        initiateMenu0(user, bot, key, 0, Map.of(), messageId, null, null);
+    public void initiateMenu(BotRole botRole, MenuKey key, Integer messageId) {
+        initiateMenu0(botRole, key, 0, Map.of(), messageId, null, null);
     }
 
-    public void initiateMenu(UserEntity user, Bot bot, MenuKey key, String paramName, String paramValue, Integer messageId) {
-        initiateMenu0(user, bot, key, 0, Map.of(paramName, paramValue), messageId, null, null);
+    public void initiateMenu(BotRole botRole, MenuKey key, String paramName, String paramValue, Integer messageId) {
+        initiateMenu0(botRole, key, 0, Map.of(paramName, paramValue), messageId, null, null);
     }
 
-    public void initiateMenu(UserEntity user, Bot bot, MenuKey key, int initialPage, Map<String, String> params, Integer messageId) {
-        initiateMenu0(user, bot, key, initialPage, params, messageId, null, null);
+    public void initiateMenu(BotRole botRole, MenuKey key, int initialPage, Map<String, String> params, Integer messageId) {
+        initiateMenu0(botRole, key, initialPage, params, messageId, null, null);
     }
 
-    public void initiateMenu(UserEntity user, Bot bot, MenuKey key, String paramName, String paramValue, Integer messageId,
+    public void initiateMenu(BotRole botRole, MenuKey key, String paramName, String paramValue, Integer messageId,
             MenuTerminationGroupKey mtgKey, Object... mtgArgs) {
-        initiateMenu0(user, bot, key, 0, Map.of(paramName, paramValue), messageId, mtgKey, mtgArgs);
+        initiateMenu0(botRole, key, 0, Map.of(paramName, paramValue), messageId, mtgKey, mtgArgs);
     }
 
-    public Message initiateMultipageList(UserEntity user, Bot bot,
+    public Message initiateMultipageList(BotRole botRole,
             Function<MultipageListParams, Localization> localizationFunction,
             BiFunction<Integer, Integer, org.springframework.data.domain.Page<String>> dataFunction) {
         throw new ForbiddenOperationException("Multipage lists are currently unimplemented.", null);
@@ -123,7 +125,7 @@ public class MenuOrchestrationService {
 
         // if (dataPage.getTotalPages() > 1) {
         //     LOGGER.debug("There is more than one page. Creating new multipage meta...");
-        //     final MultipageListMeta meta = new MultipageListMeta(UUID.randomUUID(), user, bot,
+        //     final MultipageListMeta meta = new MultipageListMeta(UUID.randomUUID(), botRole,
         //             message.getMessageId(), 0, localizationFunction, dataFunction);
 
         //     meta.setNumberOfElements(dataPage.getTotalElements());
@@ -132,7 +134,7 @@ public class MenuOrchestrationService {
         //     LOGGER.debug("Multipage meta " + meta.getId() + " has been created and persisted.");
 
         //     LOGGER.debug("Attaching a control menu...");
-        //     initiateMenu(user, bot, MenuKey.MULTIPAGE_LIST, MUTLIPAGE_LIST_PARAM, meta.getId().toString(), message.getMessageId());
+        //     initiateMenu(botRole, MenuKey.MULTIPAGE_LIST, MUTLIPAGE_LIST_PARAM, meta.getId().toString(), message.getMessageId());
         //     LOGGER.debug("Menu initiated.");
         // }
         // return message;
@@ -197,11 +199,11 @@ public class MenuOrchestrationService {
         for (final MenuSnapshot snapshot : snapshots) {
             final Optional<Menu> menuOpt = menuRepository.find(snapshot.getKey());
 
-            terminateMenu(snapshot.getUser().getId(), snapshot.getMessageId(), snapshot.getBot(),
+            terminateMenu(snapshot.getBotRole().getUser().getId(), snapshot.getMessageId(), snapshot.getBotRole().getBot(),
                     (terminalLocalizationOverride != null) ? terminalLocalizationOverride
                     : (menuOpt.isPresent() && menuOpt.get().getTerminalPage() != null) 
                         ? menuOpt.get().getTerminalPage().getLocalizationFunction().apply(
-                            new MenuParamsDto(snapshot.getUser(), snapshot.getBot(), snapshot.paramsToMap(), snapshot.getInitialPage()))
+                            new MenuParamsDto(snapshot.getBotRole(), snapshot.paramsToMap(), snapshot.getInitialPage()))
                         : null);
         }
         
@@ -242,20 +244,20 @@ public class MenuOrchestrationService {
         }
     }
 
-    public void terminateMenu(UserEntity user, List<Message> messages) {
-        validatorUtil.checkExactExpectedMessages(user, messages, 1);
-        final Long snapshotId = validatorUtil.parseId(user, messages.getFirst());
-        final MenuSnapshot snapshot = menuService.terminateMenu(user, snapshotId);
+    public void terminateMenu(BotRole botRole, List<Message> messages) {
+        validatorUtil.checkExactExpectedMessages(botRole, messages, 1);
+        final Long snapshotId = validatorUtil.parseId(botRole, messages.getFirst());
+        final MenuSnapshot snapshot = menuService.terminateMenu(botRole, snapshotId);
         final InlineKeyboardMarkup clearMarkup = InlineKeyboardMarkup.builder()
                 .clearKeyboard()
                 .keyboard(List.of())
                 .build();
 
         try {
-            final Localization terminalLoc = localizationLoader.localize(Localizations.Service.MENU_MANUALLY_REMOVED, user);
+            final Localization terminalLoc = localizationLoader.localize(Localizations.Service.MENU_MANUALLY_REMOVED, botRole);
 
-            clientManager.getClient(snapshot.getBot()).execute(EditMessageText.builder()
-                    .chatId(snapshot.getUser().getId())
+            clientManager.getClient(snapshot.getBotRole().getBot()).execute(EditMessageText.builder()
+                    .chatId(snapshot.getBotRole().getUser().getId())
                     .messageId(snapshot.getMessageId())
                     .text(terminalLoc.getData())
                     .entities(terminalLoc.getEntities())
@@ -263,11 +265,11 @@ public class MenuOrchestrationService {
                     .build());
         } catch (TelegramApiException e) {
             throw new TelegramException("Failed to update message " + snapshot.getMessageId() + " for user "
-                    + snapshot.getUser().getId() + " in bot " + snapshot.getBot().getId() + ".",
-                    localizationLoader.localize(Localizations.Error.MENU_MANUALLY_REMOVED_FAILED, user), e);
+                    + snapshot.getBotRole().getId() + " in bot " + snapshot.getBotRole().getBot().getId() + ".",
+                    localizationLoader.localize(Localizations.Error.MENU_MANUALLY_REMOVED_FAILED, botRole), e);
         }
-        clientManager.getBotLordClient().sendMessage(user, localizationLoader.localize(
-                Localizations.Service.MENU_MANUALLY_REMOVED_SUCCESS, user));
+        clientManager.sendMessage(botRole, localizationLoader.localize(
+                Localizations.Service.MENU_MANUALLY_REMOVED_SUCCESS, botRole));
     }
     
     /**
@@ -280,14 +282,13 @@ public class MenuOrchestrationService {
         terminateMenu(chatId, messageId, bot, null);
     }
 
-    public void answerPotentialCallbackQuery(UserEntity user, Bot bot)
-            throws CallbackQueryAnswerException {
-        final Optional<CallbackQuery> query = callbackQueryRepository.findAndRemove(user, bot);
+    public void answerPotentialCallbackQuery(BotRole botRole) throws CallbackQueryAnswerException {
+        final Optional<CallbackQuery> query = callbackQueryRepository.findAndRemove(botRole);
 
         if (query.isPresent()) {
-            LOGGER.debug("User " + user.getId() + " has an unanswered callback query.");
+            LOGGER.debug("User " + botRole.getUser().getId() + " has an unanswered callback query.");
             try {
-                clientManager.getClient(bot).execute(AnswerCallbackQuery.builder()
+                clientManager.getClient(botRole.getBot()).execute(AnswerCallbackQuery.builder()
                         .callbackQueryId(query.get().getId())
                         .build());
                 LOGGER.debug("Callback query resolved.");
@@ -297,41 +298,47 @@ public class MenuOrchestrationService {
         }
     }
 
-    private Message initiateMenu0(UserEntity user, Bot bot, MenuKey key, int initialPage, Map<String, String> params,
+    private Message initiateMenu0(BotRole botRole, MenuKey key, int initialPage, Map<String, String> params,
             Integer messageId, MenuTerminationGroupKey mtgKey, Object[] mtgArgs) {
         final Menu menu = menuRepository.find(key).orElseThrow(() ->
                 new EntityNotFoundException("Menu " + key + " was not found",
-                localizationLoader.localize(Error.MENU_NOT_FOUND, user)));
+                localizationLoader.localize(Error.MENU_NOT_FOUND, botRole)));
         final Page firstPage = menu.getPages().get(initialPage);
-        final MenuParamsDto dto = new MenuParamsDto(user, bot, params, initialPage);
+        final MenuParamsDto dto = new MenuParamsDto(botRole, params, initialPage);
         final List<Button> generatedLayout = firstPage.getButtonsFunction().apply(dto);
-        final MenuSnapshotCreatedDto snapshotDto = menuService.createSnapshot(user, bot, key, initialPage,
-                    generatedLayout, params, messageId, mtgKey, mtgArgs);
-        final InlineKeyboardMarkup markup = keyboardUtil.getMarkup(user, bot, firstPage, snapshotDto.buttons(), generatedLayout);
+        final MenuSnapshotCreatedDto snapshotDto = menuService.createSnapshot(botRole, key, initialPage,
+                generatedLayout, params, messageId, mtgKey, mtgArgs);
+        final InlineKeyboardMarkup markup = keyboardUtil.getMarkup(firstPage, snapshotDto.buttons(), generatedLayout);
 
         if (messageId == null) {
             final Localization localization = firstPage.getLocalizationFunction().apply(dto);
 
-            LOGGER.trace("Sending menu " + menu.getKey() + " to user " + user.getId() + "...");
-            final Message message = clientManager.getClient(bot).sendMessage(user, localization, markup);
-            LOGGER.trace("Message sent. Adding the new message's ID to snapshot " + snapshotDto.snapshot().getId() + "...");
-            menuService.addMessageIdToSnapshot(snapshotDto.snapshot().getId(), message.getMessageId());
-            LOGGER.trace("Message ID added to snapshot " + snapshotDto.snapshot().getId() + ".");
+            LOGGER.trace("Sending menu " + menu.getKey() + " to user " + botRole.getUser().getId() + "...");
+            final SendMessageResultDto result = clientManager.sendMessage(botRole, localization, markup);
 
-            return message;
+            if (result.getResult() == Result.OK) {
+                LOGGER.trace("Message sent. Adding the new message's ID to snapshot " + snapshotDto.snapshot().getId() + "...");
+                menuService.addMessageIdToSnapshot(snapshotDto.snapshot().getId(), result.getMessage().getMessageId());
+                LOGGER.trace("Message ID added to snapshot " + snapshotDto.snapshot().getId() + ".");
+    
+                return result.getMessage();
+            } else {
+                return null; // TODO: introduce fallback
+            }
         }
-        LOGGER.trace("Attaching menu" + key + "'s markup to message " + messageId + " for user " + user.getId() + "...");
+        LOGGER.trace("Attaching menu " + key + "'s markup to message " + messageId + " for user " + botRole.getUser().getId() + "...");
         final var editMessageReplyMarkup = EditMessageReplyMarkup.builder()
-                .chatId(user.getId())
+                .chatId(botRole.getUser().getId())
                 .messageId(messageId)
                 .replyMarkup(markup)
                 .build();
+
         try {
-            clientManager.getClient(bot).execute(editMessageReplyMarkup);
+            clientManager.getClient(botRole.getBot()).execute(editMessageReplyMarkup);
             LOGGER.trace("Markup sent.");
         } catch (TelegramApiException e) {
-            LOGGER.error("Unable to update markup for message " + messageId + " for user "
-                    + user.getId(), e);
+            LOGGER.error("Unable to update markup for message " + messageId + " for user " + botRole.getUser().getId(), e);
+            // TODO: introduce fallback
         }
         return null;
     }

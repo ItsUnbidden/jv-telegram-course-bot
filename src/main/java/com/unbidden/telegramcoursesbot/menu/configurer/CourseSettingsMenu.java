@@ -89,14 +89,14 @@ public class CourseSettingsMenu implements MenuConfigurer {
 
         firstPage.setPageIndex(0);
         firstPage.setColumns(2);
-        firstPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_0, p.user()));
+        firstPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_0, p.botRole()));
         firstPage.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
 
-            buttons.addAll(courseService.getByBot(p.user(), p.bot()).stream()
+            buttons.addAll(courseService.getByBot(p.botRole()).stream()
                 .map(c -> (Button)new TransitoryButton(c.getLocalizedTitle(), COURSE_ID_PARAM, c.getId().toString(), 1))
                 .toList());
-            buttons.add(new TransitoryButton(loader.localize(Localizations.Button.CREATE_NEW_COURSE, p.user()).getData(), 5));
+            buttons.add(new TransitoryButton(loader.localize(Localizations.Button.CREATE_NEW_COURSE, p.botRole()).getData(), 5));
 
             return buttons;
         });
@@ -106,12 +106,12 @@ public class CourseSettingsMenu implements MenuConfigurer {
         secondPage.setPageIndex(1);
         secondPage.setColumns(2);
         secondPage.setLocalizationFunction(p -> {
-            final CourseResponseDto dto = courseService.getById(p.user(), p.bot(), Long.parseLong(p.params().get(COURSE_ID_PARAM)));
-            final String notAvailable = loader.localize(Localizations.Service.NOT_AVAILABLE, p.user()).getData();
-            final String yes = loader.localize(Localizations.Service.YES, p.user()).getData();
-            final String no = loader.localize(Localizations.Service.NO, p.user()).getData();
+            final CourseResponseDto dto = courseService.getById(p.botRole(), Long.parseLong(p.params().get(COURSE_ID_PARAM)));
+            final String notAvailable = loader.localize(Localizations.Service.NOT_AVAILABLE, p.botRole()).getData();
+            final String yes = loader.localize(Localizations.Service.YES, p.botRole()).getData();
+            final String no = loader.localize(Localizations.Service.NO, p.botRole()).getData();
 
-            return loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_1, p.user(), new Localizations.Menu.CourseSettingsPage1Params(
+            return loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_1, p.botRole(), new Localizations.Menu.CourseSettingsPage1Params(
                 dto.getId(),
                 dto.getLocalizedTitle(),
                 dto.getTitleId(),
@@ -129,29 +129,29 @@ public class CourseSettingsMenu implements MenuConfigurer {
             ));
         });
         secondPage.setButtonsFunction(p -> List.of(
-            new TerminalButton(loader.localize(Localizations.Button.COURSE_PRICE_CHANGE, p.user()).getData(), priceChangeHandler),
-            new TerminalButton(loader.localize(Localizations.Button.GIVE_OR_TAKE_COURSE, p.user()).getData(), giveOrTakeAwayCourseHandler),
-            new TerminalButton(loader.localize(Localizations.Button.COURSE_FEEDBACK_SETTING, p.user()).getData(), feedbackHandler),
-            new TerminalButton(loader.localize(Localizations.Button.COURSE_HOMEWORK_SETTING, p.user()).getData(), homeworkHandler),
-            new TerminalButton(loader.localize(Localizations.Button.TOGGLE_COURSE_MAINTENANCE, p.user()).getData(), courseMaintenanceToggleHandler),
-            new TerminalButton(loader.localize(Localizations.Button.UPDATE_REFUND_STAGE, p.user()).getData(), updateCourseRefundStageHandler),
-            new TransitoryButton(loader.localize(Localizations.Button.COURSE_LESSONS, p.user()).getData(), 2),
-            new TerminalButton(loader.localize(Localizations.Button.REMOVE_COURSE, p.user()).getData(), removeCourseHandler),
-            new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData())
+            new TerminalButton(loader.localize(Localizations.Button.COURSE_PRICE_CHANGE, p.botRole()).getData(), priceChangeHandler),
+            new TerminalButton(loader.localize(Localizations.Button.GIVE_OR_TAKE_COURSE, p.botRole()).getData(), giveOrTakeAwayCourseHandler),
+            new TerminalButton(loader.localize(Localizations.Button.COURSE_FEEDBACK_SETTING, p.botRole()).getData(), feedbackHandler),
+            new TerminalButton(loader.localize(Localizations.Button.COURSE_HOMEWORK_SETTING, p.botRole()).getData(), homeworkHandler),
+            new TerminalButton(loader.localize(Localizations.Button.TOGGLE_COURSE_MAINTENANCE, p.botRole()).getData(), courseMaintenanceToggleHandler),
+            new TerminalButton(loader.localize(Localizations.Button.UPDATE_REFUND_STAGE, p.botRole()).getData(), updateCourseRefundStageHandler),
+            new TransitoryButton(loader.localize(Localizations.Button.COURSE_LESSONS, p.botRole()).getData(), 2),
+            new TerminalButton(loader.localize(Localizations.Button.REMOVE_COURSE, p.botRole()).getData(), removeCourseHandler),
+            new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData())
         ));
 
         final Page thirdPage = new Page(menu);
 
         thirdPage.setPageIndex(2);
         thirdPage.setColumns(3);
-        thirdPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_2, p.user()));
+        thirdPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_2, p.botRole()));
         thirdPage.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
 
             buttons.addAll(lessonService.getCourseLessons(Long.parseLong(p.params().get(COURSE_ID_PARAM))).stream()
                 .map(l -> (Button)new TransitoryButton(l.getPosition().toString(), LESSON_ID_PARAM, l.getId().toString(), 3)).toList());
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.CREATE_LESSON, p.user()).getData(), addLessonToCourseHandler));
-            buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData()));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.CREATE_LESSON, p.botRole()).getData(), addLessonToCourseHandler));
+            buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData()));
 
             return buttons;
         });
@@ -161,10 +161,10 @@ public class CourseSettingsMenu implements MenuConfigurer {
         fourthPage.setPageIndex(3);
         fourthPage.setColumns(2);
         fourthPage.setLocalizationFunction(p -> {
-            final LessonResponseDto dto = lessonService.getById(p.user(), p.bot(), Long.parseLong(p.params().get(LESSON_ID_PARAM)));
-            final String notAvailable = loader.localize(Localizations.Service.NOT_AVAILABLE, p.user()).getData();
+            final LessonResponseDto dto = lessonService.getById(p.botRole(), Long.parseLong(p.params().get(LESSON_ID_PARAM)));
+            final String notAvailable = loader.localize(Localizations.Service.NOT_AVAILABLE, p.botRole()).getData();
 
-            return loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_3, p.user(), new Localizations.Menu.CourseSettingsPage3Params(
+            return loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_3, p.botRole(), new Localizations.Menu.CourseSettingsPage3Params(
                 dto.getId(),
                 dto.getPosition(),
                 dto.getHomeworkId() != null ? dto.getHomeworkId().toString() : notAvailable,
@@ -175,24 +175,24 @@ public class CourseSettingsMenu implements MenuConfigurer {
         fourthPage.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
 
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.ADD_CONTENT_TO_LESSON, p.user()).getData(), addContentToLessonHandler));
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.REMOVE_CONTENT_FROM_LESSON, p.user()).getData(), removeContentFromLessonHandler));
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.CHANGE_MAPPING_ORDER, p.user()).getData(), updateContentPositionHandler));
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.SET_LESSON_DELAY, p.user()).getData(), lessonDelaySettingHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.ADD_CONTENT_TO_LESSON, p.botRole()).getData(), addContentToLessonHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.REMOVE_CONTENT_FROM_LESSON, p.botRole()).getData(), removeContentFromLessonHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.CHANGE_MAPPING_ORDER, p.botRole()).getData(), updateContentPositionHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.SET_LESSON_DELAY, p.botRole()).getData(), lessonDelaySettingHandler));
 
-            final LessonResponseDto dto = lessonService.getById(p.user(), p.bot(), Long.parseLong(p.params().get(LESSON_ID_PARAM)));
+            final LessonResponseDto dto = lessonService.getById(p.botRole(), Long.parseLong(p.params().get(LESSON_ID_PARAM)));
 
             final Button homeworkButton;
             if (dto.getHomeworkId() == null) {
-                homeworkButton = new TerminalButton(loader.localize(Localizations.Button.CREATE_HOMEWORK, p.user()).getData(), createHomeworkHandler);
+                homeworkButton = new TerminalButton(loader.localize(Localizations.Button.CREATE_HOMEWORK, p.botRole()).getData(), createHomeworkHandler);
             } else {
-                homeworkButton = new TransitoryButton(loader.localize(Localizations.Button.HOMEWORK_SETTINGS, p.user()).getData(),
+                homeworkButton = new TransitoryButton(loader.localize(Localizations.Button.HOMEWORK_SETTINGS, p.botRole()).getData(),
                         HOMEWORK_ID_PARAM, dto.getHomeworkId().toString(), 4);
             }
             buttons.add(homeworkButton);
 
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.REMOVE_LESSON, p.user()).getData(), removeLessonFromCourseHandler));
-            buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData()));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.REMOVE_LESSON, p.botRole()).getData(), removeLessonFromCourseHandler));
+            buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData()));
 
             return buttons;
         });
@@ -202,12 +202,12 @@ public class CourseSettingsMenu implements MenuConfigurer {
         fifthPage.setPageIndex(4);
         fifthPage.setColumns(2);
         fifthPage.setLocalizationFunction(p -> {
-            final HomeworkResponseDto dto = homeworkService.getById(p.user(), p.bot(), Long.parseLong(p.params().get(HOMEWORK_ID_PARAM)));
-            final String notAvailable = loader.localize(Localizations.Service.NOT_AVAILABLE, p.user()).getData();
-            final String yes = loader.localize(Localizations.Service.YES, p.user()).getData();
-            final String no = loader.localize(Localizations.Service.NO, p.user()).getData();
+            final HomeworkResponseDto dto = homeworkService.getById(p.botRole(), Long.parseLong(p.params().get(HOMEWORK_ID_PARAM)));
+            final String notAvailable = loader.localize(Localizations.Service.NOT_AVAILABLE, p.botRole()).getData();
+            final String yes = loader.localize(Localizations.Service.YES, p.botRole()).getData();
+            final String no = loader.localize(Localizations.Service.NO, p.botRole()).getData();
 
-            return loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_4, p.user(), new Localizations.Menu.CourseSettingsPage4Params(
+            return loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_4, p.botRole(), new Localizations.Menu.CourseSettingsPage4Params(
                 dto.getId(),
                 dto.getLessonId(),
                 dto.getDelay() > 0 ? dto.getDelay().toString() : notAvailable,
@@ -222,25 +222,25 @@ public class CourseSettingsMenu implements MenuConfigurer {
             ));
         });
         fifthPage.setButtonsFunction(p -> List.of(
-            new TerminalButton(loader.localize(Localizations.Button.UPDATE_HOMEWORK_CONTENT, p.user()).getData(), updateHomeworkContentHandler),
-            new TerminalButton(loader.localize(Localizations.Button.UPDATE_MEDIA_TYPES, p.user()).getData(), homeworkMediaTypesHandler),
-            new TerminalButton(loader.localize(Localizations.Button.SET_HOMEWORK_DELAY, p.user()).getData(), homeworkDelaySettingHandler),
-            new TerminalButton(loader.localize(Localizations.Button.HOMEWORK_FEEDBACK, p.user()).getData(), homeworkFeedbackHandler),
-            new TerminalButton(loader.localize(Localizations.Button.HOMEWORK_REPEATED_COMPLETION, p.user()).getData(), homeworkRepeatedCompletionHandler),
-            new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData())
+            new TerminalButton(loader.localize(Localizations.Button.UPDATE_HOMEWORK_CONTENT, p.botRole()).getData(), updateHomeworkContentHandler),
+            new TerminalButton(loader.localize(Localizations.Button.UPDATE_MEDIA_TYPES, p.botRole()).getData(), homeworkMediaTypesHandler),
+            new TerminalButton(loader.localize(Localizations.Button.SET_HOMEWORK_DELAY, p.botRole()).getData(), homeworkDelaySettingHandler),
+            new TerminalButton(loader.localize(Localizations.Button.HOMEWORK_FEEDBACK, p.botRole()).getData(), homeworkFeedbackHandler),
+            new TerminalButton(loader.localize(Localizations.Button.HOMEWORK_REPEATED_COMPLETION, p.botRole()).getData(), homeworkRepeatedCompletionHandler),
+            new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData())
         ));
 
         final Page sixthPage = new Page(menu);
 
         sixthPage.setPageIndex(5);
         sixthPage.setColumns(2);
-        sixthPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_5, p.user()));
+        sixthPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.COURSE_SETTINGS_PAGE_5, p.botRole()));
         sixthPage.setButtonsFunction(p -> List.of(
-            new TerminalButton(loader.localize(Localizations.Button.CREATE_COURSE_EXTERNAL_PAYMENT, p.user()).getData(),
+            new TerminalButton(loader.localize(Localizations.Button.CREATE_COURSE_EXTERNAL_PAYMENT, p.botRole()).getData(),
                     PaymentType.EXTERNAL.toString(), createCourseHandler),
-            new TerminalButton(loader.localize(Localizations.Button.CREATE_COURSE_TELEGRAM_PAYMENT, p.user()).getData(),
+            new TerminalButton(loader.localize(Localizations.Button.CREATE_COURSE_TELEGRAM_PAYMENT, p.botRole()).getData(),
                     PaymentType.TELEGRAM.toString(), createCourseHandler),
-            new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData())
+            new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData())
         ));
 
         menu.setPages(List.of(firstPage, secondPage, thirdPage, fourthPage, fifthPage, sixthPage));

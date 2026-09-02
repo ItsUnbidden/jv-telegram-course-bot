@@ -81,7 +81,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     List<Review> findByIdIn(List<Long> reviewIds);
     
     @EntityGraph(attributePaths = {"user", "course", "markedAsReadBy"})
-    Optional<Review> findByCourseIdAndUserId(Long courseId, Long userId);
+    Optional<Review> findByUserIdAndCourseId(Long userId, Long courseId);
 
     List<Review> findByUserIdAndCourseIdIn(Long userId, List<Long> courseIds);
 

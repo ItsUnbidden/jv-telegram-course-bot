@@ -31,8 +31,8 @@ public class SupportReplyToReplyMenu implements MenuConfigurer {
         page.setPageIndex(0);
         page.setColumns(1);
         page.setButtonsFunction(p -> List.of(
-            new TerminalButton(localizationLoader.localize(Localizations.Button.REPLY_TO_SUPPORT_REPLY, p.user()).getData(), replyToSupportReplyHandler),
-            new TerminalButton(localizationLoader.localize(Localizations.Button.RESOLVE_SUPPORT_REQUEST, p.user()).getData(), resolveRequestHandler)
+            new TerminalButton(localizationLoader.localize(Localizations.Button.REPLY_TO_SUPPORT_REPLY, p.botRole()).getData(), replyToSupportReplyHandler),
+            new TerminalButton(localizationLoader.localize(Localizations.Button.RESOLVE_SUPPORT_REQUEST, p.botRole()).getData(), resolveRequestHandler)
         ));
 
         menu.setPages(List.of(page));

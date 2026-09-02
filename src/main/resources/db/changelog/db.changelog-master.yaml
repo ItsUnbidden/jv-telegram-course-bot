@@ -101,3 +101,9 @@ databaseChangeLog:
       file: /db/changelog/changes/50-edit-courses-drop-telegram-invoice-not-null-constraints.yaml
   - include:
       file: /db/changelog/changes/51-edit-bot-roles-add-disabled-column.yaml
+  - include:
+      file: /db/changelog/changes/52-edit-bots-add-languages-column.yaml
+  - include:
+      file: /db/changelog/changes/53-edit-menu-snapshots-change-to-bot-roles.yaml
+  - include:
+      file: /db/changelog/changes/54-edit-timed-trigger-tables-change-to-bot-roles.yaml

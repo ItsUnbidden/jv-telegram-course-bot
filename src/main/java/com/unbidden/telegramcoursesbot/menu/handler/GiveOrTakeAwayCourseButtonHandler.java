@@ -4,8 +4,7 @@ import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dto.internal.SessionParamsDto;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
@@ -43,11 +42,11 @@ public class GiveOrTakeAwayCourseButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.GIVE_COURSE)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final Long courseId = Long.parseLong(params.get(COURSE_ID_PARAM));
 
-        final var giveCourseSession = sessionService.createSession(user, bot, getGiveCourseFunction(courseId));
-        final var takeCourseSession = sessionService.createSession(user, bot, getTakeCourseFunction(courseId));
+        final var giveCourseSession = sessionService.createSession(botRole, getGiveCourseFunction(courseId));
+        final var takeCourseSession = sessionService.createSession(botRole, getTakeCourseFunction(courseId));
 
         final KeyboardButtonRequestUser requestUserGiveCourse = KeyboardButtonRequestUser
                 .builder()
@@ -60,11 +59,11 @@ public class GiveOrTakeAwayCourseButtonHandler extends AbstractButtonHandler {
 
         final KeyboardButton giveButton = KeyboardButton.builder()
                 .requestUser(requestUserGiveCourse)
-                .text(loader.localize(Localizations.Button.GIVE_COURSE, user).getData())
+                .text(loader.localize(Localizations.Button.GIVE_COURSE, botRole).getData())
                 .build();
         final KeyboardButton takeButton = KeyboardButton.builder()
                 .requestUser(requestUserTakeCourse)
-                .text(loader.localize(Localizations.Button.TAKE_COURSE, user).getData())
+                .text(loader.localize(Localizations.Button.TAKE_COURSE, botRole).getData())
                 .build();
 
         final KeyboardRow row = new KeyboardRow();
@@ -77,21 +76,21 @@ public class GiveOrTakeAwayCourseButtonHandler extends AbstractButtonHandler {
                 .resizeKeyboard(true)
                 .build();
         
-        clientManager.getClient(bot).sendMessage(user, loader.localize(
-                Localizations.Service.GIVE_TAKE_COURSE_CHOOSE_ACTION, user,
+        clientManager.sendMessage(botRole, loader.localize(
+                Localizations.Service.GIVE_TAKE_COURSE_CHOOSE_ACTION, botRole,
                 new Localizations.Service.GiveTakeCourseChooseActionParams(
-                    contentService.getLocalizedText(user, bot, entityUtil.getCourseTitle(user, bot, courseId)))), markup);
+                    contentService.getLocalizedText(botRole, entityUtil.getCourseTitle(botRole, courseId)))), markup);
     }
 
     private Consumer<SessionParamsDto> getGiveCourseFunction(Long courseId) {
         return p -> {
-            paymentService.giftCourse(p.user(), p.bot(), p.messages().getFirst().getUserShared().getUserId(), courseId);
+            paymentService.giftCourse(p.botRole(), p.messages().getFirst().getUserShared().getUserId(), courseId);
         };
     }
 
     private Consumer<SessionParamsDto> getTakeCourseFunction(Long courseId) {
         return p -> {
-            paymentService.takeCourse(p.user(), p.bot(), p.messages().getFirst().getUserShared().getUserId(), courseId);
+            paymentService.takeCourse(p.botRole(), p.messages().getFirst().getUserShared().getUserId(), courseId);
         };
     }
 }

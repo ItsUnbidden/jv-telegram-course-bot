@@ -35,12 +35,12 @@ public class PostMenu implements MenuConfigurer {
 
         page1.setPageIndex(0);
         page1.setColumns(2);
-        page1.setLocalizationFunction(p -> loader.localize(Localizations.Menu.POST_PAGE_0, p.user()));
+        page1.setLocalizationFunction(p -> loader.localize(Localizations.Menu.POST_PAGE_0, p.botRole()));
         page1.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
 
-            buttons.add(new TransitoryButton(loader.localize(Localizations.Button.POST_OPTIONS, p.user()).getData(), 1));
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.SEND_PRIVATE_MESSAGE, p.user()).getData(), sendMessageToUserByIdHandler));
+            buttons.add(new TransitoryButton(loader.localize(Localizations.Button.POST_OPTIONS, p.botRole()).getData(), 1));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.SEND_PRIVATE_MESSAGE, p.botRole()).getData(), sendMessageToUserByIdHandler));
 
             return buttons;
         });
@@ -49,15 +49,15 @@ public class PostMenu implements MenuConfigurer {
 
         page2.setPageIndex(1);
         page2.setColumns(3);
-        page2.setLocalizationFunction(p -> loader.localize(Localizations.Menu.POST_PAGE_1, p.user()));
+        page2.setLocalizationFunction(p -> loader.localize(Localizations.Menu.POST_PAGE_1, p.botRole()));
         page2.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
 
             for (final RoleType roleType : RoleType.values()) {
                 buttons.add(new TerminalButton(roleType.toString(), roleType.toString(), postButtonHandler));
             }
-            buttons.add(new TerminalButton(loader.localize(Localizations.Button.POST_CUSTOM_ROLE_SET, p.user()).getData(), postButtonHandler));
-            buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.user()).getData()));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.POST_CUSTOM_ROLE_SET, p.botRole()).getData(), postButtonHandler));
+            buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData()));
 
             return buttons;
         });

@@ -1,0 +1,77 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-timed-trigger-tables-change-to-bot-roles
+      author: Unbidden
+      changes:
+        - delete:
+            tableName: lesson_timed_triggers
+        - dropForeignKeyConstraint:
+            baseTableName: lesson_timed_triggers
+            constraintName: fk_users_lesson_triggers
+        - dropForeignKeyConstraint:
+            baseTableName: lesson_timed_triggers
+            constraintName: fk_bots_lesson_triggers
+        - dropColumn:
+            tableName: lesson_timed_triggers
+            columnName: bot_id
+        - dropColumn:
+            tableName: lesson_timed_triggers
+            columnName: user_id
+        - addColumn:
+            tableName: lesson_timed_triggers
+            columns:
+              - column:
+                  name: bot_role_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bot_roles_lesson_timed_triggers
+                    references: bot_roles(id)
+        - delete:
+            tableName: homework_timed_triggers
+        - dropForeignKeyConstraint:
+            baseTableName: homework_timed_triggers
+            constraintName: fk_users_homework_triggers
+        - dropForeignKeyConstraint:
+            baseTableName: homework_timed_triggers
+            constraintName: fk_bots_homework_triggers
+        - dropColumn:
+            tableName: homework_timed_triggers
+            columnName: bot_id
+        - dropColumn:
+            tableName: homework_timed_triggers
+            columnName: user_id
+        - addColumn:
+            tableName: homework_timed_triggers
+            columns:
+              - column:
+                  name: bot_role_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bot_roles_homework_timed_triggers
+                    references: bot_roles(id)
+        - delete:
+            tableName: ban_timed_triggers
+        - dropForeignKeyConstraint:
+            baseTableName: ban_timed_triggers
+            constraintName: fk_users_ban_triggers
+        - dropForeignKeyConstraint:
+            baseTableName: ban_timed_triggers
+            constraintName: fk_bots_ban_triggers
+        - dropColumn:
+            tableName: ban_timed_triggers
+            columnName: bot_id
+        - dropColumn:
+            tableName: ban_timed_triggers
+            columnName: user_id
+        - addColumn:
+            tableName: ban_timed_triggers
+            columns:
+              - column:
+                  name: bot_role_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bot_roles_ban_timed_triggers
+                    references: bot_roles(id)

@@ -3,12 +3,13 @@ package com.unbidden.telegramcoursesbot.service.command.handler;
 import com.unbidden.telegramcoursesbot.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.security.Security;
 
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
@@ -21,8 +22,8 @@ public class GeneralBanCommandHandler implements CommandHandler {
 
     @Override
     @Security(authorities = AuthorityType.GENERAL_BANS, isBotLordOnly = true)
-    public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
-        menuService.initiateMenu(user, bot, MenuKey.GENERAL_BAN);
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        menuService.initiateMenu(botRole, MenuKey.GENERAL_BAN);
     }
 
     @Override

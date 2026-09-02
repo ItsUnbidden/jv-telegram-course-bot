@@ -3,8 +3,8 @@ package com.unbidden.telegramcoursesbot.util;
 import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Service;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.Review;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -199,15 +199,15 @@ public class TextUtil {
                 .map(lc -> lc.trim()).toList();
     }
 
-    public String formatTimeLeft(UserEntity user, LocalizationLoader loader, int hours) {
+    public String formatTimeLeft(BotRole botRole, LocalizationLoader loader, int hours) {
         if (hours > 1) {
-            return loader.localize(Service.HOURS, user, new Service.HoursParams(hours)).getData();
+            return loader.localize(Service.HOURS, botRole, new Service.HoursParams(hours)).getData();
         }
         if (hours == 1) {
-            return loader.localize(Service.AN_HOUR, user).getData();
+            return loader.localize(Service.AN_HOUR, botRole).getData();
         }
         if (hours <= 0) {
-            return loader.localize(Service.LESS_THEN_AN_HOUR, user).getData();
+            return loader.localize(Service.LESS_THEN_AN_HOUR, botRole).getData();
         }
         return String.valueOf(hours);
     }

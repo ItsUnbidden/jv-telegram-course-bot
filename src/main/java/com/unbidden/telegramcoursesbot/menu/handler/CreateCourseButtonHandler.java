@@ -3,9 +3,8 @@ package com.unbidden.telegramcoursesbot.menu.handler;
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
-import com.unbidden.telegramcoursesbot.model.Bot;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.CourseInvoice.PaymentType;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
@@ -40,32 +39,32 @@ public class CreateCourseButtonHandler extends AbstractButtonHandler {
 
     @Override
     @Security(authorities = AuthorityType.COURSE_SETTINGS)
-    public void handle(UserEntity user, Bot bot, Map<String, String> params) {
+    public void handle(BotRole botRole, Map<String, String> params) {
         final PaymentType paymentType = PaymentType.valueOf(params.get(PAYMENT_TYPE_PARAM));
 
-        sessionService.createSession(user, bot, p -> {
-            validatorUtil.checkAtLeastExpectedMessages(p.user(), p.messages(), 1);
-            validatorUtil.checkTextLength(p.user(), p.messages().getFirst(), 3, 35);
+        sessionService.createSession(botRole, p -> {
+            validatorUtil.checkAtLeastExpectedMessages(p.botRole(), p.messages(), 1);
+            validatorUtil.checkTextLength(p.botRole(), p.messages().getFirst(), 3, 35);
 
             final String languageCode;
-            if (p.messages().size() > 1 && validatorUtil.checkLanguageCode(user, p.messages().getLast())) {
+            if (p.messages().size() > 1 && validatorUtil.checkLanguageCode(p.botRole(), p.messages().getLast())) {
                 languageCode = p.messages().getLast().getText();
                 p.messages().removeLast();
             } else {
-                languageCode = user.getLanguageCode();
+                languageCode = p.botRole().getUser().getLanguageCode();
             }
 
-            final Long titleContentId = contentService.parseAndPersistContent(user, bot, p.messages(), List.of(MediaType.TEXT)).getId();
+            final Long titleContentId = contentService.parseAndPersistContent(botRole, p.messages(), List.of(MediaType.TEXT)).getId();
             
-            sessionService.createSession(p.user(), p.bot(), p2 -> {
-                courseService.createCourse(p2.user(), p2.bot(), titleContentId, languageCode, paymentType, p2.messages());
+            sessionService.createSession(p.botRole(), p2 -> {
+                courseService.createCourse(p2.botRole(), titleContentId, languageCode, paymentType, p2.messages());
             });
 
-            clientManager.getClient(p.bot()).sendMessage(p.user(), loader.localize(paymentType == PaymentType.TELEGRAM
+            clientManager.sendMessage(p.botRole(), loader.localize(paymentType == PaymentType.TELEGRAM
                     ? Localizations.Service.NEW_COURSE_TELEGRAM_INVOICE_REQUEST
-                    : Localizations.Service.NEW_COURSE_EXTERNAL_INVOICE_REQUEST, p.user()));
+                    : Localizations.Service.NEW_COURSE_EXTERNAL_INVOICE_REQUEST, p.botRole()));
         });
 
-        clientManager.getClient(bot).sendMessage(user, loader.localize(Localizations.Service.NEW_COURSE_TITLE_REQUEST, user));
+        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.NEW_COURSE_TITLE_REQUEST, botRole));
     }
 }

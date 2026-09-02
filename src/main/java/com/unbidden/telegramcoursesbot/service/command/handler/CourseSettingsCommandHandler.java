@@ -4,11 +4,12 @@ import com.unbidden.telegramcoursesbot.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
@@ -21,8 +22,8 @@ public class CourseSettingsCommandHandler implements CommandHandler {
 
     @Override
     @Security(authorities = {AuthorityType.COURSE_SETTINGS, AuthorityType.GIVE_COURSE})
-    public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
-        menuService.initiateMenu(user, bot, MenuKey.COURSE_SETTINGS);
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        menuService.initiateMenu(botRole, MenuKey.COURSE_SETTINGS);
     }
 
     @Override

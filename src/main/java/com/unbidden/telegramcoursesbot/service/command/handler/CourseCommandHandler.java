@@ -7,8 +7,7 @@ import com.unbidden.telegramcoursesbot.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership.OwnershipStatus;
 import com.unbidden.telegramcoursesbot.repository.CourseOwnershipRepository;
 import com.unbidden.telegramcoursesbot.repository.CourseRepository;
@@ -17,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
@@ -36,25 +36,25 @@ public class CourseCommandHandler implements CommandHandler {
     @Override
     @Security(authorities = {AuthorityType.BUY, AuthorityType.LAUNCH_COURSE,
             AuthorityType.LEAVE_REVIEW, AuthorityType.REFUND})
-    public void handle(UserEntity user, Bot bot, Message message, String[] commandParts) {
-        final long numberOfCoursesInBot = courseRepository.countByBotId(bot.getId());
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        final long numberOfCoursesInBot = courseRepository.countByBotId(botRole.getBot().getId());
 
         if (numberOfCoursesInBot < 1) {
-            throw new NoCoursesException("There are currently no courses in bot " + bot.getId() + ".",
-                    loader.localize(Localizations.Error.NO_COURSES, user));
+            throw new NoCoursesException("There are currently no courses in bot " + botRole.getBot().getId() + ".",
+                    loader.localize(Localizations.Error.NO_COURSES, botRole));
         }
         final long numberOfOwnedCourses = courseOwnershipRepository.countByUserIdAndCourseBotIdAndStatus(
-                user.getId(), bot.getId(), OwnershipStatus.ACTIVE);
+                botRole.getUser().getId(), botRole.getBot().getId(), OwnershipStatus.ACTIVE);
 
         if (numberOfOwnedCourses == 0) {
-            menuService.initiateMenu(user, bot, MenuKey.COURSES, 1, Map.of());
+            menuService.initiateMenu(botRole, MenuKey.COURSES, 1, Map.of());
             return;
         }
         if (numberOfCoursesInBot - numberOfOwnedCourses < 1) {
-            menuService.initiateMenu(user, bot, MenuKey.COURSES, 2, Map.of());
+            menuService.initiateMenu(botRole, MenuKey.COURSES, 2, Map.of());
             return;
         }
-        menuService.initiateMenu(user, bot, MenuKey.COURSES);
+        menuService.initiateMenu(botRole, MenuKey.COURSES);
     }
 
     @Override
