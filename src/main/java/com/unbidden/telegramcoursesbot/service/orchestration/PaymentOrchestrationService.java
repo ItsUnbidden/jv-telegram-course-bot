@@ -352,7 +352,7 @@ public class PaymentOrchestrationService {
         final ContentMapping courseTitleMapping = entityUtil.getMappingById(botRole, ownership.getCourse().getTitle().getId());
 
         LOGGER.debug("Sending confirmation messages...");
-        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.COURSE_TAKEN_SUCCESSFULY,
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.COURSE_TAKEN_SUCCESSFULLY,
                 botRole, new Localizations.Service.CourseTakenSuccessfullyParams(
                 contentService.getLocalizedText(botRole, courseTitleMapping), ownership.getUser().getFullName(),
                 entityUtil.getLocalizedTitle(botRole, targetBotRole))), keyboardRemove);

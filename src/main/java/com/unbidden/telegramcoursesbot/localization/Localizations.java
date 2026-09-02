@@ -1,14 +1,70 @@
 package com.unbidden.telegramcoursesbot.localization;
 
+import java.lang.reflect.Modifier;
+import java.lang.reflect.RecordComponent;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.CourseInvoice.PaymentType;
 import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 
 public final class Localizations {
+    private static final Logger LOGGER = LogManager.getFormatterLogger(Localizations.class);
+
+    public static Map<String, Map<String, List<String>>> getInfo() {
+        final Map<String, Map<String, List<String>>> results = new HashMap<>();
+        
+        for (final Class<?> clazz : Localizations.class.getDeclaredClasses()) {
+            if (Modifier.isStatic(clazz.getModifiers()) && clazz.isEnum()
+                    && LocalizationKey.class.isAssignableFrom(clazz)) {
+                final Map<String, List<String>> names = new HashMap<>();
+
+                for (final Object enumValue : clazz.getEnumConstants()) {
+                    final var localizationKey = (LocalizationKey)enumValue;
+
+                    final String name;
+                    if (localizationKey.getLocName().contains("%s")) {
+                        name = localizationKey.getLocName().replace(clazz.getSimpleName().toLowerCase() + "_", "")
+                                .formatted("REPLACE_ME");
+                    } else {
+                        name = localizationKey.toString().toLowerCase();
+                    }
+
+                    names.put(name, new ArrayList<>());
+                }
+                for (final Class<?> record : clazz.getDeclaredClasses()) {
+                    if (Modifier.isStatic(record.getModifiers()) && record.isRecord()) {
+                        final String properRecordName = PropertyNamingStrategies.SnakeCaseStrategy.INSTANCE
+                                .translate(record.getSimpleName()).replace("_params", "")
+                                .replaceAll("([a-z])([0-9])", "$1_$2");
+                        final List<String> potentialParamsList = names.get(properRecordName);
+
+                        if (potentialParamsList == null) {
+                            LOGGER.error("There is a parameter record " + record.getSimpleName() + " (" + properRecordName
+                                    + ") which does not have a localization key. This is a bug.");
+                        } else {
+                            for (final RecordComponent component : record.getRecordComponents()) {
+                                potentialParamsList.add(component.getName());
+                            }
+                        }
+                    }
+                }
+                results.put(clazz.getSimpleName().toLowerCase(), names);
+            }
+        }
+
+        return results;
+    }
+
     public static interface LocalizationKey {
         String getLocName();
     }
@@ -19,23 +75,23 @@ public final class Localizations {
          * It requires a <b>lowercase command name without the {@code /}</b> to be passed as an argument.
          */
         COMMAND_DESCRIPTION("menu_command_%s_description"),
-        ADMIN_ACTIONS_PAGE_0("menu_admin_actions_page_0"),
-        ADMIN_ACTIONS_PAGE_1("menu_admin_actions_page_1"),
-        ADMIN_ACTIONS_PAGE_2("menu_admin_actions_page_2"),
-        ADMIN_ACTIONS_PAGE_3("menu_admin_actions_page_3"),
-        COURSES_PAGE_0("menu_courses_page_0"),
-        COURSES_PAGE_1("menu_courses_page_1"),
-        BOT_PAGE_0("menu_bot_page_0"),
-        BOT_PAGE_1("menu_bot_page_1"),
-        LANGUAGE_PAGE_0("menu_language_page_0"),
-        MY_COURSES_PAGE_0("menu_my_courses_page_0"),
-        MY_COURSES_PAGE_1("menu_my_courses_page_1"),
-        MY_COURSES_PAGE_2("menu_my_courses_page_2"),
-        MY_COURSES_PAGE_3("menu_my_courses_page_3"),
-        MY_COURSES_PAGE_4("menu_my_courses_page_4"),
-        MY_COURSES_PAGE_5("menu_my_courses_page_5"),
-        MY_COURSES_PAGE_6("menu_my_courses_page_6"),
-        MY_COURSES_PAGE_7("menu_my_courses_page_7"),
+        ADMIN_ACTIONS_PAGE_0,
+        ADMIN_ACTIONS_PAGE_1,
+        ADMIN_ACTIONS_PAGE_2,
+        ADMIN_ACTIONS_PAGE_3,
+        COURSES_PAGE_0,
+        COURSES_PAGE_1,
+        BOT_PAGE_0,
+        BOT_PAGE_1,
+        LANGUAGE_PAGE_0,
+        MY_COURSES_PAGE_0,
+        MY_COURSES_PAGE_1,
+        MY_COURSES_PAGE_2,
+        MY_COURSES_PAGE_3,
+        MY_COURSES_PAGE_4,
+        MY_COURSES_PAGE_5,
+        MY_COURSES_PAGE_6,
+        MY_COURSES_PAGE_7,
         /**
          * Possible parameters:
          * <ls>
@@ -44,40 +100,40 @@ public final class Localizations {
          *  <li>content</li>
          * </ls>
          */
-        MAPPING_SETTINGS_PAGE_0("menu_mapping_settings_page_0"),
-        STATISTICS_PAGE_0("menu_statistics_page_0"),
-        STATISTICS_PAGE_1("menu_statistics_page_1"),
-        STATISTICS_PAGE_2("menu_statistics_page_2"),
+        MAPPING_SETTINGS_PAGE_0,
+        STATISTICS_PAGE_0,
+        STATISTICS_PAGE_1,
+        STATISTICS_PAGE_2,
         /**
          * Possible parameters:t
          * <ls>
          *  <li>usersOnStage</li>
          * </ls>
          */
-        STATISTICS_PAGE_3("menu_statistics_page_3"),
-        LEAVE_BASIC_REVIEW_PAGE_0("menu_leave_basic_review_page_0"),
+        STATISTICS_PAGE_3,
+        LEAVE_BASIC_REVIEW_PAGE_0,
         /**
          * Possible parameters:
          * <ls>
          *  <li>courseName</li>
          * </ls>
          */
-        LEAVE_BASIC_REVIEW_TERMINAL_PAGE("menu_leave_basic_review_terminal_page"),
-        GENERAL_BAN_PAGE_0("menu_general_ban_page_0"),
-        GENERAL_BAN_PAGE_1("menu_general_ban_page_1"),
-        GENERAL_POST_PAGE_0("menu_general_post_page_0"),
-        FILES_PAGE_0("menu_files_page_0"),
-        GET_REVIEWS_PAGE_0("menu_get_reviews_page_0"),
-        GET_REVIEWS_PAGE_1("menu_get_reviews_page_1"),
-        POST_PAGE_0("menu_post_page_0"),
-        POST_PAGE_1("menu_post_page_1"),
-        REFRESH_PAGE_0("menu_refresh_page_0"),
-        SUPPORT_REQUEST_PAGE_0("menu_support_request_page_0"),
-        SUPPORT_REQUEST_PAGE_1("menu_support_request_page_1"),
-        SUPPORT_REQUEST_TERMINAL_PAGE("menu_support_request_terminal_page"),
-        RESOLVE_LAST_SUPPORT_REQUEST("button_resolve_last_support_request"),
-        CONTENT_ACTIONS_PAGE_0("menu_content_actions_page_0"),
-        COURSE_SETTINGS_PAGE_0("menu_course_settings_page_0"),
+        LEAVE_BASIC_REVIEW_TERMINAL_PAGE,
+        GENERAL_BAN_PAGE_0,
+        GENERAL_BAN_PAGE_1,
+        GENERAL_POST_PAGE_0,
+        FILES_PAGE_0,
+        GET_REVIEWS_PAGE_0,
+        GET_REVIEWS_PAGE_1,
+        POST_PAGE_0,
+        POST_PAGE_1,
+        REFRESH_PAGE_0,
+        SUPPORT_REQUEST_PAGE_0,
+        SUPPORT_REQUEST_PAGE_1,
+        SUPPORT_REQUEST_TERMINAL_PAGE,
+        RESOLVE_LAST_SUPPORT_REQUEST,
+        CONTENT_ACTIONS_PAGE_0,
+        COURSE_SETTINGS_PAGE_0,
         /**
          * Possible parameters:
          * <ls>
@@ -97,8 +153,8 @@ public final class Localizations {
          *  <li>isFeedbackIncluded</li>
          * </ls>
          */
-        COURSE_SETTINGS_PAGE_1("menu_course_settings_page_1"),
-        COURSE_SETTINGS_PAGE_2("menu_course_settings_page_2"),
+        COURSE_SETTINGS_PAGE_1,
+        COURSE_SETTINGS_PAGE_2,
         /**
          * Possible parameters:
          * <ls>
@@ -110,7 +166,7 @@ public final class Localizations {
          *  <li>mappingIds</li>
          * </ls>
          */
-        COURSE_SETTINGS_PAGE_3("menu_course_settings_page_3"),
+        COURSE_SETTINGS_PAGE_3,
         /**
          * Possible parameters:
          * <ls>
@@ -123,13 +179,13 @@ public final class Localizations {
          *  <li>homeworkRepeatedCompletion</li>
          * </ls>
          */
-        COURSE_SETTINGS_PAGE_4("menu_course_settings_page_4"),
-        COURSE_SETTINGS_PAGE_5("menu_course_settings_page_5"),
-        COMMIT_CONTENT_PAGE_0("menu_commit_content_page_0"),
-        COMMIT_CONTENT_TERMINAL_PAGE("menu_commit_content_terminal_page"),
-        COMMIT_CONTENT_RESEND_TERMINAL_PAGE("menu_commit_content_resend_terminal_page"),
-        COMMIT_CONTENT_CANCEL_TERMINAL_PAGE("menu_commit_content_cancel_terminal_page"),
-        COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE("menu_commit_content_expired_terminal_page");
+        COURSE_SETTINGS_PAGE_4,
+        COURSE_SETTINGS_PAGE_5,
+        COMMIT_CONTENT_PAGE_0,
+        COMMIT_CONTENT_TERMINAL_PAGE,
+        COMMIT_CONTENT_RESEND_TERMINAL_PAGE,
+        COMMIT_CONTENT_CANCEL_TERMINAL_PAGE,
+        COMMIT_CONTENT_EXPIRED_TERMINAL_PAGE;
 
         private String locName;
 
@@ -257,7 +313,8 @@ public final class Localizations {
          * A test localization. Is not used in any production systems.
          */
         TEST_MENU("button_test_menu"),
-        BY_ID("button_by_id");
+        BY_ID("button_by_id"),
+        GET_LOCALIZATION_FILE_TEMPLATES;
 
         private String locName;
 
@@ -811,7 +868,7 @@ public final class Localizations {
          *  <li>targetTitle</li>
          * </ls>
          */
-        COURSE_TAKEN_SUCCESSFULY("service_course_taken_successfuly"),
+        COURSE_TAKEN_SUCCESSFULLY("service_course_taken_successfully"),
         /**
          * Possible parameters:
          * <ls>

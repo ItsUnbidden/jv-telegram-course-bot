@@ -9,6 +9,7 @@ import com.unbidden.telegramcoursesbot.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.menu.handler.DeleteInvoiceImageButtonHandler;
+import com.unbidden.telegramcoursesbot.menu.handler.GetLocalizationFileTemplatesButtonHandler;
 import com.unbidden.telegramcoursesbot.menu.handler.ImageFileUploadButtonHandler;
 import com.unbidden.telegramcoursesbot.menu.handler.LocalizationFileUploadButtonHandler;
 
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class FileMenu implements MenuConfigurer {
     private final LocalizationFileUploadButtonHandler localizationFileUploadHandler;
+    private final GetLocalizationFileTemplatesButtonHandler getLocalizationTemplatesHandler;
     private final ImageFileUploadButtonHandler imageFileUploadHandler;
     private final DeleteInvoiceImageButtonHandler deleteInvoiceImageHandler;
 
@@ -39,6 +41,7 @@ public class FileMenu implements MenuConfigurer {
             final List<Button> buttons = new ArrayList<>();
             
             buttons.add(new TerminalButton(loader.localize(Localizations.Button.UPLOAD_LOCALIZATION_FILE, p.botRole()).getData(), localizationFileUploadHandler));
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.GET_LOCALIZATION_FILE_TEMPLATES, p.botRole()).getData(), getLocalizationTemplatesHandler));
             buttons.add(new TerminalButton(loader.localize(Localizations.Button.UPLOAD_IMAGE_FILE, p.botRole()).getData(), imageFileUploadHandler));
             buttons.add(new TerminalButton(loader.localize(Localizations.Button.DELETE_INVOICE_IMAGE, p.botRole()).getData(), deleteInvoiceImageHandler));
             

@@ -1,4 +1,4 @@
-package com.unbidden.telegramcoursesbot.util;
+package com.unbidden.telegramcoursesbot.localization;
 
 import lombok.Data;
 

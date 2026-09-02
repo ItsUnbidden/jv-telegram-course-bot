@@ -6,7 +6,6 @@ import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationExcep
 import com.unbidden.telegramcoursesbot.localization.Localizations.LocalizationKey;
 import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.repository.LocalizationRepository;
-import com.unbidden.telegramcoursesbot.util.Tag;
 import com.unbidden.telegramcoursesbot.util.TextUtil;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;

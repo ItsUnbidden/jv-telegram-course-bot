@@ -2,6 +2,7 @@ package com.unbidden.telegramcoursesbot.util;
 
 import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Tag;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Service;
 import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.Review;
@@ -34,6 +35,7 @@ public class TextUtil {
     private static final String TAG_PARAMS_DIVIDER = " ";
     private static final String END_LINE_OVERRIDE_MARKER = "\\\n";
     private static final String LANGUAGE_PRIORITY_DIVIDER = ",";
+    private static final String END_TAG_INDICATOR = "/";
     private static final String PARAM_NAME_REGEX = "\\$\\{[a-zA-Z0-9_]+\\}";
 
     private final String languagePriorityStr;
@@ -105,7 +107,7 @@ public class TextUtil {
                             + " is already present");
                 }
                 final int indexOfEndTag = data.indexOf(TAG_OPEN + tag.getName()
-                        + "/" + TAG_CLOSE);
+                        + END_TAG_INDICATOR + TAG_CLOSE);
 
                 isRecording = false;
                 if (indexOfEndTag == -1) {
@@ -190,6 +192,22 @@ public class TextUtil {
         }
         builder.append("--------------------------------------------------------------------")
                 .append("\n");
+        return builder.toString();
+    }
+
+    public String generateLocalizationTemplate(Map<String, List<String>> info) {
+        final StringBuilder builder = new StringBuilder();
+
+        for (final Entry<String, List<String>> entry : info.entrySet()) {
+            builder.append(TAG_OPEN).append(entry.getKey()).append(TAG_CLOSE).append('\n');
+
+            for (final String paramName : entry.getValue()) {
+                builder.append("${").append(paramName).append('}').append(' ');
+            }
+            builder.append('\n').append(TAG_OPEN).append(entry.getKey()).append(END_TAG_INDICATOR).append(TAG_CLOSE)
+                    .append('\n').append('\n');
+        }
+
         return builder.toString();
     }
 
