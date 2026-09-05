@@ -5,7 +5,6 @@ target/
 **/localizations/*
 /invoice/images/*
 **/temp/*
-!**/localizations/mappings.txt
 
 *.sql
 *.pem
