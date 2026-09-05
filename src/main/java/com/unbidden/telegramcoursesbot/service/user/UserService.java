@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.user;
 
+import com.unbidden.telegramcoursesbot.config.properties.BaseProperties;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
@@ -21,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -44,8 +44,7 @@ public class UserService {
 
     private final TextUtil textUtil;
 
-    @Value("${telegram.bot.authorization.director.id}")
-    private Long directorId;
+    private final BaseProperties baseProperties;
 
     @Transactional(readOnly = true)
     public List<BotRole> getHomeworkReceivingUsers(Long botId) {
@@ -97,7 +96,7 @@ public class UserService {
 
     @Transactional
     public UserEntity createDummyDirector() {
-        final Optional<UserEntity> potentialDirector = userRepository.findById(directorId);
+        final Optional<UserEntity> potentialDirector = userRepository.findById(baseProperties.directorId());
 
         if (potentialDirector.isPresent()) {
             return potentialDirector.get();
@@ -105,13 +104,13 @@ public class UserService {
         LOGGER.info("Creating dummy director for the time being...");
         final UserEntity director = new UserEntity();
 
-        director.setId(directorId);
+        director.setId(baseProperties.directorId());
         director.setFirstName("director");
         director.setLanguageCode("en");
         director.setBanned(false);
 
         userRepository.save(director);
-        LOGGER.info("Temporary director dummy created with id " + directorId);
+        LOGGER.info("Temporary director dummy created with id " + baseProperties.directorId());
 
         return director;
     }
@@ -223,7 +222,7 @@ public class UserService {
             throw new ForbiddenOperationException("User " + targetId + " is already banned.", localizationLoader
                     .localize(Error.USER_ALREADY_BANNED, callerBotRole));
         }
-        if (targetId.equals(directorId)) {
+        if (targetId.equals(baseProperties.directorId())) {
             throw new ForbiddenOperationException("Director cannot be banned.", localizationLoader
                     .localize(Error.DIRECTOR_BAN, callerBotRole));
         }

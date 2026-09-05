@@ -4,10 +4,10 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
+import com.unbidden.telegramcoursesbot.config.properties.LocalizationsProperties;
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
@@ -22,13 +22,11 @@ public class ValidatorUtil {
     private static final String MENU = "menu";
     private static final String ERROR = "error";
     private static final String BUTTON = "button";
-    private static final String COURSE = "course";
     private static final String SERVICE = "service";
 
     private final LocalizationLoader loader;
 
-    @Value("${telegram.bot.message.text.format}")
-    private String fileFormat;
+    private final LocalizationsProperties localizationsProperties;
 
     public void checkExactExpectedMessages(BotRole botRole, List<Message> messages, int number) {
         if (messages.size() != number) {
@@ -154,11 +152,10 @@ public class ValidatorUtil {
         final String fileName = document.getFileName();
         final List<String> possibleNames = new ArrayList<>();
         
-        possibleNames.add(SERVICE + fileFormat);
-        possibleNames.add(COURSE + fileFormat);
-        possibleNames.add(BUTTON + fileFormat);
-        possibleNames.add(ERROR + fileFormat);
-        possibleNames.add(MENU + fileFormat);
+        possibleNames.add(SERVICE + localizationsProperties.format());
+        possibleNames.add(BUTTON + localizationsProperties.format());
+        possibleNames.add(ERROR + localizationsProperties.format());
+        possibleNames.add(MENU + localizationsProperties.format());
 
         if (!possibleNames.contains(fileName)) {
             throw new InvalidDataSentException("File " + fileName + " cannot be used for "

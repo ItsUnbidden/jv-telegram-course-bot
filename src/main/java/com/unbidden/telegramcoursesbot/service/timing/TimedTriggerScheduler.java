@@ -21,7 +21,7 @@ public class TimedTriggerScheduler {
     private final List<TriggerExecutor> executors;
     
     @Scheduled(initialDelay = INITIAL_TIMED_TRIGGER_CHECK_DELAY,
-            fixedRateString = "${telegram.bot.message.course.trigger.schedule.delay}")
+            fixedRateString = "${tcp.scheduling.timed-trigger.delay}")
     public void checkTriggers() {
         LOGGER.trace("A scheduled check for expired timed triggers is commencing...");
         

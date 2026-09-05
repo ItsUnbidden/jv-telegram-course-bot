@@ -1,13 +1,13 @@
 package com.unbidden.telegramcoursesbot.repository.impl;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
+import com.unbidden.telegramcoursesbot.config.properties.SchedulingProperties;
 import com.unbidden.telegramcoursesbot.service.model.ReviewSession;
 
 @Repository
 public class InMemoryReviewSessionRepository extends InMemoryPagedRequestSessionRepository<ReviewSession> {
-    public InMemoryReviewSessionRepository(@Value("${telegram.bot.message.review-session.expiration}") Integer expiration) {
-        super(expiration);
+    public InMemoryReviewSessionRepository(SchedulingProperties schedulingProperties) {
+        super(schedulingProperties.reviewSession().expiration());
     }
 }

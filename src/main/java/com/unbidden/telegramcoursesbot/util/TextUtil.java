@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.util;
 
+import com.unbidden.telegramcoursesbot.config.properties.LocalizationsProperties;
 import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Tag;
@@ -20,7 +21,6 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 
@@ -38,17 +38,20 @@ public class TextUtil {
     private static final String END_TAG_INDICATOR = "/";
     private static final String PARAM_NAME_REGEX = "\\$\\{[a-zA-Z0-9_]+\\}";
 
-    private final String languagePriorityStr;
+    private final List<String> languagePriority;
+
     private final Pattern paramNamePattern;
 
-    public TextUtil(@Value("${telegram.bot.message.language.priority}") String languagePriorityStr) {
+    public TextUtil(LocalizationsProperties localizationsProperties) {
         MARKERS.put("**", "bold");
         MARKERS.put("__", "italic");
         MARKERS.put("--", "underline");
         MARKERS.put("~~", "strikethrough");
         MARKERS.put("^^", "spoiler");
 
-        this.languagePriorityStr = languagePriorityStr;
+        this.languagePriority = Arrays.stream(
+                localizationsProperties.languagePriority().split(LANGUAGE_PRIORITY_DIVIDER))
+                .map(lc -> lc.trim()).toList();
         this.paramNamePattern = Pattern.compile(PARAM_NAME_REGEX);
     }
 
@@ -212,9 +215,7 @@ public class TextUtil {
     }
 
     public List<String> getLanguagePriority() {
-        return Arrays.stream(
-                languagePriorityStr.split(LANGUAGE_PRIORITY_DIVIDER))
-                .map(lc -> lc.trim()).toList();
+        return languagePriority;
     }
 
     public String formatTimeLeft(BotRole botRole, LocalizationLoader loader, int hours) {

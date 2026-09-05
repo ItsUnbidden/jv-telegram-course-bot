@@ -2,11 +2,11 @@ package com.unbidden.telegramcoursesbot.util;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
+import com.unbidden.telegramcoursesbot.config.properties.BaseProperties;
 import com.unbidden.telegramcoursesbot.exception.AccessDeniedException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
@@ -90,8 +90,7 @@ public class EntityUtil {
 
     private final LocalizationLoader localizationLoader;
 
-    @Value("${telegram.bot.authorization.director.id}")
-    private Long directorId;
+    private final BaseProperties baseProperties;
 
     @Transactional(readOnly = true)
     public Course getCourseById(BotRole botRole, Long id) {
@@ -389,7 +388,7 @@ public class EntityUtil {
 
     @Transactional(readOnly = true)
     public UserEntity getDirector() {
-        return userRepository.findById(directorId).get();
+        return userRepository.findById(baseProperties.directorId()).get();
     }
 
     @Transactional(readOnly = true)

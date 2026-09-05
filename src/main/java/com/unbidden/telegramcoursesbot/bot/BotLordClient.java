@@ -1,12 +1,13 @@
 package com.unbidden.telegramcoursesbot.bot;
 
+import com.unbidden.telegramcoursesbot.config.properties.WebhookProperties;
 import com.unbidden.telegramcoursesbot.dao.CertificateDao;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.util.TextUtil;
 
 import java.util.List;
 
-import org.springframework.lang.Nullable;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -14,26 +15,26 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 public class BotLordClient extends CustomTelegramClient {
     private static final String URL = "/webhook/botlord";
 
-    private static final int BOT_LORD_MAX_CONNECTIONS = 5;
-    private static final String COMMANDS_LANGUAGE_CODE = "en";
+    private final TextUtil textUtil;
 
-    public BotLordClient(Long botId, String token, String baseUrl, @Nullable String ip, String secretToken,
-            CertificateDao certificateDao, LocalizationLoader localizationLoader, boolean isCustomCertificateIncluded) {
-        super(botId, token, localizationLoader, certificateDao,
-                baseUrl, secretToken, ip, isCustomCertificateIncluded);
+    public BotLordClient(Long botId, String token, LocalizationLoader localizationLoader,
+            CertificateDao certificateDao, WebhookProperties webhookProperties, TextUtil textUtil) {
+        super(botId, token, localizationLoader, certificateDao, webhookProperties);
+        this.textUtil = textUtil;
         initialize();
     }
 
     protected void initialize() {
-        super.initialize(URL, BOT_LORD_MAX_CONNECTIONS);
+        super.initialize(URL);
         setUpMenu();
     }
 
     public void setUpMenu() {
+        final String highestLanguageCode = textUtil.getLanguagePriority().getFirst();
         final SetMyCommands setMyCommands = SetMyCommands.builder()
-                .commands(parseToBotCommands(BOT_LORD_COMMANDS, COMMANDS_LANGUAGE_CODE, List.of()))
+                .commands(parseToBotCommands(BOT_LORD_COMMANDS, highestLanguageCode, List.of()))
                 .scope(BotCommandScopeDefault.builder().build())
-                .languageCode(COMMANDS_LANGUAGE_CODE)
+                .languageCode(highestLanguageCode)
                 .build();
         try {
             execute(setMyCommands);

@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.bot;
 
+import com.unbidden.telegramcoursesbot.config.properties.WebhookProperties;
 import com.unbidden.telegramcoursesbot.dao.CertificateDao;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
@@ -11,7 +12,6 @@ import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import java.util.List;
 
-import org.springframework.lang.Nullable;
 import org.telegram.telegrambots.meta.api.methods.commands.DeleteMyCommands;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeChat;
@@ -25,16 +25,11 @@ public class RegularClient extends CustomTelegramClient {
 
     private final EntityUtil entityUtil;
 
-    private final Integer maxConnections;
-
     public RegularClient(Long botId, String botToken, LocalizationLoader loader, CertificateDao dao,
-            CommandHandlerManager commandHandlerManager, EntityUtil entityUtil, String baseUrl,
-            String secretToken, @Nullable String ip, int maxConnections, boolean isCustomCertificateIncluded) {
-        super(botId, botToken, loader, dao, baseUrl, secretToken,
-                ip, isCustomCertificateIncluded);
+            CommandHandlerManager commandHandlerManager, EntityUtil entityUtil, WebhookProperties webhookProperties) {
+        super(botId, botToken, loader, dao, webhookProperties);
         this.commandHandlerManager = commandHandlerManager;
         this.entityUtil = entityUtil;
-        this.maxConnections = maxConnections;
 
         initialize();
     }
@@ -114,7 +109,7 @@ public class RegularClient extends CustomTelegramClient {
     }
 
     protected void initialize() {
-        super.initialize(URL.formatted(botId), maxConnections);
+        super.initialize(URL.formatted(botId));
         
         reloadMenus();
     }

@@ -11,7 +11,6 @@ import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -21,6 +20,7 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.config.properties.PagedRequestProperties;
 import com.unbidden.telegramcoursesbot.dao.ArchiveReviewsDao;
 import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto;
 import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto.Result;
@@ -73,8 +73,7 @@ public class ReviewOrchestrationService {
 
     private final EntityUtil entityUtil;
 
-    @Value("${telegram.bot.reviews.page_size}")
-    private Integer pageSize;
+    private final PagedRequestProperties pagedRequestProperties;
 
     public Review checkReviewForComment(BotRole botRole, Long reviewId) {
         Assert.notNull(botRole, "botRole cannot be null");
@@ -253,7 +252,7 @@ public class ReviewOrchestrationService {
         Assert.notNull(botRole, "botRole cannot be null");
 
         final List<Review> reviews = reviewService.getNewReviewsForUser(
-                botRole, PageRequest.of(0, pageSize)).stream().toList();
+                botRole, PageRequest.of(0, pagedRequestProperties.reviews().pageSize())).stream().toList();
 
         LOGGER.info("Sending " + reviews.size() + " new review(s) to user "
                 + botRole.getUser().getFullName());
@@ -269,7 +268,7 @@ public class ReviewOrchestrationService {
         Assert.notNull(courseId, "courseId cannot be null");
 
         final List<Review> reviews = reviewService.getNewReviewsForUserAndCourse(botRole.getUser().getId(),
-                courseId, PageRequest.of(0, pageSize)).stream().toList();
+                courseId, PageRequest.of(0, pagedRequestProperties.reviews().pageSize())).stream().toList();
 
         LOGGER.info("Sending " + reviews.size() + " new review(s) for course " + courseId
                 + " to user " + botRole.getUser().getFullName());

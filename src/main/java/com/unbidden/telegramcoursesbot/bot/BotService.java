@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.bot;
 
+import com.unbidden.telegramcoursesbot.config.properties.BaseProperties;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
@@ -10,10 +11,11 @@ import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,11 +30,7 @@ public class BotService {
 
     private final EntityUtil entityUtil;
 
-    @Value("${telegram.bot.authorization.start_bot.token}")
-    private String initialBotToken;
-
-    @Value("${telegram.bot.authorization.bot_lord.token}")
-    private String botLordToken;
+    private final BaseProperties baseProperties;
 
     @Transactional(readOnly = true)
     public List<Bot> getRegularBots() {
@@ -74,7 +72,7 @@ public class BotService {
 
         final Bot startBot = entityUtil.getStartBot();
 
-        startBot.setToken(initialBotToken);
+        startBot.setToken(baseProperties.startBotToken());
 
         if (!botRoleRepository.existsByBotIdAndUserId(startBot.getId(), director.getId())) {
             LOGGER.debug("Director does not have a bot role in the start bot.");
@@ -102,7 +100,7 @@ public class BotService {
 
         final Bot botLord = entityUtil.getBotLord();
 
-        botLord.setToken(botLordToken);
+        botLord.setToken(baseProperties.botLordToken());
 
         if (!botRoleRepository.existsByBotIdAndUserId(botLord.getId(), director.getId())) {
             LOGGER.debug("Director does not have a bot role in bot lord.");

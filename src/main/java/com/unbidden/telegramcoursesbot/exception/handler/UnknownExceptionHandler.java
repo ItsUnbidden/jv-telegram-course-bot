@@ -41,7 +41,7 @@ public class UnknownExceptionHandler implements ExceptionHandler {
 
     private final EntityUtil entityUtil;
 
-    @Value("${telegram.bot.exception.inform-director}")
+    @Value("${tcp.exception.inform-director}")
     private boolean informDirector;
 
     @Override

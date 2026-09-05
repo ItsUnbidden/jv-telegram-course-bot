@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.bot;
 
+import com.unbidden.telegramcoursesbot.config.properties.WebhookProperties;
 import com.unbidden.telegramcoursesbot.dao.CertificateDao;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
@@ -10,8 +11,6 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.meta.api.methods.menubutton.SetChatMenuButton;
 import org.telegram.telegrambots.meta.api.methods.updates.DeleteWebhook;
@@ -40,15 +39,9 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
 
     protected final LocalizationLoader localizationLoader;
 
+    protected final WebhookProperties webhookProperties;
+
     private final CertificateDao certificateDao;
-
-    private final String baseUrl;
-
-    private final String secretToken;
-
-    private final String ip;
-
-    private final boolean isCustomCertificateIncluded;
 
     /**
      * Creates a new instance of {@link CustomTelegramClient}.
@@ -63,18 +56,14 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
      * (dao is still required)
      * @author Unbidden
      */
-    public CustomTelegramClient(Long botId, String botToken, LocalizationLoader loader, CertificateDao dao, String baseUrl,
-            String secretToken, @Nullable String ip, boolean isCustomCertificateIncluded) {
+    public CustomTelegramClient(Long botId, String botToken, LocalizationLoader loader, CertificateDao dao, WebhookProperties webhookProperties) {
         super(botToken);
 
         this.botId = botId;
         this.localizationLoader = loader;
         this.logger = LogManager.getLogger("Bot " + botId + "'s Client");
         this.certificateDao = dao;
-        this.baseUrl = baseUrl;
-        this.secretToken = secretToken;
-        this.ip = ip;
-        this.isCustomCertificateIncluded = isCustomCertificateIncluded;
+        this.webhookProperties = webhookProperties;
     }
 
     public WebhookInfo getInfo() {
@@ -111,25 +100,22 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
      * @param endpoint must begin with a '/'
      * @param maxConnections
      */
-    public void runSetWebhook(String endpoint, Integer maxConnections) {
-        Assert.notNull(baseUrl, "Base url cannot be null");
-        Assert.notNull(secretToken, "Due to security reasons secret token cannot be null");
-
+    public void runSetWebhook(String endpoint) {
         logger.info("Registering webhook bot...");
         InputStream publicKeyStream = null;
-        if (isCustomCertificateIncluded) {
+        if (webhookProperties.useCertificate()) {
             logger.info("Using a custom certificate...");
             publicKeyStream = certificateDao.readPublicKey();
             logger.debug("Certificate public key file has been initialized into stream.");
         }
         try {
             execute(SetWebhook.builder()
-                    .url(baseUrl + endpoint)
-                    .certificate((isCustomCertificateIncluded) ? new InputFile(publicKeyStream,
+                    .url(webhookProperties.url() + endpoint)
+                    .certificate((webhookProperties.useCertificate()) ? new InputFile(publicKeyStream,
                         CertificateDao.PUBLIC_KEY_FILE_NAME) : null)
-                    .ipAddress((ip == null || ip.equals("") ? null : ip))
-                    .secretToken(secretToken)
-                    .maxConnections(maxConnections)
+                    .ipAddress((webhookProperties.ip() == null || webhookProperties.ip().equals("") ? null : webhookProperties.ip()))
+                    .secretToken(webhookProperties.secret())
+                    .maxConnections(webhookProperties.maxConnections())
                     .build());
         } catch (TelegramApiException e) {
             throw new TelegramException("Unable to set up bot " + botId
@@ -153,9 +139,9 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
                 .toList();
     }
 
-    protected void initialize(String endpoint, Integer maxConnections) {
+    protected void initialize(String endpoint) {
         runDeleteWebhook();
-        runSetWebhook(endpoint, maxConnections);
+        runSetWebhook(endpoint);
 
         setUpMenuButton();
     }

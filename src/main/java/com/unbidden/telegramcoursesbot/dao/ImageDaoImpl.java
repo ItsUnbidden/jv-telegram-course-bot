@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 public class ImageDaoImpl implements ImageDao {
     private static final String IMAGE_FORMAT = ".jpg";
 
-    @Value("${telegram.bot.invoice.images.path}")
+    @Value("${tcp.invoice.images.path}")
     private String imagePathStr;
 
     private Path imagePath;

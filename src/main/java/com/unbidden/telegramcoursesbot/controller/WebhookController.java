@@ -1,6 +1,7 @@
 package com.unbidden.telegramcoursesbot.controller;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.config.properties.WebhookProperties;
 import com.unbidden.telegramcoursesbot.exception.CallbackQueryAnswerException;
 import com.unbidden.telegramcoursesbot.exception.ExceptionHandlerManager;
 import com.unbidden.telegramcoursesbot.exception.OnMaintenanceException;
@@ -23,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -66,8 +66,7 @@ public class WebhookController {
 
     private final EntityUtil entityUtil;
 
-    @Value("${telegram.bot.webhook.secret}")
-    private String secretKey;
+    private final WebhookProperties webhookProperties;
 
     @PostMapping("/callback/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -263,6 +262,6 @@ public class WebhookController {
     }
 
     private boolean doesSecretMatch(HttpServletRequest request) {
-        return secretKey.equals(request.getHeader(SECRET_KEY_HEADER));
+        return webhookProperties.secret().equals(request.getHeader(SECRET_KEY_HEADER));
     }
 }

@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.repository.impl;
 
+import com.unbidden.telegramcoursesbot.config.properties.SchedulingProperties;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Menu;
@@ -26,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
@@ -43,8 +43,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
 
     private final LocalizationLoader localizationLoader;
 
-    @Value("${telegram.bot.message.session.expiration}")
-    private Integer expiration;
+    private final SchedulingProperties schedulingProperties;
 
     @NonNull
     @Override
@@ -66,7 +65,7 @@ public class InMemorySessionRepository implements SessionRepository, AutoClearab
         List<UUID> keysToRemove = new ArrayList<>();
 
         for (Entry<UUID, Session> entry : sessions.entrySet()) {
-            if (LocalDateTime.now().isAfter(entry.getValue().getTimestamp().plusSeconds(expiration))) {
+            if (LocalDateTime.now().isAfter(entry.getValue().getTimestamp().plusSeconds(schedulingProperties.session().expiration()))) {
                 if (entry.getValue() instanceof ContentSession) {
                     try {
                         menuService.terminateMenuGroup(MenuTerminationGroupKey.COMMIT_CONTENT, localizationLoader

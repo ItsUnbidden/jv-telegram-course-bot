@@ -20,7 +20,7 @@ public class AutoClearScheduler {
 
     private final List<AutoClearable> autoClearables;
 
-    @Scheduled(initialDelay = INITIAL_EXPIRY_CHECK_DELAY, fixedDelayString = "${telegram.bot.auto-clearing.schedule.delay}")
+    @Scheduled(initialDelay = INITIAL_EXPIRY_CHECK_DELAY, fixedDelayString = "${tcp.scheduling.auto-clearing.delay}")
     public void clear() {
         LOGGER.trace("Starting scheduled auto clearing...");
         autoClearables.forEach(ac -> ac.removeExpired());

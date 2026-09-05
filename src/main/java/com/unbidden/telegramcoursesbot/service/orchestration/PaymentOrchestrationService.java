@@ -5,7 +5,6 @@ import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -22,6 +21,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRem
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.config.properties.WebhookProperties;
 import com.unbidden.telegramcoursesbot.dao.ImageDao;
 import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto;
 import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto.Result;
@@ -80,13 +80,12 @@ public class PaymentOrchestrationService {
 
     private final ValidatorUtil validatorUtil;
 
-    private final String serverUrl;
+    private final WebhookProperties webhookProperties;
 
     public PaymentOrchestrationService(ImageDao imageDao, PaymentService paymentService,
             ContentOrchestrationService contentService, @Lazy CourseOrchestrationService courseService,
             MenuOrchestrationService menuService, LocalizationLoader localizationLoader, ClientManager clientManager,
-            ReplyKeyboardRemove keyboardRemove, EntityUtil entityUtil, ValidatorUtil validatorUtil,
-            @Value("${telegram.bot.webhook.url}") String serverUrl) {
+            ReplyKeyboardRemove keyboardRemove, EntityUtil entityUtil, ValidatorUtil validatorUtil, WebhookProperties webhookProperties) {
         this.imageDao = imageDao;
         this.paymentService = paymentService;
         this.contentService = contentService;
@@ -97,7 +96,7 @@ public class PaymentOrchestrationService {
         this.keyboardRemove = keyboardRemove;
         this.entityUtil = entityUtil;
         this.validatorUtil = validatorUtil;
-        this.serverUrl = serverUrl;
+        this.webhookProperties = webhookProperties;
     }
 
     public boolean isAvailable(UserEntity user, Long courseId) {
@@ -384,7 +383,7 @@ public class PaymentOrchestrationService {
     }
 
     private void sendTelegramInvoice(BotRole botRole, Course course) {
-        final String imageUrl = serverUrl + INVOICE_IMAGES_ENDPOINT + "/" + course.getId();
+        final String imageUrl = webhookProperties.url() + INVOICE_IMAGES_ENDPOINT + "/" + course.getId();
         final String courseName = contentService.getLocalizedText(botRole, course.getTitle().getId());
         final TelegramInvoice invoice = (TelegramInvoice)course.getInvoice();
 

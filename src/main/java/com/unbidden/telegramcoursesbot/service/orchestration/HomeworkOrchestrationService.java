@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -17,6 +16,7 @@ import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.config.properties.PagedRequestProperties;
 import com.unbidden.telegramcoursesbot.dto.HomeworkResponseDto;
 import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto;
 import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto.Result;
@@ -78,14 +78,14 @@ public class HomeworkOrchestrationService {
 
     private final ValidatorUtil validatorUtil;
 
-    private final Integer pageSize;
+    private final PagedRequestProperties pagedRequestProperties;
 
     public HomeworkOrchestrationService(InMemoryHomeworkFeedbackSessionRepository feedbackSessionRepository,
             HomeworkService homeworkService, TimingService timingService,
             ContentOrchestrationService contentService, MenuOrchestrationService menuService, UserService userService,
             HomeworkMapper mapper, LocalizationLoader localizationLoader, ClientManager clientManager,
             EntityUtil entityUtil, @Lazy CourseOrchestrationService courseService, ValidatorUtil validatorUtil,
-            @Value("${telegram.bot.homework.page_size}") Integer pageSize) {
+            PagedRequestProperties pagedRequestProperties) {
         this.feedbackSessionRepository = feedbackSessionRepository;
         this.homeworkService = homeworkService;
         this.timingService = timingService;
@@ -98,7 +98,7 @@ public class HomeworkOrchestrationService {
         this.entityUtil = entityUtil;
         this.courseService = courseService;
         this.validatorUtil = validatorUtil;
-        this.pageSize = pageSize;
+        this.pagedRequestProperties = pagedRequestProperties;
     }
 
     public HomeworkResponseDto getById(BotRole botRole, Long homeworkId) {
@@ -406,7 +406,7 @@ public class HomeworkOrchestrationService {
         Assert.notNull(botRole, "botRole cannot be null");
 
         final List<HomeworkProgress> progresses = homeworkService.getPendingHomeworksByBot(
-                botRole.getBot().getId(), PageRequest.ofSize(pageSize));
+                botRole.getBot().getId(), PageRequest.ofSize(pagedRequestProperties.homework().pageSize()));
 
         if (progresses.isEmpty()) {
             LOGGER.info("There are no pending homeworks in bot " + botRole.getBot().getId() + ".");
@@ -429,7 +429,7 @@ public class HomeworkOrchestrationService {
         Assert.notNull(courseId, "courseId cannot be null");
 
         final List<HomeworkProgress> progresses = homeworkService.getPendingHomeworksByCourse(
-                courseId, PageRequest.ofSize(pageSize));
+                courseId, PageRequest.ofSize(pagedRequestProperties.homework().pageSize()));
 
         if (progresses.isEmpty()) {
             LOGGER.info("There are no pending homeworks for course " + courseId + ".");

@@ -8,13 +8,13 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaDocument;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.config.properties.LocalizationsProperties;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.model.BotRole;
@@ -32,8 +32,7 @@ public class GetLocalizationFileTemplatesButtonHandler extends AbstractButtonHan
 
     private final TextUtil textUtil;
 
-    @Value("${telegram.bot.message.text.format}")
-    private String fileFormat;
+    private final LocalizationsProperties localizationsProperties;
 
     @Override
     @Security(authorities = AuthorityType.MAINTENANCE, isBotLordOnly = true)
@@ -46,7 +45,7 @@ public class GetLocalizationFileTemplatesButtonHandler extends AbstractButtonHan
 
         for (final var entry : localizationsInfo.entrySet()) {
             medias.add(new InputMediaDocument(new ByteArrayInputStream(textUtil.generateLocalizationTemplate(entry.getValue())
-                    .getBytes(StandardCharsets.UTF_8)), entry.getKey() + fileFormat));
+                    .getBytes(StandardCharsets.UTF_8)), entry.getKey() + localizationsProperties.format()));
         }
         LOGGER.info("Sending template files...");
         clientManager.getBotLordClient().executeAsync(SendMediaGroup.builder()

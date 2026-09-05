@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.bot;
 
+import com.unbidden.telegramcoursesbot.config.properties.WebhookProperties;
 import com.unbidden.telegramcoursesbot.dao.CertificateDao;
 import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
@@ -12,6 +13,7 @@ import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.service.command.CommandHandlerManager;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
+import com.unbidden.telegramcoursesbot.util.TextUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,7 +21,6 @@ import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
@@ -41,41 +42,25 @@ public class ClientManager {
 
     private final LocalizationLoader loader;
 
-    private final EntityUtil entityUtil;
-
     private final CommandHandlerManager commandHandlerManager;
 
-    private final LocalizationLoader localizationLoader;
-    
+    private final EntityUtil entityUtil;
+
+    private final TextUtil textUtil;
+
+    private final WebhookProperties webhookProperties;
+
     private BotLordClient botLordClient;
 
     public ClientManager(CertificateDao dao, LocalizationLoader loader, EntityUtil entityUtil,
-            @Lazy CommandHandlerManager commandHandlerManager,
-            LocalizationLoader localizationLoader) {
+            @Lazy CommandHandlerManager commandHandlerManager, TextUtil textUtil, WebhookProperties webhookProperties) {
         this.dao = dao;
         this.loader = loader;
         this.entityUtil = entityUtil;
+        this.textUtil = textUtil;
         this.commandHandlerManager = commandHandlerManager;
-        this.localizationLoader = localizationLoader;
+        this.webhookProperties = webhookProperties;
     }
-
-    @Value("${telegram.bot.authorization.bot_lord.token}")
-    private String botLordToken;
-
-    @Value("${telegram.bot.webhook.url}")
-    private String baseUrl;
-    
-    @Value("${telegram.bot.webhook.secret}")
-    private String secretToken;
-    
-    @Value("${telegram.bot.webhook.ip}")
-    private String ip;
-    
-    @Value("${telegram.bot.webhook.max_connections}")
-    private int maxConnections;
-
-    @Value("${telegram.bot.webhook.use_certificate}")
-    private boolean isCustomCertificateIncluded;
 
     public CustomTelegramClient getClient(Bot bot) {
         final CustomTelegramClient client = clients.get(bot.getId());
@@ -93,7 +78,7 @@ public class ClientManager {
     public CustomTelegramClient addClient(Bot bot) {
         LOGGER.debug("Creating a new client for bot " + bot.getId() + "...");
         final RegularClient client = new RegularClient(bot.getId(), bot.getToken(), loader, dao, commandHandlerManager,
-                entityUtil, baseUrl, secretToken, ip, maxConnections, isCustomCertificateIncluded);
+                entityUtil, webhookProperties);
 
         clients.put(bot.getId(), client);
         return client;
@@ -101,8 +86,7 @@ public class ClientManager {
 
     public BotLordClient addBotLordClient(Bot bot) {
         LOGGER.debug("Creating a new client for bot lord...");
-        botLordClient = new BotLordClient(bot.getId(), bot.getToken(), baseUrl, ip, secretToken,
-                dao, loader, isCustomCertificateIncluded);
+        botLordClient = new BotLordClient(bot.getId(), bot.getToken(), loader, dao, webhookProperties, textUtil);
         return botLordClient;
     }
 
@@ -120,7 +104,7 @@ public class ClientManager {
 
         if (isRefreshing()) {
             throw new ForbiddenOperationException("Cannot toggle maintenance while the server "
-                    + "is refreshing", localizationLoader.localize(
+                    + "is refreshing", loader.localize(
                     Localizations.Error.IS_REFRESHING, botRole));
         }
         LOGGER.info("Director is toggling maintenance... Current status is "
@@ -129,7 +113,7 @@ public class ClientManager {
         LOGGER.info("Maintenance is now " + getStatus(botRole));
 
         LOGGER.debug("Sending confirmation message to director...");
-        sendMessage(botRole, localizationLoader.localize(Localizations.Service.ON_MAINTENANCE_STATUS_CHANGE, botRole,
+        sendMessage(botRole, loader.localize(Localizations.Service.ON_MAINTENANCE_STATUS_CHANGE, botRole,
                     new Localizations.Service.OnMaintenanceStatusChangeParams(getStatus(botRole))));
         LOGGER.debug("Message sent.");
 
@@ -139,7 +123,7 @@ public class ClientManager {
     public void refreshMenus(BotRole botRole) {
         if (!isOnMaintenance) {
             throw new ForbiddenOperationException("Unable to refresh because server is not on "
-                    + "maintenance", localizationLoader.localize(
+                    + "maintenance", loader.localize(
                     Localizations.Error.MAINTENANCE_IN_NOT_ENABLED, botRole));
         }
         LOGGER.info("The director is trying to refresh user menus...");
@@ -149,7 +133,7 @@ public class ClientManager {
         LOGGER.info("Menus have been reloaded.");
 
         LOGGER.debug("Sending confirmation message...");
-        sendMessage(botRole, localizationLoader.localize(Localizations.Service.MENU_REFRESH_SUCCESS, botRole));
+        sendMessage(botRole, loader.localize(Localizations.Service.MENU_REFRESH_SUCCESS, botRole));
         LOGGER.debug("Message sent.");
     }
 
@@ -191,7 +175,7 @@ public class ClientManager {
             return new SendMessageResultDto(getClient(botRole.getBot()).execute(sendMessage));
         } catch (TelegramApiException e) {
             return new SendMessageResultDto(new TelegramException("Unable to send a message to user " + botRole.getUser().getId()
-                    + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(Localizations.Error.SEND_MESSAGE,
+                    + " in bot " + botRole.getBot().getId() + ".", loader.localize(Localizations.Error.SEND_MESSAGE,
                         botRole), e));
         }
     }
@@ -211,7 +195,7 @@ public class ClientManager {
             return getClient(botRole.getBot()).executeAsync(sendMessage).handle((m, t) -> {
                         if (t != null) {
                             return new SendMessageResultDto(new TelegramException("Unable to send a message to user " + botRole.getUser().getId()
-                                + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(Localizations.Error.SEND_MESSAGE,
+                                + " in bot " + botRole.getBot().getId() + ".", loader.localize(Localizations.Error.SEND_MESSAGE,
                                 botRole), t));
                         } else {
                             return new SendMessageResultDto(m);
@@ -219,7 +203,7 @@ public class ClientManager {
                     });
         } catch (TelegramApiException e) {
             return CompletableFuture.completedFuture(new SendMessageResultDto(new TelegramException("Unable to send a message to user "
-                    + botRole.getUser().getId() + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(
+                    + botRole.getUser().getId() + " in bot " + botRole.getBot().getId() + ".", loader.localize(
                     Localizations.Error.SEND_MESSAGE, botRole), e)));
         }
     }
@@ -250,7 +234,7 @@ public class ClientManager {
                     .build()));
         } catch (TelegramApiException e) {
             return new SendMessageResultDto(new TelegramException("Unable to send a message to user " + botRole.getUser().getId()
-                    + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(Localizations.Error.SEND_MESSAGE,
+                    + " in bot " + botRole.getBot().getId() + ".", loader.localize(Localizations.Error.SEND_MESSAGE,
                         botRole), e));
         }
     }
@@ -283,7 +267,7 @@ public class ClientManager {
                     .build()));
         } catch (TelegramApiException e) {
             return new SendMessageResultDto(new TelegramException("Unable to send a message to user " + botRole.getUser().getId()
-                    + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(Localizations.Error.SEND_MESSAGE,
+                    + " in bot " + botRole.getBot().getId() + ".", loader.localize(Localizations.Error.SEND_MESSAGE,
                         botRole), e));
         }
     }
@@ -314,7 +298,7 @@ public class ClientManager {
                     .build()).handle((m, t) -> {
                         if (t != null) {
                             return new SendMessageResultDto(new TelegramException("Unable to send a message to user " + botRole.getUser().getId()
-                                + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(Localizations.Error.SEND_MESSAGE,
+                                + " in bot " + botRole.getBot().getId() + ".", loader.localize(Localizations.Error.SEND_MESSAGE,
                                 botRole), t));
                         } else {
                             return new SendMessageResultDto(m);
@@ -322,13 +306,13 @@ public class ClientManager {
                     });
         } catch (TelegramApiException e) {
             return CompletableFuture.completedFuture(new SendMessageResultDto(new TelegramException("Unable to send a message to user "
-                    + botRole.getUser().getId() + " in bot " + botRole.getBot().getId() + ".", localizationLoader.localize(
+                    + botRole.getUser().getId() + " in bot " + botRole.getBot().getId() + ".", loader.localize(
                     Localizations.Error.SEND_MESSAGE, botRole), e)));
         }
     }
 
     private String getStatus(BotRole botRole) {
-        return localizationLoader.localize(isOnMaintenance
+        return loader.localize(isOnMaintenance
                 ? Localizations.Service.STATUS_ENABLED
                 : Localizations.Service.STATUS_DISABLED, botRole).getData();
     }

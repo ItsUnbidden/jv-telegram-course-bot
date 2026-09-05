@@ -17,9 +17,9 @@ import com.unbidden.telegramcoursesbot.util.EntityUtil;
 import java.util.List;
 
 import lombok.RequiredArgsConstructor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -37,9 +37,6 @@ public class ContentService {
     private final LocalizationLoader localizationLoader;
 
     private final EntityUtil entityUtil;
-
-    @Value("${telegram.bot.message.language.priority}")
-    private String languagePriorityStr;
 
     @Transactional
     public LocalizedContent parseAndPersistContent(BotRole botRole, List<Message> messages) {

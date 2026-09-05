@@ -11,11 +11,11 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
+import com.unbidden.telegramcoursesbot.config.properties.SchedulingProperties;
 import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.menu.MultipageListMeta;
 import com.unbidden.telegramcoursesbot.repository.AutoClearable;
@@ -31,12 +31,12 @@ public class InMemoryMultipageListMetaRepository implements MultipageListMetaRep
 
     private final MenuOrchestrationService menuService;
 
-    private final Integer expiration;
+    private final SchedulingProperties schedulingProperties;
 
     public InMemoryMultipageListMetaRepository(@Lazy MenuOrchestrationService menuService,
-            @Value("${telegram.bot.message.multipage.meta.expiration}") Integer expiration) {
+            SchedulingProperties schedulingProperties) {
         this.menuService = menuService;
-        this.expiration = expiration;
+        this.schedulingProperties = schedulingProperties;
     }
 
     @Override
@@ -59,7 +59,7 @@ public class InMemoryMultipageListMetaRepository implements MultipageListMetaRep
 
         for (Entry<UUID, MultipageListMeta> entry : metas.entrySet()) {
             if (LocalDateTime.now().isAfter(entry.getValue()
-                    .getCreatedAt().plusSeconds(expiration))) {
+                    .getCreatedAt().plusSeconds(schedulingProperties.multipageMeta().expiration()))) {
                 LOGGER.trace("Terminating multipage list control menu for meta "
                         + entry.getKey() + "...");
                 menuService.terminateMenu(entry.getValue().getUser().getId(),
