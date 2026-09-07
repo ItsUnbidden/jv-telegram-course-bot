@@ -28,6 +28,18 @@ public interface ContentMappingRepository extends JpaRepository<ContentMapping, 
     Optional<ContentMapping> findCourseTitle(Long courseId);
 
     @Query("""
+        from ContentMapping cm
+        where exists(
+            select 1
+            from Lesson l
+            left join l.structure s
+            where l.id = :lessonId and s.id = cm.id   
+        )
+        order by cm.position asc
+    """)
+    List<ContentMapping> findByLessonId(Long lessonId);
+
+    @Query("""
         select new com.unbidden.telegramcoursesbot.dto.internal.MappingsByPositionInCourseCountDto(l.position, count(s.id))
         from Lesson l
         left join l.structure s

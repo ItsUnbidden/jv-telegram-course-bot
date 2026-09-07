@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class UpdateContentPositionButtonHandler extends AbstractButtonHandler {
     private static final String LESSON_ID_PARAM = "lessonId";
+    private static final String MAPPING_ID_PARAM = "mappingId";
 
     private final ContentSessionService sessionService;
 
@@ -31,11 +32,13 @@ public class UpdateContentPositionButtonHandler extends AbstractButtonHandler {
     @Override
     @Security(authorities = AuthorityType.CONTENT_SETTINGS)
     public void handle(BotRole botRole, Map<String, String> params) {
-        sessionService.createSession(botRole, p -> {
-            lessonService.moveMappingToIndex(p.botRole(), Long.parseLong(params.get(LESSON_ID_PARAM)), p.messages());
-        });
+        final Long lessonId = Long.parseLong(params.get(LESSON_ID_PARAM));
+        final Long mappingId = Long.parseLong(params.get(MAPPING_ID_PARAM));
 
-        clientManager.sendMessage(botRole, localizationLoader.localize(
-                Localizations.Service.LESSON_MAPPING_ORDER_CHANGE_REQUEST, botRole));
+        sessionService.createSession(botRole, p -> {
+            lessonService.moveMappingToIndex(botRole, lessonId, mappingId, p.messages());
+        }, true);
+        
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.LESSON_MAPPING_ORDER_CHANGE_REQUEST, botRole));
     }
 }

@@ -159,25 +159,6 @@ public class HomeworkService {
     }
 
     @Transactional
-    public Homework updateContent(BotRole botRole, Long homeworkId, String languageCode, List<Message> messages) {
-        Assert.notNull(botRole, "botRole cannot be null");
-        Assert.notNull(homeworkId, "homeworkId cannot be null");
-        Assert.notNull(languageCode, "languageCode cannot be null");
-        Assert.notEmpty(messages, "messages cannot be empty or null");
-
-        final Homework homework = entityUtil.getHomeworkById(botRole, homeworkId);
-        final ContentMapping contentMapping = new ContentMapping();
-
-        contentMapping.setPosition(0);
-        contentMapping.setContent(List.of(contentService.parseAndPersistContent(botRole, messages, languageCode)));
-
-        contentMappingRepository.delete(homework.getMapping());
-        homework.setMapping(contentMappingRepository.save(contentMapping));
-
-        return homework;
-    }
-
-    @Transactional
     public Homework updateDelay(BotRole botRole, Long homeworkId, int newDelay) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(homeworkId, "homeworkId cannot be null");

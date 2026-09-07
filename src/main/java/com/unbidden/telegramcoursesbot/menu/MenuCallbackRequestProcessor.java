@@ -25,7 +25,7 @@ import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.menu.handler.AbstractButtonHandler;
 import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.repository.CallbackQueryRepository;
-import com.unbidden.telegramcoursesbot.util.KeyboardUtil;
+import com.unbidden.telegramcoursesbot.util.MenuUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -44,7 +44,7 @@ public class MenuCallbackRequestProcessor {
 
     private final ClientManager clientManager;
 
-    private final KeyboardUtil keyboardUtil;
+    private final MenuUtil keyboardUtil;
     
     // TODO: if a menu fails to be sent, it will break forever on the user's side. Some fallback logic might be required to inform the snapshot.
     public void processCallbackQuery(BotRole botRole, CallbackQuery query) {
@@ -85,7 +85,7 @@ public class MenuCallbackRequestProcessor {
                     } else {
                         LOGGER.trace("Sending new message content and markup...");
                         final Localization loc = terminalDto.getNextPage().getLocalizationFunction()
-                                .apply(new MenuParamsDto(botRole, terminalDto.getParams(), terminalDto.getSnapshot().getInitialPage()));
+                                .apply(new MenuParamsDto(botRole, terminalDto.getParams(), terminalDto.getHistory()));
 
                         clientManager.getClient(botRole.getBot()).execute(EditMessageText.builder()
                                 .chatId(botRole.getUser().getId())
@@ -113,7 +113,7 @@ public class MenuCallbackRequestProcessor {
                     LOGGER.trace("The menu is supposed to be terminated with a custom terminal localization.");
                     if (terminalDto.getNextPage().getLocalizationFunction() != null) {
                         final Localization loc = terminalDto.getNextPage().getLocalizationFunction().apply(new MenuParamsDto(botRole,
-                                terminalDto.getParams(), terminalDto.getSnapshot().getInitialPage()));
+                                terminalDto.getParams(), terminalDto.getHistory()));
 
                         try {
                             LOGGER.trace("Sending new message content and clear markup...");
@@ -183,7 +183,7 @@ public class MenuCallbackRequestProcessor {
                 } else {
                     LOGGER.trace("Sending new message content and markup...");
                     final Localization loc = transitoryDto.getNextPage().getLocalizationFunction()
-                            .apply(new MenuParamsDto(botRole, transitoryDto.getParams(), transitoryDto.getSnapshot().getInitialPage()));
+                            .apply(new MenuParamsDto(botRole, transitoryDto.getParams(), transitoryDto.getHistory()));
 
                     clientManager.getClient(botRole.getBot()).execute(EditMessageText.builder()
                             .chatId(botRole.getUser().getId())

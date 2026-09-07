@@ -122,13 +122,10 @@ public class LessonOrchestrationService {
         LOGGER.debug("Message sent.");
     }
 
-    public void removeMapping(BotRole botRole, Long lessonId, List<Message> messages) {
+    public void removeMapping(BotRole botRole, Long lessonId, Long mappingId) {
         Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(mappingId, "mappingId cannot be null");
         Assert.notNull(lessonId, "lessonId cannot be null");
-        Assert.notEmpty(messages, "messages cannot be null or empty");
-
-        validatorUtil.checkExactExpectedMessages(botRole, messages, 1);
-        final Long mappingId = validatorUtil.parseId(botRole, messages.getFirst());
 
         lessonService.removeContent(botRole, lessonId, mappingId);
         LOGGER.info("Mapping " + mappingId + " has been removed from lesson " + lessonId + ".");
@@ -163,16 +160,16 @@ public class LessonOrchestrationService {
         LOGGER.debug("Message sent.");
     }
 
-    public void moveMappingToIndex(BotRole botRole, Long lessonId, List<Message> messages) {
+    public void moveMappingToIndex(BotRole botRole, Long lessonId, Long mappingId, List<Message> messages) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(lessonId, "lessonId cannot be null");
+        Assert.notNull(mappingId, "mappingId cannot be null");
         Assert.notEmpty(messages, "messages cannot be null or empty");
 
-        validatorUtil.checkExactExpectedMessages(botRole, messages, 2);
-        final long mappingId = validatorUtil.parseId(botRole, messages.getFirst());
+        validatorUtil.checkExactExpectedMessages(botRole, messages, 1);
 
         Lesson lesson = entityUtil.getLessonById(botRole, lessonId);
-        final int index = validatorUtil.parseIntInBounds(botRole, messages.getLast(),
+        final int index = validatorUtil.parseIntInBounds(botRole, messages.getFirst(),
                 0, lesson.getStructure().size() - 1);
 
         lesson = lessonService.moveContentToIndex(botRole, lessonId, mappingId, index);

@@ -181,6 +181,12 @@ public final class Localizations {
          */
         COURSE_SETTINGS_PAGE_4,
         COURSE_SETTINGS_PAGE_5,
+        COURSE_SETTINGS_PAGE_6,
+        COURSE_SETTINGS_PAGE_7,
+        COURSE_SETTINGS_PAGE_8,
+        COURSE_SETTINGS_PAGE_9,
+        COURSE_SETTINGS_PAGE_10,
+        COURSE_SETTINGS_PAGE_11,
         COMMIT_CONTENT_PAGE_0,
         COMMIT_CONTENT_TERMINAL_PAGE,
         COMMIT_CONTENT_RESEND_TERMINAL_PAGE,
@@ -241,8 +247,7 @@ public final class Localizations {
         COURSE_PRICE_CHANGE("button_course_price_change"),
         CREATE_NEW_COURSE("button_create_new_course"),
         HOMEWORK_SETTINGS("button_homework_settings"),
-        UPDATE_HOMEWORK_CONTENT("button_update_homework_content"),
-        REMOVE_CONTENT_FROM_LESSON("button_remove_content_from_lesson"),
+        REMOVE_MAPPING_FROM_LESSON("button_remove_mapping_from_lesson"),
         ADD_CONTENT_TO_LESSON("button_add_content_to_lesson"),
         COURSE_LESSONS("button_course_lessons"),
         CREATE_HOMEWORK("button_create_homework"),
@@ -314,6 +319,12 @@ public final class Localizations {
          */
         TEST_MENU("button_test_menu"),
         BY_ID("button_by_id"),
+        LESSON_CONTENT_SETTINGS,
+        HOMEWORK_CONTENT_SETTINGS,
+        COURSE_NAME_SETTINGS,
+        COURSE_END_MAPPING_SETTINGS,
+        CREATE_COURSE_END_MAPPING,
+        REMOVE_COURSE_END_MAPPING,
         GET_LOCALIZATION_FILE_TEMPLATES;
 
         private String locName;
@@ -849,13 +860,6 @@ public final class Localizations {
         /**
          * Possible parameters:
          * <ls>
-         *  <li>contentId</li>
-         * </ls>
-         */
-        GET_CONTENT_SUCCESS("service_get_content_success"),
-        /**
-         * Possible parameters:
-         * <ls>
          *  <li>courseName</li>
          * </ls>
          */
@@ -992,7 +996,6 @@ public final class Localizations {
          * </ls>
          */
         LESSON_CONTENT_REMOVED("service_lesson_content_removed"),
-        REMOVE_LESSON_CONTENT_REQUEST("service_remove_lesson_content_request"),
         DELETE_COURSE_SUCCESS("service_delete_course_success"),
         /**
          * Possible parameters:
@@ -1024,14 +1027,6 @@ public final class Localizations {
          */
         DELETE_LESSON_REQUEST("service_delete_lesson_request"),
         DELETE_LESSON_SUCCESS("service_delete_lesson_success"),
-        /**
-         * Possible parameters:
-         * <ls>
-         *  <li>availableLanguageCodes</li>
-         *  <li>mappingId</li>
-         * </ls>
-         */
-        REMOVE_LOCALIZATION_FROM_MAPPING_REQUEST("service_remove_localization_from_mapping_request"),
         /**
          * Possible parameters:
          * <ls>
@@ -1116,6 +1111,16 @@ public final class Localizations {
          * </ls>
          */
         NO_PENDING_HOMEWORKS_FOR_COURSE,
+        NEW_END_MAPPING_REQUEST,
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>mappingId</li>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        NEW_END_MAPPING_ADDED,
+        END_MAPPING_REMOVED,
         YES,
         NO;
 
@@ -1219,7 +1224,6 @@ public final class Localizations {
         public static record DeleteLessonRequestParams(String confirmationPhrase) {}
         public static record DeleteCourseConfirmationPhraseParams(String courseName) {}
         public static record DeleteLessonConfirmationPhraseParams(String courseName, int position) {}
-        public static record RemoveLocalizationFromMappingRequestParams(long mappingId, String availableLanguageCodes) {}
         public static record RemoveLocalizationFromMappingSuccessParams(long mappingId, String languageCode) {}
         public static record UploadContentSuccessParams(long mappingId) {}
         public static record PrivateMessageContentRequestParams(String targetTitle, String targetFullName) {}
@@ -1229,6 +1233,8 @@ public final class Localizations {
         public static record HomeworkContentUpdatedParams(long homeworkId, long mappingId) {}
         public static record CourseCompletedDefaultParams(String courseName) {}
         public static record NoPendingHomeworksForCourseParams(String courseName) {}
+        public static record NewEndMappingAddedParams(String courseName, long mappingId) {}
+        public static record EndMappingRemovedParams(String courseName) {}
     }
     
     public static enum Error implements LocalizationKey {
@@ -1507,14 +1513,6 @@ public final class Localizations {
         LANGUAGE_CODE_LENGTH("error_language_code_length"),
         LESSON_POSITION_INVALID("error_lesson_position_invalid"),
         PARSE_INDEX_FAILURE("error_parse_index_failure"),
-        /**
-         * Possible parameters:
-         * <ls>
-         *  <li>mappingId</li>
-         *  <li>languageCode</li>
-         * </ls>
-         */
-        LOCALIZED_CONTENT_IS_ALREADY_PRESENT("error_localized_content_is_already_present"),
         BOT_TOKEN_PATTERN_MISMATCH("error_bot_token_pattern_mismatch"),
         BOT_ALREADY_EXISTS("error_bot_already_exists"),
         INVOICE_IMAGE_DOES_NOT_EXIST("error_invoice_image_does_not_exist"),
@@ -1557,13 +1555,6 @@ public final class Localizations {
         DELETE_COURSE_ACTIVE_OWNERSHIPS("error_delete_course_active_ownerships"),
         DELETE_COURSE_CONFIRMATION_PHRASE_FAILURE("error_delete_course_confirmation_phrase_failure"),
         DELETE_LESSON_CONFIRMATION_PHRASE_FAILURE("error_delete_lesson_confirmation_phrase_failure"),
-        /**
-         * Possible parameters:
-         * <ls>
-         *  <li>languageCode</li>
-         *  <li>availableLanguageCodes</li>
-         * </ls>
-         */
         NO_LOCALIZATIONS_DELETED("error_no_localizations_deleted"),
         SAME_CONTENT_POSITION("error_same_content_position"),
         SAME_NEW_REFUND_STAGE("error_same_new_refund_stage"),
@@ -1594,6 +1585,8 @@ public final class Localizations {
         GENERAL_BAN_NO_BOT_ROLES,
         SEND_EXTERNAL_INVOICE,
         MAPPING_ONE_CONTENT,
+        COURSE_END_MAPPING_PRESENT,
+        COURSE_END_MAPPING_MISSING,
         POST_REQUEST_FAILURE;
         
         private String locName;
@@ -1639,7 +1632,6 @@ public final class Localizations {
         public static record ParseMediaTypesFailureParams(String availableMediaTypes) {}
         public static record ParseRoleTypesFailureParams(String availableRoleTypes) {}
         public static record DeleteCourseActiveOwnershipsParams(long numberOfOwnerships) {}
-        public static record NoLocalizationsDeletedParams(String languageCode, String availableLanguageCodes) {}
         public static record RefundStageGreaterThanNumberOfLessonsParams(int maxRefundStage) {}
         public static record CourseValidationNoContentInLessonParams(int lessonIndex) {}
         public static record PostRequestFailureParams(int successes, int failures) {}

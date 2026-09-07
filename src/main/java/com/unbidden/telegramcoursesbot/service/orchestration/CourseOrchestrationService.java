@@ -336,6 +336,39 @@ public class CourseOrchestrationService {
         LOGGER.debug("Message sent.");
     }
 
+    public void addEndMapping(BotRole botRole, Long courseId, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+
+        validatorUtil.checkAtLeastExpectedMessages(botRole, messages, 1);
+        String languageCode = botRole.getUser().getLanguageCode();
+        if (messages.size() > 1 && validatorUtil.checkLanguageCode(botRole, messages.getLast())) {
+            languageCode = messages.getLast().getText();
+            messages.removeLast();
+        }
+        
+        final Course course = courseService.addEndMapping(botRole, courseId, languageCode, messages);
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.NEW_END_MAPPING_ADDED, botRole,
+                new Localizations.Service.NewEndMappingAddedParams(contentService.getLocalizedText(botRole, course.getTitle()),
+                course.getEndMapping().getId())));
+        LOGGER.debug("Message sent.");
+    }
+
+    public void removeEndMapping(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+        
+        final Course course = courseService.removeEndMapping(botRole, courseId);
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.END_MAPPING_REMOVED, botRole,
+                new Localizations.Service.EndMappingRemovedParams(contentService.getLocalizedText(botRole, course.getTitle()))));
+        LOGGER.debug("Message sent.");
+    }
+
     private String getStatus(BotRole botRole, boolean status) {
         return status ? localizationLoader.localize(Localizations.Service.STATUS_ENABLED, botRole).getData()
                 : localizationLoader.localize(Localizations.Service.STATUS_DISABLED, botRole).getData();

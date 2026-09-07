@@ -83,7 +83,7 @@ public class CoursesMenu implements MenuConfigurer {
                 .map(c -> (Button)new TerminalButton(c.getLocalizedTitle(), c.getId().toString(), initiateCourseHandler))
                 .toList());
 
-            if (p.initialPage() != secondPage.getPageIndex()) {
+            if (!p.history().isEmpty()) {
                 buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData()));
             }
 
@@ -107,7 +107,7 @@ public class CoursesMenu implements MenuConfigurer {
                 }
             }
            
-            if (p.initialPage() != thirdPage.getPageIndex()) {
+            if (!p.history().isEmpty()) {
                 buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData()));
             }
 

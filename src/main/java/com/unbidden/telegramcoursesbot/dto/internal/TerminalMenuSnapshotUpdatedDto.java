@@ -18,15 +18,16 @@ public class TerminalMenuSnapshotUpdatedDto extends MenuSnapshotUpdatedDto {
     
     private boolean terminate;
 
-    public TerminalMenuSnapshotUpdatedDto(MenuSnapshot snapshot, Page nextPage, String beanName, Map<String, String> params, boolean terminate) {
-        super(snapshot, nextPage, params);
+    public TerminalMenuSnapshotUpdatedDto(MenuSnapshot snapshot, Page nextPage, String beanName,
+            Map<String, String> params, List<Integer> history, boolean terminate) {
+        super(snapshot, nextPage, params, history);
         this.beanName = beanName;
         this.terminate = terminate;
     }
 
-    public TerminalMenuSnapshotUpdatedDto(MenuSnapshot snapshot, Page nextPage, List<Button> buttons,
+    public TerminalMenuSnapshotUpdatedDto(MenuSnapshot snapshot, Page nextPage, List<Button> buttons, List<Integer> history, 
             List<MenuSnapshotButton> snapshotButtons, String beanName, Map<String, String> params) {
-        super(snapshot, nextPage, buttons, snapshotButtons, params);
+        super(snapshot, nextPage, buttons, history, snapshotButtons, params);
         this.beanName = beanName;
         this.terminate = false;
     }

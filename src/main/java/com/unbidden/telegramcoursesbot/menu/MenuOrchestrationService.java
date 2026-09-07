@@ -20,7 +20,7 @@ import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.MenuSnapshot;
 import com.unbidden.telegramcoursesbot.repository.CallbackQueryRepository;
 import com.unbidden.telegramcoursesbot.repository.MenuRepository;
-import com.unbidden.telegramcoursesbot.util.KeyboardUtil;
+import com.unbidden.telegramcoursesbot.util.MenuUtil;
 import com.unbidden.telegramcoursesbot.util.ValidatorUtil;
 
 import java.util.List;
@@ -58,9 +58,11 @@ public class MenuOrchestrationService {
 
     private final ClientManager clientManager;
 
-    private final KeyboardUtil keyboardUtil;
+    private final MenuUtil keyboardUtil;
 
     private final ValidatorUtil validatorUtil;
+
+    private final MenuUtil menuUtil;
 
     public Message initiateMenu(BotRole botRole, MenuKey key) {
         return initiateMenu0(botRole, key, 0, Map.of(), null, null, null);
@@ -203,7 +205,8 @@ public class MenuOrchestrationService {
                     (terminalLocalizationOverride != null) ? terminalLocalizationOverride
                     : (menuOpt.isPresent() && menuOpt.get().getTerminalPage() != null) 
                         ? menuOpt.get().getTerminalPage().getLocalizationFunction().apply(
-                            new MenuParamsDto(snapshot.getBotRole(), snapshot.paramsToMap(), snapshot.getInitialPage()))
+                            new MenuParamsDto(snapshot.getBotRole(), menuUtil.stringToMap(snapshot.getParameters()),
+                            menuUtil.stringToIntList(snapshot.getPageHistory())))
                         : null);
         }
         
@@ -304,7 +307,7 @@ public class MenuOrchestrationService {
                 new EntityNotFoundException("Menu " + key + " was not found",
                 localizationLoader.localize(Error.MENU_NOT_FOUND, botRole)));
         final Page firstPage = menu.getPages().get(initialPage);
-        final MenuParamsDto dto = new MenuParamsDto(botRole, params, initialPage);
+        final MenuParamsDto dto = new MenuParamsDto(botRole, params, List.of());
         final List<Button> generatedLayout = firstPage.getButtonsFunction().apply(dto);
         final MenuSnapshotCreatedDto snapshotDto = menuService.createSnapshot(botRole, key, initialPage,
                 generatedLayout, params, messageId, mtgKey, mtgArgs);

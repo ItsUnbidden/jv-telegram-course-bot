@@ -22,17 +22,21 @@ public abstract class MenuSnapshotUpdatedDto {
 
     private Map<String, String> params;
 
-    public MenuSnapshotUpdatedDto(MenuSnapshot snapshot, Page nextPage, Map<String, String> params) {
+    private List<Integer> history;
+
+    public MenuSnapshotUpdatedDto(MenuSnapshot snapshot, Page nextPage, Map<String, String> params, List<Integer> history) {
         this.snapshot = snapshot;
         this.nextPage = nextPage;
         this.params = params;
+        this.history = history;
     }
 
-    public MenuSnapshotUpdatedDto(MenuSnapshot snapshot, Page nextPage, List<Button> buttons,
+    public MenuSnapshotUpdatedDto(MenuSnapshot snapshot, Page nextPage, List<Button> buttons, List<Integer> history,
             List<MenuSnapshotButton> snapshotButtons, Map<String, String> params) {
         this.snapshot = snapshot;
         this.nextPage = nextPage;
         this.buttons = buttons;
+        this.history = history;
         this.snapshotButtons = snapshotButtons;
         this.params = params;
     }

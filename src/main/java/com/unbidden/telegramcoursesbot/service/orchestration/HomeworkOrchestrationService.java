@@ -169,27 +169,6 @@ public class HomeworkOrchestrationService {
         LOGGER.debug("Message sent.");
     }
 
-    public void updateContent(BotRole botRole, Long homeworkId, List<Message> messages) {
-        Assert.notNull(botRole, "botRole cannot be null");
-        Assert.notNull(homeworkId, "homeworkId cannot be null");
-        Assert.notEmpty(messages, "messages cannot be empty or null");
-        
-        validatorUtil.checkAtLeastExpectedMessages(botRole, messages, 2);
-        LOGGER.info("User " + botRole.getUser().getId() + " is trying to update homework " + homeworkId + "...");  
-
-        final String languageCode = validatorUtil.checkLanguageCode(botRole, messages.getLast())
-                ? messages.getLast().getText().trim()
-                : botRole.getUser().getLanguageCode();
-
-        final Homework homework = homeworkService.updateContent(botRole, homeworkId, languageCode, messages);
-        LOGGER.info("Homework " + homework.getId() + " content has been updated.");
-
-        LOGGER.debug("Sending confirmation message...");
-        clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.HOMEWORK_CONTENT_UPDATED, botRole,
-                new Localizations.Service.HomeworkContentUpdatedParams(homeworkId, homework.getMapping().getId())));
-        LOGGER.debug("Message sent.");
-    }
-
     public void toggleFeedbackInclusion(BotRole botRole, Long homeworkId) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(homeworkId, "homeworkId cannot be null");

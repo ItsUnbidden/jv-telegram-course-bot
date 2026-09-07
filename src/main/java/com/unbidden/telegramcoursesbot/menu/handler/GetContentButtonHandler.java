@@ -19,6 +19,8 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class GetContentButtonHandler extends AbstractButtonHandler {
+    private static final String CONTENT_ID_PARAM = "contentId";
+
     private final ContentSessionService sessionService;
     
     private final ContentOrchestrationService contentService;
@@ -32,16 +34,16 @@ public class GetContentButtonHandler extends AbstractButtonHandler {
     @Override
     @Security(authorities = AuthorityType.CONTENT_SETTINGS)
     public void handle(BotRole botRole, Map<String, String> params) {
-        sessionService.createSession(botRole, p -> {
-            validatorUtil.checkExactExpectedMessages(p.botRole(), p.messages(), 1);
-            final Long contentId = validatorUtil.parseId(p.botRole(), p.messages().getFirst());
+        final Long contentId = params.get(CONTENT_ID_PARAM) == null ? null : Long.parseLong(params.get(CONTENT_ID_PARAM));
 
-            contentService.sendContent(p.botRole(), contentId);
-            clientManager.sendMessage(p.botRole(), loader.localize(
-                    Localizations.Service.GET_CONTENT_SUCCESS, p.botRole(),
-                    new Localizations.Service.GetContentSuccessParams(contentId)));
-        }, true);
-
-        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.GET_CONTENT_REQUEST, botRole));
+        if (contentId == null) {
+            sessionService.createSession(botRole, p -> {
+                validatorUtil.checkExactExpectedMessages(botRole, p.messages(), 1);
+                contentService.sendContent(p.botRole(), validatorUtil.parseId(botRole, p.messages().getFirst()));
+            }, true);
+            clientManager.sendMessage(botRole, loader.localize(Localizations.Service.GET_CONTENT_REQUEST, botRole));
+        } else {
+            contentService.sendContent(botRole, contentId);
+        }
     }
 }

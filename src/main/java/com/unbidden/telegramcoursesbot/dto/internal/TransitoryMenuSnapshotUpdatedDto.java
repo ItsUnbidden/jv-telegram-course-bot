@@ -10,7 +10,7 @@ import com.unbidden.telegramcoursesbot.model.MenuSnapshotButton;
 
 public class TransitoryMenuSnapshotUpdatedDto extends MenuSnapshotUpdatedDto {
     public TransitoryMenuSnapshotUpdatedDto(MenuSnapshot snapshot, Page nextPage, List<Button> buttons,
-            List<MenuSnapshotButton> snapshotButtons, Map<String, String> params) {
-        super(snapshot, nextPage, buttons, snapshotButtons, params);
+            List<MenuSnapshotButton> snapshotButtons, Map<String, String> params, List<Integer> history) {
+        super(snapshot, nextPage, buttons, history, snapshotButtons, params);
     }
 }

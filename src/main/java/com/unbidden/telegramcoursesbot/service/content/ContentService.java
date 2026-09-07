@@ -9,6 +9,7 @@ import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
+import com.unbidden.telegramcoursesbot.repository.ContentMappingRepository;
 import com.unbidden.telegramcoursesbot.repository.LocalizedContentRepository;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.service.content.handler.LocalizedContentHandler;
@@ -31,6 +32,8 @@ public class ContentService {
     private static final Logger LOGGER = LogManager.getLogger(ContentService.class);
 
     private final LocalizedContentRepository localizedContentRepository;
+
+    private final ContentMappingRepository contentMappingRepository;
 
     private final ContentHandlerManager contentManager;
 
@@ -76,32 +79,38 @@ public class ContentService {
         return parseAndPersistContent0(botRole, messages, allowedContentTypes, languageCode);
     }
 
+    @Transactional(readOnly = true)
+    public List<ContentMapping> getContentMappingsForLesson(Long lessonId) {
+        return contentMappingRepository.findByLessonId(lessonId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<LocalizedContent> getContentForMapping(Long mappingId) {
+        return localizedContentRepository.findContentByMappingId(mappingId);
+    }
+
     @Transactional
-    public ContentMapping addNewLocalization(BotRole botRole, Long mappingId, String languageCode, List<Message> messages) {
+    public ContentMapping addNewLocalization(BotRole botRole, Long mappingId, String languageCode,
+            List<MediaType> allowedMediaTypes, List<Message> messages) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(mappingId, "mappingId cannot be null");
         Assert.notNull(languageCode, "languageCode cannot be null");
+        Assert.notNull(allowedMediaTypes, "allowedMediaTypes cannot be null");
         Assert.notEmpty(messages, "messages cannot be null or empty");
 
         final ContentMapping mapping = entityUtil.getMappingById(botRole, mappingId);
 
-        if (mapping.getContent().stream().anyMatch(c -> c.getLanguageCode().equals(languageCode))) {
-            throw new InvalidDataSentException("Localization with language code "
-                    + languageCode + " is already present in mapping " + mapping.getId(),
-                    localizationLoader.localize(Localizations.Error.LOCALIZED_CONTENT_IS_ALREADY_PRESENT, botRole,
-                        new Localizations.Error.LocalizedContentIsAlreadyPresentParams(mapping.getId(), languageCode)));
-        }
-
-        mapping.getContent().add(parseAndPersistContent(botRole, messages, languageCode));
+        mapping.getContent().removeIf(c -> c.getLanguageCode().equals(languageCode));
+        mapping.getContent().add(parseAndPersistContent(botRole, messages, languageCode, allowedMediaTypes));
 
         return mapping;
     }
 
     @Transactional
-    public boolean removeLocalization(BotRole botRole, Long mappingId, String languageCode) {
+    public boolean removeLocalization(BotRole botRole, Long mappingId, Long contentId) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(mappingId, "mappingId cannot be null");
-        Assert.notNull(languageCode, "languageCode cannot be null");
+        Assert.notNull(contentId, "contentId cannot be null");
 
         final ContentMapping mapping = entityUtil.getMappingById(botRole, mappingId);
 
@@ -112,7 +121,7 @@ public class ContentService {
 
         LocalizedContent contentForDeletion = null;
         for (final LocalizedContent content : mapping.getContent()) {
-            if (content.getLanguageCode().equals(languageCode)) {
+            if (content.getId().equals(contentId)) {
                 contentForDeletion = content;
                 localizedContentRepository.delete(contentForDeletion);
                 break;

@@ -332,7 +332,6 @@ public class CourseService {
             }
             final List<MappingsByPositionInCourseCountDto> countDtos = contentMappingRepository.countAndGroupByPositionInLessonsInCourse(courseId);
 
-            LOGGER.info("Count dtos: " + countDtos + ".");
             for (final var dto : countDtos) {
                 if (dto.numberOfMappings() < 1) {
                     throw new CourseValidationException("Lessons must have at least one content mapping.", localizationLoader
@@ -451,6 +450,51 @@ public class CourseService {
         checkDeletable(botRole, courseId);
 
         courseRepository.deleteById(courseId);
+    }
+
+    @Transactional
+    public Course addEndMapping(BotRole botRole, Long courseId, String languageCode, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+        Assert.notNull(languageCode, "languageCode cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+        
+        final Course course = entityUtil.getCourseById(botRole, courseId);
+
+        if (course.getEndMapping() != null) {
+            throw new ForbiddenOperationException("Course " + courseId + " already has end mapping " + course.getEndMapping().getId() + ".",
+                    localizationLoader.localize(Localizations.Error.COURSE_END_MAPPING_PRESENT, botRole));
+        }
+        LOGGER.info("User " + botRole.getUser().getId() + " is adding an end mapping to course " + courseId + "...");
+
+        final ContentMapping mapping = new ContentMapping();
+
+        mapping.setPosition(0);
+        mapping.setContent(List.of(contentService.parseAndPersistContent(botRole, messages, languageCode)));
+
+        course.setEndMapping(contentMappingRepository.save(mapping));
+
+        return course;
+    }
+
+    @Transactional
+    public Course removeEndMapping(BotRole botRole, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+        
+        final Course course = entityUtil.getCourseById(botRole, courseId);
+
+        if (course.getEndMapping() == null) {
+            throw new ForbiddenOperationException("Course " + courseId + " doesn't have an end mapping.",
+                    localizationLoader.localize(Localizations.Error.COURSE_END_MAPPING_MISSING, botRole));
+        }
+        LOGGER.info("User " + botRole.getUser().getId() + " is removing end mapping " + course.getEndMapping().getId()
+                + " from course " + courseId + "...");
+
+        contentMappingRepository.delete(course.getEndMapping());
+        course.setEndMapping(null);
+
+        return course;
     }
     
     private String getStatus(boolean status) {

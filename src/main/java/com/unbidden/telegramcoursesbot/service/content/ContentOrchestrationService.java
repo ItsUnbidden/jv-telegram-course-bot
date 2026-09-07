@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -86,6 +85,17 @@ public class ContentOrchestrationService {
 
     public void addNewLocalization(BotRole botRole, Long mappingId, List<Message> messages) {
         Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(mappingId, "mappingId cannot be null");
+        Assert.notEmpty(messages, "messages cannot be null or empty");
+
+        addNewLocalization(botRole, mappingId, List.of(), messages);
+    }
+
+    public void addNewLocalization(BotRole botRole, Long mappingId, List<MediaType> allowedMediaTypes,
+            List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(mappingId, "mappingId cannot be null");
+        Assert.notNull(allowedMediaTypes, "allowMediaTypes cannot be null");
         Assert.notEmpty(messages, "messages cannot be null or empty");
 
         final String languageCode;
@@ -96,7 +106,8 @@ public class ContentOrchestrationService {
             languageCode = botRole.getUser().getLanguageCode();
         }
 
-        final ContentMapping mapping = contentService.addNewLocalization(botRole, mappingId, languageCode, messages);
+        final ContentMapping mapping = contentService.addNewLocalization(botRole, mappingId, languageCode,
+                allowedMediaTypes, messages);
         final LocalizedContent content = mapping.getContent().getLast();
 
         LOGGER.info("New content " + content.getId() + " has been added to mapping " + mapping.getId() + ".");
@@ -107,36 +118,26 @@ public class ContentOrchestrationService {
         LOGGER.debug("Message sent.");
     }
 
-    public void removeLocalization(BotRole botRole, Long mappingId, List<Message> messages) {
+    public void removeLocalization(BotRole botRole, Long mappingId, Long contentId) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(mappingId, "mappingId cannot be null");
-        Assert.notEmpty(messages, "messages cannot be empty or null");
+        Assert.notNull(contentId, "contentId cannot be null");
 
-        validatorUtil.checkExactExpectedMessages(botRole, messages, 1);
-        if (!validatorUtil.checkLanguageCode(botRole, messages.getFirst())) {
-            throw new InvalidDataSentException("Language code is required to remove a "
-                    + "localization from a mapping.", loader.localize(Localizations.Error.LANGUAGE_CODE_REQUIRED, botRole));
-        }
-        final String languageCode = messages.getFirst().getText().trim();
+        final LocalizedContent content = entityUtil.getLocalizedContentById(botRole, contentId);
 
-        if (contentService.removeLocalization(botRole, mappingId, languageCode)) {
-            LOGGER.info("Localization with code " + languageCode + " has been removed from mapping " + mappingId + ".");
+        if (contentService.removeLocalization(botRole, mappingId, contentId)) {
+            LOGGER.info("Localized content with code " + content.getLanguageCode() + " has been removed from mapping " + mappingId + ".");
 
             LOGGER.debug("Sending confirmation message...");
             clientManager.sendMessage(botRole, loader.localize(
                     Localizations.Service.REMOVE_LOCALIZATION_FROM_MAPPING_SUCCESS, botRole,
-                        new Localizations.Service.RemoveLocalizationFromMappingSuccessParams(mappingId, languageCode)));
+                        new Localizations.Service.RemoveLocalizationFromMappingSuccessParams(mappingId, content.getLanguageCode())));
             LOGGER.debug("Message sent.");
             return;
         }
-        final ContentMapping mapping = entityUtil.getMappingById(botRole, mappingId);
-
         throw new InvalidDataSentException("No elements were deleted since there is no "
-                + "localization with language code " + languageCode, loader
-                .localize(Localizations.Error.NO_LOCALIZATIONS_DELETED, botRole,
-                    new Localizations.Error.NoLocalizationsDeletedParams(languageCode, mapping.getContent().stream()
-                        .map(c -> c.getLanguageCode())
-                        .collect(Collectors.joining(", ")))));
+                + "localization with language code " + content.getLanguageCode() + ".", loader
+                .localize(Localizations.Error.NO_LOCALIZATIONS_DELETED, botRole));
     }
 
     public List<SendMessageResultDto> sendContent(BotRole botRole, Long contentId) {
@@ -247,7 +248,14 @@ public class ContentOrchestrationService {
         return content.getData();
     }
 
-    
+    public List<ContentMapping> getContentMappingsForLesson(Long lessonId) {
+        return contentService.getContentMappingsForLesson(lessonId);
+    }
+
+    public List<LocalizedContent> getContentForMapping(Long mappingId) {
+        return contentService.getContentForMapping(mappingId);
+    }
+
     private LocalizedContent getLocalizedContentFromMapping(BotRole botRole, ContentMapping mapping) {
         final Map<String, LocalizedContent> contentMap = getContentMap(mapping.getContent());
         final UserEntity user = botRole.getUser();

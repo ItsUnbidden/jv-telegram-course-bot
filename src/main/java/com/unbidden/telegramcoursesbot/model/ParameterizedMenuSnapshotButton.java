@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,7 +9,9 @@ import lombok.Setter;
 @Setter
 @MappedSuperclass
 public abstract class ParameterizedMenuSnapshotButton extends MenuSnapshotButton {
-    private String paramName;
+    @Column(name = "param_name")
+    private String paramNames;
 
-    private String paramValue;
+    @Column(name = "param_value")
+    private String paramValues;
 }

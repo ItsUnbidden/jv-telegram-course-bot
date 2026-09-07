@@ -21,7 +21,7 @@ public class ContentCommandHandler implements CommandHandler {
     private final MenuOrchestrationService menuService;
 
     @Override
-    @Security(authorities = {AuthorityType.CONTENT_SETTINGS})
+    @Security(authorities = {AuthorityType.MAINTENANCE})
     public void handle(BotRole botRole, Message message, String[] commandParts) {
         menuService.initiateMenu(botRole, MenuKey.CONTENT);
     }
@@ -33,6 +33,6 @@ public class ContentCommandHandler implements CommandHandler {
 
     @Override
     public List<AuthorityType> getAuthorities() {
-        return List.of(AuthorityType.CONTENT_SETTINGS);
+        return List.of(AuthorityType.MAINTENANCE);
     }
 }

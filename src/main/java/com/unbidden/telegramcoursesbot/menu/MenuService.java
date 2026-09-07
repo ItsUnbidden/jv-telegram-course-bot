@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.menu;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,6 +34,7 @@ import com.unbidden.telegramcoursesbot.repository.MenuRepository;
 import com.unbidden.telegramcoursesbot.repository.MenuSnapshotButtonRepository;
 import com.unbidden.telegramcoursesbot.repository.MenuSnapshotRepository;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
+import com.unbidden.telegramcoursesbot.util.MenuUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -52,6 +54,8 @@ public class MenuService {
     private final LocalizationLoader loader;
 
     private final EntityUtil entityUtil;
+
+    private final MenuUtil menuUtil;
 
     @Transactional
     public MenuSnapshotCreatedDto createSnapshot(BotRole botRole, MenuKey key, Integer initialPage,
@@ -73,11 +77,11 @@ public class MenuService {
         snapshot.setGroup(mtgKey != null ? mtgKey.getName().formatted(mtgArgs) : null);
         snapshot.setMessageId(messageId);
 
-        snapshot.parseAndSetParams(params);
+        snapshot.setParameters(menuUtil.mapToString(params));
         snapshot.setKey(key);
 
         menuSnapshotRepository.save(snapshot);
-        final List<MenuSnapshotButton> snapshotButtons = buttons.stream().map(b -> b.toMenuSnapshotButton(snapshot)).toList();
+        final List<MenuSnapshotButton> snapshotButtons = buttons.stream().map(b -> b.toMenuSnapshotButton(snapshot, menuUtil)).toList();
 
         menuSnapshotButtonRepository.saveAll(snapshotButtons);
 
@@ -110,23 +114,24 @@ public class MenuService {
         final MenuSnapshot snapshot = calledButton.getSnapshot();
         final Menu menu = menuRepository.find(snapshot.getKey()).orElseThrow(() -> new StaleMenuException("Failed to find configured menu "
                 + snapshot.getKey() + " specified in snapshot " + snapshot.getId() + ".", loader.localize(Localizations.Error.STALE_MENU, botRole)));
-        final Map<String, String> currentParams = snapshot.paramsToMap();
-        final List<Integer> pageHistory = snapshot.historyToList();
+        final Map<String, String> currentParams = menuUtil.stringToMap(snapshot.getParameters());
+        final List<Integer> pageHistory = menuUtil.stringToIntList(snapshot.getPageHistory());
 
         if (calledButton instanceof final TransitoryMenuSnapshotButton transitoryButton) {
             LOGGER.trace("Button " + snapshotButtonId + " is a transitory button. Pointer: " + transitoryButton.getPointer() + ".");
 
-            if (transitoryButton.getParamName() != null && transitoryButton.getParamValue() != null) {
-                currentParams.put(transitoryButton.getParamName(), transitoryButton.getParamValue());
-                snapshot.parseAndSetParams(currentParams);
+            if (transitoryButton.getParamNames() != null && transitoryButton.getParamValues() != null) {
+                currentParams.putAll(parseParameters(transitoryButton.getParamNames(), transitoryButton.getParamValues(),
+                        snapshotButtonId, snapshot.getId()));
+                snapshot.setParameters(menuUtil.mapToString(currentParams));
             }
             pageHistory.add(snapshot.getCurrentPage());
-            snapshot.parseAndSetHistory(pageHistory);
+            snapshot.setPageHistory(menuUtil.listToString(pageHistory));
             snapshot.setCurrentPage(transitoryButton.getPointer());
 
             final Page nextPage = menu.getPages().get(transitoryButton.getPointer());
-            final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(botRole, currentParams, snapshot.getInitialPage()));
-            final List<MenuSnapshotButton> snapshotButtons = generatedLayout.stream().map(b -> b.toMenuSnapshotButton(snapshot)).toList();
+            final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(botRole, currentParams, pageHistory));
+            final List<MenuSnapshotButton> snapshotButtons = generatedLayout.stream().map(b -> b.toMenuSnapshotButton(snapshot, menuUtil)).toList();
    
             final int numberOfDeletions = menuSnapshotButtonRepository.deleteAllBySnapshotIdInBatch(snapshot.getId());
 
@@ -134,23 +139,30 @@ public class MenuService {
             menuSnapshotButtonRepository.saveAll(snapshotButtons);
 
             LOGGER.trace("An iteration of snapshot " + snapshot.getId() + " has been generated.");
-            return new TransitoryMenuSnapshotUpdatedDto(snapshot, nextPage, generatedLayout, snapshotButtons, currentParams);
+            return new TransitoryMenuSnapshotUpdatedDto(snapshot, nextPage, generatedLayout, snapshotButtons, currentParams, pageHistory);
         } else if (calledButton instanceof final TerminalMenuSnapshotButton terminalButton) {
             LOGGER.trace("Button " + snapshotButtonId + " is a terminal button. Handler bean name: " + terminalButton.getHandlerBeanName());
             
-            if (terminalButton.getParamValue() != null) {
-                if (terminalButton.getParamName() != null) {
-                    currentParams.put(terminalButton.getParamName(), terminalButton.getParamValue());
+            if (terminalButton.getParamValues() != null) {
+                if (terminalButton.getParamNames() != null) {
+                    currentParams.putAll(parseParameters(terminalButton.getParamNames(), terminalButton.getParamValues(),
+                            snapshotButtonId, snapshot.getId()));;
                 } else {
-                    currentParams.put(TERMINAL_PARAM_NAME, terminalButton.getParamValue());
+                    final List<String> paramValues = menuUtil.stringToList(terminalButton.getParamValues());
+
+                    if (paramValues.size() != 1) {
+                        throw new MenuException("Terminal button " + snapshotButtonId + " in menu snapshot " + snapshot.getId()
+                                + " contains no parameter names and more than one parameter value. This is a bug." , null);
+                    }
+                    currentParams.put(TERMINAL_PARAM_NAME, paramValues.getFirst());
                 }
             }
 
             if (menu.isResetAfterTerminal() && !snapshot.getCurrentPage().equals(snapshot.getInitialPage())) {
                 LOGGER.trace("Menu " + menu.getKey() + " is supposed to be reset after a terminal button call.");
                 final Page nextPage = menu.getPages().get(snapshot.getInitialPage());
-                final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(botRole, currentParams, snapshot.getInitialPage()));
-                final List<MenuSnapshotButton> snapshotButtons = generatedLayout.stream().map(b -> b.toMenuSnapshotButton(snapshot)).toList();
+                final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(botRole, currentParams, pageHistory));
+                final List<MenuSnapshotButton> snapshotButtons = generatedLayout.stream().map(b -> b.toMenuSnapshotButton(snapshot, menuUtil)).toList();
 
                 snapshot.setCurrentPage(snapshot.getInitialPage());
                 snapshot.setPageHistory(null);
@@ -161,7 +173,7 @@ public class MenuService {
                 menuSnapshotButtonRepository.saveAll(snapshotButtons);
 
                 LOGGER.trace("Snapshot " + snapshot.getId() + " has been reset to its original state.");
-                return new TerminalMenuSnapshotUpdatedDto(snapshot, nextPage, generatedLayout, snapshotButtons,
+                return new TerminalMenuSnapshotUpdatedDto(snapshot, nextPage, generatedLayout, pageHistory, snapshotButtons,
                         terminalButton.getHandlerBeanName(), currentParams);
             }
             if (menu.isOneTimeMenu()) {
@@ -173,9 +185,9 @@ public class MenuService {
                 menuSnapshotRepository.delete(snapshot);
                 LOGGER.trace("Deleted " + numberOfDeletions + " snapshot buttons along with their parent snapshot " + snapshot.getId() + ".");
 
-                return new TerminalMenuSnapshotUpdatedDto(snapshot, terminalPage, terminalButton.getHandlerBeanName(), currentParams, true);
+                return new TerminalMenuSnapshotUpdatedDto(snapshot, terminalPage, terminalButton.getHandlerBeanName(), currentParams, pageHistory, true);
             }
-            return new TerminalMenuSnapshotUpdatedDto(snapshot, null, terminalButton.getHandlerBeanName(), currentParams, false);
+            return new TerminalMenuSnapshotUpdatedDto(snapshot, null, terminalButton.getHandlerBeanName(), currentParams, pageHistory, false);
         } else if (calledButton instanceof BackwardMenuSnapshotButton) {
             if (pageHistory.size() == 0) {
                 throw new MenuException("Unable to go to the previous page because page history is empty. "
@@ -186,11 +198,11 @@ public class MenuService {
 
             LOGGER.trace("Button " + snapshotButtonId + " is a backward button. Previous page: " + nextPage.getPageIndex());
 
-            snapshot.parseAndSetHistory(pageHistory);
+            snapshot.setPageHistory(menuUtil.listToString(pageHistory));
             snapshot.setCurrentPage(nextPage.getPageIndex());
 
-            final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(botRole, currentParams, snapshot.getInitialPage()));
-            final List<MenuSnapshotButton> snapshotButtons = generatedLayout.stream().map(b -> b.toMenuSnapshotButton(snapshot)).toList();
+            final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(botRole, currentParams, pageHistory));
+            final List<MenuSnapshotButton> snapshotButtons = generatedLayout.stream().map(b -> b.toMenuSnapshotButton(snapshot, menuUtil)).toList();
    
             final int numberOfDeletions = menuSnapshotButtonRepository.deleteAllBySnapshotIdInBatch(snapshot.getId());
 
@@ -198,7 +210,7 @@ public class MenuService {
             menuSnapshotButtonRepository.saveAll(snapshotButtons);
 
             LOGGER.trace("An iteration of snapshot " + snapshot.getId() + " has been generated.");
-            return new TransitoryMenuSnapshotUpdatedDto(snapshot, nextPage, generatedLayout, snapshotButtons, currentParams);
+            return new TransitoryMenuSnapshotUpdatedDto(snapshot, nextPage, generatedLayout, snapshotButtons, currentParams, pageHistory);
         } else {
             throw new StaleMenuException("A button of unknown type has been called.", loader.localize(Localizations.Error.STALE_MENU, botRole));
         }
@@ -228,5 +240,22 @@ public class MenuService {
         menuSnapshotRepository.deleteAllByIdInBatch(ids);
 
         return snapshots;
+    }
+
+    private Map<String, String> parseParameters(String namesStr, String valuesStr, Long snapshotButtonId, Long snapshotId) {
+        final List<String> paramNamesList = menuUtil.stringToList(namesStr);
+        final List<String> paramValuesList = menuUtil.stringToList(valuesStr);
+        final Map<String, String> result = new HashMap<>();
+
+        if (paramNamesList.size() != paramValuesList.size()) {
+            throw new MenuException("Button " + snapshotButtonId + " in menu snapshot " + snapshotId
+                    + " has an inconsistent number of parameters. This is a bug.", null);
+        }
+
+        for (int i = 0; i < paramNamesList.size(); ++i) {
+            result.put(paramNamesList.get(i), paramValuesList.get(i));
+        }
+
+        return result;
     }
 }
