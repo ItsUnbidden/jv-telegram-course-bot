@@ -4,7 +4,7 @@ import com.unbidden.telegramcoursesbot.dto.internal.MenuParamsDto;
 import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.menu.handler.AbstractButtonHandler;
 import com.unbidden.telegramcoursesbot.model.BackwardMenuSnapshotButton;
-import com.unbidden.telegramcoursesbot.model.MenuSnapshot;
+import com.unbidden.telegramcoursesbot.model.GeneralMenuSnapshot;
 import com.unbidden.telegramcoursesbot.model.MenuSnapshotButton;
 import com.unbidden.telegramcoursesbot.model.TerminalMenuSnapshotButton;
 import com.unbidden.telegramcoursesbot.model.TransitoryMenuSnapshotButton;
@@ -92,7 +92,7 @@ public class Menu {
             }
 
             @Override
-            public MenuSnapshotButton toMenuSnapshotButton(MenuSnapshot snapshot, MenuUtil util) {
+            public MenuSnapshotButton toMenuSnapshotButton(GeneralMenuSnapshot snapshot, MenuUtil util) {
                 final var button = new TerminalMenuSnapshotButton();
                 
                 button.setSnapshot(snapshot);
@@ -115,7 +115,7 @@ public class Menu {
             }
 
             @Override
-            public MenuSnapshotButton toMenuSnapshotButton(MenuSnapshot snapshot, MenuUtil util) {
+            public MenuSnapshotButton toMenuSnapshotButton(GeneralMenuSnapshot snapshot, MenuUtil util) {
                 final var button = new UrlMenuSnapshotButton();
                 
                 button.setSnapshot(snapshot);
@@ -155,7 +155,7 @@ public class Menu {
             }
 
             @Override
-            public MenuSnapshotButton toMenuSnapshotButton(MenuSnapshot snapshot, MenuUtil util) {
+            public MenuSnapshotButton toMenuSnapshotButton(GeneralMenuSnapshot snapshot, MenuUtil util) {
                 final var button = new TransitoryMenuSnapshotButton();
                 
                 button.setSnapshot(snapshot);
@@ -175,7 +175,7 @@ public class Menu {
             }
 
             @Override
-            public MenuSnapshotButton toMenuSnapshotButton(MenuSnapshot snapshot, MenuUtil util) {
+            public MenuSnapshotButton toMenuSnapshotButton(GeneralMenuSnapshot snapshot, MenuUtil util) {
                 final var button = new BackwardMenuSnapshotButton();
                 
                 button.setSnapshot(snapshot);
@@ -192,7 +192,7 @@ public class Menu {
                 this.name = name;
             }
 
-            public abstract MenuSnapshotButton toMenuSnapshotButton(MenuSnapshot snapshot, MenuUtil util);
+            public abstract MenuSnapshotButton toMenuSnapshotButton(GeneralMenuSnapshot snapshot, MenuUtil util);
         }
     }
 }

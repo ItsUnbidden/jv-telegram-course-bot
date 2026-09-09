@@ -21,5 +21,5 @@ import lombok.Setter;
 public abstract class MenuSnapshotButton extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "snapshot_id", nullable = false)
-    private MenuSnapshot snapshot;
+    private GeneralMenuSnapshot snapshot;
 }

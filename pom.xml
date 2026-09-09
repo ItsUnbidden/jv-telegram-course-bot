@@ -28,7 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
-        <telegram.bot.version>7.10.0</telegram.bot.version>
+        <telegram.bot.version>10.3.0</telegram.bot.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 	</properties>
 	<dependencies>

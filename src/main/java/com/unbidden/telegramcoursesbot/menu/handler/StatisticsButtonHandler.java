@@ -31,6 +31,12 @@ public class StatisticsButtonHandler extends AbstractButtonHandler {
     public void handle(BotRole botRole, Map<String, String> params) {
         final String type = params.get(TYPE_PARAM);
 
+        if (type == null) {
+            statisticsService.sendCourseStageUsers(botRole, Long.parseLong(params.get(COURSE_ID_PARAM)),
+                    Integer.parseInt(params.get(COURSE_STAGE_PARAM)));
+            return;
+        }
+
         switch (type) {
             case BOT_GENERAL:
                 statisticsService.sendBotStatistics(botRole);
@@ -48,7 +54,6 @@ public class StatisticsButtonHandler extends AbstractButtonHandler {
                 statisticsService.sendCourseCompletedUsers(botRole, Long.parseLong(params.get(COURSE_ID_PARAM)));
                 break;
             default:
-                statisticsService.sendCourseStageUsers(botRole, Long.parseLong(params.get(COURSE_ID_PARAM)), Integer.parseInt(params.get(COURSE_STAGE_PARAM)));
         }
     }
 }

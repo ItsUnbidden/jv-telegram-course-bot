@@ -29,4 +29,12 @@ public interface MenuSnapshotButtonRepository extends JpaRepository<MenuSnapshot
         where sb.snapshot.id in :snapshotIds        
     """)
     int deleteAllBySnapshotIdsInBatch(List<Long> snapshotIds);
+
+    @Modifying
+    @Query("""
+        delete 
+        from MenuSnapshotButton sb
+        where sb.snapshot.botRole.id = :botRoleId        
+    """)
+    int deleteAllByBotRoleIdInBatch(Long botRoleId);
 }

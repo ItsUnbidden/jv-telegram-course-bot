@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import org.springframework.lang.NonNull;
-import org.telegram.telegrambots.meta.api.objects.PhotoSize;
+import org.telegram.telegrambots.meta.api.objects.photo.PhotoSize;
 
 @Getter
 @Setter

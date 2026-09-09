@@ -103,7 +103,10 @@ public class StatisticsMenu implements MenuConfigurer {
             final StringBuilder builder = new StringBuilder();
             final List<UsersByCourseStageCountDto> countDtos = courseService
                     .countAndGroupByCourseStage(Long.parseLong(p.params().get(COURSE_ID_PARAM)));
-
+            
+            if (countDtos.size() < 1) {
+                return loader.localize(Localizations.Menu.STATISTICS_PAGE_3_NO_USERS, p.botRole());
+            }
             for (final var dto : countDtos) {
                 builder.append(dto.stage()).append(" — ").append(dto.numberOfUsers()).append('\n');
             }

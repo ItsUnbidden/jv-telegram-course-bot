@@ -11,15 +11,26 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 
+import com.unbidden.telegramcoursesbot.dto.internal.MultipageListData;
 import com.unbidden.telegramcoursesbot.exception.MenuParamsParseException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.LinkButton;
+import com.unbidden.telegramcoursesbot.menu.multipage.MultipageListDirection;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.MenuSnapshotButton;
+import com.unbidden.telegramcoursesbot.model.MultipageListMenuSnapshot;
+
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor 
 public class MenuUtil {
-    private static final String ELEMENT_DIVIDER = ":";
+    public static final String ELEMENT_DIVIDER = ":";
+
+    private final LocalizationLoader loader;
 
     public List<InlineKeyboardRow> getInlineKeyboard(List<InlineKeyboardButton> buttons, int rowSize) {
         final int amountOfRows = (int)Math.ceil(buttons.size()
@@ -56,6 +67,23 @@ public class MenuUtil {
         return InlineKeyboardMarkup.builder()
                 .keyboard(getInlineKeyboard(inlineButtons, page.getColumns()))
                 .build();        
+    }
+
+    public InlineKeyboardMarkup getMultipageListMarkup(BotRole botRole, MultipageListMenuSnapshot snapshot, MultipageListData data) {
+        final InlineKeyboardRow row = new InlineKeyboardRow();
+
+        if (snapshot.getCurrentPage() > 0) {
+            row.add(InlineKeyboardButton.builder().text(loader.localize(Localizations.Button.MULTIPAGE_LIST_BACK, botRole).getData())
+                    .callbackData(snapshot.getId().toString() + ELEMENT_DIVIDER + MultipageListDirection.BACK.toString()
+                    + ELEMENT_DIVIDER + snapshot.getCurrentPage()).build());
+        }
+        if (snapshot.getCurrentPage() < data.getNumberOfPages() - 1) {
+            row.add(InlineKeyboardButton.builder().text(loader.localize(Localizations.Button.MULTIPAGE_LIST_NEXT, botRole).getData())
+                    .callbackData(snapshot.getId().toString() + ELEMENT_DIVIDER + MultipageListDirection.NEXT.toString()
+                    + ELEMENT_DIVIDER + snapshot.getCurrentPage()).build());
+        }
+
+        return InlineKeyboardMarkup.builder().keyboardRow(row).build();
     }
 
     public List<Integer> stringToIntList(String str) {

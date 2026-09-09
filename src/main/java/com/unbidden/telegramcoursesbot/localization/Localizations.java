@@ -84,6 +84,9 @@ public final class Localizations {
         BOT_PAGE_0,
         BOT_PAGE_1,
         LANGUAGE_PAGE_0,
+        MENU_DEBUG_PAGE_0,
+        TEST_PAGE_0,
+        TEST_TERMINAL_PAGE,
         MY_COURSES_PAGE_0,
         MY_COURSES_PAGE_1,
         MY_COURSES_PAGE_2,
@@ -111,6 +114,7 @@ public final class Localizations {
          * </ls>
          */
         STATISTICS_PAGE_3,
+        STATISTICS_PAGE_3_NO_USERS,
         LEAVE_BASIC_REVIEW_PAGE_0,
         /**
          * Possible parameters:
@@ -187,6 +191,40 @@ public final class Localizations {
         COURSE_SETTINGS_PAGE_9,
         COURSE_SETTINGS_PAGE_10,
         COURSE_SETTINGS_PAGE_11,
+        MULTIPAGE_LIST_BOT_USERS,
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        MULTIPAGE_LIST_COURSE_COMPLETED_USERS,
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         *  <li>stage</li>
+         * </ls>
+         */
+        MULTIPAGE_LIST_COURSE_STAGE_USERS,
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>courseName</li>
+         * </ls>
+         */
+        MULTIPAGE_LIST_COURSE_USERS,
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>lowestIndex</li>
+         *  <li>highestIndex</li>
+         *  <li>totalElements</li>
+         * </ls>
+         */
+        MULTIPAGE_LIST_PAGE_DATA,
+        MULTIPAGE_LIST_PAGE_DATA_SINGLE,
+        MULTIPAGE_LIST_PAGE_DATA_EMPTY,
         COMMIT_CONTENT_PAGE_0,
         COMMIT_CONTENT_TERMINAL_PAGE,
         COMMIT_CONTENT_RESEND_TERMINAL_PAGE,
@@ -220,6 +258,10 @@ public final class Localizations {
         public static record LeaveBasicReviewTerminalPageParams(String courseName) {}
         public static record MappingSettingsPage0Params(long mappingId, int position, String content) {}
         public static record StatisticsPage3Params(String usersOnStage) {}
+        public static record MultipageListCourseCompletedUsersParams(String courseName) {}
+        public static record MultipageListCourseStageUsersParams(String courseName, int stage) {}
+        public static record MultipageListCourseUsersParams(String courseName) {}
+        public static record MultipageListPageDataParams(int lowestIndex, int highestIndex, long totalElements) {}
     }
 
     public static enum Button implements LocalizationKey {
@@ -325,6 +367,10 @@ public final class Localizations {
         COURSE_END_MAPPING_SETTINGS,
         CREATE_COURSE_END_MAPPING,
         REMOVE_COURSE_END_MAPPING,
+        TERMINATE_MENU,
+        TERMINATE_MENUS_FOR_USER_IN_BOT,
+        MULTIPAGE_LIST_NEXT,
+        MULTIPAGE_LIST_BACK,
         GET_LOCALIZATION_FILE_TEMPLATES;
 
         private String locName;
@@ -1121,6 +1167,21 @@ public final class Localizations {
          */
         NEW_END_MAPPING_ADDED,
         END_MAPPING_REMOVED,
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>successes</li>
+         *  <li>failures</li>
+         * </ls>
+         */
+        MENUS_MANUALLY_REMOVED_FOR_USER_IN_BOT_REQUEST,
+        MENUS_MANUALLY_REMOVED_SUCCESS,
+        TITLE_USER_ID,
+        TITLE_USER_FIRST_NAME,
+        TITLE_USER_LAST_NAME,
+        TITLE_USERNAME,
+        TITLE_USER_BANNED,
+        TITLE_USER_LANGUAGE,
         YES,
         NO;
 
@@ -1235,6 +1296,7 @@ public final class Localizations {
         public static record NoPendingHomeworksForCourseParams(String courseName) {}
         public static record NewEndMappingAddedParams(String courseName, long mappingId) {}
         public static record EndMappingRemovedParams(String courseName) {}
+        public static record MenusManuallyRemovedSuccessParams(int successes, int failures) {}
     }
     
     public static enum Error implements LocalizationKey {

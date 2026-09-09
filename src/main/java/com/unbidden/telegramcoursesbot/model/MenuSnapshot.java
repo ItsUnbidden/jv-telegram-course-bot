@@ -1,12 +1,16 @@
 package com.unbidden.telegramcoursesbot.model;
 
-import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import java.time.Instant;
+
+import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorColumn;
+import jakarta.persistence.DiscriminatorType;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -19,11 +23,9 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "menu_snapshots")
-public class MenuSnapshot extends BaseEntity {
-    @Column(nullable = false, name = "menu_key")
-    @Enumerated(EnumType.STRING)
-    private MenuKey key;
-
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(discriminatorType = DiscriminatorType.STRING, name = "type")
+public abstract class MenuSnapshot extends BaseEntity {
     @Column(name = "mtg")
     private String group;
 
@@ -33,15 +35,14 @@ public class MenuSnapshot extends BaseEntity {
 
     private Integer messageId;
 
-    private String parameters;
-
     @Column(nullable = false)
     private Integer currentPage;
 
+    @CreationTimestamp 
     @Column(nullable = false)
-    private Integer initialPage;
+    private Instant createdAt;
 
-    private String pageHistory;
+    private String parameters;
 
     @Version
     private Long version;

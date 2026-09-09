@@ -10,11 +10,13 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageRe
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.richtext.InputRichMessage;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuParamsDto;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuSnapshotUpdatedDto;
+import com.unbidden.telegramcoursesbot.dto.internal.MultipageListData;
 import com.unbidden.telegramcoursesbot.dto.internal.TerminalMenuSnapshotUpdatedDto;
 import com.unbidden.telegramcoursesbot.dto.internal.TransitoryMenuSnapshotUpdatedDto;
 import com.unbidden.telegramcoursesbot.exception.MenuException;
@@ -23,7 +25,11 @@ import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.menu.handler.AbstractButtonHandler;
+import com.unbidden.telegramcoursesbot.menu.multipage.MultipageListDataConverterManager;
+import com.unbidden.telegramcoursesbot.menu.multipage.MultipageListDirection;
+import com.unbidden.telegramcoursesbot.menu.multipage.supplier.AbstractDataSupplier;
 import com.unbidden.telegramcoursesbot.model.BotRole;
+import com.unbidden.telegramcoursesbot.model.MultipageListMenuSnapshot;
 import com.unbidden.telegramcoursesbot.repository.CallbackQueryRepository;
 import com.unbidden.telegramcoursesbot.util.MenuUtil;
 
@@ -36,6 +42,10 @@ public class MenuCallbackRequestProcessor {
 
     private final Map<String, AbstractButtonHandler> buttonHandlers;
 
+    private final Map<String, AbstractDataSupplier> dataSuppliers;
+
+    private final MultipageListDataConverterManager converterManager;
+
     private final MenuService menuService;
 
     private final CallbackQueryRepository callbackQueryRepository;
@@ -44,14 +54,23 @@ public class MenuCallbackRequestProcessor {
 
     private final ClientManager clientManager;
 
-    private final MenuUtil keyboardUtil;
-    
-    // TODO: if a menu fails to be sent, it will break forever on the user's side. Some fallback logic might be required to inform the snapshot.
+    private final MenuUtil menuUtil;
+
     public void processCallbackQuery(BotRole botRole, CallbackQuery query) {
         callbackQueryRepository.save(botRole, query);
 
-        final MenuSnapshotUpdatedDto dto = menuService.processSnapshotUpdate(botRole, Long.parseLong(query.getData()));
-        
+        final String[] callbackDataParts = query.getData().split(MenuUtil.ELEMENT_DIVIDER);
+
+        if (callbackDataParts.length < 2) {
+            sendCallbackResponse(botRole, menuService.processGeneralSnapshotUpdate(botRole, Long.parseLong(callbackDataParts[0])));
+        } else {
+            sendMultipageListResponse(botRole, menuService.processMultipageListUpdate(botRole, Long.parseLong(callbackDataParts[0]),
+                    MultipageListDirection.valueOf(callbackDataParts[1]), Integer.parseInt(callbackDataParts[2])));
+        }
+    }
+
+    // TODO: if a menu fails to be sent, it will break forever on the user's side. Some fallback logic might be required to inform the snapshot.
+    private void sendCallbackResponse(BotRole botRole, MenuSnapshotUpdatedDto dto) {
         if (dto instanceof final TerminalMenuSnapshotUpdatedDto terminalDto) {
             final AbstractButtonHandler handler = buttonHandlers.get(terminalDto.getBeanName());
 
@@ -78,7 +97,7 @@ public class MenuCallbackRequestProcessor {
                         clientManager.getClient(botRole.getBot()).execute(EditMessageReplyMarkup.builder()
                                 .chatId(botRole.getUser().getId())
                                 .messageId(terminalDto.getSnapshot().getMessageId())
-                                .replyMarkup(keyboardUtil.getMarkup(terminalDto.getNextPage(),
+                                .replyMarkup(menuUtil.getMarkup(terminalDto.getNextPage(),
                                     terminalDto.getSnapshotButtons(), terminalDto.getButtons()))
                                 .build());
                         LOGGER.trace("New markup sent.");
@@ -90,7 +109,7 @@ public class MenuCallbackRequestProcessor {
                         clientManager.getClient(botRole.getBot()).execute(EditMessageText.builder()
                                 .chatId(botRole.getUser().getId())
                                 .messageId(terminalDto.getSnapshot().getMessageId())
-                                .replyMarkup(keyboardUtil.getMarkup(terminalDto.getNextPage(),
+                                .replyMarkup(menuUtil.getMarkup(terminalDto.getNextPage(),
                                     terminalDto.getSnapshotButtons(), terminalDto.getButtons()))
                                 .text(loc.getData())
                                 .entities(loc.getEntities())
@@ -98,7 +117,7 @@ public class MenuCallbackRequestProcessor {
                         LOGGER.trace("New content and markup sent.");
                     }  
                 } catch (TelegramApiException e) {
-                    LOGGER.error("Unable to update message " + query.getMessage().getMessageId() + " and user " + botRole.getUser().getId(), e);
+                    LOGGER.error("Unable to update message " + dto.getSnapshot().getMessageId() + " for user " + botRole.getUser().getId(), e);
 
                     // TODO: introduce fallback
                 }
@@ -129,8 +148,8 @@ public class MenuCallbackRequestProcessor {
                                     .build());
                             LOGGER.trace("New content and clear markup sent.");
                         } catch (TelegramApiException e) {
-                            LOGGER.error("Unable to update content and markup for message " + query.getMessage()
-                                    .getMessageId() + " and user " + botRole.getUser().getId(), e);
+                            LOGGER.error("Unable to update content and markup for message " + dto.getSnapshot().getMessageId()
+                                    + " for user " + botRole.getUser().getId(), e);
 
                             // TODO: introduce fallback
                         }
@@ -157,8 +176,8 @@ public class MenuCallbackRequestProcessor {
                             .build());
                     LOGGER.trace("Clear markup sent.");
                 } catch (TelegramApiException e) {
-                    LOGGER.error("Unable to update markup for message " + query.getMessage()
-                            .getMessageId() + " and user " + botRole.getUser().getId(), e);
+                    LOGGER.error("Unable to update markup for message " + dto.getSnapshot().getMessageId()
+                            + " for user " + botRole.getUser().getId(), e);
 
                     // TODO: introduce fallback
                 }
@@ -175,7 +194,7 @@ public class MenuCallbackRequestProcessor {
                     clientManager.getClient(botRole.getBot()).execute(EditMessageReplyMarkup.builder()
                             .chatId(botRole.getUser().getId())
                             .messageId(transitoryDto.getSnapshot().getMessageId())
-                            .replyMarkup(keyboardUtil.getMarkup(transitoryDto.getNextPage(),
+                            .replyMarkup(menuUtil.getMarkup(transitoryDto.getNextPage(),
                                 transitoryDto.getSnapshotButtons(), transitoryDto.getButtons()))
                             .build());
                     LOGGER.trace("New markup sent.");
@@ -188,7 +207,7 @@ public class MenuCallbackRequestProcessor {
                     clientManager.getClient(botRole.getBot()).execute(EditMessageText.builder()
                             .chatId(botRole.getUser().getId())
                             .messageId(transitoryDto.getSnapshot().getMessageId())
-                            .replyMarkup(keyboardUtil.getMarkup(transitoryDto.getNextPage(),
+                            .replyMarkup(menuUtil.getMarkup(transitoryDto.getNextPage(),
                                 transitoryDto.getSnapshotButtons(), transitoryDto.getButtons()))
                             .text(loc.getData())
                             .entities(loc.getEntities())
@@ -197,13 +216,45 @@ public class MenuCallbackRequestProcessor {
                     return;
                 }  
             } catch (TelegramApiException e) {
-                LOGGER.error("Unable to update message " + query.getMessage()
-                        .getMessageId() + " and user " + botRole.getUser().getId(), e);
+                LOGGER.error("Unable to update message " + dto.getSnapshot().getMessageId()
+                        + " for user " + botRole.getUser().getId(), e);
 
                 // TODO: introduce fallback
             }
         } else {
             throw new MenuException("An unknown response DTO was returned by the transactional service. This is a bug.", null);
+        }
+    }
+
+    private void sendMultipageListResponse(BotRole botRole, MultipageListMenuSnapshot snapshot) {
+        final AbstractDataSupplier supplier = dataSuppliers.get(snapshot.getSupplierBeanName());
+
+        if (supplier == null) {
+            throw new StaleMenuException("An unknown supplier name " + snapshot.getSupplierBeanName() + " was found in snapshot "
+                    + snapshot.getId() + ".", loader.localize(Localizations.Error.STALE_MENU, botRole));
+        }
+
+        LOGGER.debug("Supplier " + supplier.getBeanName() + " has been found. Fetching data...");
+        final MultipageListData data = supplier.fetchData(botRole, snapshot.getCurrentPage(),
+                menuUtil.stringToMap(snapshot.getParameters()));
+
+        LOGGER.debug("Supplier " + supplier.getBeanName() + " has loaded the data. Compiling and updating the message...");
+        final InputRichMessage richMessage = converterManager.getConverter(data.getClass()).convert(botRole, data);
+
+        try {
+            clientManager.getClient(botRole.getBot())
+                .execute(EditMessageText.builder()
+                    .chatId(botRole.getUser().getId())
+                    .messageId(snapshot.getMessageId())
+                    .richMessage(richMessage)
+                    .replyMarkup(menuUtil.getMultipageListMarkup(botRole, snapshot, data))
+                    .build()
+                );
+            LOGGER.debug("Message updated.");
+        } catch (TelegramApiException e) {
+            LOGGER.error("Unable to edit rich message " + snapshot.getMessageId() + " for user "
+                    + botRole.getUser().getId() + " in bot " + botRole.getBot().getId() + ".");
+            // TODO: introduce fallback
         }
     }
 }

@@ -29,7 +29,7 @@ public abstract class CustomTelegramClient extends OkHttpTelegramClient {
         "/generalban",
         "/botsettings",
         "/generalpost",
-        "/terminatemenu",
+        "/menu",
         "/files"
     );
 

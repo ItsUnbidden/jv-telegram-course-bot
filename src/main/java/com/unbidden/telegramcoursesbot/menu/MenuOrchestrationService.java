@@ -1,13 +1,14 @@
 package com.unbidden.telegramcoursesbot.menu;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuParamsDto;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuSnapshotCreatedDto;
+import com.unbidden.telegramcoursesbot.dto.internal.MultipageListData;
 import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto;
 import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto.Result;
 import com.unbidden.telegramcoursesbot.exception.CallbackQueryAnswerException;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
-import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.exception.TelegramException;
 import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
@@ -15,19 +16,24 @@ import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.Button;
+import com.unbidden.telegramcoursesbot.menu.multipage.MultipageListDataConverterManager;
+import com.unbidden.telegramcoursesbot.menu.multipage.supplier.AbstractDataSupplier;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.BotRole;
+import com.unbidden.telegramcoursesbot.model.GeneralMenuSnapshot;
 import com.unbidden.telegramcoursesbot.model.MenuSnapshot;
+import com.unbidden.telegramcoursesbot.model.MultipageListMenuSnapshot;
 import com.unbidden.telegramcoursesbot.repository.CallbackQueryRepository;
 import com.unbidden.telegramcoursesbot.repository.MenuRepository;
+import com.unbidden.telegramcoursesbot.util.EntityUtil;
 import com.unbidden.telegramcoursesbot.util.MenuUtil;
 import com.unbidden.telegramcoursesbot.util.ValidatorUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.concurrent.CompletableFuture;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,11 +42,13 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
+import org.telegram.telegrambots.meta.api.methods.send.SendRichMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.richtext.InputRichMessage;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Service
@@ -50,6 +58,8 @@ public class MenuOrchestrationService {
 
     private final MenuService menuService;
 
+    private final MultipageListDataConverterManager converterManager;
+
     private final MenuRepository menuRepository;
 
     private final CallbackQueryRepository callbackQueryRepository;
@@ -57,6 +67,8 @@ public class MenuOrchestrationService {
     private final LocalizationLoader localizationLoader;
 
     private final ClientManager clientManager;
+
+    private final EntityUtil entityUtil;
 
     private final MenuUtil keyboardUtil;
 
@@ -102,77 +114,17 @@ public class MenuOrchestrationService {
         initiateMenu0(botRole, key, 0, Map.of(paramName, paramValue), messageId, mtgKey, mtgArgs);
     }
 
-    public Message initiateMultipageList(BotRole botRole,
-            Function<MultipageListParams, Localization> localizationFunction,
-            BiFunction<Integer, Integer, org.springframework.data.domain.Page<String>> dataFunction) {
-        throw new ForbiddenOperationException("Multipage lists are currently unimplemented.", null);
-
-        // LOGGER.debug("Initiating a new multipage list... Applying data function...");
-        // final org.springframework.data.domain.Page<String> dataPage = dataFunction.apply(0,
-        //         NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST);
-
-        // if (dataPage.getTotalElements() == 0) {
-        //     throw new NoDataForMultipageListException("No data available for multipage list",
-        //             localizationLoader.localize(Error.NO_DATA_FOR_MULTIPAGE_LIST,
-        //             user));
-        // }
-        // final String data = convertDataPageToString(dataPage);
-        
-        // LOGGER.debug("Data function applied and data parsed. Sending the message...");
-        // final Message message = clientManager.getClient(bot).sendMessage(user,
-        //         localizationFunction.apply(new MultipageListParams(0, dataPage.getTotalPages(),
-        //         dataPage.getTotalElements(), data)));
-
-        // LOGGER.debug("Message has been sent.");
-
-        // if (dataPage.getTotalPages() > 1) {
-        //     LOGGER.debug("There is more than one page. Creating new multipage meta...");
-        //     final MultipageListMeta meta = new MultipageListMeta(UUID.randomUUID(), botRole,
-        //             message.getMessageId(), 0, localizationFunction, dataFunction);
-
-        //     meta.setNumberOfElements(dataPage.getTotalElements());
-        //     meta.setNumberOfPages(dataPage.getTotalPages());
-        //     multipageListMetaRepository.save(meta);
-        //     LOGGER.debug("Multipage meta " + meta.getId() + " has been created and persisted.");
-
-        //     LOGGER.debug("Attaching a control menu...");
-        //     initiateMenu(botRole, MenuKey.MULTIPAGE_LIST, MUTLIPAGE_LIST_PARAM, meta.getId().toString(), message.getMessageId());
-        //     LOGGER.debug("Menu initiated.");
-        // }
-        // return message;
+    public void initiateMultipageList(BotRole botRole, AbstractDataSupplier supplier) {
+        initiateMultipageList0(botRole, supplier, Map.of());
     }
 
-    // public void processMultipageListRequest(MultipageListMeta meta) {
-    //     LOGGER.debug("Updating multipage list message " + meta.getMessageId() + " for user "
-    //             + meta.getUser().getId() + "...");
-    //     final Localization localization = meta.getLocalizationFunction().apply(
-    //             new MultipageListParams(meta.getPage(), meta.getNumberOfPages(), meta.getNumberOfElements(),
-    //             convertDataPageToString(meta.getDataFunction().apply(meta.getPage(), NUMBER_OF_ELEMENTS_PER_PAGE_ON_MULTIPAGE_LIST))));
-    //     final Menu menu = menuRepository.find(MenuKey.MULTIPAGE_LIST).get();
+    public void initiateMultipageList(BotRole botRole, AbstractDataSupplier supplier, String paramName, String paramValue) {
+        initiateMultipageList0(botRole, supplier, Map.of(paramName, paramValue));
+    }
 
-    //     try {
-    //         clientManager.getClient(meta.getBot()).execute(EditMessageText.builder()
-    //                 .chatId(meta.getUser().getId())
-    //                 .messageId(meta.getMessageId())
-    //                 .text(localization.getData())
-    //                 .entities(localization.getEntities())
-    //                 .replyMarkup(getInitialMarkup(menu.getPages().getFirst(),
-    //                     meta.getId().toString(), meta.getUser(), meta.getBot()))
-    //                 .build());
-    //     } catch (TelegramApiException e) {
-    //         throw new TelegramException("Unable to update a multipage list message "
-    //                 + meta.getMessageId() + " for user " + meta.getUser().getId(),
-    //                 localizationLoader.localize(Error.UPDATE_MESSAGE_FAILURE,
-    //                 meta.getUser()), e);
-    //     }
-    // }
-
-    // public MultipageListMeta getMultipageListMeta(UUID id, UserEntity user) {
-    //     return multipageListMetaRepository.find(id).orElseThrow(() -> new EntityNotFoundException(
-    //             "Multipage list meta " + id + " does not exist. It might have expired.",
-    //             localizationLoader.localize(Error.MULTIPAGE_LIST_META_NOT_FOUND,
-    //             user)));
-    // }
+    public void initiateMultipageList(BotRole botRole, AbstractDataSupplier supplier, Map<String, String> params) {
+        initiateMultipageList0(botRole, supplier, params);
+    }
 
     public Menu save(Menu menu) {
         return menuRepository.save(menu);
@@ -199,15 +151,27 @@ public class MenuOrchestrationService {
         final List<MenuSnapshot> snapshots = menuService.terminateMenus(key, args);
         
         for (final MenuSnapshot snapshot : snapshots) {
-            final Optional<Menu> menuOpt = menuRepository.find(snapshot.getKey());
+            final Localization terminalLoc;
 
-            terminateMenu(snapshot.getBotRole().getUser().getId(), snapshot.getMessageId(), snapshot.getBotRole().getBot(),
-                    (terminalLocalizationOverride != null) ? terminalLocalizationOverride
-                    : (menuOpt.isPresent() && menuOpt.get().getTerminalPage() != null) 
-                        ? menuOpt.get().getTerminalPage().getLocalizationFunction().apply(
-                            new MenuParamsDto(snapshot.getBotRole(), menuUtil.stringToMap(snapshot.getParameters()),
-                            menuUtil.stringToIntList(snapshot.getPageHistory())))
-                        : null);
+            if (snapshot instanceof final GeneralMenuSnapshot generalSnapshot) {
+                final Optional<Menu> menuOpt = menuRepository.find(generalSnapshot.getKey());
+
+                if (terminalLocalizationOverride != null) {
+                    terminalLoc = terminalLocalizationOverride;
+                } else {
+                    if (menuOpt.isPresent() && menuOpt.get().getTerminalPage() != null) {
+                        terminalLoc = menuOpt.get().getTerminalPage().getLocalizationFunction().apply(
+                            new MenuParamsDto(generalSnapshot.getBotRole(), menuUtil.stringToMap(generalSnapshot.getParameters()),
+                            menuUtil.stringToIntList(generalSnapshot.getPageHistory())));
+                    } else {
+                        terminalLoc = null;
+                    }
+                }
+            } else {
+                terminalLoc = null;
+            }
+
+            terminateMenu(snapshot.getBotRole().getUser().getId(), snapshot.getMessageId(), snapshot.getBotRole().getBot(), terminalLoc);
         }
         
     }
@@ -273,6 +237,47 @@ public class MenuOrchestrationService {
         }
         clientManager.sendMessage(botRole, localizationLoader.localize(
                 Localizations.Service.MENU_MANUALLY_REMOVED_SUCCESS, botRole));
+    }
+
+    public void terminateMenusForUserInBot(BotRole callerBotRole, List<Message> messages) {
+        validatorUtil.checkExactExpectedMessages(callerBotRole, messages, 2);
+        final BotRole targetBotRole = entityUtil.getActiveBotRole(callerBotRole,
+                validatorUtil.parseId(callerBotRole, messages.getLast()),
+                validatorUtil.parseId(callerBotRole, messages.getFirst()));
+        final List<MenuSnapshot> snapshots = menuService.terminateMenus(targetBotRole.getId());
+        final Localization terminalLoc = localizationLoader.localize(Localizations.Service.MENU_MANUALLY_REMOVED, targetBotRole);
+        final CustomTelegramClient client = clientManager.getClient(targetBotRole.getBot());
+        final InlineKeyboardMarkup clearMarkup = InlineKeyboardMarkup.builder()
+                .clearKeyboard()
+                .keyboard(List.of())
+                .build();
+        final List<CompletableFuture<?>> futures = new ArrayList<>();
+
+        LOGGER.info("Sending message update requests for user " + targetBotRole.getUser().getId()
+                + " in bot " + targetBotRole.getBot().getId() + ".");
+        for (final MenuSnapshot snapshot : snapshots) {
+            try {
+                futures.add(client.executeAsync(EditMessageText.builder()
+                        .chatId(targetBotRole.getUser().getId())
+                        .messageId(snapshot.getMessageId())
+                        .text(terminalLoc.getData())
+                        .entities(terminalLoc.getEntities())
+                        .replyMarkup(clearMarkup)
+                        .build()).handle((r, t) -> t == null ? r : null));
+            } catch (TelegramApiException e) {
+                futures.add(CompletableFuture.completedFuture(null));
+            }
+        }
+        LOGGER.info("Requests have been sent. Waiting for completion...");
+        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+        LOGGER.info("All requests have been completed.");
+        final int successes = (int)futures.stream().filter(f -> f.join() != null).count();
+        final int failures = futures.size() - successes;
+        
+        clientManager.sendMessage(callerBotRole, localizationLoader.localize(
+                Localizations.Service.MENUS_MANUALLY_REMOVED_SUCCESS, callerBotRole,
+                new Localizations.Service.MenusManuallyRemovedSuccessParams(
+                    successes, failures)));
     }
     
     /**
@@ -346,14 +351,30 @@ public class MenuOrchestrationService {
         return null;
     }
 
-    private String convertDataPageToString(org.springframework.data.domain.Page<String> dataPage) {
-        final StringBuilder builder = new StringBuilder();
+    private void initiateMultipageList0(BotRole botRole, AbstractDataSupplier supplier, Map<String, String> params) {
+        final MultipageListMenuSnapshot snapshot = menuService.createMultipageListSnapshot(botRole, supplier, params);
 
-        for (String entry : dataPage.getContent()) {
-            builder.append(entry).append('\n').append("-----").append('\n');
+        LOGGER.debug("Fetching data for multipage list from " + supplier.getBeanName() + "...");
+        final MultipageListData data = supplier.fetchData(botRole, 0, params);
+
+        LOGGER.debug("Data aquired. Compiling and sending the message...");
+        final InputRichMessage richMessage = converterManager.getConverter(data.getClass()).convert(botRole, data);
+
+        try {
+            final Message message = clientManager.getClient(botRole.getBot())
+                .execute(SendRichMessage.builder()
+                    .chatId(botRole.getUser().getId())
+                    .richMessage(richMessage)
+                    .replyMarkup(menuUtil.getMultipageListMarkup(botRole, snapshot, data))
+                    .build()
+                );
+
+            menuService.addMessageIdToSnapshot(snapshot.getId(), message.getMessageId());
+            LOGGER.debug("Multipage list sent.");
+        } catch (TelegramApiException e) {
+            LOGGER.error("Failed to send rich message for multipage list to user " + botRole.getUser().getId()
+                    + " in bot " + botRole.getBot().getId() + ".", e);
+            // TODO: introduce fallback
         }
-        builder.delete(builder.length() - 7, builder.length());
-        
-        return builder.toString();
     }
 }

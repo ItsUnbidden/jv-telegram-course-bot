@@ -107,3 +107,5 @@ databaseChangeLog:
       file: /db/changelog/changes/53-edit-menu-snapshots-change-to-bot-roles.yaml
   - include:
       file: /db/changelog/changes/54-edit-timed-trigger-tables-change-to-bot-roles.yaml
+  - include:
+      file: /db/changelog/changes/55-edit-menu-snapshots-add-multipage-list-columns.yaml

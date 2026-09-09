@@ -28,13 +28,14 @@ public class TestMenu implements MenuConfigurer {
 
         page.setPageIndex(0);
         page.setColumns(1);
+        page.setLocalizationFunction(p -> loader.localize(Localizations.Menu.TEST_PAGE_0, p.botRole()));
         page.setButtonsFunction(p -> List.of(
             new TerminalButton(loader.localize(Localizations.Button.TEST_MENU, p.botRole()).getData(), "param1", "value1", testButtonHandler)
         ));
 
         final Page terminalPage = new Page(menu);
 
-        terminalPage.setPageIndex(1);
+        terminalPage.setLocalizationFunction(p -> loader.localize(Localizations.Menu.TEST_TERMINAL_PAGE, p.botRole()));
 
         menu.setTerminalPage(terminalPage);
         menu.setPages(List.of(page));

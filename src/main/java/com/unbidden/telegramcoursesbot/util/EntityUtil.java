@@ -212,25 +212,43 @@ public class EntityUtil {
     }
 
     @Transactional(readOnly = true)
-    public BotRole getActiveBotRole(BotRole botRole, Long targetId) {
-        Assert.notNull(botRole, "botRole cannot be null");
+    public BotRole getActiveBotRole(BotRole caller, Long botId, Long targetId) {
+        Assert.notNull(botId, "botId cannot be null");
         Assert.notNull(targetId, "targetId cannot be null");
 
-        return botRoleRepository.findByBotIdAndUserIdAndIsDisabledFalse(botRole.getBot().getId(), targetId).orElseThrow(() ->
-                new EntityNotFoundException("An active bot role for user " + targetId
-                + " and bot " + botRole.getBot().getId() + " does not exist", localizationLoader
-                .localize(Error.BOT_ROLE_NOT_FOUND, botRole)));
+        final BotRole botRole = botRoleRepository.findByBotIdAndUserIdAndIsDisabledFalse(botId, targetId).orElseThrow(() ->
+                new EntityNotFoundException("An active bot role for user " + targetId + " and bot " + botId
+                + " does not exist", localizationLoader.localize(Error.BOT_ROLE_NOT_FOUND, caller)));
+
+        checkBotVisibility(caller, botRole.getBot());
+        return botRole;
     }
 
     @Transactional(readOnly = true)
-    public BotRole getBotRole(BotRole botRole, Long targetId) {
-        Assert.notNull(botRole, "botRole cannot be null");
+    public BotRole getActiveBotRole(BotRole caller, Long targetId) {
+        Assert.notNull(caller, "caller cannot be null");
         Assert.notNull(targetId, "targetId cannot be null");
 
-        return botRoleRepository.findByBotIdAndUserId(botRole.getBot().getId(), targetId).orElseThrow(() ->
+        final BotRole botRole = botRoleRepository.findByBotIdAndUserIdAndIsDisabledFalse(caller.getBot().getId(), targetId).orElseThrow(() ->
+                new EntityNotFoundException("An active bot role for user " + targetId + " and bot " + caller.getBot().getId()
+                + " does not exist", localizationLoader.localize(Error.BOT_ROLE_NOT_FOUND, caller)));
+
+        checkBotVisibility(caller, botRole.getBot());
+        return botRole;
+    }
+
+    @Transactional(readOnly = true)
+    public BotRole getBotRole(BotRole caller, Long targetId) {
+        Assert.notNull(caller, "caller cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+
+        final BotRole botRole = botRoleRepository.findByBotIdAndUserId(caller.getBot().getId(), targetId).orElseThrow(() ->
                 new EntityNotFoundException("A bot role for user " + targetId
-                + " and bot " + botRole.getBot().getId() + " does not exist", localizationLoader
-                .localize(Error.BOT_ROLE_NOT_FOUND, botRole)));
+                + " and bot " + caller.getBot().getId() + " does not exist", localizationLoader
+                .localize(Error.BOT_ROLE_NOT_FOUND, caller)));
+
+        checkBotVisibility(caller, botRole.getBot());
+        return botRole;
     }
 
     @Transactional(readOnly = true)
