@@ -7,11 +7,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.richblock.RichBlockTableCell;
-import org.telegram.telegrambots.meta.api.objects.richtext.RichText;
-import org.telegram.telegrambots.meta.api.objects.richtext.RichTextPlain;
 
 import com.unbidden.telegramcoursesbot.dto.internal.MultipageListData;
 import com.unbidden.telegramcoursesbot.dto.internal.MultipageListTableData;
+import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.BotRole;
@@ -19,6 +18,7 @@ import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.UserRepository;
 import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
+import com.unbidden.telegramcoursesbot.util.TextUtil;
 
 @Component 
 public class CourseCompletedUsersDataSupplier extends AbstractTableDataSupplier {
@@ -31,12 +31,15 @@ public class CourseCompletedUsersDataSupplier extends AbstractTableDataSupplier 
 
     private final EntityUtil entityUtil;
 
+    private final TextUtil textUtil;
+
     public CourseCompletedUsersDataSupplier(LocalizationLoader loader, ContentOrchestrationService contentService,
-            UserRepository userRepository, EntityUtil entityUtil) {
+            UserRepository userRepository, EntityUtil entityUtil, TextUtil textUtil) {
         super(loader);
         this.contentService = contentService;
         this.userRepository = userRepository;
         this.entityUtil = entityUtil;
+        this.textUtil = textUtil;
     }
 
     @Override
@@ -44,13 +47,13 @@ public class CourseCompletedUsersDataSupplier extends AbstractTableDataSupplier 
         final Long courseId = Long.parseLong(params.get(COURSE_ID_PARAM));
 
         final Page<UserEntity> users = userRepository.findAllCompletedCourse(courseId, PageRequest.of(page, PAGE_SIZE));
-        final RichText text = new RichTextPlain(loader.localize(Localizations.Menu.MULTIPAGE_LIST_COURSE_COMPLETED_USERS, botRole,
+        final Localization loc = loader.localize(Localizations.Menu.MULTIPAGE_LIST_COURSE_COMPLETED_USERS, botRole,
                 new Localizations.Menu.MultipageListCourseCompletedUsersParams(contentService.getLocalizedText(
-                    botRole, entityUtil.getCourseTitle(botRole, courseId)))).getData());
+                    botRole, entityUtil.getCourseTitle(botRole, courseId))));
         final List<List<RichBlockTableCell>> rows = getUserTable(botRole, users.toList());
 
         rows.add(List.of(getTablePageData(botRole, 6, page, PAGE_SIZE, users.getNumberOfElements(), users.getTotalElements())));
         return new MultipageListTableData(users.getTotalPages(), users.getTotalElements(), PAGE_SIZE,
-                users.getNumberOfElements(), text, rows);
+                users.getNumberOfElements(), textUtil.getRichTextFromLocalization(loc), rows);
     }
 }

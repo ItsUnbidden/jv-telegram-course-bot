@@ -1,15 +1,22 @@
 package com.unbidden.telegramcoursesbot.util;
 
 import com.unbidden.telegramcoursesbot.config.properties.LocalizationsProperties;
+import com.unbidden.telegramcoursesbot.exception.LocalizationLoadingException;
 import com.unbidden.telegramcoursesbot.exception.TaggedStringInterpretationException;
+import com.unbidden.telegramcoursesbot.localization.Localization;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Tag;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Service;
 import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.Review;
 
+import lombok.EqualsAndHashCode;
+
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,10 +30,18 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
+import org.telegram.telegrambots.meta.api.objects.richtext.RichText;
+import org.telegram.telegrambots.meta.api.objects.richtext.RichTextBold;
+import org.telegram.telegrambots.meta.api.objects.richtext.RichTextConcat;
+import org.telegram.telegrambots.meta.api.objects.richtext.RichTextItalic;
+import org.telegram.telegrambots.meta.api.objects.richtext.RichTextPlain;
+import org.telegram.telegrambots.meta.api.objects.richtext.RichTextSpoiler;
+import org.telegram.telegrambots.meta.api.objects.richtext.RichTextStrikethrough;
+import org.telegram.telegrambots.meta.api.objects.richtext.RichTextUnderline;
 
 @Component
 public class TextUtil {
-    private static final Logger LOGGER = LogManager.getLogger(TextUtil.class);
+    private static final Logger LOGGER = LogManager.getFormatterLogger(TextUtil.class);
     
     private static final Map<String, String> MARKERS = new HashMap<>();
 
@@ -37,6 +52,16 @@ public class TextUtil {
     private static final String LANGUAGE_PRIORITY_DIVIDER = ",";
     private static final String END_TAG_INDICATOR = "/";
     private static final String PARAM_NAME_REGEX = "\\$\\{[a-zA-Z0-9_]+\\}";
+
+    private static final Comparator<MessageEntity> ME_COMPARATOR = (me1, me2) -> {
+        if (me1.getOffset() > me2.getOffset()) return 1;
+        if (me1.getOffset() < me2.getOffset()) return -1;
+
+        if (me1.getLength() < me2.getLength()) return 1;
+        if (me1.getLength() > me2.getLength()) return -1;
+
+        return 0;
+    };
 
     private final List<String> languagePriority;
 
@@ -64,28 +89,39 @@ public class TextUtil {
 
     public List<MessageEntity> getEntities(String text) {
         final List<MessageEntity> entities = new ArrayList<>();
+        final List<MarkerDataDto> markersData = new ArrayList<>();
         
-        int offsetFactor0 = 0;
-        int fromIndex = 0;
+        for (final String marker : MARKERS.keySet()) {
+            for (int i = 0; i < text.length();) {
+                final int occurence = text.indexOf(marker, i);
 
-        while (true) {
-            final MarkerDataDto markerData = getMarkerData(text, fromIndex);
+                if (occurence == -1) break;
 
-            if (markerData.isEmpty) {
-                break;
+                i = occurence + 2;
+                markersData.add(new MarkerDataDto(occurence, marker));
             }
-            
-            List<MessageEntity> stackedEntities = new ArrayList<>();
-            extractEntities(markerData, stackedEntities);
-
-            final int basicOffsetValue = markerData.beginsAt;
-            final int offsetFactor = offsetFactor0;
-
-            stackedEntities.forEach(e -> e.setOffset(basicOffsetValue - 4 * offsetFactor));
-            entities.addAll(stackedEntities);
-            offsetFactor0 += stackedEntities.size();
-            fromIndex = markerData.endsAt;
         }
+        markersData.sort((m1, m2) -> {
+            if (m1.offset > m2.offset) return 1;
+            if (m1.offset < m2.offset) return -1;
+            return 0;
+        });
+        
+        for (int i = 0; i < markersData.size(); ++i) {
+            markersData.get(i).offset -= 2 * i;
+        }
+
+        while (markersData.size() > 0) {
+            final var targetMarker = markersData.removeFirst();
+            final var endMarker = markersData.stream().filter(m -> m.type.equals(targetMarker.type)).findFirst().orElseThrow(
+                    () -> new LocalizationLoadingException("There is no closing marker of type " + targetMarker.type
+                    + ". Opening marker is located at offset " + targetMarker.offset + ".", null));
+
+            markersData.remove(endMarker);
+
+            entities.add(new MessageEntity(MARKERS.get(targetMarker.type), targetMarker.offset, endMarker.offset - targetMarker.offset));
+        }
+
         return entities;
     }
 
@@ -231,59 +267,147 @@ public class TextUtil {
         return String.valueOf(hours);
     }
 
-    private int extractEntities(MarkerDataDto markerData, List<MessageEntity> entities) {
-        if (markerData.isEmpty) {
-            return markerData.data.length();
+    public RichTextConcat getRichTextFromLocalization(Localization loc) {
+        final var builder = RichTextConcat.builder();
+        final List<TextEntitiesPair> pairs = splitStringAtBreakpoint(loc.getData(), loc.getEntities());
+
+        for (int i = 0; i < pairs.size(); ++i) {
+            builder.text(parseEntitiesToRichText(pairs.get(i).text, nestEntities(pairs.get(i).entities), "plain", 0, pairs.get(i).text.length()));
         }
-        final int length = extractEntities(getMarkerData(markerData.data
-                .replace(markerData.type, ""), 0), entities);
-        entities.add(new MessageEntity(MARKERS.get(markerData.type), 0, length));
-        return length;
+
+        return builder.build();
     }
 
-    private MarkerDataDto getMarkerData(String text, int fromIndex) {
-        String type = "";
-        int beginsAt = Integer.MAX_VALUE;
-        for (Entry<String, String> marker : MARKERS.entrySet()) {
-            int currentIndex = text.indexOf(marker.getKey(), fromIndex);
-            if (currentIndex != -1 && currentIndex <= beginsAt) {
-                beginsAt = currentIndex;
-                type = marker.getKey();
+    private List<TextEntitiesPair> splitStringAtBreakpoint(String text, List<MessageEntity> entities) {
+        entities.sort(ME_COMPARATOR);
+
+        int breakpoint = -1;
+        for (final var entity : entities) {
+            final int end = entity.getOffset() + entity.getLength();
+
+            if (entities.stream().anyMatch(e -> end < e.getOffset() + e.getLength()
+                    && entity.getOffset() < e.getOffset()
+                    && end > e.getOffset())) {
+                breakpoint = end;
+                break;
             }
         }
 
-        fromIndex = beginsAt + 2;
-        if (!type.isEmpty()) {
-            final int endsAt = text.indexOf(type, fromIndex) + 2;
-            return new MarkerDataDto(type, beginsAt,
-                    endsAt, text.substring(beginsAt, endsAt));
+        if (breakpoint == -1) return List.of(new TextEntitiesPair(text, entities));
+        final List<MessageEntity> part1Entities = new ArrayList<>();
+        final List<MessageEntity> part2Entities = new ArrayList<>();
+
+        for (final var entity : entities) {
+            final int end = entity.getOffset() + entity.getLength();
+
+            if (entity.getOffset() < breakpoint) {
+                part1Entities.add(new MessageEntity(entity.getType(), entity.getOffset(),
+                        Math.clamp(end, 0, breakpoint) - entity.getOffset()));
+            }
+            if (end > breakpoint) {
+                int newStart = 0;
+                if (entity.getOffset() > breakpoint) {
+                    newStart = entity.getOffset() - breakpoint;
+                }
+                part2Entities.add(new MessageEntity(entity.getType(), newStart, end - breakpoint - newStart));
+            }
         }
-        
-        return new MarkerDataDto(text);
+        part2Entities.sort(ME_COMPARATOR);
+
+        final List<TextEntitiesPair> pairs = new ArrayList<>();
+
+        pairs.add(new TextEntitiesPair(text.substring(0, breakpoint), part1Entities));
+        pairs.addAll(splitStringAtBreakpoint(text.substring(breakpoint), part2Entities));
+
+        return pairs;
     }
 
-    private static class MarkerDataDto {
-        private String type;
+    private List<NestedMessageEntity> nestEntities(List<MessageEntity> entities) {
+        final List<NestedMessageEntity> result = new ArrayList<>();
 
-        private int beginsAt;
+        if (entities.isEmpty()) return result;
 
-        private int endsAt;
+        final Deque<NestedMessageEntity> stack = new ArrayDeque<>();
 
-        private String data;
+        for (final MessageEntity entity : entities) {
+            final var lastEntity = stack.peekFirst();
+            final NestedMessageEntity newEntity = new NestedMessageEntity(entity.getType(), entity.getOffset(), entity.getOffset() + entity.getLength(), new ArrayList<>());
 
-        private boolean isEmpty;
+            if (lastEntity == null) {
+                stack.addFirst(newEntity);
+            } else if (entity.getOffset() >= lastEntity.end) {
+                do {
+                    final NestedMessageEntity popped = stack.removeFirst();
 
-        private MarkerDataDto(String data) {
-            this.data = data;
-            this.isEmpty = true;
+                    if (stack.isEmpty()) result.add(popped);
+                } while (!stack.isEmpty() && entity.getOffset() >= stack.getFirst().end);
+
+                if (!stack.isEmpty()) stack.getFirst().entities.add(newEntity);
+                stack.addFirst(newEntity);
+            } else {
+                lastEntity.entities.add(newEntity);
+                stack.addFirst(newEntity);
+            }
         }
+        result.add(stack.getLast());
 
-        private MarkerDataDto(String type, int beginsAt, int endsAt, String data) {
+        return result;
+    }
+
+    private RichText parseEntitiesToRichText(String text, List<NestedMessageEntity> entities, String type, int start, int end) {
+        if (entities.isEmpty()) return getRichText(new RichTextPlain(text.substring(start, end)), type);
+
+        final var concat = RichTextConcat.builder();
+
+        for (final NestedMessageEntity entity : entities) {
+            final String startSubstring = text.substring(start, entity.start);
+
+            if (!startSubstring.isEmpty()) concat.text(new RichTextPlain(startSubstring));
+            concat.text(parseEntitiesToRichText(text, entity.entities, entity.type, entity.start, entity.end));
+            start = entity.end;
+        }
+        final String endSubstring = text.substring(start, end);
+
+        if (!endSubstring.isEmpty()) concat.text(new RichTextPlain(endSubstring));
+
+        return getRichText(concat.build(), type);
+    }
+
+    private RichText getRichText(RichText text, String type) {
+        switch (type) {
+            case "bold" -> {
+                return RichTextBold.builder().text(text).build();
+            }
+            case "italic" -> {
+                return RichTextItalic.builder().text(text).build();
+            }
+            case "underline" -> {
+                return RichTextUnderline.builder().text(text).build();
+            }
+            case "strikethrough" -> {
+                return RichTextStrikethrough.builder().text(text).build();
+            }
+            case "spoiler" -> {
+                return RichTextSpoiler.builder().text(text).build();
+            }
+            default -> {
+                return text;
+            }
+        }
+    }
+
+    private static record NestedMessageEntity(String type, int start, int end, List<NestedMessageEntity> entities) {}
+    private static record TextEntitiesPair(String text, List<MessageEntity> entities) {}
+
+    @EqualsAndHashCode
+    private static class MarkerDataDto {
+        int offset;
+        
+        final String type;
+
+        public MarkerDataDto(int offset, String type) {
+            this.offset = offset;
             this.type = type;
-            this.beginsAt = beginsAt;
-            this.endsAt = endsAt;
-            this.data = data;
-            this.isEmpty = false;
         }
     }
 }

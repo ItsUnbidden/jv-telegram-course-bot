@@ -1182,6 +1182,10 @@ public final class Localizations {
         TITLE_USERNAME,
         TITLE_USER_BANNED,
         TITLE_USER_LANGUAGE,
+        /**
+         * Not used in production.
+         */
+        TEST_LOC,
         YES,
         NO;
 
