@@ -61,6 +61,7 @@ public class CourseSettingsMenu implements MenuConfigurer {
     private static final String CONTENT_ID_PARAM = "contentId";
     private static final String COURSE_ID_PARAM = "courseId";
     private static final String TEXT_ONLY_PARAM = "isTextOnly";
+    private static final String END_MAPPING_REMOVE_PARAM = "enableEndMappingRemove";
 
     private final CoursePriceChangeButtonHandler priceChangeHandler;
     private final GiveOrTakeAwayCourseButtonHandler giveOrTakeAwayCourseHandler;
@@ -151,12 +152,14 @@ public class CourseSettingsMenu implements MenuConfigurer {
             final Course course = entityUtil.getCourseById(p.botRole(), Long.parseLong(p.params().get(COURSE_ID_PARAM)));
             
             buttons.add(new TransitoryButton(loader.localize(Localizations.Button.COURSE_NAME_SETTINGS, p.botRole()).getData(),
-                List.of(MAPPING_ID_PARAM, TEXT_ONLY_PARAM), List.of(course.getTitle().getId().toString(), String.valueOf(true)), 7));
+                List.of(MAPPING_ID_PARAM, TEXT_ONLY_PARAM, END_MAPPING_REMOVE_PARAM), List.of(course.getTitle().getId().toString(),
+                String.valueOf(true), String.valueOf(false)), 7));
             if (course.getEndMapping() == null) {
                 buttons.add(new TerminalButton(loader.localize(Localizations.Button.CREATE_COURSE_END_MAPPING, p.botRole()).getData(), createEndMappingHandler));
             } else {
                 buttons.add(new TransitoryButton(loader.localize(Localizations.Button.COURSE_END_MAPPING_SETTINGS, p.botRole()).getData(),
-                    List.of(MAPPING_ID_PARAM, TEXT_ONLY_PARAM), List.of(course.getEndMapping().getId().toString(), String.valueOf(false)), 7));
+                    List.of(MAPPING_ID_PARAM, TEXT_ONLY_PARAM, END_MAPPING_REMOVE_PARAM), List.of(course.getEndMapping().getId().toString(),
+                    String.valueOf(false), String.valueOf(true)), 7));
             }
 
             buttons.add(new TerminalButton(loader.localize(Localizations.Button.COURSE_PRICE_CHANGE, p.botRole()).getData(), priceChangeHandler));
@@ -256,7 +259,8 @@ public class CourseSettingsMenu implements MenuConfigurer {
 
             return List.of(
                 new TransitoryButton(loader.localize(Localizations.Button.HOMEWORK_CONTENT_SETTINGS, p.botRole()).getData(),
-                    List.of(MAPPING_ID_PARAM, TEXT_ONLY_PARAM), List.of(dto.getMappingId().toString(), String.valueOf(false)), 7),
+                    List.of(MAPPING_ID_PARAM, TEXT_ONLY_PARAM, END_MAPPING_REMOVE_PARAM), List.of(dto.getMappingId().toString(),
+                    String.valueOf(false), String.valueOf(false)), 7),
                 new TerminalButton(loader.localize(Localizations.Button.UPDATE_MEDIA_TYPES, p.botRole()).getData(), homeworkMediaTypesHandler),
                 new TerminalButton(loader.localize(Localizations.Button.SET_HOMEWORK_DELAY, p.botRole()).getData(), homeworkDelaySettingHandler),
                 new TerminalButton(loader.localize(Localizations.Button.HOMEWORK_FEEDBACK, p.botRole()).getData(), homeworkFeedbackHandler),
@@ -288,7 +292,8 @@ public class CourseSettingsMenu implements MenuConfigurer {
 
             buttons.addAll(contentService.getContentMappingsForLesson(Long.parseLong(p.params().get(LESSON_ID_PARAM))).stream()
                 .map(cm -> (Button)new TransitoryButton(cm.getPosition().toString() + " (" + cm.getId() + ")",
-                List.of(MAPPING_ID_PARAM, TEXT_ONLY_PARAM), List.of(cm.getId().toString(), String.valueOf(false)), 7)).toList());
+                List.of(MAPPING_ID_PARAM, TEXT_ONLY_PARAM, END_MAPPING_REMOVE_PARAM), List.of(cm.getId().toString(),
+                String.valueOf(false), String.valueOf(false)), 7)).toList());
             buttons.add(new TerminalButton(loader.localize(Localizations.Button.ADD_CONTENT_TO_LESSON, p.botRole()).getData(), addContentToLessonHandler));
             buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData()));
 
@@ -310,12 +315,8 @@ public class CourseSettingsMenu implements MenuConfigurer {
             if (p.history().getLast().equals(6)) {
                 buttons.add(new TransitoryButton(loader.localize(Localizations.Button.REMOVE_MAPPING_FROM_LESSON, p.botRole()).getData(), 10));
                 buttons.add(new TerminalButton(loader.localize(Localizations.Button.CHANGE_MAPPING_ORDER, p.botRole()).getData(), updateContentPositionHandler));
-            } else if (p.history().getLast().equals(1)) {
-                final Course course = entityUtil.getCourseById(p.botRole(), Long.parseLong(p.params().get(COURSE_ID_PARAM)));
-                
-                if (course.getEndMapping() != null) {
-                    buttons.add(new TransitoryButton(loader.localize(Localizations.Button.REMOVE_COURSE_END_MAPPING, p.botRole()).getData(), 11));
-                }
+            } else if (p.history().getLast().equals(1) && Boolean.parseBoolean(p.params().get(END_MAPPING_REMOVE_PARAM))) {
+                buttons.add(new TransitoryButton(loader.localize(Localizations.Button.REMOVE_COURSE_END_MAPPING, p.botRole()).getData(), 11));
             }
             buttons.add(new BackwardButton(loader.localize(Localizations.Button.BACK, p.botRole()).getData()));
 

@@ -79,6 +79,9 @@ public final class Localizations {
         ADMIN_ACTIONS_PAGE_1,
         ADMIN_ACTIONS_PAGE_2,
         ADMIN_ACTIONS_PAGE_3,
+        ADMIN_ACTIONS_PAGE_4,
+        ADMIN_ACTIONS_PAGE_5,
+        ADMIN_ACTIONS_PAGE_6,
         COURSES_PAGE_0,
         COURSES_PAGE_1,
         BOT_PAGE_0,
@@ -371,6 +374,12 @@ public final class Localizations {
         TERMINATE_MENUS_FOR_USER_IN_BOT,
         MULTIPAGE_LIST_NEXT,
         MULTIPAGE_LIST_BACK,
+        CREATE_BOT_CREATOR_INFO,
+        CREATE_BOT_START,
+        CREATE_BOT_TERMS,
+        BOT_CREATOR_INFO_SETTINGS,
+        BOT_START_SETTINGS,
+        BOT_TERMS_SETTINGS,
         GET_LOCALIZATION_FILE_TEMPLATES;
 
         private String locName;
@@ -1182,6 +1191,12 @@ public final class Localizations {
         TITLE_USERNAME,
         TITLE_USER_BANNED,
         TITLE_USER_LANGUAGE,
+        BOT_CREATOR_INFO_CREATED,
+        BOT_START_CREATED,
+        BOT_TERMS_CREATED,
+        BOT_CREATOR_INFO_REQUEST,
+        BOT_START_REQUEST,
+        BOT_TERMS_REQUEST,
         /**
          * Not used in production.
          */
@@ -1653,6 +1668,9 @@ public final class Localizations {
         MAPPING_ONE_CONTENT,
         COURSE_END_MAPPING_PRESENT,
         COURSE_END_MAPPING_MISSING,
+        BOT_CREATOR_INFO_PRESENT,
+        BOT_TERMS_PRESENT,
+        BOT_START_PRESENT,
         POST_REQUEST_FAILURE;
         
         private String locName;

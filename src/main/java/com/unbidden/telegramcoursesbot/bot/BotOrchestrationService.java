@@ -6,6 +6,8 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
@@ -14,6 +16,7 @@ import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
+import com.unbidden.telegramcoursesbot.util.ValidatorUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,6 +35,8 @@ public class BotOrchestrationService {
 
     private final EntityUtil entityUtil;
 
+    private final ValidatorUtil validatorUtil;
+
     public List<Bot> getRegularBots() {
         return botService.getRegularBots();
     }
@@ -41,14 +46,22 @@ public class BotOrchestrationService {
     }
 
     public Bot updateBotLord(UserEntity director) {
+        Assert.notNull(director, "director cannot be null");
+
         return botService.updateBotLord(director);
     }
 
     public Bot updateInitialBot(UserEntity director) {
+        Assert.notNull(director, "director cannot be null");
+
         return botService.updateInitialBot(director);
     }
 
     public void createBot(BotRole botRole, Long creatorId, String token) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(creatorId, "creatorId cannot be null");
+        Assert.notNull(token, "token cannot be null");
+
         final String botToken = token.trim();
 
         if (!BOT_TOKEN_PATTERN.matcher(botToken).matches()) {
@@ -81,8 +94,64 @@ public class BotOrchestrationService {
     }
 
     public Bot initializeBotLord(Bot bot) {
+        Assert.notNull(bot, "bot cannot be null");
+
         clientManager.addBotLordClient(bot);
 
         return bot;
+    }
+
+    public void addCreatorInfo(BotRole botRole, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+
+        validatorUtil.checkAtLeastExpectedMessages(botRole, messages, 1);
+        String languageCode = botRole.getUser().getLanguageCode();
+        if (messages.size() > 1 && validatorUtil.checkLanguageCode(botRole, messages.getLast())) {
+            languageCode = messages.getLast().getText();
+            messages.removeLast();
+        }
+        
+        botService.addCreatorInfo(botRole, languageCode, messages);
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.BOT_CREATOR_INFO_CREATED, botRole));
+        LOGGER.debug("Message sent.");
+    }
+
+    public void addStart(BotRole botRole, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+
+        validatorUtil.checkAtLeastExpectedMessages(botRole, messages, 1);
+        String languageCode = botRole.getUser().getLanguageCode();
+        if (messages.size() > 1 && validatorUtil.checkLanguageCode(botRole, messages.getLast())) {
+            languageCode = messages.getLast().getText();
+            messages.removeLast();
+        }
+        
+        botService.addStart(botRole, languageCode, messages);
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.BOT_START_CREATED, botRole));
+        LOGGER.debug("Message sent.");
+    }
+
+    public void addTerms(BotRole botRole, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+
+        validatorUtil.checkAtLeastExpectedMessages(botRole, messages, 1);
+        String languageCode = botRole.getUser().getLanguageCode();
+        if (messages.size() > 1 && validatorUtil.checkLanguageCode(botRole, messages.getLast())) {
+            languageCode = messages.getLast().getText();
+            messages.removeLast();
+        }
+        
+        botService.addTerms(botRole, languageCode, messages);
+
+        LOGGER.debug("Sending confirmation message...");
+        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.BOT_TERMS_CREATED, botRole));
+        LOGGER.debug("Message sent.");
     }
 }

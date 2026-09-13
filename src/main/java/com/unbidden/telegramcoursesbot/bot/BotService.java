@@ -1,12 +1,18 @@
 package com.unbidden.telegramcoursesbot.bot;
 
 import com.unbidden.telegramcoursesbot.config.properties.BaseProperties;
+import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.repository.BotRepository;
 import com.unbidden.telegramcoursesbot.repository.BotRoleRepository;
+import com.unbidden.telegramcoursesbot.repository.ContentMappingRepository;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import java.util.ArrayList;
@@ -18,6 +24,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +35,12 @@ public class BotService {
     private final BotRepository botRepository;
 
     private final BotRoleRepository botRoleRepository;
+
+    private final ContentMappingRepository contentMappingRepository;
+
+    private final ContentOrchestrationService contentService;
+
+    private final LocalizationLoader loader;
 
     private final EntityUtil entityUtil;
 
@@ -44,6 +58,10 @@ public class BotService {
 
     @Transactional
     public Bot createBot(BotRole botRole, Long creatorId, String token) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(creatorId, "creatorId cannot be null");
+        Assert.notNull(token, "token cannot be null");
+
         LOGGER.info("Creating a new bot...");
         final Bot bot = new Bot();
 
@@ -68,6 +86,8 @@ public class BotService {
 
     @Transactional
     public Bot updateInitialBot(UserEntity director) {
+        Assert.notNull(director, "director cannot be null");
+
         LOGGER.info("Updating start bot token...");
 
         final Bot startBot = entityUtil.getStartBot();
@@ -96,6 +116,8 @@ public class BotService {
 
     @Transactional
     public Bot updateBotLord(UserEntity director) {
+        Assert.notNull(director, "director cannot be null");
+
         LOGGER.info("Updating bot lord token...");
 
         final Bot botLord = entityUtil.getBotLord();
@@ -120,5 +142,77 @@ public class BotService {
         LOGGER.info("Bot lord has been updated.");
 
         return botLord;
+    }
+
+    @Transactional 
+    public Bot addCreatorInfo(BotRole botRole, String languageCode, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(languageCode, "languageCode cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+
+        final Bot bot = entityUtil.getBot(botRole.getBot().getId());
+
+        if (bot.getCreatorInfo() != null) {
+            throw new ForbiddenOperationException("Bot " + bot.getId() + " already has creator info " + bot.getCreatorInfo().getId() + ".",
+                    loader.localize(Localizations.Error.BOT_CREATOR_INFO_PRESENT, botRole));
+        }
+        LOGGER.info("User " + botRole.getUser().getId() + " is adding a creator info mapping to bot " + bot.getId() + "...");
+
+        final ContentMapping mapping = new ContentMapping();
+
+        mapping.setPosition(0);
+        mapping.setContent(List.of(contentService.parseAndPersistContent(botRole, messages, languageCode)));
+
+        bot.setCreatorInfo(contentMappingRepository.save(mapping));
+
+        return bot;
+    }
+
+    @Transactional 
+    public Bot addStart(BotRole botRole, String languageCode, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(languageCode, "languageCode cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+
+        final Bot bot = entityUtil.getBot(botRole.getBot().getId());
+
+        if (bot.getStart() != null) {
+            throw new ForbiddenOperationException("Bot " + bot.getId() + " already has start mapping " + bot.getStart().getId() + ".",
+                    loader.localize(Localizations.Error.BOT_START_PRESENT, botRole));
+        }
+        LOGGER.info("User " + botRole.getUser().getId() + " is adding a start mapping to bot " + bot.getId() + "...");
+
+        final ContentMapping mapping = new ContentMapping();
+
+        mapping.setPosition(0);
+        mapping.setContent(List.of(contentService.parseAndPersistContent(botRole, messages, languageCode)));
+
+        bot.setStart(contentMappingRepository.save(mapping));
+
+        return bot;
+    }
+
+    @Transactional 
+    public Bot addTerms(BotRole botRole, String languageCode, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(languageCode, "languageCode cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+
+        final Bot bot = entityUtil.getBot(botRole.getBot().getId());
+
+        if (bot.getTerms() != null) {
+            throw new ForbiddenOperationException("Bot " + bot.getId() + " already has terms " + bot.getTerms().getId() + ".",
+                    loader.localize(Localizations.Error.BOT_TERMS_PRESENT, botRole));
+        }
+        LOGGER.info("User " + botRole.getUser().getId() + " is adding a terms mapping to bot " + bot.getId() + "...");
+
+        final ContentMapping mapping = new ContentMapping();
+
+        mapping.setPosition(0);
+        mapping.setContent(List.of(contentService.parseAndPersistContent(botRole, messages, languageCode)));
+
+        bot.setTerms(contentMappingRepository.save(mapping));
+
+        return bot;
     }
 }
