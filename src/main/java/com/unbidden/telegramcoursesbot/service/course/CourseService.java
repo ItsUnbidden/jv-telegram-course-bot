@@ -309,6 +309,7 @@ public class CourseService {
         }
         progress.setNumberOfTimesCompleted(progress.getNumberOfTimesCompleted() + 1);
         progress.setStage(0);
+        progress.setCurator(null);
 
         return progress;
     }

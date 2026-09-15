@@ -36,12 +36,6 @@ public class UserOrchestrationService {
 
     private final EntityUtil entityUtil;
 
-    public List<BotRole> getHomeworkReceivingUsers(Long botId) {
-        Assert.notNull(botId, "botId cannot be null");
-
-        return userService.getHomeworkReceivingUsers(botId);
-    }
-
     public BotRole initializeUserForBot(User rawUser, Long botId) {
         Assert.notNull(rawUser, "rawUser cannot be null");
         Assert.notNull(botId, "botId cannot be null");

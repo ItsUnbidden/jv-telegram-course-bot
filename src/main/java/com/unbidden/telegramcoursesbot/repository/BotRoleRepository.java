@@ -38,14 +38,19 @@ public interface BotRoleRepository extends JpaRepository<BotRole, Long> {
     List<BotRole> findByBotId(Long botId);
 
     @Query("""
+        select br
         from BotRole br
         left join fetch br.user u
         left join fetch br.bot b
         left join br.role r
+        left join CourseProgress cp on cp.curator = br
         where br.bot.id = :botId and br.isReceivingHomework
             and (r.type = 'DIRECTOR' or r.type = 'CREATOR' or r.type = 'MENTOR')
+        group by br
+        order by count(cp.id) asc
+        limit 1
     """)
-    List<BotRole> findByReceivingHomeworkInBot(Long botId);
+    Optional<BotRole> findHomeworkReceiverInBot(Long botId);
 
     @Query("""
         from BotRole br

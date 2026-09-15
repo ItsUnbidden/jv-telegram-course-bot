@@ -6,6 +6,7 @@ import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.mapper.HomeworkMapper;
 import com.unbidden.telegramcoursesbot.model.BotRole;
+import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress.Status;
@@ -13,6 +14,7 @@ import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
+import com.unbidden.telegramcoursesbot.repository.BotRoleRepository;
 import com.unbidden.telegramcoursesbot.repository.ContentMappingRepository;
 import com.unbidden.telegramcoursesbot.repository.HomeworkProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.HomeworkRepository;
@@ -41,6 +43,8 @@ public class HomeworkService {
     private final HomeworkRepository homeworkRepository;
 
     private final ContentMappingRepository contentMappingRepository;
+
+    private final BotRoleRepository botRoleRepository;
 
     private final ContentOrchestrationService contentService;
 
@@ -235,6 +239,19 @@ public class HomeworkService {
         lesson.setHomework(homework);
 
         return homeworkRepository.save(homework);
+    }
+
+    @Transactional
+    public Optional<BotRole> resolveCurator(BotRole botRole, Long courseId) {
+        final CourseProgress courseProgress = entityUtil.getCourseProgressForUser(botRole, courseId);
+
+        if (courseProgress.getCurator() != null) return Optional.of(courseProgress.getCurator());
+
+        final Optional<BotRole> potentialCurator = botRoleRepository.findHomeworkReceiverInBot(botRole.getBot().getId());
+        
+        if (potentialCurator.isPresent()) courseProgress.setCurator(potentialCurator.get());
+
+        return potentialCurator;
     }
 
     private String getStatus(boolean status) {

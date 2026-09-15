@@ -46,13 +46,6 @@ public class UserService {
 
     private final BaseProperties baseProperties;
 
-    @Transactional(readOnly = true)
-    public List<BotRole> getHomeworkReceivingUsers(Long botId) {
-        Assert.notNull(botId, "botId cannot be null");
-
-        return botRoleRepository.findByReceivingHomeworkInBot(botId);
-    }
-
     @Transactional
     public BotRole initializeUserForBot(User rawUser, Long botId) {
         Assert.notNull(rawUser, "rawUser cannot be null");

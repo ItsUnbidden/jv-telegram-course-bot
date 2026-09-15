@@ -42,7 +42,6 @@ import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationServi
 import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
 import com.unbidden.telegramcoursesbot.service.model.HomeworkFeedbackSession;
 import com.unbidden.telegramcoursesbot.service.timing.TimingService;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 @Service
@@ -66,8 +65,6 @@ public class HomeworkOrchestrationService {
 
     private final MenuOrchestrationService menuService;
 
-    private final UserService userService;
-
     private final HomeworkMapper mapper;
 
     private final LocalizationLoader localizationLoader;
@@ -82,7 +79,7 @@ public class HomeworkOrchestrationService {
 
     public HomeworkOrchestrationService(InMemoryHomeworkFeedbackSessionRepository feedbackSessionRepository,
             HomeworkService homeworkService, TimingService timingService,
-            ContentOrchestrationService contentService, MenuOrchestrationService menuService, UserService userService,
+            ContentOrchestrationService contentService, MenuOrchestrationService menuService,
             HomeworkMapper mapper, LocalizationLoader localizationLoader, ClientManager clientManager,
             EntityUtil entityUtil, @Lazy CourseOrchestrationService courseService, ValidatorUtil validatorUtil,
             PagedRequestProperties pagedRequestProperties) {
@@ -91,7 +88,6 @@ public class HomeworkOrchestrationService {
         this.timingService = timingService;
         this.contentService = contentService;
         this.menuService = menuService;
-        this.userService = userService;
         this.mapper = mapper;
         this.localizationLoader = localizationLoader;
         this.clientManager = clientManager;
@@ -269,35 +265,35 @@ public class HomeworkOrchestrationService {
         Assert.notNull(messages, "messages cannot be null");
 
         HomeworkProgress progress = entityUtil.getHomeworkProgressByHomeworkId(botRole, homeworkId);
-        final List<BotRole> mentors = userService.getHomeworkReceivingUsers(botRole.getBot().getId());
 
-        if (progress.getHomework().getLesson().getCourse().isFeedbackIncluded()
-                && progress.getHomework().isFeedbackRequired()
-                && !mentors.isEmpty()) {
-            progress = homeworkService.commit(botRole, homeworkId, messages, Status.AWAITS_APPROVAL);
-            requestFeedback(botRole, progress, mentors);
+        final Course course = progress.getHomework().getLesson().getCourse();
 
-            clientManager.sendMessage(botRole, localizationLoader.localize(
-                    Localizations.Service.FEEDBACK_FOR_HOMEWORK_WAITING, botRole));
-        } else {
-            progress = homeworkService.commit(botRole, homeworkId, messages, Status.COMPLETED);
+        if (course.isFeedbackIncluded() && progress.getHomework().isFeedbackRequired()) {
+            final Optional<BotRole> potentialCurator = homeworkService.resolveCurator(botRole, course.getId());
 
-            for (final BotRole mentor : mentors) {
-                clientManager.sendMessage(mentor, localizationLoader.localize(Localizations.Service.HOMEWORK_SUBMITTED_NOTIFICATION, mentor,
-                    new Localizations.Service.HomeworkSubmittedNotificationParams(
-                        progress.getUser().getId(),
-                        progress.getUser().getFullName(),
-                        localizationLoader.getLanguageName(mentor, progress.getUser().getLanguageCode())
-                    )
-                ));
-                contentService.sendContentAsync(mentor, progress.getContent().getId());
+            if (potentialCurator.isPresent()) {
+                progress = homeworkService.commit(botRole, homeworkId, messages, Status.AWAITS_APPROVAL);
+
+                final ContentMapping courseTitle = entityUtil.getMappingById(botRole, course.getTitle().getId());
+
+                sendFeedbackMessage(potentialCurator.get(), courseTitle, progress);
+    
+                clientManager.sendMessage(botRole, localizationLoader.localize(
+                        Localizations.Service.FEEDBACK_FOR_HOMEWORK_WAITING, botRole));
+    
+                menuService.terminateMenuGroup(MenuTerminationGroupKey.SEND_HOMEWORK, progress.getId());
+                return;
             }
-            clientManager.sendMessage(botRole, localizationLoader.localize(
-                    Localizations.Service.HOMEWORK_ACCEPTED_AUTO, botRole));
+        } 
+        progress = homeworkService.commit(botRole, homeworkId, messages, Status.COMPLETED);
 
-            courseService.next(botRole, progress.getHomework().getLesson().getCourse().getId(),
-                    progress.getHomework().getLesson().getId());
-        }
+        // TODO: add a way to see automatically accepted homeworks
+        clientManager.sendMessage(botRole, localizationLoader.localize(
+                Localizations.Service.HOMEWORK_ACCEPTED_AUTO, botRole));
+
+        courseService.next(botRole, progress.getHomework().getLesson().getCourse().getId(),
+                progress.getHomework().getLesson().getId());
+        
         menuService.terminateMenuGroup(MenuTerminationGroupKey.SEND_HOMEWORK, progress.getId());
     }
 
@@ -428,6 +424,14 @@ public class HomeworkOrchestrationService {
                 progresses.stream().map(p -> p.getId()).toList()));
     }
 
+    public void transferHomework(BotRole current, Long targetId, Long progressId) {
+        Assert.notNull(current, "current bot role cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+        Assert.notNull(progressId, "progressId cannot be null");
+
+        
+    }
+
     private String getStatus(BotRole botRole, boolean status) {
         return status ? localizationLoader.localize(Localizations.Service.STATUS_ENABLED, botRole).getData()
                 : localizationLoader.localize(Localizations.Service.STATUS_DISABLED, botRole).getData();
@@ -450,22 +454,6 @@ public class HomeworkOrchestrationService {
                     }
                 }
             }
-        }
-    }
-
-    private void requestFeedback(BotRole botRole, HomeworkProgress progress, List<BotRole> mentors) {
-        Assert.notNull(botRole, "botRole cannot be null");
-        Assert.notNull(progress, "Homework progress cannot be null");
-        Assert.notEmpty(mentors, "mentors cannot be empty or null");
-
-        final Course course = progress.getHomework().getLesson().getCourse();
-        final ContentMapping courseTitle = entityUtil.getMappingById(botRole, course.getTitle().getId());
-
-        for (final BotRole mentor : mentors) {
-            LOGGER.debug("User " + mentor.getId() + " has homework feedback enabled. "
-                    + "Sending approval message to them...");
-
-            sendFeedbackMessage(mentor, courseTitle, progress);
         }
     }
 

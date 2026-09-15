@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 public interface CourseProgressRepository extends JpaRepository<CourseProgress, Long> {
-    @EntityGraph(attributePaths = {"user", "course", "course.lessons"})
+    @EntityGraph(attributePaths = {"user", "course", "course.lessons", "curator", "curator.user", "curator.bot"})
     Optional<CourseProgress> findByUserIdAndCourseId(Long userId, Long courseId);
 
     @EntityGraph(attributePaths = {"user", "course", "course.lessons"})
