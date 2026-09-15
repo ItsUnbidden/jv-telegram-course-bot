@@ -21,16 +21,15 @@ public class SecurityAspect {
     
     @Around("@annotation(com.unbidden.telegramcoursesbot.security.Security)")
     public void projectAccessAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
-        LOGGER.trace("Project security aspect commencing...");
-        SecurityDto dataFromJoinPoint;
+        LOGGER.trace("Bot security aspect commencing...");
+        SecurityDto dto;
         try {
-            dataFromJoinPoint = dataParser.parse(joinPoint);
+            dto = dataParser.parse(joinPoint);
         } catch (SecurityDataParsingException e) {
-            throw new RuntimeException("Cannot continue without resolving parsing issue", e);
+            throw new RuntimeException("There was a security parsing issue. This is a bug.", e);
         }
 
-        if (securityService.grantAccess(dataFromJoinPoint.getBot(), dataFromJoinPoint.getUser(),
-                dataFromJoinPoint.getAuthorities())) {
+        if (securityService.grantAccess(dto.getBotRole(), dto.isBotLordOnly(), dto.getAuthorities())) {
             joinPoint.proceed();
         } else {
             LOGGER.debug("Cannot proceed to the method since access was denied.");

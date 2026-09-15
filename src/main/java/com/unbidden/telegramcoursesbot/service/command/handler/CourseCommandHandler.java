@@ -1,62 +1,68 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
+import com.unbidden.telegramcoursesbot.exception.NoCoursesException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
+import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.Course;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
+import com.unbidden.telegramcoursesbot.model.BotRole;
+import com.unbidden.telegramcoursesbot.model.CourseOwnership.OwnershipStatus;
+import com.unbidden.telegramcoursesbot.repository.CourseOwnershipRepository;
+import com.unbidden.telegramcoursesbot.repository.CourseRepository;
+
 import java.util.List;
+import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.lang.NonNull;
+
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 @RequiredArgsConstructor
 public class CourseCommandHandler implements CommandHandler {
-    private static final String COURSES_MENU = "m_crs";
-    private static final String MY_COURSES_MENU = "m_myCrs";
-    private static final String AVAILABLE_COURSES_MENU = "m_aCrs";
-
     private static final String COMMAND = "/courses";
 
-    private final MenuService menuService;
+    private final CourseOwnershipRepository courseOwnershipRepository;
 
-    private final CourseService courseService;
+    private final CourseRepository courseRepository;
+
+    private final MenuOrchestrationService menuService;
+
+    private final LocalizationLoader loader;
 
     @Override
     @Security(authorities = {AuthorityType.BUY, AuthorityType.LAUNCH_COURSE,
             AuthorityType.LEAVE_REVIEW, AuthorityType.REFUND})
-    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
-            @NonNull String[] commandParts) {
-        final List<String> allCoursesNamesOwnedByUser = courseService.getAllOwnedByUser(user, bot)
-                .stream().map(c -> c.getName()).toList();
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        final long numberOfCoursesInBot = courseRepository.countByBotId(botRole.getBot().getId());
 
-        if (allCoursesNamesOwnedByUser.isEmpty()) {
-            menuService.initiateMenu(AVAILABLE_COURSES_MENU, user, bot);
+        if (numberOfCoursesInBot < 1) {
+            throw new NoCoursesException("There are currently no courses in bot " + botRole.getBot().getId() + ".",
+                    loader.localize(Localizations.Error.NO_COURSES, botRole));
+        }
+        final long numberOfOwnedCourses = courseOwnershipRepository.countByUserIdAndCourseBotIdAndStatus(
+                botRole.getUser().getId(), botRole.getBot().getId(), OwnershipStatus.ACTIVE);
+
+        if (numberOfOwnedCourses == 0) {
+            menuService.initiateMenu(botRole, MenuKey.COURSES, 1, Map.of());
             return;
         }
-
-        final List<Course> availableCourses = courseService.getByBot(bot).stream()
-                .filter(c -> !allCoursesNamesOwnedByUser.contains(c.getName())).toList();
-
-        if (availableCourses.isEmpty()) {
-            menuService.initiateMenu(MY_COURSES_MENU, user, bot);
+        if (numberOfCoursesInBot - numberOfOwnedCourses < 1) {
+            menuService.initiateMenu(botRole, MenuKey.COURSES, 2, Map.of());
             return;
         }
-        menuService.initiateMenu(COURSES_MENU, user, bot);
+        menuService.initiateMenu(botRole, MenuKey.COURSES);
     }
 
     @Override
-    @NonNull
     public String getCommand() {
         return COMMAND;
     }
 
     @Override
-    @NonNull
     public List<AuthorityType> getAuthorities() {
         return List.of(AuthorityType.BUY, AuthorityType.LAUNCH_COURSE,
                 AuthorityType.LEAVE_REVIEW, AuthorityType.REFUND);

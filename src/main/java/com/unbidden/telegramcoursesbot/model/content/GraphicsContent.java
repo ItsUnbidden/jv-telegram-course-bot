@@ -6,13 +6,16 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import java.util.List;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
 
+import org.hibernate.Hibernate;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @Entity
-@Data
-@EqualsAndHashCode(callSuper = true)
-@DiscriminatorValue("1")
+@DiscriminatorValue("GRAPHICS")
 public class GraphicsContent extends LocalizedContent {
     @ManyToMany()
     @JoinTable(name = "content_videos",
@@ -25,4 +28,12 @@ public class GraphicsContent extends LocalizedContent {
             joinColumns = @JoinColumn(name = "content_id"),
             inverseJoinColumns = @JoinColumn(name = "photo_id"))
     private List<Photo> photos;
+
+    @Override
+    public String toString() {
+        return "GraphicsContent(id=" + getId() + ", botId=" + getBot().getId() + ", type=" + getType()
+                + ", isProtected=" + isProtected() + ", languageCode=" + getLanguageCode()
+                + (Hibernate.isInitialized(photos) ? ", photoIds=" + photos.stream().map(p -> p.getId()).toList() : ", photoIds=LAZY")
+                + (Hibernate.isInitialized(videos) ? ", videoIds=" + videos.stream().map(v -> v.getId()).toList() : ", videoIds=LAZY") + ")";
+    }
 }

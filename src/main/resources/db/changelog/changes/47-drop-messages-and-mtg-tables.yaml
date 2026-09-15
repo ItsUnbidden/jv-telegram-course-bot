@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: drop-messages-and-mtg-tables
+      author: Unbidden
+      changes:
+        - dropTable:
+            tableName: menu_termination_groups_messages
+        - dropTable:
+            tableName: menu_termination_groups
+        - dropTable:
+            tableName: messages

@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class PhotoController {
     private final ImageDao imageDao;
 
-    @GetMapping(value = "/{courseName}", produces = MediaType.IMAGE_JPEG_VALUE)
-    public byte[] getImage(@PathVariable String courseName) {
-        return imageDao.read(courseName);
+    @GetMapping(value = "/{courseId}", produces = MediaType.IMAGE_JPEG_VALUE)
+    public byte[] getImage(@PathVariable Long courseId) {
+        return imageDao.read(courseId);
     }
 }

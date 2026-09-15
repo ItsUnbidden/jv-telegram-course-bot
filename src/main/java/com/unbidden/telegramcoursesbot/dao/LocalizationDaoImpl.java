@@ -1,5 +1,6 @@
 package com.unbidden.telegramcoursesbot.dao;
 
+import com.unbidden.telegramcoursesbot.config.properties.LocalizationsProperties;
 import com.unbidden.telegramcoursesbot.exception.FileDaoOperationException;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
@@ -14,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
@@ -23,17 +23,13 @@ import org.springframework.stereotype.Service;
 public class LocalizationDaoImpl implements LocalizationDao {
     private static final Logger LOGGER = LogManager.getLogger(LocalizationDaoImpl.class);
 
-    @Value("${telegram.bot.message.text.format}")
-    private String fileFormat;
-
-    @Value("${telegram.bot.message.text.path}")
-    private String pathStr;
+    private final LocalizationsProperties localizationsProperties;
 
     private Path localizationFolderPath;
    
     @PostConstruct
     public void init() {
-        localizationFolderPath = Path.of(System.getProperty("user.dir")).resolve(pathStr);
+        localizationFolderPath = Path.of(System.getProperty("user.dir")).resolve(localizationsProperties.path());
         LOGGER.info("Localization folder is set to " + localizationFolderPath.toString() + ".");
         if (!exists(localizationFolderPath)) {
             LOGGER.info("Folder does not exist. Creating...");

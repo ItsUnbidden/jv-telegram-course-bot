@@ -1,0 +1,32 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-menu-snapshots-add-multipage-list-columns
+      author: Unbidden
+      changes:
+        - delete:
+            tableName: menu_snapshot_buttons
+        - delete:
+            tableName: menu_snapshots
+        - addColumn:
+            tableName: menu_snapshots
+            columns:
+              - column:
+                  name: created_at
+                  type: timestamp(3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: supplier_bean_name
+                  type: varchar(255)
+        - dropColumn:
+            tableName: menu_snapshots
+            columnName: initial_page
+        - dropNotNullConstraint:
+           tableName: menu_snapshots
+           columnName: menu_key
+           columnDataType: varchar(64)

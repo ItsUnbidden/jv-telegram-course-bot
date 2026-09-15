@@ -1,8 +1,8 @@
 package com.unbidden.telegramcoursesbot.bot;
 
+import com.unbidden.telegramcoursesbot.menu.MenuConfigurer;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -19,29 +19,28 @@ public class Initializer implements ApplicationRunner {
 
     private final List<MenuConfigurer> menuConfigurers;
 
-    private final BotService botService;
+    private final BotOrchestrationService botService;
 
     private final UserService userService;
 
-    private final CourseService courseService;
+    private final MenuOrchestrationService menuService;
 
     @Override
     public void run(ApplicationArguments args) {
-        // Initializing director
+        LOGGER.info("Initializing director...");
         final UserEntity director = userService.createDummyDirector();
-
-        // Initializing botfather and its client
-        botService.initializeBotFather(botService.createBotFather(director));
+        
+        LOGGER.info("Director has been initialized. Initializing bot lord and its client...");
+        botService.initializeBotLord(botService.updateBotLord(director));
     
-        // Initializing initial bot and course enities
-        courseService.createInitialCourse(botService.createInitialBot(director));
+        LOGGER.info("Bot lord and its client have been initialized. Initializing initial bot...");
+        botService.updateInitialBot(director);
 
-        // Initializing clients
+        LOGGER.info("Initial bot has been initialized. Initializing regular clients...");
         botService.initializeBots();
 
-        // Initilizing interface menu schemes
-        LOGGER.info("Initializing menus...");
-        menuConfigurers.forEach(c -> c.configure());
+        LOGGER.info("Regular clients have been initialized. Initializing menu schemas...");
+        menuConfigurers.forEach(c -> menuService.save(c.configure()));
         LOGGER.info("Menus have been initialized.");
     }
 }

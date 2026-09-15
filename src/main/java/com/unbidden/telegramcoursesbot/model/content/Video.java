@@ -1,14 +1,17 @@
 package com.unbidden.telegramcoursesbot.model.content;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+
 import org.springframework.lang.NonNull;
 
+@Getter
+@Setter
 @Entity
-@Data
-@EqualsAndHashCode(callSuper = true)
+@DiscriminatorValue("VIDEO")
 public class Video extends Document {
     @Column(nullable = false)
     private Integer height;
@@ -29,5 +32,13 @@ public class Video extends Document {
         this.height = extVideo.getHeight();
         this.width = extVideo.getWidth();
         this.duration = extVideo.getDuration();
+    }
+
+    @Override
+    public String toString() {
+        return "Video(uniqueId=" + getUniqueId() + ", id=" + getId() + ", fileSize=" + getFileSize()
+                + ", fileName=" + getFileName() + ", thumbnailUniqueId=" + (getThumbnail() != null ? getThumbnail().getUniqueId() : "NULL")
+                + ", mimeType=" + getMimeType() + ", height=" + height + ", width=" + width
+                + ", duration=" + duration + ")";
     }
 }

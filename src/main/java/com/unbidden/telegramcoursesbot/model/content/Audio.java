@@ -1,14 +1,17 @@
 package com.unbidden.telegramcoursesbot.model.content;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+
 import org.springframework.lang.NonNull;
 
+@Getter
+@Setter
 @Entity
-@Data
-@EqualsAndHashCode(callSuper = true)
+@DiscriminatorValue("AUDIO")
 public class Audio extends Document {
     private String title;
 
@@ -31,5 +34,13 @@ public class Audio extends Document {
         this.setTitle(extAudio.getTitle());
         this.setPerformer(extAudio.getPerformer());
         this.setDuration(extAudio.getDuration());
+    }
+
+    @Override
+    public String toString() {
+        return "Audio(uniqueId=" + getUniqueId() + ", id=" + getId() + ", fileSize=" + getFileSize()
+                + ", fileName=" + getFileName() + ", thumbnailUniqueId=" + (getThumbnail() != null ? getThumbnail().getUniqueId() : "NULL")
+                + ", mimeType=" + getMimeType() + ", title=" + title + ", performer=" + performer
+                + ", duration=" + duration + ")";
     }
 }

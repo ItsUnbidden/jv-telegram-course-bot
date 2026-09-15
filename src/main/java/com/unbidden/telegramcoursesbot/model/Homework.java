@@ -2,26 +2,23 @@ package com.unbidden.telegramcoursesbot.model;
 
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import lombok.Data;
+import jakarta.persistence.Version;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 @Entity
-@Data
 @Table(name = "homework")
-public class Homework {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @OneToOne(fetch = FetchType.LAZY)
+public class Homework extends BaseEntity {
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "content_mapping_id", nullable = false)
     private ContentMapping mapping;
 
@@ -41,4 +38,14 @@ public class Homework {
     private boolean isFeedbackRequired;
 
     private boolean isRepeatedCompletionAvailable;
+
+    @Version
+    private Long version;
+
+    @Override
+    public String toString() {
+        return "Homework(id=" + getId() + ", mappingId=" + mapping.getId() + ", allowedMediaTypes=\"" + allowedMediaTypes + "\", lessonId=" + lesson.getId()
+                + ", delay=" + delay + ", isFeedbackRequired=" + isFeedbackRequired + ", isRepeatedCompletionAvailable=" + isRepeatedCompletionAvailable
+                + ", version=" + version + ")";
+    }
 }

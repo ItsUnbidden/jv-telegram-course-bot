@@ -1,9 +1,15 @@
 package com.unbidden.telegramcoursesbot.exception;
 
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
+import com.unbidden.telegramcoursesbot.localization.Localization;
 
-public class RefundImpossibleException extends LocalizedException {
+import lombok.Getter;
+
+@Getter
+public class RefundImpossibleException extends Exception {
+    private final Localization loc;
+
     public RefundImpossibleException(String msg, Localization errorLoc) {
-        super(msg, errorLoc);
+        super(msg);
+        this.loc = errorLoc;
     }
 }

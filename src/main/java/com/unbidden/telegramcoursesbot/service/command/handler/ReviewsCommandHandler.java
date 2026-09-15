@@ -1,40 +1,37 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
+import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
+
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.lang.NonNull;
+
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
 @RequiredArgsConstructor
 public class ReviewsCommandHandler implements CommandHandler {
-    private static final String GET_REVIEWS_MENU = "m_gRv";
-
     private static final String COMMAND = "/reviews";
 
-    private final MenuService menuService;
+    private final MenuOrchestrationService menuService;
 
     @Override
     @Security(authorities = {AuthorityType.SEE_REVIEWS})
-    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
-            @NonNull String[] commandParts) {
-        menuService.initiateMenu(GET_REVIEWS_MENU, user, bot);
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        menuService.initiateMenu(botRole, MenuKey.GET_REVIEWS);
     }
 
     @Override
-    @NonNull
     public String getCommand() {
         return COMMAND;
     }
 
     @Override
-    @NonNull
     public List<AuthorityType> getAuthorities() {
         return List.of(AuthorityType.SEE_REVIEWS);
     }

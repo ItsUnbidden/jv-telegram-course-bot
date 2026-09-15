@@ -1,34 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="WARN">
+<Configuration xmlns="https://logging.apache.org/xml/ns"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="
+                   https://logging.apache.org/xml/ns
+                   https://logging.apache.org/xml/ns/log4j-config-2.xsd">
 	<Appenders>
         <Console name="stdout">
-            <PatternLayout>
-                <pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n
-				</pattern>
-            </PatternLayout>
+            <PatternLayout pattern="[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n" />
         </Console>
 		<RollingFile name="fileLogger"
 			fileName="logs/tcb.log"
 			filePattern="logs/tcb-%d{yyyy-MM-dd}.log">
-			<PatternLayout>
-				<pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n
-				</pattern>
-			</PatternLayout>
-			<Policies>
-				<TimeBasedTriggeringPolicy interval="1" modulate="true" />
-				<SizeBasedTriggeringPolicy size="10MB" />
-			</Policies>
+			<PatternLayout pattern="[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n" />
 			<DefaultRolloverStrategy max="10">
 				<Delete basePath="logs" maxDepth="10">
 					<IfLastModified age="30d" />
 				</Delete>
 			</DefaultRolloverStrategy>
+			<Policies>
+				<TimeBasedTriggeringPolicy interval="1" modulate="true" />
+				<SizeBasedTriggeringPolicy size="10MB" />
+			</Policies>
 		</RollingFile>
 	</Appenders>
 	<Loggers>
-		<Root level="info">
-            <appender-ref ref="stdout" level="TRACE"/>
-			<appender-ref ref="fileLogger" level="TRACE"/>
+		<Root level="INFO">
+            <AppenderRef ref="stdout" level="TRACE"/>
+			<AppenderRef ref="fileLogger" level="DEBUG"/>
 		</Root>
 	</Loggers>
 </Configuration>

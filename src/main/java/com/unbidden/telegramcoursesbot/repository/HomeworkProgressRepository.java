@@ -1,27 +1,52 @@
 package com.unbidden.telegramcoursesbot.repository;
 
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress;
+
+import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.lang.NonNull;
 
 public interface HomeworkProgressRepository extends JpaRepository<HomeworkProgress, Long> {
-    @NonNull
-    @EntityGraph(attributePaths = {"user", "homework", "content", "homework.lesson",
-            "homework.lesson.course", "homework.mapping", "homework.lesson.course.bot"})
-    Optional<HomeworkProgress> findById(@NonNull Long id);
+    @EntityGraph(attributePaths = {"user", "homework", "homework.lesson",
+            "homework.lesson.course", "homework.mapping"})
+    Optional<HomeworkProgress> findById(Long id);
 
-    @NonNull
-    @EntityGraph(attributePaths = {"user", "homework"})
-    Optional<HomeworkProgress> findByUserIdAndHomeworkId(@NonNull Long id,
-            @NonNull Long homeworkId);
+    @Query("""
+        from HomeworkProgress hp
+        left join fetch hp.user u
+        left join fetch hp.content cnt
+        left join fetch hp.homework h
+        left join fetch h.lesson l
+        left join fetch l.course c
+        left join fetch c.title t
+        left join fetch t.content tcnt
+        where u.id = :userId and h.id = :homeworkId and hp.status <> 'COMPLETED'
+    """)
+    Optional<HomeworkProgress> findByUserIdAndHomeworkIdUnresolved(Long userId, Long homeworkId);
 
-    @NonNull
-    @Query("from HomeworkProgress hp left join fetch hp.user u left join fetch hp.homework h"
-            + " left join fetch h.lesson l left join fetch l.course c left join fetch c.bot b "
-            + "where u.id = :userId and h.id = :homeworkId and hp.status != 1")
-    Optional<HomeworkProgress> findByUserIdAndHomeworkIdUnresolved(@NonNull Long userId,
-            @NonNull Long homeworkId);
+    @Query("""
+        from HomeworkProgress hp
+        left join fetch hp.user u
+        left join fetch hp.content cnt
+        left join fetch hp.homework h
+        left join fetch h.lesson l
+        left join fetch l.course c
+        where c.bot.id = :botId and hp.status = 'AWAITS_APPROVAL'
+    """)
+    List<HomeworkProgress> findPendingFeedbackByBotId(Long botId, Pageable pageable);
+
+    @Query("""
+        from HomeworkProgress hp
+        left join fetch hp.user u
+        left join fetch hp.content cnt
+        left join fetch hp.homework h
+        left join fetch h.lesson l
+        left join fetch l.course c
+        where c.id = :courseId and hp.status = 'AWAITS_APPROVAL'
+    """)
+    List<HomeworkProgress> findPendingFeedbackByCourseId(Long courseId, Pageable pageable);
 }

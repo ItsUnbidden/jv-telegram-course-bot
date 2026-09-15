@@ -36,3 +36,8 @@ databaseChangeLog:
                   constraints:
                     foreignKeyName: fk_homework_lessons
                     references: homework(id)
+              - column:
+                  name: version
+                  type: bigint
+                  constraints:
+                    nullable: false

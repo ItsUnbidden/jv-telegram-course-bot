@@ -1,0 +1,107 @@
+{"properties": [
+  {
+    "name": "tcp.base.start-bot-token",
+    "type": "java.lang.String",
+    "description": "Initial bot token."
+  },
+  {
+    "name": "tcp.base.bot-lord-token",
+    "type": "java.lang.String",
+    "description": "Bot lord token."
+  },
+  {
+    "name": "tcp.base.director-id",
+    "type": "java.lang.Long",
+    "description": "Director id. Director has total authority over the application (cross-bot authority)."
+  },
+  {
+    "name": "tcp.localizations.path",
+    "type": "java.nio.Path",
+    "description": "Path to localization directories."
+  },
+  {
+    "name": "tcp.localizations.format",
+    "type": "java.lang.String",
+    "description": "Localization files format (for example .txt)."
+  },
+  {
+    "name": "tcp.localizations.language-priority",
+    "type": "java.lang.String",
+    "description": "Language codes priority (from the most inportant to the least important, example: en, ru). These languages will only be used if there is no localization for the user's prefered language. This is an application wide setting and is used only if bot specific language priority is not available for any reason."
+  },
+  {
+    "name": "tcp.scheduling.auto-clearing.delay",
+    "type": "java.lang.Long",
+    "description": "Number of milliseconds in between calls to the removeExpired() method for all beans implementing the AutoClearable interface."
+  },
+  {
+    "name": "tcp.scheduling.timed-trigger.delay",
+    "type": "java.lang.Long",
+    "description": "Number of milliseconds in between checks for expired timed triggers."
+  },
+  {
+    "name": "tcp.scheduling.session.expiration",
+    "type": "java.lang.Integer",
+    "description": "Number of seconds after which a user response session will expire."
+  },
+  {
+    "name": "tcp.scheduling.multipage-meta.expiration",
+    "type": "java.lang.Integer",
+    "description": "Number of seconds after which a multipage meta will expire."
+  },
+  {
+    "name": "tcp.scheduling.review-session.expiration",
+    "type": "java.lang.Integer",
+    "description": "Number of seconds after which a review session will expire."
+  },
+  {
+    "name": "tcp.scheduling.feedback-session.expiration",
+    "type": "java.lang.Integer",
+    "description": "Number of seconds after which a feedback session will expire."
+  },
+  {
+    "name": "tcp.paged-request.reviews.page-size",
+    "type": "java.lang.Integer",
+    "description": "How many new reviews will be shown per request."
+  },
+  {
+    "name": "tcp.paged-request.homework.page-size",
+    "type": "java.lang.Integer",
+    "description": "How many new pending homeworks will be shown per request."
+  },
+  {
+    "name": "tcp.webhook.secret",
+    "type": "java.lang.String",
+    "description": "Secret key to ensure webhook requests are comming from Telegram. A 256-bit randomly generated string should be more than sufficient."
+  },
+  {
+    "name": "tcp.webhook.url",
+    "type": "java.lang.String",
+    "description": "The address on which the current Spring app is running."
+  },
+  {
+    "name": "tcp.webhook.ip",
+    "type": "java.lang.String",
+    "description": "Required only if there is no DNS. Do not specify if you are running the server using HTTPS."
+  },
+  {
+    "name": "tcp.webhook.max-connections",
+    "type": "java.lang.Integer",
+    "description": "The allowed number of simultaneous connections."
+  },
+  {
+    "name": "tcp.webhook.use-certificate",
+    "type": "java.lang.Boolean",
+    "description": "Whether to use the custom certificate. Should be false if you are running the server using HTTPS."
+  },
+  {
+    "name": "tcp.invoice.images.path",
+    "type": "java.nio.Path",
+    "description": "Directory in which images for invoices will be stored."
+  },
+  {
+    "name": "tcp.exception.inform-director",
+    "type": "java.lang.Boolean",
+    "description": "Whether to send a message with an attatched log file to the Director when an unspecified exception occurs. Use with caution."
+  }
+]}

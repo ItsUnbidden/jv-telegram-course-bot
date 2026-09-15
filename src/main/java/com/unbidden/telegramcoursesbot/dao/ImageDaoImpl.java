@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 public class ImageDaoImpl implements ImageDao {
     private static final String IMAGE_FORMAT = ".jpg";
 
-    @Value("${telegram.bot.invoice.images.path}")
+    @Value("${tcp.invoice.images.path}")
     private String imagePathStr;
 
     private Path imagePath;
@@ -33,8 +33,8 @@ public class ImageDaoImpl implements ImageDao {
 
     @Override
     @NonNull
-    public byte[] read(@NonNull String courseName) {
-        final Path fileLocation = imagePath.resolve(courseName + IMAGE_FORMAT);
+    public byte[] read(Long courseId) {
+        final Path fileLocation = imagePath.resolve(courseId + IMAGE_FORMAT);
 
         try {
             return Files.readAllBytes(fileLocation);
@@ -46,8 +46,8 @@ public class ImageDaoImpl implements ImageDao {
 
     @Override
     @NonNull
-    public Path addOrUpdateImage(@NonNull InputStream is, @NonNull String courseName) {
-        final Path path = imagePath.resolve(courseName + IMAGE_FORMAT);
+    public Path addOrUpdateImage(InputStream is, Long courseId) {
+        final Path path = imagePath.resolve(courseId + IMAGE_FORMAT);
 
         OutputStream os = null;
         try {
@@ -89,13 +89,13 @@ public class ImageDaoImpl implements ImageDao {
     }
 
     @Override
-    public boolean exists(@NonNull String courseName) {
-        return Files.exists(imagePath.resolve(courseName + IMAGE_FORMAT));
+    public boolean exists(Long courseId) {
+        return Files.exists(imagePath.resolve(courseId + IMAGE_FORMAT));
     }
 
     @Override
-    public void delete(@NonNull String courseName) {
-        final Path path = imagePath.resolve(courseName + IMAGE_FORMAT);
+    public void delete(Long courseId) {
+        final Path path = imagePath.resolve(courseId + IMAGE_FORMAT);
         
         try {
             Files.delete(path);

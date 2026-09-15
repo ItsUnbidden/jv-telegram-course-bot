@@ -1,0 +1,41 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-primary-keys-to-join-tables
+      author: Unbidden
+      changes:
+        - addPrimaryKey:
+            tableName: content_photos
+            columnNames: content_id, photo_id
+            constraintName: pk_content_photos
+        - addPrimaryKey:
+            tableName: content_mappings_content
+            columnNames: mapping_id, content_id
+            constraintName: pk_content_mappings_content
+        - addPrimaryKey:
+            tableName: lessons_content_mappings
+            columnNames: lesson_id, mapping_id
+            constraintName: pk_lessons_content_mappings
+        - addPrimaryKey:
+            tableName: reviews_users_who_read
+            columnNames: review_id, user_id
+            constraintName: pk_reviews_users_who_read
+        - addPrimaryKey:
+            tableName: menu_termination_groups_messages
+            columnNames: group_id, message_id
+            constraintName: pk_menu_termination_groups_messages
+        - addPrimaryKey:
+            tableName: content_audios
+            columnNames: content_id, audio_id
+            constraintName: pk_content_audios
+        - addPrimaryKey:
+            tableName: content_videos
+            columnNames: content_id, video_id
+            constraintName: pk_content_videos
+        - addPrimaryKey:
+            tableName: content_documents
+            columnNames: content_id, document_id
+            constraintName: pk_content_documents
+        - addPrimaryKey:
+            tableName: roles_authorities
+            columnNames: role_id, authority_id
+            constraintName: pk_roles_authorities

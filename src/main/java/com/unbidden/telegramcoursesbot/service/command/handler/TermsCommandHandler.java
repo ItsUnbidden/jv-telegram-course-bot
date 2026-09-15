@@ -1,15 +1,17 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
+import com.unbidden.telegramcoursesbot.model.BotRole;
+
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.lang.NonNull;
+
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
@@ -18,7 +20,7 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 public class TermsCommandHandler implements CommandHandler {
     private static final String COMMAND = "/terms";
 
-    private static final String SERVICE_TERMS = "service_%s_terms";
+    private final ContentOrchestrationService contentService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -26,22 +28,21 @@ public class TermsCommandHandler implements CommandHandler {
 
     @Override
     @Security(authorities = AuthorityType.INFO)
-    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
-            @NonNull String[] commandParts) {
-        final Localization localization = localizationLoader.getLocalizationForUser(
-            SERVICE_TERMS.formatted(bot.getName()), user);
-
-        clientManager.getClient(bot).sendMessage(user, localization);
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        if (botRole.getBot().getTerms() == null) {
+            clientManager.sendMessage(botRole, localizationLoader.localize(
+                    Localizations.Service.NO_TERMS, botRole));
+            return;
+        }
+        contentService.sendLocalizedContent(botRole, botRole.getBot().getTerms().getId());
     }
 
     @Override
-    @NonNull
     public String getCommand() {
         return COMMAND;
     }
 
     @Override
-    @NonNull
     public List<AuthorityType> getAuthorities() {
         return List.of(AuthorityType.INFO);
     }

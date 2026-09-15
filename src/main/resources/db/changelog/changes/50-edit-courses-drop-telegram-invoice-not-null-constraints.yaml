@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-courses-drop-telegram-invoice-not-null-constraints
+      author: Unbidden
+      changes:
+        - dropNotNullConstraint:
+            tableName: courses
+            columnName: price
+            columnDataType: int
+        - dropNotNullConstraint:
+            tableName: courses
+            columnName: refund_stage
+            columnDataType: int

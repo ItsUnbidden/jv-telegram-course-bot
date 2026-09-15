@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-bots
+      author: Unbidden
+      changes:
+        - insert:  
+            tableName: bots
+            columns:
+              - column:
+                  name: token
+                  value: foo
+        - insert:  
+            tableName: bots
+            columns:
+              - column:
+                  name: token
+                  value: doo

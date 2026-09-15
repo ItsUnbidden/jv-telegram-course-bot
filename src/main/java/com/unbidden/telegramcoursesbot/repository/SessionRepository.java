@@ -3,9 +3,11 @@ package com.unbidden.telegramcoursesbot.repository;
 import com.unbidden.telegramcoursesbot.model.Bot;
 import com.unbidden.telegramcoursesbot.service.session.Session;
 import java.util.List;
+import java.util.UUID;
+
 import org.springframework.lang.NonNull;
 
-public interface SessionRepository extends CustomGeneralRepository<Integer, Session> {
+public interface SessionRepository extends CustomGeneralRepository<UUID, Session> {
     void removeForUserInBot(@NonNull Long userId, @NonNull Bot bot);
 
     void removeContentSessionsForUserInBot(@NonNull Long userId, @NonNull Bot bot);

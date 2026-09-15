@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-lessons-add-next-lesson-mapping-column
+      author: Unbidden
+      changes:
+        - addColumn:
+            tableName: lessons
+            columns:
+              - column:
+                  name: next_lesson_button_mapping_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_next_lesson_button_mapping_id_lessons
+                    references: content_mappings(id)
+        # - addForeignKeyConstraint:
+        #     baseTableName: messages
+        #     baseColumnNames: comment_id
+        #     referencedTableName: messages
+        #     referencedColumnNames: id
+        #     constraintName: fk_replies_comments

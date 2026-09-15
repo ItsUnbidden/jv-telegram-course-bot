@@ -1,21 +1,24 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
-import java.util.List;
+import com.unbidden.telegramcoursesbot.dto.internal.SessionParamsDto;
+import com.unbidden.telegramcoursesbot.model.BotRole;
+import java.util.UUID;
 import java.util.function.Consumer;
-import org.springframework.lang.NonNull;
-import org.telegram.telegrambots.meta.api.objects.message.Message;
 
-public interface ContentSessionService extends SessionService {
-    Integer createSession(@NonNull UserEntity user, @NonNull Bot bot,
-            @NonNull Consumer<List<Message>> function, boolean isSkippingConfirmation);
+public interface ContentSessionService extends SessionService<ContentSession> {
+    @Override
+    default ContentSession createSession(BotRole botRole, Consumer<SessionParamsDto> function) {
+        return createSession(botRole, function, false);
+    }
+
+    ContentSession createSession(BotRole botRole, Consumer<SessionParamsDto> function,
+            boolean isSkippingConfirmation);
     
-    void removeSessionsWithoutConfirmationForUser(@NonNull UserEntity user, @NonNull Bot bot);
+    void removeSessionsWithoutConfirmationForUser(BotRole botRole);
 
-    void commit(@NonNull Integer sessionId, @NonNull UserEntity user);
+    void commit(BotRole botRole, UUID sessionId);
 
-    void resend(@NonNull Integer sessionId, @NonNull UserEntity user);
+    void resend(BotRole botRole, UUID sessionId);
 
-    void cancel(@NonNull Integer sessionId, @NonNull UserEntity user);
+    void cancel(BotRole botRole, UUID sessionId);
 }

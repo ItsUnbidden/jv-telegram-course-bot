@@ -6,30 +6,32 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+
 import java.util.List;
-import lombok.Data;
 
+import org.hibernate.Hibernate;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @Entity
-@Data
 @Table(name = "lessons")
-public class Lesson implements Comparable<Lesson> {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+public class Lesson extends BaseEntity implements Comparable<Lesson> {
     @Column(nullable = false)
     private Integer position;
 
-    @OneToMany()
+    @OneToMany(cascade = CascadeType.REMOVE)
+    @OrderBy("position ASC")
     @JoinTable(name = "lessons_content_mappings",
             joinColumns = @JoinColumn(name = "lesson_id"),
             inverseJoinColumns = @JoinColumn(name = "mapping_id"))
@@ -43,6 +45,10 @@ public class Lesson implements Comparable<Lesson> {
     @JoinColumn(name = "homework_id")
     private Homework homework;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "next_lesson_button_mapping_id")
+    private ContentMapping nextLessonButtonTitle;
+
     /**
      * Delay before this lesson will be sent to user. Specified in minutes.
      * If less then 0 then it is interpreted as no delay.
@@ -50,8 +56,20 @@ public class Lesson implements Comparable<Lesson> {
     @Column(nullable = false)
     private Integer delay;
 
+    @Version
+    private Long version;
+
     public boolean isHomeworkIncluded() {
         return homework != null;
+    }
+
+    @Override
+    public String toString() {
+        return "Lesson(id=" + getId() + ", position=" + position
+                + ", structure=" + (Hibernate.isInitialized(structure) ? structure.stream().map(m -> m.getId()).toList() : "LAZY")
+                + ", courseId=" + course.getId() + ", homeworkId=" + (homework != null ? homework.getId() : "NULL")
+                + ", nextLessonButtonTitle=" + (nextLessonButtonTitle != null ? nextLessonButtonTitle.getId() : "NULL")
+                + ", delay=" + delay + ", version=" + version + ")";
     }
 
     @Override

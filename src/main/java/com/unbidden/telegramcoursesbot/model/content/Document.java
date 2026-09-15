@@ -1,22 +1,25 @@
 package com.unbidden.telegramcoursesbot.model.content;
 
 import jakarta.persistence.DiscriminatorColumn;
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+
 import org.springframework.lang.NonNull;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "documents")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@EqualsAndHashCode(callSuper = true)
 @DiscriminatorColumn(name = "document_type")
+@DiscriminatorValue("DOCUMENT")
 public class Document extends File {
     private String fileName;
 
@@ -45,5 +48,12 @@ public class Document extends File {
         super(extDocument.getFileId(), extDocument.getFileUniqueId(), extDocument.getFileSize());
         this.fileName = extDocument.getFileName();
         this.mimeType = extDocument.getMimeType();
+    }
+
+    @Override
+    public String toString() {
+        return "Document(uniqueId=" + getUniqueId() + ", id=" + getId() + ", fileSize=" + getFileSize()
+                + ", fileName=" + fileName + ", thumbnailUniqueId=" + (thumbnail != null ? thumbnail.getUniqueId() : "NULL")
+                + ", mimeType=" + mimeType + ")";
     }
 }

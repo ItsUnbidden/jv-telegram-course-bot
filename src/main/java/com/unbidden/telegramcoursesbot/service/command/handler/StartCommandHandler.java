@@ -1,21 +1,23 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
-import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.exception.InvalidDataSentException;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
 import com.unbidden.telegramcoursesbot.security.Security;
 import com.unbidden.telegramcoursesbot.security.SecurityService;
-import com.unbidden.telegramcoursesbot.service.course.CourseService;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
+import com.unbidden.telegramcoursesbot.service.orchestration.CourseOrchestrationService;
+
 import java.util.Arrays;
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
@@ -26,11 +28,11 @@ public class StartCommandHandler implements CommandHandler {
 
     private static final String COMMAND = "/start";
 
-    private static final String SERVICE_START = "service_%s_start";
-
     private final LocalizationLoader localizationLoader;
 
-    private final CourseService courseService;
+    private final CourseOrchestrationService courseService;
+
+    private final ContentOrchestrationService contentService;
 
     private final SecurityService securityService;
 
@@ -38,37 +40,52 @@ public class StartCommandHandler implements CommandHandler {
 
     @Override
     @Security(authorities = AuthorityType.INFO)
-    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
-            @NonNull String[] commandParts) {
-        LOGGER.info("Sending /start message to user " + user.getId() + "...");
-        final Localization localization = localizationLoader.getLocalizationForUser(
-            SERVICE_START.formatted(bot.getName()), user);
-        clientManager.getClient(bot).sendMessage(user, localization);
-        LOGGER.info("Message sent.");
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        LOGGER.info("User " + botRole.getUser().getId() + " triggered the /start command.");
+        if (botRole.getBot().getStart() == null) {
+            LOGGER.info("There is no custom start message for bot " + botRole.getBot().getId() + ". A default localization will be sent.");
+            clientManager.sendMessage(botRole, localizationLoader.localize(
+                    Localizations.Service.NO_START, botRole));
+        } else {
+            LOGGER.debug("Sending /start message to user " + botRole.getUser().getId() + "...");
+            contentService.sendLocalizedContent(botRole, botRole.getBot().getStart().getId());
+        }
+        LOGGER.debug("Message sent.");
 
-        if (commandParts.length > 1) {
-            LOGGER.info("Additional command parameters present: "
+        if (commandParts.length > 2) {
+            LOGGER.debug("Additional command parameters present: "
                     + Arrays.toString(commandParts) + ".");
-            try {
-                if (securityService.grantAccess(bot, user, AuthorityType.LAUNCH_COURSE,
-                        AuthorityType.BUY)) {
-                    courseService.initMessage(user, bot, commandParts[1]);
+
+            switch (commandParts[1]) {
+                case "course" -> {
+                    if (securityService.grantAccess(botRole, AuthorityType.LAUNCH_COURSE, AuthorityType.BUY)) {
+                        try {
+                            courseService.initCourse(botRole, Long.parseLong(commandParts[2]));
+                        } catch (NumberFormatException e) {
+                            throw new InvalidDataSentException("Failed to parse course id in a command sent by user "
+                                    + botRole.getUser().getId() + ". Supplied value: " + commandParts[2], localizationLoader
+                                    .localize(Localizations.Error.PARSE_ID_FAILURE, botRole));
+                        }
+                    }
                 }
-            } catch (EntityNotFoundException e) {
-                LOGGER.warn("Additional parameters sent by user " + user.getId()
-                        + " are invalid and will be ignored.");
+                case "payment" -> {
+                    // TODO: currently not implemented
+                }
+                default -> {
+                    throw new InvalidDataSentException("Unknown command parameter was sent: "
+                            + commandParts[1] + " by user " + botRole.getUser().getId() + ".", localizationLoader
+                            .localize(Localizations.Error.INVALID_START_PARAM, botRole));
+                }
             }
         }
     }
 
     @Override
-    @NonNull
     public String getCommand() {
         return COMMAND;
     }
 
     @Override
-    @NonNull
     public List<AuthorityType> getAuthorities() {
         return List.of(AuthorityType.INFO);
     }

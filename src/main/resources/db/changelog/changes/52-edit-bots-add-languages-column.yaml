@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-bots-add-languages-column
+      author: Unbidden
+      changes:
+        - addColumn:
+            tableName: bots
+            columns:
+              - column:
+                  name: languages
+                  type: varchar(512)
+                  defaultValue: en
+                  constraints:
+                    nullable: false

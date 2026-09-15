@@ -6,5 +6,5 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class UserOrChatRequestSession extends Session {
-
+    private int requestId;
 }

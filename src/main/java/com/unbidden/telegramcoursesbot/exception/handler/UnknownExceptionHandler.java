@@ -2,19 +2,21 @@ package com.unbidden.telegramcoursesbot.exception.handler;
 
 import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.dao.LogDao;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
-import com.unbidden.telegramcoursesbot.service.localization.Localization;
-import com.unbidden.telegramcoursesbot.service.localization.LocalizationLoader;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
-import java.io.IOException;
+import com.unbidden.telegramcoursesbot.localization.Localization;
+import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
+import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
+import com.unbidden.telegramcoursesbot.localization.Localizations.Error.CriticalDirectorNotificationParams;
+import com.unbidden.telegramcoursesbot.model.BotRole;
+import com.unbidden.telegramcoursesbot.util.EntityUtil;
+
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.lang.NonNull;
+import org.eclipse.jetty.io.RuntimeIOException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -29,18 +31,7 @@ public class UnknownExceptionHandler implements ExceptionHandler {
 
     private static final String CURRENT_LOG_FILE_NAME = "tcb.log";
 
-    private static final String PARAM_EXC_MESSAGE = "${excMessage}";
-    private static final String PARAM_EXC_CLASS_NAME = "${excClassName}";
-    private static final String PARAM_USER_FULL_NAME = "${userFullName}";
-    private static final String PARAM_BOT_NAME = "${botName}";
-    
-    private static final String ERROR_UNSPECIFIED_EXCEPTION = "error_unspecified_exception";
-    private static final String ERROR_CRITICAL_DIRECTOR_NOTIFICATION =
-            "error_critical_director_notification";
-
     private final LogDao logDao;
-
-    private final UserService userService;
 
     private final LocalizationLoader localizationLoader;
 
@@ -48,63 +39,51 @@ public class UnknownExceptionHandler implements ExceptionHandler {
 
     private final ReplyKeyboardRemove keyboardRemove;
 
+    private final EntityUtil entityUtil;
+
+    @Value("${tcp.exception.inform-director}")
+    private boolean informDirector;
+
     @Override
-    public SendMessage compileSendMessage(@NonNull UserEntity user, @NonNull Bot bot,
-            @NonNull Exception exc) {
-        LOGGER.error("Unspecified exception has occured during user " + user.getId()
-                + "'s session.", exc);
+    public SendMessage compileSendMessage(BotRole botRole, Exception exc) {
+        LOGGER.error("User " + botRole.getUser().getId() + " triggered an unspecified exception:", exc);
 
-        final Localization errorLoc = localizationLoader.getLocalizationForUser(
-                ERROR_UNSPECIFIED_EXCEPTION, user, getParameterMap(exc, user, bot));
+        final Localization errorLoc = localizationLoader.localize(Error.UNSPECIFIED_EXCEPTION, botRole);
 
-        notifyDirector(exc, user, bot);
+        if (informDirector) {
+            LOGGER.info("Sending exception information and logs to director...");
+            informDirector(botRole, exc);
+        }
 
         return SendMessage.builder()
-                .chatId(user.getId())
+                .chatId(botRole.getUser().getId())
                 .text(errorLoc.getData())
                 .entities(errorLoc.getEntities())
                 .replyMarkup(keyboardRemove)
                 .build();
     }
 
-    private void notifyDirector(@NonNull Exception exc, @NonNull UserEntity user,
-            @NonNull Bot bot) {
-        final UserEntity diretor = userService.getDiretor();
-        final InputStream stream = logDao.readCurrentLogFile();
+    private void informDirector(BotRole botRole, Exception exc) {
+        final BotRole diretorRole = entityUtil.getDirectorBotRole(entityUtil.getBotLord().getId());
+        final Localization criticalErrorDirectorNotification = localizationLoader.localize(Error.CRITICAL_DIRECTOR_NOTIFICATION,
+                diretorRole, new CriticalDirectorNotificationParams(exc.getMessage(), exc.getClass().getSimpleName(),
+                diretorRole.getUser().getId(), diretorRole.getBot().getId()));
 
-        final Localization criticalErrorDirectorNotification = localizationLoader
-                .getLocalizationForUser(ERROR_CRITICAL_DIRECTOR_NOTIFICATION, diretor,
-                getParameterMap(exc, user, bot));
-
-        clientManager.getBotFatherClient().sendMessage(diretor,
-                criticalErrorDirectorNotification);
+        clientManager.sendMessage(diretorRole, criticalErrorDirectorNotification);
         
-        try {
-            clientManager.getBotFatherClient().execute(SendDocument.builder()
-                    .chatId(diretor.getId())
-                    .document(new InputFile(stream, CURRENT_LOG_FILE_NAME))
-                    .build());
-            LOGGER.info("Current log file sent to the director.");
-        } catch (TelegramApiException e) {
-            LOGGER.error("Unable to send log file to the Director after "
-                    + "an exception occured.", e);
-        } finally {
+        try (final InputStream stream = logDao.readCurrentLogFile()) {
             try {
-                stream.close();
-                LOGGER.debug("Log file sending stream closed.");
-            } catch (IOException e) {
-                throw new RuntimeException("Unable to close the stream for reading log file.");
+                clientManager.getBotLordClient().execute(SendDocument.builder()
+                        .chatId(diretorRole.getUser().getId())
+                        .document(new InputFile(stream, CURRENT_LOG_FILE_NAME))
+                        .build());
+                LOGGER.info("Current log file sent to the Director.");
+            } catch (TelegramApiException e) {
+                LOGGER.error("Unable to send log file to the Director after "
+                        + "an exception occured.", e);
             }
+        } catch (Exception e) {
+            throw new RuntimeIOException("Unable to close the stream for reading log file.");
         }
-    }
-
-    private Map<String, Object> getParameterMap(Exception exc, UserEntity user, Bot bot) {
-        final Map<String, Object> parameterMap = new HashMap<>();
-
-        parameterMap.put(PARAM_EXC_MESSAGE, exc.getMessage());
-        parameterMap.put(PARAM_EXC_CLASS_NAME, exc.getClass().getSimpleName());
-        parameterMap.put(PARAM_BOT_NAME, bot.getName());
-        parameterMap.put(PARAM_USER_FULL_NAME, user.getFullName());
-        return parameterMap;
     }
 }

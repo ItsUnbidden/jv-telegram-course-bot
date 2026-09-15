@@ -1,11 +1,11 @@
 package com.unbidden.telegramcoursesbot.service.command.handler;
 
-import com.unbidden.telegramcoursesbot.bot.BotService;
+import com.unbidden.telegramcoursesbot.menu.MenuKey;
+import com.unbidden.telegramcoursesbot.menu.MenuOrchestrationService;
 import com.unbidden.telegramcoursesbot.model.AuthorityType;
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.security.Security;
-import com.unbidden.telegramcoursesbot.service.menu.MenuService;
+
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
@@ -16,20 +16,13 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 @RequiredArgsConstructor
 public class FilesCommandHandler implements CommandHandler {
     private static final String COMMAND = "/files";
-    
-    private static final String MENU_NAME = "m_fls";
 
-    private final MenuService menuService;
-
-    private final BotService botService;
+    private final MenuOrchestrationService menuService;
 
     @Override
-    @Security(authorities = AuthorityType.MAINTENANCE)
-    public void handle(@NonNull Bot bot, @NonNull UserEntity user, @NonNull Message message,
-            @NonNull String[] commandParts) {
-        botService.checkBotFather(bot, user);
-
-        menuService.initiateMenu(MENU_NAME, user, bot);
+    @Security(authorities = AuthorityType.MAINTENANCE, isBotLordOnly = true)
+    public void handle(BotRole botRole, Message message, String[] commandParts) {
+        menuService.initiateMenu(botRole, MenuKey.FILE);
     }
 
     @Override

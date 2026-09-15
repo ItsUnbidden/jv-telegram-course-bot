@@ -1,22 +1,21 @@
 package com.unbidden.telegramcoursesbot.service.session;
 
-import com.unbidden.telegramcoursesbot.model.Bot;
-import com.unbidden.telegramcoursesbot.model.UserEntity;
+import com.unbidden.telegramcoursesbot.dto.internal.SessionParamsDto;
+import com.unbidden.telegramcoursesbot.model.BotRole;
+
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
+
 import lombok.Data;
-import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Data
 public abstract class Session {
-    private Integer id;
+    private UUID id;
 
-    private UserEntity user;
-
-    private Bot bot;
+    private BotRole botRole;
 
     private LocalDateTime timestamp;
 
-    private Consumer<List<Message>> function;
+    private Consumer<SessionParamsDto> function;
 }

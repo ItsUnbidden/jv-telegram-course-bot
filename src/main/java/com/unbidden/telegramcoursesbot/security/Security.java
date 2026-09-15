@@ -24,6 +24,7 @@ import java.lang.annotation.Target;
  * it will be set to {@code "bot"}.
  * @param userParamName — name of the user parameter. If not specified,
  * it will be set to {@code "user"}.
+ * @param isBotLordOnly — whether the method is only available for the bot lord.
  * @author Unbidden
  */
 
@@ -32,7 +33,7 @@ import java.lang.annotation.Target;
 public @interface Security {
     AuthorityType[] authorities();
 
-    String botParamName() default "bot";
+    String botRoleParamName() default "botRole";
 
-    String userParamName() default "user";
+    boolean isBotLordOnly() default false;
 }

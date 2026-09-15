@@ -44,17 +44,7 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: original_platform_grade
-                  type: int
-                  constraints:
-                    nullable: false
-              - column:
                   name: course_grade
-                  type: int
-                  constraints:
-                    nullable: false
-              - column:
-                  name: platform_grade
                   type: int
                   constraints:
                     nullable: false
@@ -85,3 +75,12 @@ databaseChangeLog:
               - column:
                   name: commented_at
                   type: datetime
+              - column:
+                  name: version
+                  type: bigint
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: reviews
+            columnNames: user_id, course_id
+            constraintName: uq_reviews_user_course
