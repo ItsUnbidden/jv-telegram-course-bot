@@ -14,6 +14,7 @@ public interface LessonTriggersRepository extends JpaRepository<LessonTrigger, L
         from LessonTrigger lt
         left join fetch lt.progress p
         left join fetch lt.botRole br
+        left join fetch br.role r
         left join fetch br.user u
         left join fetch br.bot b
         where lt.target < :currentTime
