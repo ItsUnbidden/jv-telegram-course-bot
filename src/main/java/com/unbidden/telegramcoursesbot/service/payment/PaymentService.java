@@ -14,6 +14,7 @@ import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseOwnership;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.CurrencyCode;
+import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.model.TelegramInvoice;
 import com.unbidden.telegramcoursesbot.model.TelegramPaymentDetails;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
@@ -166,12 +167,35 @@ public class PaymentService {
     }
 
     @Transactional
+    public CourseOwnership registerAdminCourse(BotRole botRole, Long targetId, Long courseId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(targetId, "targetId cannot be null");
+        Assert.notNull(courseId, "courseId cannot be null");
+
+        final Course course = entityUtil.getCourseById(botRole, courseId);
+        final BotRole targetBotRole = entityUtil.getActiveBotRole(botRole, targetId);
+
+        try {
+            return createOrActivateOwnership(targetBotRole, course, OwnershipSource.ADMIN);
+        } catch (CourseIsAlreadyOwnedException e) {
+            throw new StaleStateException("Unable to set up admin course ownership for course " + courseId + " and user "
+                    + targetId + " because they already own it. This is a bug and should not be possible.", null);
+        }
+    }
+
+    @Transactional
     public CourseOwnership invalidateGiftCourse(BotRole botRole, Long targetId, Long courseId) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(targetId, "targetId cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
         final BotRole targetBotRole = entityUtil.getActiveBotRole(botRole, targetId);
+
+        if (targetBotRole.getRole().getType() == RoleType.CREATOR
+                || targetBotRole.getRole().getType() == RoleType.DIRECTOR) {
+            throw new ForbiddenOperationException("Director and Creator must always own all courses.",
+                    localizationLoader.localize(Localizations.Error.TAKE_COURSE_FORBIDDEN, botRole));
+        }
         final CourseOwnership ownership = entityUtil.getActiveCourseOwnership(targetBotRole, courseId);
 
         if (ownership.getSource() != OwnershipSource.GIFTED) {

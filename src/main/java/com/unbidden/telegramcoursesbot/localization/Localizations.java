@@ -1616,6 +1616,7 @@ public final class Localizations {
         BOT_TOKEN_PATTERN_MISMATCH("error_bot_token_pattern_mismatch"),
         BOT_ALREADY_EXISTS("error_bot_already_exists"),
         INVOICE_IMAGE_DOES_NOT_EXIST("error_invoice_image_does_not_exist"),
+        TAKE_COURSE_FORBIDDEN,
         /**
          * Possible parameters:
          * <ls>

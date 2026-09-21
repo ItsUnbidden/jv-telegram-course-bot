@@ -34,7 +34,6 @@ import com.unbidden.telegramcoursesbot.repository.ReviewRepository;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Lesson;
 import com.unbidden.telegramcoursesbot.model.LessonTrigger;
-import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.model.TelegramInvoice;
 import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.service.course.CourseService;
@@ -515,7 +514,6 @@ public class CourseOrchestrationService {
     }
 
     private boolean checkWhetherCourseIsAvailable(BotRole botRole, Long courseId) {
-        if (botRole.getRole().getType() == RoleType.CREATOR || botRole.getRole().getType() == RoleType.DIRECTOR) return true;
         if (!paymentService.isAvailable(botRole.getUser(), courseId)) {
             paymentService.sendInvoice(botRole, courseId);
             return false;
