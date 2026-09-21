@@ -36,6 +36,10 @@ public class CourseProgress extends BaseEntity {
     @Column(nullable = false)
     private Integer numberOfTimesCompleted;
 
+    @ManyToOne
+    @JoinColumn(name = "curator_id")
+    private BotRole curator;
+
     @Version
     private Long version;
 

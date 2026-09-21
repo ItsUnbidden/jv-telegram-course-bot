@@ -50,6 +50,7 @@ public class MenuService {
     private static final Logger LOGGER = LogManager.getFormatterLogger(MenuService.class);
 
     private static final String TERMINAL_PARAM_NAME = "terminal";
+    private static final String SNAPSHOT_ID_PARAM = "snapshotId";
 
     private final MenuSnapshotRepository<MenuSnapshot> menuSnapshotRepository;
 
@@ -150,6 +151,8 @@ public class MenuService {
                         snapshotButtonId, snapshot.getId()));
                 snapshot.setParameters(menuUtil.mapToString(currentParams));
             }
+            currentParams.put(SNAPSHOT_ID_PARAM, snapshot.getId().toString());
+
             pageHistory.add(snapshot.getCurrentPage());
             snapshot.setPageHistory(menuUtil.listToString(pageHistory));
             snapshot.setCurrentPage(transitoryButton.getPointer());
@@ -182,6 +185,7 @@ public class MenuService {
                     currentParams.put(TERMINAL_PARAM_NAME, paramValues.getFirst());
                 }
             }
+            currentParams.put(SNAPSHOT_ID_PARAM, snapshot.getId().toString());
 
             if (menu.isResetAfterTerminal() && !pageHistory.isEmpty()) {
                 LOGGER.trace("Menu " + menu.getKey() + " is supposed to be reset after a terminal button call.");
@@ -225,6 +229,8 @@ public class MenuService {
 
             snapshot.setPageHistory(menuUtil.listToString(pageHistory));
             snapshot.setCurrentPage(nextPage.getPageIndex());
+
+            currentParams.put(SNAPSHOT_ID_PARAM, snapshot.getId().toString());
 
             final List<Button> generatedLayout = nextPage.getButtonsFunction().apply(new MenuParamsDto(botRole, currentParams, pageHistory));
             final List<MenuSnapshotButton> snapshotButtons = generatedLayout.stream().map(b -> b.toMenuSnapshotButton(snapshot, menuUtil)).toList();

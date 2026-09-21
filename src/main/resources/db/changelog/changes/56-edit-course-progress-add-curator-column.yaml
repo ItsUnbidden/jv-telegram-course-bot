@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-course-progress-add-curator-column
+      author: Unbidden
+      changes:
+        - addColumn:
+            tableName: course_progress
+            columns:
+              - column:
+                  name: curator_id
+                  type: bigint
+                  constraints:
+                    foreignKeyName: fk_curator_course_progress
+                    references: bot_roles(id)

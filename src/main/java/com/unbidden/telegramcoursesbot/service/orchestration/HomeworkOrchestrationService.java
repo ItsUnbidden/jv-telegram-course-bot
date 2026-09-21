@@ -4,7 +4,9 @@ import com.unbidden.telegramcoursesbot.util.ValidatorUtil;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -42,14 +44,13 @@ import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationServi
 import com.unbidden.telegramcoursesbot.service.course.HomeworkService;
 import com.unbidden.telegramcoursesbot.service.model.HomeworkFeedbackSession;
 import com.unbidden.telegramcoursesbot.service.timing.TimingService;
-import com.unbidden.telegramcoursesbot.service.user.UserService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 @Service
 public class HomeworkOrchestrationService {
     private static final Logger LOGGER = LogManager.getFormatterLogger(HomeworkOrchestrationService.class);
 
-    private static final String PROGRESS_ID_PARAM = "progressId";
+    private static final String HOMEWORK_PROGRESS_ID_PARAM = "progressId";
     private static final String LESSON_ID_PARAM = "lessonId";
 
     public static final int MAX_HOMEWORK_DELAY = 720;
@@ -66,8 +67,6 @@ public class HomeworkOrchestrationService {
 
     private final MenuOrchestrationService menuService;
 
-    private final UserService userService;
-
     private final HomeworkMapper mapper;
 
     private final LocalizationLoader localizationLoader;
@@ -82,7 +81,7 @@ public class HomeworkOrchestrationService {
 
     public HomeworkOrchestrationService(InMemoryHomeworkFeedbackSessionRepository feedbackSessionRepository,
             HomeworkService homeworkService, TimingService timingService,
-            ContentOrchestrationService contentService, MenuOrchestrationService menuService, UserService userService,
+            ContentOrchestrationService contentService, MenuOrchestrationService menuService,
             HomeworkMapper mapper, LocalizationLoader localizationLoader, ClientManager clientManager,
             EntityUtil entityUtil, @Lazy CourseOrchestrationService courseService, ValidatorUtil validatorUtil,
             PagedRequestProperties pagedRequestProperties) {
@@ -91,7 +90,6 @@ public class HomeworkOrchestrationService {
         this.timingService = timingService;
         this.contentService = contentService;
         this.menuService = menuService;
-        this.userService = userService;
         this.mapper = mapper;
         this.localizationLoader = localizationLoader;
         this.clientManager = clientManager;
@@ -250,7 +248,7 @@ public class HomeworkOrchestrationService {
                 menuMessage = sentContent.get(0);
             }
             if (menuMessage.getResult() == Result.OK) {
-                menuService.initiateMenu(botRole, MenuKey.SEND_HOMEWORK, PROGRESS_ID_PARAM,
+                menuService.initiateMenu(botRole, MenuKey.SEND_HOMEWORK, HOMEWORK_PROGRESS_ID_PARAM,
                         progress.getId().toString(), menuMessage.getMessage().getMessageId(),
                         MenuTerminationGroupKey.SEND_HOMEWORK, progress.getId());
                 LOGGER.debug("Send homework has been sent to user " + botRole.getUser().getId() + " for homework "
@@ -269,35 +267,35 @@ public class HomeworkOrchestrationService {
         Assert.notNull(messages, "messages cannot be null");
 
         HomeworkProgress progress = entityUtil.getHomeworkProgressByHomeworkId(botRole, homeworkId);
-        final List<BotRole> mentors = userService.getHomeworkReceivingUsers(botRole.getBot().getId());
 
-        if (progress.getHomework().getLesson().getCourse().isFeedbackIncluded()
-                && progress.getHomework().isFeedbackRequired()
-                && !mentors.isEmpty()) {
-            progress = homeworkService.commit(botRole, homeworkId, messages, Status.AWAITS_APPROVAL);
-            requestFeedback(botRole, progress, mentors);
+        final Course course = progress.getHomework().getLesson().getCourse();
 
-            clientManager.sendMessage(botRole, localizationLoader.localize(
-                    Localizations.Service.FEEDBACK_FOR_HOMEWORK_WAITING, botRole));
-        } else {
-            progress = homeworkService.commit(botRole, homeworkId, messages, Status.COMPLETED);
+        if (course.isFeedbackIncluded() && progress.getHomework().isFeedbackRequired()) {
+            final Optional<BotRole> potentialCurator = homeworkService.resolveCurator(botRole, course.getId());
 
-            for (final BotRole mentor : mentors) {
-                clientManager.sendMessage(mentor, localizationLoader.localize(Localizations.Service.HOMEWORK_SUBMITTED_NOTIFICATION, mentor,
-                    new Localizations.Service.HomeworkSubmittedNotificationParams(
-                        progress.getUser().getId(),
-                        progress.getUser().getFullName(),
-                        localizationLoader.getLanguageName(mentor, progress.getUser().getLanguageCode())
-                    )
-                ));
-                contentService.sendContentAsync(mentor, progress.getContent().getId());
+            if (potentialCurator.isPresent()) {
+                progress = homeworkService.commit(botRole, homeworkId, messages, Status.AWAITS_APPROVAL);
+
+                final ContentMapping courseTitle = entityUtil.getMappingById(botRole, course.getTitle().getId());
+
+                sendFeedbackMessage(potentialCurator.get(), courseTitle, progress);
+    
+                clientManager.sendMessage(botRole, localizationLoader.localize(
+                        Localizations.Service.FEEDBACK_FOR_HOMEWORK_WAITING, botRole));
+    
+                menuService.terminateMenuGroup(MenuTerminationGroupKey.SEND_HOMEWORK, progress.getId());
+                return;
             }
-            clientManager.sendMessage(botRole, localizationLoader.localize(
-                    Localizations.Service.HOMEWORK_ACCEPTED_AUTO, botRole));
+        } 
+        progress = homeworkService.commit(botRole, homeworkId, messages, Status.COMPLETED);
 
-            courseService.next(botRole, progress.getHomework().getLesson().getCourse().getId(),
-                    progress.getHomework().getLesson().getId());
-        }
+        // TODO: add a way to see automatically accepted homeworks
+        clientManager.sendMessage(botRole, localizationLoader.localize(
+                Localizations.Service.HOMEWORK_ACCEPTED_AUTO, botRole));
+
+        courseService.next(botRole, progress.getHomework().getLesson().getCourse().getId(),
+                progress.getHomework().getLesson().getId());
+        
         menuService.terminateMenuGroup(MenuTerminationGroupKey.SEND_HOMEWORK, progress.getId());
     }
 
@@ -384,8 +382,8 @@ public class HomeworkOrchestrationService {
     public void sendPendingHomeworks(BotRole botRole) {
         Assert.notNull(botRole, "botRole cannot be null");
 
-        final List<HomeworkProgress> progresses = homeworkService.getPendingHomeworksByBot(
-                botRole.getBot().getId(), PageRequest.ofSize(pagedRequestProperties.homework().pageSize()));
+        final List<HomeworkProgress> progresses = homeworkService.getPendingHomeworksByBotForCurator(
+                botRole.getBot().getId(), botRole.getId(), PageRequest.ofSize(pagedRequestProperties.homework().pageSize()));
 
         if (progresses.isEmpty()) {
             LOGGER.info("There are no pending homeworks in bot " + botRole.getBot().getId() + ".");
@@ -407,8 +405,8 @@ public class HomeworkOrchestrationService {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        final List<HomeworkProgress> progresses = homeworkService.getPendingHomeworksByCourse(
-                courseId, PageRequest.ofSize(pagedRequestProperties.homework().pageSize()));
+        final List<HomeworkProgress> progresses = homeworkService.getPendingHomeworksByCourseForCurator(
+                courseId, botRole.getId(), PageRequest.ofSize(pagedRequestProperties.homework().pageSize()));
 
         if (progresses.isEmpty()) {
             LOGGER.info("There are no pending homeworks for course " + courseId + ".");
@@ -426,6 +424,37 @@ public class HomeworkOrchestrationService {
 
         feedbackSessionRepository.save(new HomeworkFeedbackSession(botRole.getId(), counter, courseId,
                 progresses.stream().map(p -> p.getId()).toList()));
+    }
+
+    public void reassignCourseProgressesForUser(BotRole current, Long targetBotRoleId) {
+        Assert.notNull(current, "current cannot be null");
+        Assert.notNull(targetBotRoleId, "targetBotRole cannot be null");
+
+        final Map<BotRole, Integer> resultMap = homeworkService.reassignCourseProgressesForUser(current, targetBotRoleId);
+        final BotRole targetRole = entityUtil.getBotRoleById(current, targetBotRoleId);
+
+        LOGGER.debug("Sending notifications about homework reassignments...");
+        for (final Entry<BotRole, Integer> pair : resultMap.entrySet()) {
+            clientManager.sendMessageAsync(pair.getKey(), localizationLoader.localize(Localizations.Service.HOMEWORK_REASSIGNED_NOTIFICATION,
+                    pair.getKey(), new Localizations.Service.HomeworkReassignedNotificationParams(targetRole.getUser().getFullName(), pair.getValue())));
+        }
+        LOGGER.debug("Messages sent.");
+    }
+
+    public void transferHomework(BotRole current, Long targetBotId, Long homeworkProgressId) {
+        Assert.notNull(current, "current bot role cannot be null");
+        Assert.notNull(targetBotId, "targetBotId cannot be null");
+        Assert.notNull(homeworkProgressId, "homeworkProgressId cannot be null");
+
+        final HomeworkProgress homeworkProgress = homeworkService.transferHomework(current, targetBotId, homeworkProgressId);
+        final BotRole targetRole = entityUtil.getBotRoleById(current, targetBotId);
+
+        menuService.terminateMenuGroup(MenuTerminationGroupKey.REQUEST_FEEDBACK, homeworkProgressId);
+        sendFeedbackMessage(targetRole, entityUtil.getCourseTitle(targetRole,
+                homeworkProgress.getHomework().getLesson().getCourse().getId()), homeworkProgress);
+        clientManager.sendMessage(current, localizationLoader.localize(Localizations.Service.HOMEWORK_TRANSFER_SUCCESS, current,
+                new Localizations.Service.HomeworkTrasferSuccessParams(targetRole.getUser().getFullName(),
+                entityUtil.getLocalizedTitle(current, targetRole))));
     }
 
     private String getStatus(BotRole botRole, boolean status) {
@@ -450,22 +479,6 @@ public class HomeworkOrchestrationService {
                     }
                 }
             }
-        }
-    }
-
-    private void requestFeedback(BotRole botRole, HomeworkProgress progress, List<BotRole> mentors) {
-        Assert.notNull(botRole, "botRole cannot be null");
-        Assert.notNull(progress, "Homework progress cannot be null");
-        Assert.notEmpty(mentors, "mentors cannot be empty or null");
-
-        final Course course = progress.getHomework().getLesson().getCourse();
-        final ContentMapping courseTitle = entityUtil.getMappingById(botRole, course.getTitle().getId());
-
-        for (final BotRole mentor : mentors) {
-            LOGGER.debug("User " + mentor.getId() + " has homework feedback enabled. "
-                    + "Sending approval message to them...");
-
-            sendFeedbackMessage(mentor, courseTitle, progress);
         }
     }
 
@@ -551,7 +564,7 @@ public class HomeworkOrchestrationService {
             menuMessage = sentContent.get(0);
         }
         if (menuMessage.getResult() == Result.OK) {
-            menuService.initiateMenu(mentorBotRole, MenuKey.REQUEST_FEEDBACK, PROGRESS_ID_PARAM,
+            menuService.initiateMenu(mentorBotRole, MenuKey.REQUEST_FEEDBACK, HOMEWORK_PROGRESS_ID_PARAM,
                     progress.getId().toString(), menuMessage.getMessage().getMessageId(),
                     MenuTerminationGroupKey.REQUEST_FEEDBACK, progress.getId());
             LOGGER.debug("Feedback menu has been initialized for user " + mentorBotRole.getUser().getId() + ".");

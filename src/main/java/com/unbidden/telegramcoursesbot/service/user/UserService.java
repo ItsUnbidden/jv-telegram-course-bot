@@ -7,9 +7,11 @@ import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.localization.Localizations.Error;
 import com.unbidden.telegramcoursesbot.model.BotRole;
+import com.unbidden.telegramcoursesbot.model.Role;
 import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.repository.BotRoleRepository;
+import com.unbidden.telegramcoursesbot.repository.RoleRepository;
 import com.unbidden.telegramcoursesbot.repository.UserRepository;
 import com.unbidden.telegramcoursesbot.service.timing.TimingService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
@@ -36,6 +38,8 @@ public class UserService {
 
     private final BotRoleRepository botRoleRepository;
 
+    private final RoleRepository roleRepository;
+
     private final LocalizationLoader localizationLoader;
 
     private final TimingService timingService;
@@ -47,10 +51,20 @@ public class UserService {
     private final BaseProperties baseProperties;
 
     @Transactional(readOnly = true)
-    public List<BotRole> getHomeworkReceivingUsers(Long botId) {
-        Assert.notNull(botId, "botId cannot be null");
+    public List<BotRole> getHomeworkReceivers(BotRole botRole) {
+        return botRoleRepository.findHomeworkReceiversInBot(botRole.getBot().getId());
+    }
 
-        return botRoleRepository.findByReceivingHomeworkInBot(botId);
+    @Transactional(readOnly = true)
+    public long countHomeworkReceivers(BotRole botRole) {
+        return botRoleRepository.countHomeworkReceiversInBotAndExcludeUser(botRole.getBot().getId(), botRole.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public Role getRoleByUserId(BotRole botRole, Long userId) {
+        return roleRepository.findByUserIdAndBotId(userId, botRole.getBot().getId()).orElseThrow(() ->
+                new EntityNotFoundException("Bot role for user " + userId + " does not exist in bot " + botRole.getBot().getId()
+                + ".", localizationLoader.localize(Localizations.Error.BOT_ROLE_NOT_FOUND, botRole)));
     }
 
     @Transactional
@@ -162,20 +176,15 @@ public class UserService {
         final BotRole botRoleFromDb = entityUtil.getBotRole(botRole, targetId);
 
         if (botRoleFromDb.getRole().getType().equals(RoleType.BANNED)) {
-            throw new ForbiddenOperationException("User is already banned", localizationLoader
+            throw new ForbiddenOperationException("User is already banned.", localizationLoader
                     .localize(Error.USER_ALREADY_BANNED, botRole));
         }
-        if (botRoleFromDb.getRole().getType().equals(RoleType.DIRECTOR)) {
-            throw new ForbiddenOperationException("Director cannot be banned", localizationLoader
-                    .localize(Error.DIRECTOR_BAN, botRole));
-        }
-        if (botRoleFromDb.getRole().getType().equals(RoleType.CREATOR)) {
-            throw new ForbiddenOperationException("Creator cannot be banned by a bot "
-                    + "specific ban", localizationLoader.localize(
-                    Error.CREATOR_BAN, botRole));
+        if (!botRoleFromDb.getRole().getType().equals(RoleType.USER)) {
+            throw new ForbiddenOperationException("Users with special roles cannot be banned.", localizationLoader
+                    .localize(Error.SPECIAL_ROLE_BAN, botRole));
         }
         if (botRole.getUser().getId().equals(targetId)) {
-            throw new ForbiddenOperationException("User cannot ban themselves", localizationLoader
+            throw new ForbiddenOperationException("User cannot ban themselves.", localizationLoader
                     .localize(Error.SELF_BAN, botRole));
         }
         LOGGER.info("Banning user " + targetId + " in bot " + botRole.getBot().getId() + "...");
