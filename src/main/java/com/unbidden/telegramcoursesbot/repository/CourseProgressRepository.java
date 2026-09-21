@@ -25,6 +25,8 @@ public interface CourseProgressRepository extends JpaRepository<CourseProgress, 
 
     List<CourseProgress> findByUserIdAndCourseIdIn(Long userId, List<Long> courseIds);
 
+    List<CourseProgress> findByCuratorId(Long curatorId);
+
     @Query("""
         select new com.unbidden.telegramcoursesbot.dto.internal.UsersByCourseStageCountDto(cp.stage, count(cp.id))
         from CourseProgress cp

@@ -380,6 +380,8 @@ public final class Localizations {
         BOT_CREATOR_INFO_SETTINGS,
         BOT_START_SETTINGS,
         BOT_TERMS_SETTINGS,
+        TRANSFER_HOMEWORK,
+        CONFIRM,
         GET_LOCALIZATION_FILE_TEMPLATES;
 
         private String locName;
@@ -1198,6 +1200,22 @@ public final class Localizations {
         BOT_START_REQUEST,
         BOT_TERMS_REQUEST,
         /**
+         * Possible parameters:
+         * <ls>
+         *  <li>previousCuratorFullName</li>
+         *  <li>numberOfHomeworks</li>
+         * </ls>
+         */
+        HOMEWORK_REASSIGNED_NOTIFICATION,
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>targetFullName</li>
+         *  <li>title</li>
+         * </ls>
+         */
+        HOMEWORK_TRANSFER_SUCCESS,
+        /**
          * Not used in production.
          */
         TEST_LOC,
@@ -1316,6 +1334,8 @@ public final class Localizations {
         public static record NewEndMappingAddedParams(String courseName, long mappingId) {}
         public static record EndMappingRemovedParams(String courseName) {}
         public static record MenusManuallyRemovedSuccessParams(int successes, int failures) {}
+        public static record HomeworkTrasferSuccessParams(String targetFullName, String title) {}
+        public static record HomeworkReassignedNotificationParams(String previousCuratorFullName, Integer numberOfHomeworks) {}
     }
     
     public static enum Error implements LocalizationKey {
@@ -1423,7 +1443,6 @@ public final class Localizations {
         USER_IS_NOT_BANNED("error_user_is_not_banned"),
         USER_ALREADY_BANNED("error_user_already_banned"),
         CANNOT_SET_BANNED_ROLE("error_cannot_set_banned_role"),
-        CREATOR_BAN("error_creator_ban"),
         SELF_BAN("error_self_ban"),
         SAME_ROLE("error_same_role"),
         PREDEFINED_CHANGE_ROLES("error_predefined_change_roles"),
@@ -1661,7 +1680,6 @@ public final class Localizations {
          * </ls>
          */
         COURSE_VALIDATION_NO_CONTENT_IN_LESSON("error_course_validation_no_content_in_lesson"),
-        DIRECTOR_BAN("error_director_ban"),
         SEND_MESSAGE,
         GENERAL_BAN_NO_BOT_ROLES,
         SEND_EXTERNAL_INVOICE,
@@ -1671,6 +1689,9 @@ public final class Localizations {
         BOT_CREATOR_INFO_PRESENT,
         BOT_TERMS_PRESENT,
         BOT_START_PRESENT,
+        SPECIAL_ROLE_BAN,
+        DIRECTOR_BAN,
+        HOMEWORK_TRANSFER_USER_DOES_NOT_RECEIVE_HOMEWORK,
         POST_REQUEST_FAILURE;
         
         private String locName;

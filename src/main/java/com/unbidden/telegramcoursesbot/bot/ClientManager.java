@@ -273,7 +273,7 @@ public class ClientManager {
     }
 
     /**
-     * Asynchronously sends a message with the provided {@link Localization} to the chat specified in the {@link BotRole}. 
+     * Asynchronously sends a message with the provided {@link Localization} and markup to the chat specified in the {@link BotRole}.
      * The future <b>always completes</b>. There are three possible result types:
      * <ls>
      *  <li>OK -> Sent successfully</li>
@@ -285,7 +285,7 @@ public class ClientManager {
      * @param localization
      * @return {@link CompletableFuture} with the result wrapped in {@link SendMessageResultDto}
      */
-    public CompletableFuture<SendMessageResultDto> sendMessageAsync(BotRole botRole, Localization localization) {
+    public CompletableFuture<SendMessageResultDto> sendMessageAsync(BotRole botRole, Localization localization, ReplyKeyboard replyKeyboard) {
         if (botRole.isDisabled()) {
             return CompletableFuture.completedFuture(new SendMessageResultDto());
         }
@@ -295,6 +295,7 @@ public class ClientManager {
                     .chatId(botRole.getUser().getId())
                     .text(localization.getData())
                     .entities(localization.getEntities())
+                    .replyMarkup(replyKeyboard)
                     .build()).handle((m, t) -> {
                         if (t != null) {
                             return new SendMessageResultDto(new TelegramException("Unable to send a message to user " + botRole.getUser().getId()
@@ -309,6 +310,23 @@ public class ClientManager {
                     + botRole.getUser().getId() + " in bot " + botRole.getBot().getId() + ".", loader.localize(
                     Localizations.Error.SEND_MESSAGE, botRole), e)));
         }
+    }
+
+    /**
+     * Asynchronously sends a message with the provided {@link Localization} to the chat specified in the {@link BotRole}.
+     * The future <b>always completes</b>. There are three possible result types:
+     * <ls>
+     *  <li>OK -> Sent successfully</li>
+     *  <li>SKIPPED -> User has disabled the bot</li>
+     *  <li>FAILURE -> An unexpected error occured</li>
+     * </ls>
+     * 
+     * @param botRole
+     * @param localization
+     * @return {@link CompletableFuture} with the result wrapped in {@link SendMessageResultDto}
+     */
+    public CompletableFuture<SendMessageResultDto> sendMessageAsync(BotRole botRole, Localization localization) {
+        return sendMessageAsync(botRole, localization, null);
     }
 
     private String getStatus(BotRole botRole) {

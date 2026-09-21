@@ -4,7 +4,9 @@ import com.unbidden.telegramcoursesbot.util.ValidatorUtil;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -48,7 +50,7 @@ import com.unbidden.telegramcoursesbot.util.EntityUtil;
 public class HomeworkOrchestrationService {
     private static final Logger LOGGER = LogManager.getFormatterLogger(HomeworkOrchestrationService.class);
 
-    private static final String PROGRESS_ID_PARAM = "progressId";
+    private static final String HOMEWORK_PROGRESS_ID_PARAM = "progressId";
     private static final String LESSON_ID_PARAM = "lessonId";
 
     public static final int MAX_HOMEWORK_DELAY = 720;
@@ -246,7 +248,7 @@ public class HomeworkOrchestrationService {
                 menuMessage = sentContent.get(0);
             }
             if (menuMessage.getResult() == Result.OK) {
-                menuService.initiateMenu(botRole, MenuKey.SEND_HOMEWORK, PROGRESS_ID_PARAM,
+                menuService.initiateMenu(botRole, MenuKey.SEND_HOMEWORK, HOMEWORK_PROGRESS_ID_PARAM,
                         progress.getId().toString(), menuMessage.getMessage().getMessageId(),
                         MenuTerminationGroupKey.SEND_HOMEWORK, progress.getId());
                 LOGGER.debug("Send homework has been sent to user " + botRole.getUser().getId() + " for homework "
@@ -380,8 +382,8 @@ public class HomeworkOrchestrationService {
     public void sendPendingHomeworks(BotRole botRole) {
         Assert.notNull(botRole, "botRole cannot be null");
 
-        final List<HomeworkProgress> progresses = homeworkService.getPendingHomeworksByBot(
-                botRole.getBot().getId(), PageRequest.ofSize(pagedRequestProperties.homework().pageSize()));
+        final List<HomeworkProgress> progresses = homeworkService.getPendingHomeworksByBotForCurator(
+                botRole.getBot().getId(), botRole.getId(), PageRequest.ofSize(pagedRequestProperties.homework().pageSize()));
 
         if (progresses.isEmpty()) {
             LOGGER.info("There are no pending homeworks in bot " + botRole.getBot().getId() + ".");
@@ -403,8 +405,8 @@ public class HomeworkOrchestrationService {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
-        final List<HomeworkProgress> progresses = homeworkService.getPendingHomeworksByCourse(
-                courseId, PageRequest.ofSize(pagedRequestProperties.homework().pageSize()));
+        final List<HomeworkProgress> progresses = homeworkService.getPendingHomeworksByCourseForCurator(
+                courseId, botRole.getId(), PageRequest.ofSize(pagedRequestProperties.homework().pageSize()));
 
         if (progresses.isEmpty()) {
             LOGGER.info("There are no pending homeworks for course " + courseId + ".");
@@ -424,12 +426,35 @@ public class HomeworkOrchestrationService {
                 progresses.stream().map(p -> p.getId()).toList()));
     }
 
-    public void transferHomework(BotRole current, Long targetId, Long progressId) {
-        Assert.notNull(current, "current bot role cannot be null");
-        Assert.notNull(targetId, "targetId cannot be null");
-        Assert.notNull(progressId, "progressId cannot be null");
+    public void reassignCourseProgressesForUser(BotRole current, Long targetBotRoleId) {
+        Assert.notNull(current, "current cannot be null");
+        Assert.notNull(targetBotRoleId, "targetBotRole cannot be null");
 
-        
+        final Map<BotRole, Integer> resultMap = homeworkService.reassignCourseProgressesForUser(current, targetBotRoleId);
+        final BotRole targetRole = entityUtil.getBotRoleById(current, targetBotRoleId);
+
+        LOGGER.debug("Sending notifications about homework reassignments...");
+        for (final Entry<BotRole, Integer> pair : resultMap.entrySet()) {
+            clientManager.sendMessageAsync(pair.getKey(), localizationLoader.localize(Localizations.Service.HOMEWORK_REASSIGNED_NOTIFICATION,
+                    pair.getKey(), new Localizations.Service.HomeworkReassignedNotificationParams(targetRole.getUser().getFullName(), pair.getValue())));
+        }
+        LOGGER.debug("Messages sent.");
+    }
+
+    public void transferHomework(BotRole current, Long targetBotId, Long homeworkProgressId) {
+        Assert.notNull(current, "current bot role cannot be null");
+        Assert.notNull(targetBotId, "targetBotId cannot be null");
+        Assert.notNull(homeworkProgressId, "homeworkProgressId cannot be null");
+
+        final HomeworkProgress homeworkProgress = homeworkService.transferHomework(current, targetBotId, homeworkProgressId);
+        final BotRole targetRole = entityUtil.getBotRoleById(current, targetBotId);
+
+        menuService.terminateMenuGroup(MenuTerminationGroupKey.REQUEST_FEEDBACK, homeworkProgressId);
+        sendFeedbackMessage(targetRole, entityUtil.getCourseTitle(targetRole,
+                homeworkProgress.getHomework().getLesson().getCourse().getId()), homeworkProgress);
+        clientManager.sendMessage(current, localizationLoader.localize(Localizations.Service.HOMEWORK_TRANSFER_SUCCESS, current,
+                new Localizations.Service.HomeworkTrasferSuccessParams(targetRole.getUser().getFullName(),
+                entityUtil.getLocalizedTitle(current, targetRole))));
     }
 
     private String getStatus(BotRole botRole, boolean status) {
@@ -539,7 +564,7 @@ public class HomeworkOrchestrationService {
             menuMessage = sentContent.get(0);
         }
         if (menuMessage.getResult() == Result.OK) {
-            menuService.initiateMenu(mentorBotRole, MenuKey.REQUEST_FEEDBACK, PROGRESS_ID_PARAM,
+            menuService.initiateMenu(mentorBotRole, MenuKey.REQUEST_FEEDBACK, HOMEWORK_PROGRESS_ID_PARAM,
                     progress.getId().toString(), menuMessage.getMessage().getMessageId(),
                     MenuTerminationGroupKey.REQUEST_FEEDBACK, progress.getId());
             LOGGER.debug("Feedback menu has been initialized for user " + mentorBotRole.getUser().getId() + ".");

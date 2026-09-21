@@ -1,28 +1,36 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
+import com.unbidden.telegramcoursesbot.dto.internal.HomeworkReceiverWithCountDto;
+import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
+import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.exception.MediaTypeParseException;
 import com.unbidden.telegramcoursesbot.exception.OnMaintenanceException;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.mapper.HomeworkMapper;
 import com.unbidden.telegramcoursesbot.model.BotRole;
+import com.unbidden.telegramcoursesbot.model.Course;
 import com.unbidden.telegramcoursesbot.model.CourseProgress;
 import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress.Status;
 import com.unbidden.telegramcoursesbot.model.Lesson;
+import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
 import com.unbidden.telegramcoursesbot.model.content.Content.MediaType;
 import com.unbidden.telegramcoursesbot.repository.BotRoleRepository;
 import com.unbidden.telegramcoursesbot.repository.ContentMappingRepository;
+import com.unbidden.telegramcoursesbot.repository.CourseProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.HomeworkProgressRepository;
 import com.unbidden.telegramcoursesbot.repository.HomeworkRepository;
 import com.unbidden.telegramcoursesbot.service.content.ContentOrchestrationService;
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
@@ -44,6 +52,8 @@ public class HomeworkService {
 
     private final ContentMappingRepository contentMappingRepository;
 
+    private final CourseProgressRepository courseProgressRepository;
+
     private final BotRoleRepository botRoleRepository;
 
     private final ContentOrchestrationService contentService;
@@ -53,10 +63,10 @@ public class HomeworkService {
     private final EntityUtil entityUtil;
 
     @Transactional(readOnly = true)
-    public List<HomeworkProgress> getPendingHomeworksByBot(Long botId, Pageable pageable) {
+    public List<HomeworkProgress> getPendingHomeworksByBotForCurator(Long botId, Long curatorRoleId, Pageable pageable) {
         Assert.notNull(botId, "botId cannot be null");
 
-        final List<HomeworkProgress> progresses = homeworkProgressRepository.findPendingFeedbackByBotId(botId, pageable);
+        final List<HomeworkProgress> progresses = homeworkProgressRepository.findPendingFeedbackByBotId(botId, curatorRoleId, pageable);
 
         if (!progresses.isEmpty()) contentMappingRepository.findAllById(progresses.stream()
                 .map(p -> p.getHomework().getLesson().getCourse().getTitle().getId())
@@ -66,10 +76,10 @@ public class HomeworkService {
     }
 
     @Transactional(readOnly = true)
-    public List<HomeworkProgress> getPendingHomeworksByCourse(Long courseId, Pageable pageable) {
+    public List<HomeworkProgress> getPendingHomeworksByCourseForCurator(Long courseId, Long curatorRoleId, Pageable pageable) {
         Assert.notNull(courseId, "courseId cannot be null");
 
-        final List<HomeworkProgress> progresses = homeworkProgressRepository.findPendingFeedbackByCourseId(courseId, pageable);
+        final List<HomeworkProgress> progresses = homeworkProgressRepository.findPendingFeedbackByCourseId(courseId, curatorRoleId, pageable);
 
         if (!progresses.isEmpty()) contentMappingRepository.findAllById(progresses.stream()
                 .map(p -> p.getHomework().getLesson().getCourse().getTitle().getId())
@@ -252,6 +262,76 @@ public class HomeworkService {
         if (potentialCurator.isPresent()) courseProgress.setCurator(potentialCurator.get());
 
         return potentialCurator;
+    }
+
+    @Transactional
+    public Map<BotRole, Integer> reassignCourseProgressesForUser(BotRole current, Long targetBotRole) {
+        Assert.notNull(current, "current cannot be null");
+        Assert.notNull(targetBotRole, "targetBotRole cannot be null");
+
+        final List<CourseProgress> progresses = courseProgressRepository.findByCuratorId(targetBotRole);
+        final Map<BotRole, Integer> resultMap = new HashMap<>(); 
+
+        if (progresses.isEmpty()) return resultMap;
+
+        final List<HomeworkReceiverWithCountDto> mentors = botRoleRepository.findHomeworkReceiversWithCountsInBotAndExcludeUser(
+                current.getBot().getId(), targetBotRole);  
+
+        LOGGER.info("Reassigning course progresses that were curated by user " + progresses.getFirst().getCurator().getId()
+                + " in bot " + current.getBot().getId() + "...");
+        if (mentors.isEmpty()) {
+            final BotRole creator = entityUtil.getCreator(current.getBot().getId());
+
+            LOGGER.info("There are currently no users in bot " + current.getBot().getId()
+                    + " who are receiving homework. All progresses will be assigned to creator " + creator.getId() + ".");
+
+            progresses.forEach(p -> p.setCurator(creator));
+            resultMap.put(creator, progresses.size());
+        } else {
+            mentors.forEach(m -> resultMap.put(m.getCurator(), 0));
+            for (final CourseProgress progress : progresses) {  
+                final HomeworkReceiverWithCountDto min = mentors.stream().min((o1, o2) -> {
+                    if (o1.getNumberOfAssignees() > o2.getNumberOfAssignees()) return 1;
+                    if (o1.getNumberOfAssignees() < o2.getNumberOfAssignees()) return -1;
+                    return 0;
+                }).get();
+    
+                progress.setCurator(min.getCurator());
+                min.setNumberOfAssignees(min.getNumberOfAssignees() + 1);
+                resultMap.put(min.getCurator(), resultMap.get(min.getCurator()) + 1);
+            }
+        }
+
+        return resultMap;
+    }
+
+    @Transactional
+    public HomeworkProgress transferHomework(BotRole current, Long targetRoleId, Long homeworkProgressId) {
+        Assert.notNull(current, "current cannot be null");
+        Assert.notNull(targetRoleId, "targetRoleId cannot be null");
+        Assert.notNull(homeworkProgressId, "courseId cannot be null");
+
+        final BotRole targetBotRole = entityUtil.getBotRoleById(current, targetRoleId);
+
+        if (!targetBotRole.isReceivingHomework()) {
+            throw new ForbiddenOperationException("Unable to transfer assignee to user " + targetBotRole.getUser().getId()
+                    + " because they cannot receive homework.", loader.localize(
+                        Localizations.Error.HOMEWORK_TRANSFER_USER_DOES_NOT_RECEIVE_HOMEWORK, current));
+        }
+        final HomeworkProgress homeworkProgress = entityUtil.getHomeworkProgressById(current, homeworkProgressId);
+        final UserEntity user = homeworkProgress.getUser();
+        final Course course = homeworkProgress.getHomework().getLesson().getCourse();
+        final CourseProgress courseProgress = courseProgressRepository.findByUserIdAndCourseId(user.getId(),
+                course.getId()).orElseThrow(() -> new EntityNotFoundException("Unable to find a course progress for user "
+                + user.getId() + " and course " + course.getId() + ".", loader.localize(Localizations.Error.COURSE_PROGRESS_NOT_FOUND, targetBotRole)));
+
+        LOGGER.info("User " + current.getUser().getId() + " is transfering user " + user.getId()
+                + " who is assigned to them in course " + course.getId() + " to user "
+                + targetBotRole.getUser().getId() + ".");
+
+        courseProgress.setCurator(targetBotRole);
+
+        return homeworkProgress;
     }
 
     private String getStatus(boolean status) {

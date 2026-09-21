@@ -14,6 +14,7 @@ import com.unbidden.telegramcoursesbot.bot.RegularClient;
 import com.unbidden.telegramcoursesbot.localization.LocalizationLoader;
 import com.unbidden.telegramcoursesbot.localization.Localizations;
 import com.unbidden.telegramcoursesbot.model.BotRole;
+import com.unbidden.telegramcoursesbot.model.Role;
 import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.service.user.UserService;
@@ -26,6 +27,8 @@ import lombok.RequiredArgsConstructor;
 public class UserOrchestrationService {
     private static final Logger LOGGER = LogManager.getFormatterLogger(UserOrchestrationService.class);
 
+    private final HomeworkOrchestrationService homeworkService;
+
     private final UserService userService;
 
     private final LocalizationLoader loader;
@@ -35,6 +38,14 @@ public class UserOrchestrationService {
     private final ReplyKeyboardRemove keyboardRemove;
 
     private final EntityUtil entityUtil;
+
+    public List<BotRole> getHomeworkReceivers(BotRole botRole) {
+        return userService.getHomeworkReceivers(botRole);
+    }
+
+    public long countHomeworkReceivers(BotRole botRole) {
+        return userService.countHomeworkReceivers(botRole);
+    }
 
     public BotRole initializeUserForBot(User rawUser, Long botId) {
         Assert.notNull(rawUser, "rawUser cannot be null");
@@ -58,16 +69,20 @@ public class UserOrchestrationService {
         Assert.notNull(targetId, "targetId cannot be null");
         Assert.notNull(roleType, "roleType cannot be null");
 
+        final Role initialRole = userService.getRoleByUserId(botRole, targetId);
         final BotRole targetBotRole = userService.setRole(botRole, targetId, roleType);
 
         LOGGER.debug("Bot role " + targetBotRole.getId() + " has been updated for user "
                 + targetBotRole.getUser().getId() + ". Sending confirmation...");
 
-        clientManager.sendMessage(targetBotRole, loader.localize(Localizations.Service.ROLE_CHANGED,
+        if (initialRole.getType() == RoleType.MENTOR) {
+            homeworkService.reassignCourseProgressesForUser(botRole, targetBotRole.getId());
+        }
+        clientManager.sendMessageAsync(targetBotRole, loader.localize(Localizations.Service.ROLE_CHANGED,
                 targetBotRole, new Localizations.Service.RoleChangedParams(botRole.getUser().getFullName(), roleType,
                 entityUtil.getLocalizedTitle(targetBotRole, botRole))));
-        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.SET_ROLE_SUCCESS, botRole,
-                new Localizations.Service.SetRoleSuccessParams(targetBotRole.getUser().getFullName(), roleType)));
+        clientManager.sendMessageAsync(botRole, loader.localize(Localizations.Service.SET_ROLE_SUCCESS, botRole,
+                new Localizations.Service.SetRoleSuccessParams(targetBotRole.getUser().getFullName(), roleType)), keyboardRemove);
         
         LOGGER.debug("Messages sent. Updating menus...");
         final RegularClient client = (RegularClient)clientManager.getClient(targetBotRole.getBot());
@@ -90,13 +105,13 @@ public class UserOrchestrationService {
 
         LOGGER.debug("Sending confirmation messages...");
         if (hours > 0) {
-            clientManager.sendMessage(targetBotRole, loader.localize(Localizations.Service.TEMPORARY_BANNED, targetBotRole,
+            clientManager.sendMessageAsync(targetBotRole, loader.localize(Localizations.Service.TEMPORARY_BANNED, targetBotRole,
                     new Localizations.Service.TemporaryBannedParams(botRole.getUser().getFullName(), hours, title)));
         } else {
-            clientManager.sendMessage(targetBotRole, loader.localize(Localizations.Service.BANNED, targetBotRole,
+            clientManager.sendMessageAsync(targetBotRole, loader.localize(Localizations.Service.BANNED, targetBotRole,
                     new Localizations.Service.BannedParams(botRole.getUser().getFullName(), title)));
         }
-        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.BAN_SUCCESS, botRole), keyboardRemove);
+        clientManager.sendMessageAsync(botRole, loader.localize(Localizations.Service.BAN_SUCCESS, botRole), keyboardRemove);
         LOGGER.debug("Messages sent.");
     }
 
@@ -109,10 +124,10 @@ public class UserOrchestrationService {
         LOGGER.info("Ban for user " + targetId + " in bot " + botRole.getBot().getId() + " has been lifted.");
 
         LOGGER.debug("Sending confirmation messages...");
-        clientManager.sendMessage(targetBotRole, loader.localize(Localizations.Service.BAN_LIFTED,
+        clientManager.sendMessageAsync(targetBotRole, loader.localize(Localizations.Service.BAN_LIFTED,
                 targetBotRole, new Localizations.Service.BanLiftedParams(botRole.getUser().getFullName(),
                 entityUtil.getLocalizedTitle(targetBotRole, botRole))));
-        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.BAN_LIFTED_SUCCESS, botRole), keyboardRemove);
+        clientManager.sendMessageAsync(botRole, loader.localize(Localizations.Service.BAN_LIFTED_SUCCESS, botRole), keyboardRemove);
         LOGGER.debug("Messages sent.");
     }
 
@@ -152,7 +167,7 @@ public class UserOrchestrationService {
             botRoles.forEach(br -> clientManager.sendMessageAsync(br, loader.localize(
                     Localizations.Service.GENERAL_BAN, br, banParams)));
         }
-        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.GENERAL_BAN_SUCCESS, botRole));
+        clientManager.sendMessageAsync(botRole, loader.localize(Localizations.Service.GENERAL_BAN_SUCCESS, botRole));
         LOGGER.debug("Messages sent.");
     }
 
@@ -173,7 +188,7 @@ public class UserOrchestrationService {
         LOGGER.debug("Sending confirmation messages...");
         botRoles.forEach(br -> clientManager.sendMessageAsync(br, loader.localize(Localizations.Service.GENERAL_BAN_LIFTED, br,
                 new Localizations.Service.GeneralBanLiftedParams(botRole.getUser().getFullName(), title))));
-        clientManager.sendMessage(botRole, loader.localize(Localizations.Service.GENERAL_BAN_LIFTED_SUCCESS, botRole), keyboardRemove);
+        clientManager.sendMessageAsync(botRole, loader.localize(Localizations.Service.GENERAL_BAN_LIFTED_SUCCESS, botRole), keyboardRemove);
         LOGGER.debug("Messages sent.");     
     }
 

@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface HomeworkProgressRepository extends JpaRepository<HomeworkProgress, Long> {
     @EntityGraph(attributePaths = {"user", "homework", "homework.lesson",
-            "homework.lesson.course", "homework.mapping"})
+            "homework.lesson.course", "homework.mapping", "content"})
     Optional<HomeworkProgress> findById(Long id);
 
     @Query("""
@@ -35,9 +35,13 @@ public interface HomeworkProgressRepository extends JpaRepository<HomeworkProgre
         left join fetch hp.homework h
         left join fetch h.lesson l
         left join fetch l.course c
-        where c.bot.id = :botId and hp.status = 'AWAITS_APPROVAL'
+        where c.bot.id = :botId and hp.status = 'AWAITS_APPROVAL' and exists(
+            select 1
+            from CourseProgress cp
+            where cp.user = u and cp.course = c and cp.curator.id = :curatorRoleId
+        )
     """)
-    List<HomeworkProgress> findPendingFeedbackByBotId(Long botId, Pageable pageable);
+    List<HomeworkProgress> findPendingFeedbackByBotId(Long botId, Long curatorRoleId, Pageable pageable);
 
     @Query("""
         from HomeworkProgress hp
@@ -46,7 +50,11 @@ public interface HomeworkProgressRepository extends JpaRepository<HomeworkProgre
         left join fetch hp.homework h
         left join fetch h.lesson l
         left join fetch l.course c
-        where c.id = :courseId and hp.status = 'AWAITS_APPROVAL'
+        where c.id = :courseId and hp.status = 'AWAITS_APPROVAL' and exists(
+            select 1
+            from CourseProgress cp
+            where cp.user = u and cp.course.id = :courseId and cp.curator.id = :curatorRoleId
+        )
     """)
-    List<HomeworkProgress> findPendingFeedbackByCourseId(Long courseId, Pageable pageable);
+    List<HomeworkProgress> findPendingFeedbackByCourseId(Long courseId, Long curatorRoleId, Pageable pageable);
 }
