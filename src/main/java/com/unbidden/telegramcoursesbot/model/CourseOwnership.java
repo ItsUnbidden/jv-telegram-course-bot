@@ -62,6 +62,7 @@ public class CourseOwnership extends BaseEntity {
     public static enum OwnershipSource {
         TELEGRAM,
         EXTERNAL,
-        GIFTED
+        GIFTED,
+        ADMIN
     }
 }

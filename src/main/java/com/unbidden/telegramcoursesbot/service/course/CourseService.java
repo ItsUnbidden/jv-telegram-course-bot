@@ -244,8 +244,18 @@ public class CourseService {
             course.setInvoice(new ExternalInvoice(uri.toString(), contentMappingRepository.save(invoiceMapping)));
         }
 
-        courseRepository.save(course);
-        LOGGER.debug("New course " + course.getId() + " has been created.");
+        courseRepository.saveAndFlush(course);
+        LOGGER.debug("New course " + course.getId() + " has been created. Adding ownerships for the creator and the director...");
+
+        final BotRole director = entityUtil.getDirectorBotRole(botRole.getBot().getId());
+        final BotRole creator = entityUtil.getCreator(botRole.getBot().getId());
+
+        paymentService.registerAdminCourse(botRole, director.getId(), course.getId());
+
+        if (!director.getId().equals(creator.getId())) {
+            paymentService.registerAdminCourse(botRole, creator.getId(), course.getId());
+        }
+        LOGGER.debug("Ownerships created.");
 
         return course;
     }
