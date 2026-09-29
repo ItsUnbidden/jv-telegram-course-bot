@@ -67,7 +67,7 @@
   {
     "name": "tcp.paged-request.homework.page-size",
     "type": "java.lang.Integer",
-    "description": "How many new pending homeworks will be shown per request."
+    "description": "How many new pending homeworks will be shown per request. 1 is recommended."
   },
   {
     "name": "tcp.webhook.secret",

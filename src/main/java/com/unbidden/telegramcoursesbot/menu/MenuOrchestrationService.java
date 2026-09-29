@@ -109,6 +109,11 @@ public class MenuOrchestrationService {
         initiateMenu0(botRole, key, initialPage, params, messageId, null, null);
     }
 
+    public void initiateMenu(BotRole botRole, MenuKey key, int initialPage, Map<String, String> params, Integer messageId,
+            MenuTerminationGroupKey mtgKey, Object... mtgArgs) {
+        initiateMenu0(botRole, key, initialPage, params, messageId, mtgKey, mtgArgs);
+    }
+
     public void initiateMenu(BotRole botRole, MenuKey key, String paramName, String paramValue, Integer messageId,
             MenuTerminationGroupKey mtgKey, Object... mtgArgs) {
         initiateMenu0(botRole, key, 0, Map.of(paramName, paramValue), messageId, mtgKey, mtgArgs);

@@ -7,13 +7,13 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class HomeworkReceiverWithCountDto {
+public class BotRoleWithCountDto {
     private final BotRole curator;
     
-    private long numberOfAssignees;
+    private long count;
 
-    public HomeworkReceiverWithCountDto(BotRole curator, long numberOfAssignees) {
+    public BotRoleWithCountDto(BotRole curator, long count) {
         this.curator = curator;
-        this.numberOfAssignees = numberOfAssignees;
+        this.count = count;
     }
 }

@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ReplyToSupportReplyButtonHandler extends AbstractButtonHandler {
     private static final String REPLY_ID_PARAM = "replyId";
+    private static final String REQUEST_ID_PARAM = "requestId";
 
     private final ContentSessionService sessionService;
     
@@ -32,11 +33,12 @@ public class ReplyToSupportReplyButtonHandler extends AbstractButtonHandler {
     @Security(authorities = AuthorityType.REPLY_SUPPORT)
     public void handle(BotRole botRole, Map<String, String> params) {
         final Long replyId = Long.parseLong(params.get(REPLY_ID_PARAM));
+        final Long requestId = Long.parseLong(params.get(REQUEST_ID_PARAM));
 
         supportService.isUserEligibleForSupport(botRole);
         
         sessionService.createSession(botRole, p -> {
-            supportService.replyToReply(p.botRole(), replyId, p.messages());
+            supportService.replyToReply(p.botRole(), requestId, replyId, p.messages());
         });
 
         clientManager.sendMessage(botRole, localizationLoader.localize(

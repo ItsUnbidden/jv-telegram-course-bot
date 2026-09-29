@@ -56,8 +56,18 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public long countHomeworkReceivers(BotRole botRole) {
+    public long countOtherHomeworkReceivers(BotRole botRole) {
         return botRoleRepository.countHomeworkReceiversInBotAndExcludeUser(botRole.getBot().getId(), botRole.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<BotRole> getSupportReceivers(BotRole botRole) {
+        return botRoleRepository.findSupportReceiversInBot(botRole.getBot().getId());
+    }
+
+    @Transactional(readOnly = true)
+    public long countOtherSupportReceivers(BotRole botRole) {
+        return botRoleRepository.countSupportReceiversInBotAndExcludeUser(botRole.getBot().getId(), botRole.getId());
     }
 
     @Transactional(readOnly = true)
@@ -164,6 +174,19 @@ public class UserService {
         LOGGER.info("Changing the role of user " + targetId + " in bot " + botRole.getBot().getId() + " to " + roleType + "...");
 
         botRoleFromDb.setRole(entityUtil.getRole(roleType));
+
+        if (roleType == RoleType.USER) {
+            botRoleFromDb.setReceivingHomework(false);
+            botRoleFromDb.setReceivingSupport(false);
+        }
+        if (roleType == RoleType.MENTOR) {
+            botRoleFromDb.setReceivingHomework(true);
+            botRoleFromDb.setReceivingSupport(false);
+        }
+        if (roleType == RoleType.SUPPORT) {
+            botRoleFromDb.setReceivingHomework(false);
+            botRoleFromDb.setReceivingSupport(true);
+        }
 
         return botRoleFromDb;
     }

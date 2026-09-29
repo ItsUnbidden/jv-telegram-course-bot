@@ -1,0 +1,62 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-support-requests-change-user-columns-to-bot-roles
+      author: Unbidden
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: support_requests
+            constraintName: fk_user_support_requests
+        - dropColumn:
+            tableName: support_requests
+            columnName: user_id
+        - dropForeignKeyConstraint:
+            baseTableName: support_requests
+            constraintName: fk_bots_support_requests
+        - dropColumn:
+            tableName: support_requests
+            columnName: bot_id
+        - dropForeignKeyConstraint:
+            baseTableName: support_requests
+            constraintName: fk_staff_support_requests
+        - dropColumn:
+            tableName: support_requests
+            columnName: staff_id
+        - dropForeignKeyConstraint:
+            baseTableName: support_replies
+            constraintName: fk_user_support_replies
+        - dropColumn:
+            tableName: support_replies
+            columnName: user_id
+        - dropForeignKeyConstraint:
+            baseTableName: support_replies
+            constraintName: fk_bots_support_replies
+        - dropColumn:
+            tableName: support_replies
+            columnName: bot_id
+        - addColumn:
+            tableName: support_requests
+            columns:
+              - column:
+                  name: user_bot_role_id
+                  type: bigint
+                  constraints:
+                    nullable: false     
+                    references: bot_roles(id)
+                    foreignKeyName: fk_support_requests_user_bot_role_bot_roles
+              - column:
+                  name: staff_bot_role_id
+                  type: bigint
+                  constraints:
+                    nullable: false     
+                    references: bot_roles(id)
+                    foreignKeyName: fk_support_requests_staff_bot_role_bot_roles
+        - addColumn:
+            tableName: support_replies
+            columns:
+              - column:
+                  name: user_bot_role_id
+                  type: bigint
+                  constraints:
+                    nullable: false     
+                    references: bot_roles(id)
+                    foreignKeyName: fk_support_replies_user_bot_role_bot_roles

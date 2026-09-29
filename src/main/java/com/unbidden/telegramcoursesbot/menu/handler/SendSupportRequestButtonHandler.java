@@ -33,10 +33,10 @@ public class SendSupportRequestButtonHandler extends AbstractButtonHandler {
         if (!supportService.isUserEligibleForSupport(botRole)) {
             throw new ForbiddenOperationException("User " + botRole.getUser().getId() + " cannot send another "
                     + "support request without resolving previous one.", localizationLoader
-                    .localize(Localizations.Error.USER_NOT_ELIGIBLE_FOR_SUPPORT, botRole));
+                    .localize(Localizations.Error.MORE_THAN_ONE_SUPPORT_REQUEST, botRole));
         }
         sessionService.createSession(botRole, p -> {
-            supportService.createNewSupportRequest(p.botRole(), p.messages(), "");    
+            supportService.createNewSupportRequest(p.botRole(), p.messages());    
         });
         
         clientManager.sendMessage(botRole, localizationLoader.localize(

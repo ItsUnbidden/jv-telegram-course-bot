@@ -36,8 +36,8 @@ public class SupportReply extends SupportMessage {
 
     @Override
     public String toString() {
-        return "SupportReply(id=" + getId() + ", userId=" + getUser().getId() + ", contentId=" + getContent().getId()
-                + ", timestamp=" + getTimestamp() + ", botId=" + getBot().getId() + ", replyId=" + (reply != null ? reply.getId() : "NULL")
+        return "SupportReply(id=" + getId() + ", userBotRoleId=" + getUserBotRole().getId() + ", contentId=" + getContent().getId()
+                + ", timestamp=" + getTimestamp() + ", replyId=" + (reply != null ? reply.getId() : "NULL")
                 + ", requestId=" + request.getId() + ", replySide=" + replySide + ", version=" + getVersion() + ")";
     }
 }

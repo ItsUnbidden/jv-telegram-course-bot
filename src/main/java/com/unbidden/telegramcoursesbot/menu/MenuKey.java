@@ -29,5 +29,6 @@ public enum MenuKey {
     SUPPORT_REQUEST,
     TEST,
     COMMIT_CONTENT,
+    SUPPORT_FEEDBACK,
     MENU_DEBUG;
 }

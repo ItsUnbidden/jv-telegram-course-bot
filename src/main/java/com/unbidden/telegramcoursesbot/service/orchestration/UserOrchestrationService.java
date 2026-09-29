@@ -29,6 +29,8 @@ public class UserOrchestrationService {
 
     private final HomeworkOrchestrationService homeworkService;
 
+    private final SupportOrchestrationService supportService;
+
     private final UserService userService;
 
     private final LocalizationLoader loader;
@@ -43,8 +45,16 @@ public class UserOrchestrationService {
         return userService.getHomeworkReceivers(botRole);
     }
 
-    public long countHomeworkReceivers(BotRole botRole) {
-        return userService.countHomeworkReceivers(botRole);
+    public long countOtherHomeworkReceivers(BotRole botRole) {
+        return userService.countOtherHomeworkReceivers(botRole);
+    }
+
+    public List<BotRole> getSupportReceivers(BotRole botRole) {
+        return userService.getSupportReceivers(botRole);
+    }
+
+    public long countOtherSupportReceivers(BotRole botRole) {
+        return userService.countOtherSupportReceivers(botRole);
     }
 
     public BotRole initializeUserForBot(User rawUser, Long botId) {
@@ -77,6 +87,9 @@ public class UserOrchestrationService {
 
         if (initialRole.getType() == RoleType.MENTOR) {
             homeworkService.reassignCourseProgressesForUser(botRole, targetBotRole.getId());
+        }
+        if (initialRole.getType() == RoleType.SUPPORT) {
+            supportService.reassignSupportRequestsForUser(botRole, targetBotRole.getId());
         }
         clientManager.sendMessageAsync(targetBotRole, loader.localize(Localizations.Service.ROLE_CHANGED,
                 targetBotRole, new Localizations.Service.RoleChangedParams(botRole.getUser().getFullName(), roleType,

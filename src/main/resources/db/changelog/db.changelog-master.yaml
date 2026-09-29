@@ -111,3 +111,9 @@ databaseChangeLog:
       file: /db/changelog/changes/55-edit-menu-snapshots-add-multipage-list-columns.yaml
   - include:
       file: /db/changelog/changes/56-edit-course-progress-add-curator-column.yaml
+  - include:
+      file: /db/changelog/changes/57-edit-support-requests-remove-tag-add-staff-non-null-constraint.yaml
+  - include:
+      file: /db/changelog/changes/58-edit-bot-roles-add-receiving-support-column.yaml
+  - include:
+      file: /db/changelog/changes/59-edit-support-requests-change-user-columns-to-bot-roles.yaml

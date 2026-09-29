@@ -31,6 +31,9 @@ public class BotRole extends BaseEntity {
     private boolean isReceivingHomework;
 
     @Column(nullable = false)
+    private boolean isReceivingSupport;
+
+    @Column(nullable = false)
     private boolean isDisabled;
 
     public BotRole() {
@@ -48,6 +51,6 @@ public class BotRole extends BaseEntity {
     @Override
     public String toString() {
         return "BotRole(id=" + getId() + ", botId=" + bot.getId() + ", userId=" + user.getId() + ", roleId=" + role.getId()
-                + ", isReceivingHomework=" + isReceivingHomework + ")";
+                + ", isReceivingHomework=" + isReceivingHomework + ", isReceivingSupport=" + isReceivingSupport + ")";
     }
 }
