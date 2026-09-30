@@ -358,7 +358,7 @@ public class EntityUtil {
                 new EntityNotFoundException("Support request with id " + id + " does not exist",
                 localizationLoader.localize(Error.SUPPORT_REQUEST_NOT_FOUND, botRole)));
 
-        checkBotVisibility(botRole, request.getBot());
+        checkBotVisibility(botRole, request.getUserBotRole().getBot());
         return request;
     }
 
@@ -371,7 +371,7 @@ public class EntityUtil {
                 new EntityNotFoundException("Support reply with id " + id + " does not exist",
                 localizationLoader.localize(Error.SUPPORT_REPLY_NOT_FOUND, botRole)));
 
-        checkBotVisibility(botRole, reply.getBot());
+        checkBotVisibility(botRole, reply.getUserBotRole().getBot());
         return reply;
     }
 
@@ -502,6 +502,12 @@ public class EntityUtil {
         return botId.equals(BOT_LORD_ID);
     }
 
+    /**
+     * Requires roles to be initialized for target.
+     * @param localizedFor
+     * @param target
+     * @return
+     */
     public String getLocalizedTitle(BotRole localizedFor, BotRole target) {
         Assert.notNull(localizedFor, "localizedFor cannot be null");
         Assert.notNull(target, "target cannot be null");

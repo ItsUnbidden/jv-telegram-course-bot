@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-support-requests-remove-tag-add-staff-non-null-constraint
+      author: Unbidden
+      changes:
+        - dropColumn:
+            tableName: support_requests
+            columnName: tag
+        - addNotNullConstraint:
+            tableName: support_requests
+            columnName: staff_id
+            columnDataType: bigint

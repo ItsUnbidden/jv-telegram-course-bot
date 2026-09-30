@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.repository;
 
-import com.unbidden.telegramcoursesbot.dto.internal.HomeworkReceiverWithCountDto;
+import com.unbidden.telegramcoursesbot.dto.internal.BotRoleWithCountDto;
 import com.unbidden.telegramcoursesbot.model.BotRole;
 import com.unbidden.telegramcoursesbot.model.RoleType;
 
@@ -54,7 +54,7 @@ public interface BotRoleRepository extends JpaRepository<BotRole, Long> {
     Optional<BotRole> findHomeworkReceiverInBot(Long botId);
 
     @Query("""
-        select new com.unbidden.telegramcoursesbot.dto.internal.HomeworkReceiverWithCountDto(br, count(cp.id))
+        select new com.unbidden.telegramcoursesbot.dto.internal.BotRoleWithCountDto(br, count(cp.id))
         from BotRole br
         left join fetch br.user u
         left join fetch br.bot b
@@ -65,7 +65,7 @@ public interface BotRoleRepository extends JpaRepository<BotRole, Long> {
         group by br
         order by count(cp.id) asc
     """)
-    List<HomeworkReceiverWithCountDto> findHomeworkReceiversWithCountsInBotAndExcludeUser(Long botId, Long excludedBotRoleId);
+    List<BotRoleWithCountDto> findHomeworkReceiversWithCountsInBotAndExcludeUser(Long botId, Long excludedBotRoleId);
 
     @Query("""
         from BotRole br
@@ -76,6 +76,45 @@ public interface BotRoleRepository extends JpaRepository<BotRole, Long> {
             and (r.type = 'DIRECTOR' or r.type = 'CREATOR' or r.type = 'MENTOR')
     """)
     List<BotRole> findHomeworkReceiversInBot(Long botId);
+
+    @Query("""
+        select br
+        from BotRole br
+        left join fetch br.user u
+        left join fetch br.bot b
+        left join br.role r
+        left join SupportRequest sr on sr.staffMemberBotRole = br and not sr.isResolved
+        where br.bot.id = :botId and br.isReceivingSupport
+            and (r.type = 'DIRECTOR' or r.type = 'CREATOR' or r.type = 'SUPPORT')
+        group by br
+        order by count(sr.id) asc
+        limit 1
+    """)
+    Optional<BotRole> findSupportReceiverInBot(Long botId);
+
+    @Query("""
+        select new com.unbidden.telegramcoursesbot.dto.internal.BotRoleWithCountDto(br, count(sr.id))
+        from BotRole br
+        left join fetch br.user u
+        left join fetch br.bot b
+        left join br.role r
+        left join SupportRequest sr on sr.staffMemberBotRole = br and not sr.isResolved
+        where br.id <> :excludedBotRoleId and br.bot.id = :botId and br.isReceivingSupport
+            and (r.type = 'DIRECTOR' or r.type = 'CREATOR' or r.type = 'SUPPORT')
+        group by br
+        order by count(sr.id) asc
+    """)
+    List<BotRoleWithCountDto> findSupportReceiversWithCountsInBotAndExcludeUser(Long botId, Long excludedBotRoleId);
+
+    @Query("""
+        from BotRole br
+        left join fetch br.user u
+        left join fetch br.bot b
+        left join br.role r
+        where br.bot.id = :botId and br.isReceivingSupport
+            and (r.type = 'DIRECTOR' or r.type = 'CREATOR' or r.type = 'SUPPORT')
+    """)
+    List<BotRole> findSupportReceiversInBot(Long botId);
 
     @Query("""
         from BotRole br
@@ -99,6 +138,15 @@ public interface BotRoleRepository extends JpaRepository<BotRole, Long> {
             and (r.type = 'DIRECTOR' or r.type = 'CREATOR' or r.type = 'MENTOR')
     """)
     long countHomeworkReceiversInBotAndExcludeUser(Long botId, Long excludedBotRoleId);
+
+    @Query("""
+        select count(br.id)
+        from BotRole br
+        left join br.role r
+        where br.id <> :excludedBotRoleId and br.bot.id = :botId and br.isReceivingSupport
+            and (r.type = 'DIRECTOR' or r.type = 'CREATOR' or r.type = 'SUPPORT')
+    """)
+    long countSupportReceiversInBotAndExcludeUser(Long botId, Long excludedBotRoleId);
 
     boolean existsByBotIdAndUserId(Long botId, Long userId);
 }

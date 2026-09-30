@@ -49,7 +49,7 @@ public class RequestFeedbackMenu implements MenuConfigurer {
             buttons.add(new TerminalButton(localizationLoader.localize(Localizations.Button.DECLINE_HOMEWORK, p.botRole()).getData(), declineHandler));
             buttons.add(new TransitoryButton(localizationLoader.localize(Localizations.Button.GENERAL_ACCEPT_HOMEWORK, p.botRole()).getData(), 1));
 
-            if (userService.countHomeworkReceivers(p.botRole()) > 0) {
+            if (userService.countOtherHomeworkReceivers(p.botRole()) > 0) {
                 buttons.add(new TransitoryButton(localizationLoader.localize(Localizations.Button.TRANSFER_HOMEWORK, p.botRole()).getData(), 2));
             }
 
@@ -89,14 +89,10 @@ public class RequestFeedbackMenu implements MenuConfigurer {
 
         page4.setPageIndex(3);
         page4.setColumns(2);
-        page4.setButtonsFunction(p -> {
-            final List<Button> buttons = new ArrayList<>();
-
-            buttons.add(new TerminalButton(localizationLoader.localize(Localizations.Button.CONFIRM, p.botRole()).getData(), transferHomeworkHandler));
-            buttons.add(new BackwardButton(localizationLoader.localize(Localizations.Button.BACK, p.botRole()).getData()));
-
-            return buttons;
-        });
+        page4.setButtonsFunction(p -> List.of(
+            new TerminalButton(localizationLoader.localize(Localizations.Button.CONFIRM, p.botRole()).getData(), transferHomeworkHandler),
+            new BackwardButton(localizationLoader.localize(Localizations.Button.BACK, p.botRole()).getData())
+        ));
 
         menu.setPages(List.of(page1, page2, page3, page4));
         

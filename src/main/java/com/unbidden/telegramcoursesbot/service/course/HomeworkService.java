@@ -1,6 +1,6 @@
 package com.unbidden.telegramcoursesbot.service.course;
 
-import com.unbidden.telegramcoursesbot.dto.internal.HomeworkReceiverWithCountDto;
+import com.unbidden.telegramcoursesbot.dto.internal.BotRoleWithCountDto;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
 import com.unbidden.telegramcoursesbot.exception.ForbiddenOperationException;
 import com.unbidden.telegramcoursesbot.exception.MediaTypeParseException;
@@ -274,7 +274,7 @@ public class HomeworkService {
 
         if (progresses.isEmpty()) return resultMap;
 
-        final List<HomeworkReceiverWithCountDto> mentors = botRoleRepository.findHomeworkReceiversWithCountsInBotAndExcludeUser(
+        final List<BotRoleWithCountDto> mentors = botRoleRepository.findHomeworkReceiversWithCountsInBotAndExcludeUser(
                 current.getBot().getId(), targetBotRole);  
 
         LOGGER.info("Reassigning course progresses that were curated by user " + progresses.getFirst().getCurator().getId()
@@ -290,14 +290,14 @@ public class HomeworkService {
         } else {
             mentors.forEach(m -> resultMap.put(m.getCurator(), 0));
             for (final CourseProgress progress : progresses) {  
-                final HomeworkReceiverWithCountDto min = mentors.stream().min((o1, o2) -> {
-                    if (o1.getNumberOfAssignees() > o2.getNumberOfAssignees()) return 1;
-                    if (o1.getNumberOfAssignees() < o2.getNumberOfAssignees()) return -1;
+                final BotRoleWithCountDto min = mentors.stream().min((o1, o2) -> {
+                    if (o1.getCount() > o2.getCount()) return 1;
+                    if (o1.getCount() < o2.getCount()) return -1;
                     return 0;
                 }).get();
     
                 progress.setCurator(min.getCurator());
-                min.setNumberOfAssignees(min.getNumberOfAssignees() + 1);
+                min.setCount(min.getCount() + 1);
                 resultMap.put(min.getCurator(), resultMap.get(min.getCurator()) + 1);
             }
         }

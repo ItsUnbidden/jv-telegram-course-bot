@@ -228,6 +228,9 @@ public final class Localizations {
         MULTIPAGE_LIST_PAGE_DATA,
         MULTIPAGE_LIST_PAGE_DATA_SINGLE,
         MULTIPAGE_LIST_PAGE_DATA_EMPTY,
+        SUPPORT_FEEDBACK_PAGE_0,
+        SUPPORT_FEEDBACK_PAGE_1,
+        SUPPORT_FEEDBACK_PAGE_2,
         COMMIT_CONTENT_PAGE_0,
         COMMIT_CONTENT_TERMINAL_PAGE,
         COMMIT_CONTENT_RESEND_TERMINAL_PAGE,
@@ -352,7 +355,6 @@ public final class Localizations {
         REPLY_TO_SUPPORT_REQUEST("button_reply_to_support_request"),
         REPLY_TO_SUPPORT_REPLY("button_reply_to_support_reply"),
         RESOLVE_SUPPORT_REQUEST("button_resolve_support_request"),
-        RESOLVE_LAST_SUPPORT_REQUEST("button_resolve_last_support_request"),
         BAN_CHOOSE_USER("button_ban_choose_user"),
         TAKE_COURSE("button_take_course"),
         GIVE_COURSE("button_give_course"),
@@ -381,7 +383,24 @@ public final class Localizations {
         BOT_START_SETTINGS,
         BOT_TERMS_SETTINGS,
         TRANSFER_HOMEWORK,
+        TRANSFER_SUPPORT,
         CONFIRM,
+        SEND_LAST_SUPPORT_REPLY,
+        SEND_SUPPORT_REQUEST,
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>numberOfRequests</li>
+         * </ls>
+         */
+        NEW_SUPPORT_REQUESTS,
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>numberOfRequests</li>
+         * </ls>
+         */
+        OLD_SUPPORT_REQUESTS,
         GET_LOCALIZATION_FILE_TEMPLATES;
 
         private String locName;
@@ -397,6 +416,9 @@ public final class Localizations {
         public String getLocName() {
             return locName;
         }
+
+        public static record NewSupportRequestsParams(long numberOfRequests) {}
+        public static record OldSupportRequestsParams(long numberOfRequests) {}
     }
 
     public static enum Service implements LocalizationKey {
@@ -665,11 +687,20 @@ public final class Localizations {
          * Possible parameters:
          * <ls>
          *  <li>userFullName</li>
+         *  <li>whoAnswered</li>
+         *  <li>whoAnsweredTitle</li>
+         * </ls>
+         */
+        SUPPORT_REPLY_ALREADY_ANSWERED_INFO,
+        /**
+         * Possible parameters:
+         * <ls>
+         *  <li>userFullName</li>
          *  <li>timestamp</li>
-         *  <li>tag</li>
          * </ls>
          */
         SUPPORT_INFO("service_support_info"),
+        SUPPORT_REQUEST_RESOLVED("service_support_request_resolved"),
         /**
          * Possible parameters:
          * <ls>
@@ -677,7 +708,8 @@ public final class Localizations {
          *  <li>title</li>
          * </ls>
          */
-        SUPPORT_REQUEST_RESOLVED("service_support_request_resolved"),
+        SUPPORT_REQUEST_RESOLVED_NOTIFICATION,
+        SUPPORT_REPLY_AWAITING_RESPONSE,
         /**
          * Possible parameters:
          * <ls>
@@ -1199,6 +1231,7 @@ public final class Localizations {
         BOT_CREATOR_INFO_REQUEST,
         BOT_START_REQUEST,
         BOT_TERMS_REQUEST,
+        SUPPORT_REQUEST_TRANSFER_SUCCESS,
         /**
          * Possible parameters:
          * <ls>
@@ -1210,11 +1243,20 @@ public final class Localizations {
         /**
          * Possible parameters:
          * <ls>
+         *  <li>previousCuratorFullName</li>
+         *  <li>numberOfRequests</li>
+         * </ls>
+         */
+        SUPPORT_REQUESTS_REASSIGNED_NOTIFICATION,
+        /**
+         * Possible parameters:
+         * <ls>
          *  <li>targetFullName</li>
          *  <li>title</li>
          * </ls>
          */
         HOMEWORK_TRANSFER_SUCCESS,
+        NO_SUPPORT_REQUESTS_FOR_STAFF,
         /**
          * Not used in production.
          */
@@ -1268,8 +1310,9 @@ public final class Localizations {
         public static record HomeworkApprovedNotificationPlusCommentParams(String courseName, int lessonIndex, String whoApproved, String title) {}
         public static record HomeworkSubmittedNotificationParams(Long targetId, String targetFullName, String targetLanguage) {}
         public static record SupportReplyInfoParams(String userFullName, String title) {}
-        public static record SupportInfoParams(String userFullName, LocalDateTime timestamp, String tag) {}
-        public static record SupportRequestResolvedParams(String userFullName, String title) {}
+        public static record SupportReplyAlreadyAnsweredInfoParams(String userFullName, String whoAnswered, String whoAnsweredTitle) {}
+        public static record SupportInfoParams(String userFullName, LocalDateTime timestamp) {}
+        public static record SupportRequestResolvedNotificationParams(String userFullName, String title) {}
         public static record SuccessfulPaymentParams(String courseName) {}
         public static record UserBoughtCourseParams(String userFullName, String courseName) {}
         public static record AutomaticRefundNotificationParams(long userId, long courseId) {}
@@ -1336,6 +1379,7 @@ public final class Localizations {
         public static record MenusManuallyRemovedSuccessParams(int successes, int failures) {}
         public static record HomeworkTrasferSuccessParams(String targetFullName, String title) {}
         public static record HomeworkReassignedNotificationParams(String previousCuratorFullName, Integer numberOfHomeworks) {}
+        public static record SupportRequestsReassignedNotificationParams(String previousCuratorFullName, Integer numberOfRequests) {}
     }
     
     public static enum Error implements LocalizationKey {
@@ -1466,6 +1510,7 @@ public final class Localizations {
         HOMEWORK_ALREADY_COMPLETED("error_homework_already_completed"),
         HOMEWORK_ALREADY_AWAITS_APPROVAL("error_homework_already_awaits_approval"),
         NO_SUPPORT_REQUESTS_AVAILABLE_FOR_USER("error_no_support_requests_available_for_user"),
+        NO_SUPPORT_REPLIES_AVAILABLE_FOR_USER("error_no_support_requests_available_for_user"),
         SEND_INVOICE_FAILURE("error_send_invoice_failure"),
         /**
          * Possible parameters:
@@ -1585,7 +1630,6 @@ public final class Localizations {
         SUPPORT_REQUEST_ALREADY_ANSWERED("error_support_request_already_answered"),
         SUPPORT_REQUEST_ALREADY_RESOLVED("error_support_request_already_resolved"),
         REPLY_ALREADY_ANSWERED("error_reply_already_answered"),
-        USER_NOT_ELIGIBLE_FOR_SUPPORT("error_user_not_eligible_for_support"),
         SUPPORT_STAFF_REQUEST("error_support_staff_request"),
         SEND_CONTENT("error_send_content"),
         PRIVATE_MESSAGE_USER_NOT_REGISTERED_IN_BOT("error_private_message_user_not_registered_in_bot"),
@@ -1693,6 +1737,9 @@ public final class Localizations {
         SPECIAL_ROLE_BAN,
         DIRECTOR_BAN,
         HOMEWORK_TRANSFER_USER_DOES_NOT_RECEIVE_HOMEWORK,
+        MORE_THAN_ONE_SUPPORT_REQUEST,
+        SUPPORT_TRANSFER_WRONG_ROLE,
+        SUPPORT_TRANSFER_DOES_NOT_RECEIVE_SUPPORT,
         POST_REQUEST_FAILURE;
         
         private String locName;

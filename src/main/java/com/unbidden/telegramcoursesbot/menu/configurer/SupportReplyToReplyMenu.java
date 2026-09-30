@@ -6,10 +6,12 @@ import com.unbidden.telegramcoursesbot.menu.Menu;
 import com.unbidden.telegramcoursesbot.menu.MenuConfigurer;
 import com.unbidden.telegramcoursesbot.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page;
+import com.unbidden.telegramcoursesbot.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.TerminalButton;
 import com.unbidden.telegramcoursesbot.menu.handler.ReplyToSupportReplyButtonHandler;
 import com.unbidden.telegramcoursesbot.menu.handler.ResolveSupportRequestButtonHandler;
 
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -17,6 +19,8 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class SupportReplyToReplyMenu implements MenuConfigurer {
+    private static final String REPLY_ID_PARAM = "replyId";
+
     private final ReplyToSupportReplyButtonHandler replyToSupportReplyHandler;
     private final ResolveSupportRequestButtonHandler resolveRequestHandler;
 
@@ -30,13 +34,19 @@ public class SupportReplyToReplyMenu implements MenuConfigurer {
 
         page.setPageIndex(0);
         page.setColumns(1);
-        page.setButtonsFunction(p -> List.of(
-            new TerminalButton(localizationLoader.localize(Localizations.Button.REPLY_TO_SUPPORT_REPLY, p.botRole()).getData(), replyToSupportReplyHandler),
-            new TerminalButton(localizationLoader.localize(Localizations.Button.RESOLVE_SUPPORT_REQUEST, p.botRole()).getData(), resolveRequestHandler)
-        ));
+        page.setButtonsFunction(p -> {
+            final List<Button> buttons = new ArrayList<>();
+
+            if (p.params().containsKey(REPLY_ID_PARAM)) {
+                buttons.add(new TerminalButton(localizationLoader.localize(Localizations.Button.REPLY_TO_SUPPORT_REPLY, p.botRole()).getData(), replyToSupportReplyHandler));
+            }
+            buttons.add(new TerminalButton(localizationLoader.localize(Localizations.Button.RESOLVE_SUPPORT_REQUEST, p.botRole()).getData(), resolveRequestHandler));
+
+            return buttons;
+        });
 
         menu.setPages(List.of(page));
-        menu.setOneTimeMenu(true);
+        menu.setOneTimeMenu(false);
         
         return menu;
     }

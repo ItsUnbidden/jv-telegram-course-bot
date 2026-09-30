@@ -8,22 +8,22 @@ import com.unbidden.telegramcoursesbot.menu.MenuKey;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.Button;
 import com.unbidden.telegramcoursesbot.menu.Menu.Page.TerminalButton;
-import com.unbidden.telegramcoursesbot.menu.handler.ResolveSupportRequestButtonHandler;
+import com.unbidden.telegramcoursesbot.menu.handler.SendLastSupportReplyButtonHandler;
 import com.unbidden.telegramcoursesbot.menu.handler.SendSupportRequestButtonHandler;
-import com.unbidden.telegramcoursesbot.model.SupportRequest;
 import com.unbidden.telegramcoursesbot.service.orchestration.SupportOrchestrationService;
+
 import java.util.ArrayList;
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class SupportRequestMenu implements MenuConfigurer{
-    private static final String REQUEST_ID_PARAM = "requestId";
-
     private final SendSupportRequestButtonHandler sendSupportRequestHandler;
-    private final ResolveSupportRequestButtonHandler resolveRequestHandler;
+    private final SendLastSupportReplyButtonHandler sendLastSupportReplyHandler;
 
     private final SupportOrchestrationService supportService;
 
@@ -41,14 +41,9 @@ public class SupportRequestMenu implements MenuConfigurer{
         page1.setButtonsFunction(p -> {
             final List<Button> buttons = new ArrayList<>();
 
-            for (int i = 0; i < 4; i++) {
-                buttons.add(new TerminalButton("support" + i, String.valueOf(i), sendSupportRequestHandler));
-            }
+            buttons.add(new TerminalButton(loader.localize(Localizations.Button.SEND_SUPPORT_REQUEST, p.botRole()).getData(), sendSupportRequestHandler));
             if (!supportService.isUserEligibleForSupport(p.botRole())) {
-                final List<SupportRequest> unresolvedRequests = supportService.getUnresolvedRequestsForUserInBot(p.botRole());
-
-                buttons.add(new TerminalButton(loader.localize(Localizations.Button.RESOLVE_LAST_SUPPORT_REQUEST, p.botRole()).getData(),
-                        REQUEST_ID_PARAM, unresolvedRequests.get(0).getId().toString(), resolveRequestHandler));
+                buttons.add(new TerminalButton(loader.localize(Localizations.Button.SEND_LAST_SUPPORT_REPLY, p.botRole()).getData(), sendLastSupportReplyHandler));
             }
 
             return buttons;
@@ -61,7 +56,7 @@ public class SupportRequestMenu implements MenuConfigurer{
 
         menu.setTerminalPage(terminalPage);
         menu.setPages(List.of(page1));
-        menu.setOneTimeMenu(true);
+        menu.setOneTimeMenu(false);
 
         return menu;
     }

@@ -315,8 +315,8 @@ public class HomeworkOrchestrationService {
                     progress.getHomework().getLesson().getCourse().getTitle().getId());
 
             if (!adminComment.isEmpty()) {
-                clientManager.sendMessage(botRole, localizationLoader.localize(
-                    Localizations.Service.HOMEWORK_APPROVED_NOTIFICATION_PLUS_COMMENT, botRole,
+                clientManager.sendMessage(targetRole, localizationLoader.localize(
+                    Localizations.Service.HOMEWORK_APPROVED_NOTIFICATION_PLUS_COMMENT, targetRole,
                     new Localizations.Service.HomeworkApprovedNotificationPlusCommentParams(
                         courseName,
                         progress.getHomework().getLesson().getPosition(),

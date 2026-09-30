@@ -18,8 +18,8 @@ import lombok.Setter;
 @MappedSuperclass
 public abstract class SupportMessage extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserEntity user;
+    @JoinColumn(name = "user_bot_role_id", nullable = false)
+    private BotRole userBotRole;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "content_id", nullable = false)
@@ -28,16 +28,12 @@ public abstract class SupportMessage extends BaseEntity {
     @Column(nullable = false)
     private LocalDateTime timestamp;
 
-    @ManyToOne
-    @JoinColumn(name = "bot_id", nullable = false)
-    private Bot bot;
-
     @Version
     private Long version;
 
     @Override
     public String toString() {
-        return "SupportMessage(id=" + getId() + ", userId=" + user.getId() + ", contentId=" + content.getId()
-                + ", timestamp=" + timestamp + ", botId=" + bot.getId() + ", version=" + version + ")";
+        return "SupportMessage(id=" + getId() + ", userBotRoleId=" + userBotRole.getId() + ", contentId=" + content.getId()
+                + ", timestamp=" + timestamp + ", version=" + version + ")";
     }
 }

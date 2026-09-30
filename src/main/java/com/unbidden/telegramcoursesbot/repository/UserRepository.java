@@ -40,18 +40,6 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
             select 1
             from BotRole br
             left join br.role r
-            where br.bot.id = :botId and br.user = u and r.type = 'DIRECTOR' and r.type = 'CREATOR'
-                    and r.type = 'MENTOR' and r.type = 'SUPPORT' 
-        )        
-    """)
-    List<UserEntity> findAllStaffMembers(Long botId);
-
-    @Query("""
-        from UserEntity u
-        where exists(
-            select 1
-            from BotRole br
-            left join br.role r
             where br.bot.id = :botId and br.user = u and br.isReceivingHomework
                 and (r.type = 'DIRECTOR' or r.type = 'CREATOR' or r.type = 'MENTOR')
         )

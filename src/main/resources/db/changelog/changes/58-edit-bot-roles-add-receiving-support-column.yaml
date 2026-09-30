@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: edit-bot-roles-add-receiving-support-column
+      author: Unbidden
+      changes:
+        - addColumn:
+            tableName: bot_roles
+            columns:
+              - column:
+                  name: is_receiving_support
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
