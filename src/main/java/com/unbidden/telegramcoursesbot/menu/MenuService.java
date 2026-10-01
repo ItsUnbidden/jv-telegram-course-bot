@@ -43,7 +43,6 @@ import com.unbidden.telegramcoursesbot.repository.MultipageListMenuSnapshotRepos
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 import com.unbidden.telegramcoursesbot.util.MenuUtil;
 
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -64,8 +63,6 @@ public class MenuService {
 
     private final MenuRepository menuRepository;
 
-    private final EntityManager entityManager;
-    
     private final LocalizationLoader loader;
 
     private final EntityUtil entityUtil;
