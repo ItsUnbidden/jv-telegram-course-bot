@@ -15,6 +15,7 @@ import com.unbidden.telegramcoursesbot.model.Homework;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress;
 import com.unbidden.telegramcoursesbot.model.HomeworkProgress.Status;
 import com.unbidden.telegramcoursesbot.model.Lesson;
+import com.unbidden.telegramcoursesbot.model.RoleType;
 import com.unbidden.telegramcoursesbot.model.UserEntity;
 import com.unbidden.telegramcoursesbot.model.content.ContentMapping;
 import com.unbidden.telegramcoursesbot.model.content.LocalizedContent;
@@ -317,6 +318,11 @@ public class HomeworkService {
             throw new ForbiddenOperationException("Unable to transfer assignee to user " + targetBotRole.getUser().getId()
                     + " because they cannot receive homework.", loader.localize(
                         Localizations.Error.HOMEWORK_TRANSFER_USER_DOES_NOT_RECEIVE_HOMEWORK, current));
+        }
+        if (targetBotRole.getRole().getType() != RoleType.MENTOR && targetBotRole.getRole().getType() != RoleType.CREATOR
+                && targetBotRole.getRole().getType() != RoleType.DIRECTOR) {
+            throw new ForbiddenOperationException("User " + targetBotRole.getUser().getId() + " does not have a mentor role in bot "
+                    + targetBotRole.getBot().getId() + ".", loader.localize(Localizations.Error.HOMEWORK_TRANSFER_WRONG_ROLE, current));
         }
         final HomeworkProgress homeworkProgress = entityUtil.getHomeworkProgressById(current, homeworkProgressId);
         final UserEntity user = homeworkProgress.getUser();
