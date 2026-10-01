@@ -43,6 +43,7 @@ import com.unbidden.telegramcoursesbot.repository.MultipageListMenuSnapshotRepos
 import com.unbidden.telegramcoursesbot.util.EntityUtil;
 import com.unbidden.telegramcoursesbot.util.MenuUtil;
 
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -62,6 +63,8 @@ public class MenuService {
     private final MenuSnapshotButtonRepository menuSnapshotButtonRepository;
 
     private final MenuRepository menuRepository;
+
+    private final EntityManager entityManager;
     
     private final LocalizationLoader loader;
 
@@ -219,9 +222,11 @@ public class MenuService {
                 LOGGER.trace("Menu " + menu.getKey() + " is supposed to be removed after a terminal button call.");
                 final Page terminalPage = menu.getTerminalPage();
 
+                menuSnapshotButtonRepository.delete(terminalButton);
+                generalMenuSnapshotRepository.delete(snapshot);
+
                 final int numberOfDeletions = menuSnapshotButtonRepository.deleteAllBySnapshotIdInBatch(snapshot.getId());
-                
-                menuSnapshotRepository.delete(snapshot);
+
                 LOGGER.trace("Deleted " + numberOfDeletions + " snapshot buttons along with their parent snapshot " + snapshot.getId() + ".");
 
                 return new TerminalMenuSnapshotUpdatedDto(snapshot, terminalPage, terminalButton.getHandlerBeanName(), currentParams, pageHistory, true);

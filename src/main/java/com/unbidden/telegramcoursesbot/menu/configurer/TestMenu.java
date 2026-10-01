@@ -39,6 +39,7 @@ public class TestMenu implements MenuConfigurer {
 
         menu.setTerminalPage(terminalPage);
         menu.setPages(List.of(page));
+        menu.setOneTimeMenu(true);
 
         return menu;
     }
