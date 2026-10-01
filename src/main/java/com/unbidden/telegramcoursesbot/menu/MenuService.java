@@ -15,6 +15,7 @@ import org.springframework.util.Assert;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuParamsDto;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuSnapshotCreatedDto;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuSnapshotUpdatedDto;
+import com.unbidden.telegramcoursesbot.dto.internal.MenuSnapshotWithButtonsDto;
 import com.unbidden.telegramcoursesbot.dto.internal.TerminalMenuSnapshotUpdatedDto;
 import com.unbidden.telegramcoursesbot.dto.internal.TransitoryMenuSnapshotUpdatedDto;
 import com.unbidden.telegramcoursesbot.exception.EntityNotFoundException;
@@ -68,6 +69,14 @@ public class MenuService {
 
     private final MenuUtil menuUtil;
 
+    @Transactional(readOnly = true)
+    public MenuSnapshotWithButtonsDto getMenuSnapshotWithButtons(BotRole botRole, Long snapshotId) {
+        return new MenuSnapshotWithButtonsDto(generalMenuSnapshotRepository.findById(snapshotId).orElseThrow(() ->
+                new EntityNotFoundException("General menu snapshot " + snapshotId + " does not exist.",
+                    loader.localize(Localizations.Error.MENU_SNAPSHOT_NOT_FOUND, botRole))),
+                menuSnapshotButtonRepository.findBySnapshotId(snapshotId));
+    }
+
     @Transactional
     public MenuSnapshotCreatedDto createSnapshot(BotRole botRole, MenuKey key, Integer initialPage,
             List<Button> buttons, Map<String, String> params, @Nullable Integer messageId,
@@ -99,7 +108,8 @@ public class MenuService {
     }
 
     @Transactional
-    public MultipageListMenuSnapshot createMultipageListSnapshot(BotRole botRole, AbstractDataSupplier supplier, Map<String, String> params) {
+    public MultipageListMenuSnapshot createMultipageListSnapshot(BotRole botRole, AbstractDataSupplier supplier,
+            Map<String, String> params) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(supplier, "supplier cannot be null");
         Assert.notNull(params, "params cannot be null");
@@ -278,6 +288,9 @@ public class MenuService {
 
     @Transactional
     public MenuSnapshot terminateMenu(BotRole botRole, Long snapshotId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(snapshotId, "snapshotId cannot be null");
+
         final MenuSnapshot snapshot = menuSnapshotRepository.findById(snapshotId).orElseThrow(() ->
                 new EntityNotFoundException("Menu snapshot " + snapshotId + " does not exist.",
                 loader.localize(Localizations.Error.MENU_SNAPSHOT_NOT_FOUND, botRole)));
@@ -291,6 +304,8 @@ public class MenuService {
 
     @Transactional
     public List<MenuSnapshot> terminateMenus(Long botRoleId) {
+        Assert.notNull(botRoleId, "botRoleId cannot be null");
+        
         final List<MenuSnapshot> snapshots = menuSnapshotRepository.findByBotRoleId(botRoleId);
 
         LOGGER.debug("Deleting all menus with bot role " + botRoleId + " and their buttons...");
@@ -302,6 +317,8 @@ public class MenuService {
 
     @Transactional
     public List<MenuSnapshot> terminateMenus(MenuTerminationGroupKey key, Object[] args) {
+        Assert.notNull(key, "key cannot be null");
+        
         final String formattedKey = key.getName().formatted(args);
         final List<MenuSnapshot> snapshots = menuSnapshotRepository.findByGroup(formattedKey);
         final List<Long> ids = snapshots.stream().map(s -> s.getId()).toList();

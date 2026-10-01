@@ -4,6 +4,7 @@ import com.unbidden.telegramcoursesbot.bot.ClientManager;
 import com.unbidden.telegramcoursesbot.bot.CustomTelegramClient;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuParamsDto;
 import com.unbidden.telegramcoursesbot.dto.internal.MenuSnapshotCreatedDto;
+import com.unbidden.telegramcoursesbot.dto.internal.MenuSnapshotWithButtonsDto;
 import com.unbidden.telegramcoursesbot.dto.internal.MultipageListData;
 import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto;
 import com.unbidden.telegramcoursesbot.dto.internal.SendMessageResultDto.Result;
@@ -41,8 +42,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendRichMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
@@ -77,61 +80,125 @@ public class MenuOrchestrationService {
     private final MenuUtil menuUtil;
 
     public Message initiateMenu(BotRole botRole, MenuKey key) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(key, "key cannot be null");
+
         return initiateMenu0(botRole, key, 0, Map.of(), null, null, null);
     }
 
     public Message initiateMenu(BotRole botRole, MenuKey key, String paramName, String paramValue) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(key, "key cannot be null");
+        Assert.notNull(paramName, "paramName cannot be null");
+        Assert.notNull(paramValue, "paramValue cannot be null");
+
         return initiateMenu(botRole, key, 0, paramName, paramValue);
     }
 
     public Message initiateMenu(BotRole botRole, MenuKey key, String paramName, String paramValue,
             MenuTerminationGroupKey mtgKey, Object... mtgArgs) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(key, "key cannot be null");
+        Assert.notNull(paramName, "paramName cannot be null");
+        Assert.notNull(paramValue, "paramValue cannot be null");
+        Assert.notNull(mtgKey, "mtgKey cannot be null");
+
         return initiateMenu0(botRole, key, 0, Map.of(paramName, paramValue), null, mtgKey, mtgArgs);
     }
 
     public Message initiateMenu(BotRole botRole, MenuKey key, int initialPage, String paramName, String paramValue) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(key, "key cannot be null");
+        Assert.notNull(paramName, "paramName cannot be null");
+        Assert.notNull(paramValue, "paramValue cannot be null");
+        
         return initiateMenu0(botRole, key, initialPage, Map.of(paramName, paramValue), null, null, null);
     }
 
     public Message initiateMenu(BotRole botRole, MenuKey key, int initialPage, Map<String, String> params) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(key, "key cannot be null");
+        Assert.notNull(params, "params cannot be null");
+
         return initiateMenu0(botRole, key, initialPage, params, null, null, null);
     }
 
     public void initiateMenu(BotRole botRole, MenuKey key, Integer messageId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(key, "key cannot be null");
+        
         initiateMenu0(botRole, key, 0, Map.of(), messageId, null, null);
     }
 
     public void initiateMenu(BotRole botRole, MenuKey key, String paramName, String paramValue, Integer messageId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(key, "key cannot be null");
+        Assert.notNull(paramName, "paramName cannot be null");
+        Assert.notNull(paramValue, "paramValue cannot be null");
+        Assert.notNull(messageId, "messageId cannot be null");
+        
         initiateMenu0(botRole, key, 0, Map.of(paramName, paramValue), messageId, null, null);
     }
 
     public void initiateMenu(BotRole botRole, MenuKey key, int initialPage, Map<String, String> params, Integer messageId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(key, "key cannot be null");
+        Assert.notNull(params, "params cannot be null");
+        Assert.notNull(messageId, "messageId cannot be null");
+
         initiateMenu0(botRole, key, initialPage, params, messageId, null, null);
     }
 
     public void initiateMenu(BotRole botRole, MenuKey key, int initialPage, Map<String, String> params, Integer messageId,
             MenuTerminationGroupKey mtgKey, Object... mtgArgs) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(key, "key cannot be null");
+        Assert.notNull(params, "params cannot be null");
+        Assert.notNull(messageId, "messageId cannot be null");
+        Assert.notNull(mtgKey, "mtgKey cannot be null");
+
         initiateMenu0(botRole, key, initialPage, params, messageId, mtgKey, mtgArgs);
     }
 
     public void initiateMenu(BotRole botRole, MenuKey key, String paramName, String paramValue, Integer messageId,
             MenuTerminationGroupKey mtgKey, Object... mtgArgs) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(key, "key cannot be null");
+        Assert.notNull(paramName, "paramName cannot be null");
+        Assert.notNull(paramValue, "paramValue cannot be null");
+        Assert.notNull(messageId, "messageId cannot be null");
+        Assert.notNull(mtgKey, "mtgKey cannot be null");
+
         initiateMenu0(botRole, key, 0, Map.of(paramName, paramValue), messageId, mtgKey, mtgArgs);
     }
 
     public void initiateMultipageList(BotRole botRole, AbstractDataSupplier supplier) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(supplier, "supplier cannot be null");
+
         initiateMultipageList0(botRole, supplier, Map.of());
     }
 
     public void initiateMultipageList(BotRole botRole, AbstractDataSupplier supplier, String paramName, String paramValue) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(supplier, "supplier cannot be null");
+        Assert.notNull(paramName, "paramName cannot be null");
+        Assert.notNull(paramValue, "paramValue cannot be null");
+
         initiateMultipageList0(botRole, supplier, Map.of(paramName, paramValue));
     }
 
     public void initiateMultipageList(BotRole botRole, AbstractDataSupplier supplier, Map<String, String> params) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(supplier, "supplier cannot be null");
+        Assert.notNull(params, "params cannot be null");
+
         initiateMultipageList0(botRole, supplier, params);
     }
 
     public Menu save(Menu menu) {
+        Assert.notNull(menu, "menu cannot be null");
+
         return menuRepository.save(menu);
     }
 
@@ -143,6 +210,8 @@ public class MenuOrchestrationService {
      * @param args that will be used to format the MTG key.
      */
     public void terminateMenuGroup(MenuTerminationGroupKey key, Object... args) {
+        Assert.notNull(key, "key cannot be null");
+
         terminateMenuGroup(key, null, args);
     }
 
@@ -153,6 +222,8 @@ public class MenuOrchestrationService {
      * @param args that will be used to format the group key.
      */
     public void terminateMenuGroup(MenuTerminationGroupKey key, @Nullable Localization terminalLocalizationOverride, Object... args) {
+        Assert.notNull(key, "key cannot be null");
+        
         final List<MenuSnapshot> snapshots = menuService.terminateMenus(key, args);
         
         for (final MenuSnapshot snapshot : snapshots) {
@@ -190,6 +261,10 @@ public class MenuOrchestrationService {
      */
     public void terminateMenu(Long chatId, Integer messageId, Bot bot,
             @Nullable Localization terminalPageLocalization) {
+        Assert.notNull(chatId, "chatId cannot be null");
+        Assert.notNull(messageId, "messageId cannot be null");
+        Assert.notNull(bot, "bot cannot be null");
+
         final InlineKeyboardMarkup clearMarkup = InlineKeyboardMarkup.builder()
                 .clearKeyboard()
                 .keyboard(List.of())
@@ -216,7 +291,10 @@ public class MenuOrchestrationService {
         }
     }
 
-    public void terminateMenu(BotRole botRole, List<Message> messages) {
+    public void terminateMenuManually(BotRole botRole, List<Message> messages) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notEmpty(messages, "messages cannot be empty or null");
+
         validatorUtil.checkExactExpectedMessages(botRole, messages, 1);
         final Long snapshotId = validatorUtil.parseId(botRole, messages.getFirst());
         final MenuSnapshot snapshot = menuService.terminateMenu(botRole, snapshotId);
@@ -242,6 +320,101 @@ public class MenuOrchestrationService {
         }
         clientManager.sendMessage(botRole, localizationLoader.localize(
                 Localizations.Service.MENU_MANUALLY_REMOVED_SUCCESS, botRole));
+    }
+
+    public void terminateMenu(BotRole botRole, Long snapshotId) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(snapshotId, "snapshotId cannot be null");
+
+        terminateMenu(botRole, snapshotId, null);
+    }
+
+    public void terminateMenu(BotRole botRole, Long snapshotId, Localization terminalLocOverride) {
+        Assert.notNull(botRole, "botRole cannot be null");
+        Assert.notNull(snapshotId, "snapshotId cannot be null");
+        Assert.notNull(terminalLocOverride, "terminalLocOverride cannot be null");
+
+        final MenuSnapshot snapshot = menuService.terminateMenu(botRole, snapshotId);
+        final InlineKeyboardMarkup clearMarkup = InlineKeyboardMarkup.builder()
+                .clearKeyboard()
+                .keyboard(List.of())
+                .build();
+
+        try {
+            if (snapshot instanceof final GeneralMenuSnapshot generalSnapshot) {
+                final Optional<Menu> menuOpt = menuRepository.find(generalSnapshot.getKey());
+
+                if (menuOpt.isEmpty()) {
+                    LOGGER.error("Menu " + generalSnapshot.getKey() + " does not exist. This is a bug.");
+                    return;
+                }
+                final Menu menu = menuOpt.get();
+                final Localization terminalLoc;
+
+                if (terminalLocOverride != null) {
+                    terminalLoc = terminalLocOverride;
+                } else if (menu.getTerminalPage() != null) {
+                    terminalLoc = menu.getTerminalPage().getLocalizationFunction().apply(new MenuParamsDto(snapshot.getBotRole(),
+                            menuUtil.stringToMap(generalSnapshot.getParameters()),
+                            menuUtil.stringToIntList(generalSnapshot.getPageHistory())));
+                } else {
+                    terminalLoc = null;
+                }
+    
+                if (terminalLoc == null) {
+                    clientManager.getClient(snapshot.getBotRole().getBot()).execute(DeleteMessage.builder()
+                            .chatId(snapshot.getBotRole().getUser().getId())
+                            .messageId(snapshot.getMessageId())
+                            .build());
+                } else {
+                    clientManager.getClient(snapshot.getBotRole().getBot()).execute(EditMessageText.builder()
+                            .chatId(snapshot.getBotRole().getUser().getId())
+                            .messageId(snapshot.getMessageId())
+                            .text(terminalLoc.getData())
+                            .entities(terminalLoc.getEntities())
+                            .replyMarkup(clearMarkup)
+                            .build());
+                }
+            }
+        } catch (TelegramApiException e) {
+            LOGGER.error("Unable to update or delete message " + snapshot.getMessageId() + " for user "
+                    + snapshot.getBotRole().getUser().getId() + " in bot " + snapshot.getBotRole().getBot().getId() + ".");
+        }
+    }
+
+    public void refreshMenuLocalization(BotRole botRole, Long snapshotId) {
+        final MenuSnapshotWithButtonsDto dto = menuService.getMenuSnapshotWithButtons(botRole, snapshotId);
+
+        if (dto.snapshot() instanceof GeneralMenuSnapshot generalSnapshot) {
+            final Optional<Menu> menuOpt = menuRepository.find(generalSnapshot.getKey());
+
+                if (menuOpt.isEmpty()) {
+                    LOGGER.error("Menu " + generalSnapshot.getKey() + " does not exist. This is a bug.");
+                    return;
+                }
+                final Page page = menuOpt.get().getPages().get(generalSnapshot.getCurrentPage());
+                final MenuParamsDto params = new MenuParamsDto(generalSnapshot.getBotRole(),
+                        menuUtil.stringToMap(generalSnapshot.getParameters()),
+                        menuUtil.stringToIntList(generalSnapshot.getPageHistory()));
+                final Localization loc = page.getLocalizationFunction().apply(params);
+
+            try {
+                clientManager.getClient(generalSnapshot.getBotRole().getBot()).execute(EditMessageText.builder()
+                        .chatId(generalSnapshot.getBotRole().getUser().getId())
+                        .messageId(generalSnapshot.getMessageId())
+                        .text(loc.getData())
+                        .entities(loc.getEntities())
+                        .replyMarkup(menuUtil.getMarkup(page, dto.buttons(), page.getButtonsFunction().apply(params)))
+                        .build());
+            } catch (TelegramApiException e) {
+                LOGGER.error("Unable to update message " + generalSnapshot.getMessageId() + " for user "
+                        + generalSnapshot.getBotRole().getUser().getId() + " in bot "
+                        + generalSnapshot.getBotRole().getBot().getId() + ".");
+            }
+        } else {
+            LOGGER.error("Unable to refresh the localization of menu snapshot "
+                    + snapshotId + " because it's not a general snapshot. This is a bug.");
+        }
     }
 
     public void terminateMenusForUserInBot(BotRole callerBotRole, List<Message> messages) {

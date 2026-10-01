@@ -194,6 +194,7 @@ public final class Localizations {
         COURSE_SETTINGS_PAGE_9,
         COURSE_SETTINGS_PAGE_10,
         COURSE_SETTINGS_PAGE_11,
+        COURSE_SETTINGS_TERMINAL_PAGE,
         MULTIPAGE_LIST_BOT_USERS,
         /**
          * Possible parameters:

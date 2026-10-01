@@ -14,6 +14,8 @@ public interface MenuSnapshotButtonRepository extends JpaRepository<MenuSnapshot
     @EntityGraph(attributePaths = {"snapshot"})
     Optional<MenuSnapshotButton> findById(Long id);
 
+    List<MenuSnapshotButton> findBySnapshotId(Long snapshotId);
+
     @Modifying
     @Query("""
         delete 

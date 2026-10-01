@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CoursePriceChangeButtonHandler extends AbstractButtonHandler {
     private static final String COURSE_ID_PARAM = "courseId";
+    private static final String SNAPSHOT_ID_PARAM = "snapshotId";
 
     private final CourseOrchestrationService courseService;
 
@@ -51,7 +52,7 @@ public class CoursePriceChangeButtonHandler extends AbstractButtonHandler {
         final TelegramInvoice invoice = (TelegramInvoice)course.getInvoice();
 
         sessionService.createSession(botRole, p -> {
-            courseService.updateCoursePrice(p.botRole(), courseId, p.messages());
+            courseService.updateCoursePrice(p.botRole(), courseId, Long.parseLong(params.get(SNAPSHOT_ID_PARAM)), p.messages());
         }, true);
 
         clientManager.sendMessage(botRole, localizationLoader.localize(

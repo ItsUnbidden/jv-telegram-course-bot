@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class RemoveCourseButtonHandler extends AbstractButtonHandler {
     private static final String COURSE_ID_PARAM = "courseId";
+    private static final String SNAPSHOT_ID_PARAM = "snapshotId";
 
     private final CourseOrchestrationService courseService;
 
@@ -43,7 +44,7 @@ public class RemoveCourseButtonHandler extends AbstractButtonHandler {
                 new Localizations.Service.DeleteCourseConfirmationPhraseParams(courseName)).getData();
 
         sessionService.createSession(botRole, p -> {
-            courseService.deleteCourse(p.botRole(), courseId, confirmationPhrase, p.messages());
+            courseService.deleteCourse(p.botRole(), courseId, confirmationPhrase, Long.parseLong(params.get(SNAPSHOT_ID_PARAM)), p.messages());
         });
 
         clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.DELETE_COURSE_REQUEST,

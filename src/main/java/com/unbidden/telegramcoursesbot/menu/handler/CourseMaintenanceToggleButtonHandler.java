@@ -15,12 +15,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CourseMaintenanceToggleButtonHandler extends AbstractButtonHandler {
     private static final String COURSE_ID_PARAM = "courseId";
+    private static final String SNAPSHOT_ID_PARAM = "snapshotId";
 
     private final CourseOrchestrationService courseService;
 
     @Override
     @Security(authorities = AuthorityType.COURSE_SETTINGS)
     public void handle(BotRole botRole, Map<String, String> params) {
-        courseService.toggleMaintenance(botRole, Long.parseLong(params.get(COURSE_ID_PARAM)));
+        courseService.toggleMaintenance(botRole, Long.parseLong(params.get(COURSE_ID_PARAM)), Long.parseLong(params.get(SNAPSHOT_ID_PARAM)));
     }
 }

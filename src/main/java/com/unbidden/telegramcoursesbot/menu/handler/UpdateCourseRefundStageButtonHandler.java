@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class UpdateCourseRefundStageButtonHandler extends AbstractButtonHandler {
     private static final String COURSE_ID_PARAM = "courseId";
+    private static final String SNAPSHOT_ID_PARAM = "snapshotId";
 
     private final ContentSessionService sessionService;
 
@@ -49,7 +50,7 @@ public class UpdateCourseRefundStageButtonHandler extends AbstractButtonHandler 
         }
    
         sessionService.createSession(botRole, p -> {
-            courseService.updateRefundStage(p.botRole(), course.getId(), p.messages());
+            courseService.updateRefundStage(p.botRole(), course.getId(), Long.parseLong(params.get(SNAPSHOT_ID_PARAM)), p.messages());
         }, true);
 
         clientManager.sendMessage(botRole, localizationLoader.localize(Localizations.Service.NEW_REFUND_STAGE_REQUEST,

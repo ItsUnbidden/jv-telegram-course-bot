@@ -30,7 +30,7 @@ public class TerminateMenuButtonHandler extends AbstractButtonHandler {
     @Security(authorities = AuthorityType.MAINTENANCE, isBotLordOnly = true)
     public void handle(BotRole botRole, Map<String, String> params) {
         sessionService.createSession(botRole, p -> {
-            menuService.terminateMenu(p.botRole(), p.messages());
+            menuService.terminateMenuManually(p.botRole(), p.messages());
         }, true);
 
         clientManager.sendMessage(botRole, loader.localize(Localizations.Service.MENU_MANUALLY_REMOVED_REQUEST, botRole));

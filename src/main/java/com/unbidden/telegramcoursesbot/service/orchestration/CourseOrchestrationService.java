@@ -224,7 +224,7 @@ public class CourseOrchestrationService {
         current(botRole, progress);
     }
 
-    public void toggleMaintenance(BotRole botRole, Long courseId) {
+    public void toggleMaintenance(BotRole botRole, Long courseId, Long snapshotId) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
@@ -235,10 +235,11 @@ public class CourseOrchestrationService {
                 Localizations.Service.COURSE_MAINTENANCE_TOGGLE_SUCCESS, botRole,
                 new Localizations.Service.CourseMaintenanceToggleSuccessParams(getStatus(botRole, course.isUnderMaintenance()),
                     contentService.getLocalizedText(botRole, course.getTitle()))));
-        LOGGER.debug("Message sent.");
+        LOGGER.debug("Message sent. Refreshing localization...");
+        menuService.refreshMenuLocalization(botRole, snapshotId);
     }
 
-    public void toggleFeedbackInclusion(BotRole botRole, Long courseId) {
+    public void toggleFeedbackInclusion(BotRole botRole, Long courseId, Long snapshotId) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
@@ -249,10 +250,11 @@ public class CourseOrchestrationService {
                 Localizations.Service.COURSE_FEEDBACK_UPDATE_SUCCESS, botRole,
                 new Localizations.Service.CourseFeedbackUpdateSuccessParams(getStatus(botRole, course.isFeedbackIncluded()),
                     contentService.getLocalizedText(botRole, course.getTitle()))));
-        LOGGER.debug("Message sent.");
+        LOGGER.debug("Message sent. Refreshing localization...");
+        menuService.refreshMenuLocalization(botRole, snapshotId);
     }
 
-    public void toggleHomeworkInclusion(BotRole botRole, Long courseId) {
+    public void toggleHomeworkInclusion(BotRole botRole, Long courseId, Long snapshotId) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
 
@@ -263,10 +265,11 @@ public class CourseOrchestrationService {
                 Localizations.Service.COURSE_HOMEWORK_UPDATE_SUCCESS, botRole,
                 new Localizations.Service.CourseHomeworkUpdateSuccessParams(getStatus(botRole, course.isHomeworkIncluded()),
                     contentService.getLocalizedText(botRole, course.getTitle()))));
-        LOGGER.debug("Message sent.");
+        LOGGER.debug("Message sent. Refreshing localization...");
+        menuService.refreshMenuLocalization(botRole, snapshotId);
     }
 
-    public void updateCoursePrice(BotRole botRole, Long courseId, List<Message> messages) {
+    public void updateCoursePrice(BotRole botRole, Long courseId, Long snapshotId, List<Message> messages) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
         Assert.notEmpty(messages, "messages cannot be empty or null");
@@ -282,10 +285,12 @@ public class CourseOrchestrationService {
                 Localizations.Service.COURSE_PRICE_UPDATE_SUCCESS, botRole,
                 new Localizations.Service.CoursePriceUpdateSuccessParams(contentService.getLocalizedText(
                     botRole, course.getTitle()), ((TelegramInvoice)course.getInvoice()).getPrice())));
-        LOGGER.debug("Message sent.");
+        LOGGER.debug("Message sent. Refreshing localization...");
+        menuService.refreshMenuLocalization(botRole, snapshotId);
     }
 
-    public void deleteCourse(BotRole botRole, Long courseId, String confirmationPhrase, List<Message> messages) {
+    public void deleteCourse(BotRole botRole, Long courseId, String confirmationPhrase,
+            Long snapshotId, List<Message> messages) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
         Assert.notNull(confirmationPhrase, "confirmationPhrase cannot be null");
@@ -309,10 +314,11 @@ public class CourseOrchestrationService {
         LOGGER.debug("Sending confirmation message...");
         clientManager.sendMessage(botRole, localizationLoader
                 .localize(Localizations.Service.DELETE_COURSE_SUCCESS, botRole));
-        LOGGER.debug("Message sent.");
+        LOGGER.debug("Message sent. Terminating course settings menu...");
+        menuService.terminateMenu(botRole, snapshotId, localizationLoader.localize(Localizations.Menu.COURSE_SETTINGS_TERMINAL_PAGE, botRole));
     }
 
-    public void updateRefundStage(BotRole botRole, Long courseId, List<Message> messages) {
+    public void updateRefundStage(BotRole botRole, Long courseId, Long snapshotId, List<Message> messages) {
         Assert.notNull(botRole, "botRole cannot be null");
         Assert.notNull(courseId, "courseId cannot be null");
         Assert.notEmpty(messages, "messages cannot be empty or null");
@@ -333,7 +339,8 @@ public class CourseOrchestrationService {
                             ? localizationLoader.localize(Localizations.Service.NOT_AVAILABLE, botRole).getData()
                             : invoice.getRefundStage().toString()
                     )));
-        LOGGER.debug("Message sent.");
+        LOGGER.debug("Message sent. Refreshing localization...");
+        menuService.refreshMenuLocalization(botRole, snapshotId);
     }
 
     public void addEndMapping(BotRole botRole, Long courseId, List<Message> messages) {
